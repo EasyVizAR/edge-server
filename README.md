@@ -22,3 +22,11 @@ The API specification is divided into functions intended for the headsets and fo
 * Get combined map data
 * Get position of wearable device(s)
 * Add a map feature: this could be a waypoint for directions, a target, a point of interest and may include rendering information such as text, arrows, polygons, colors, display duration, position hint (e.g. top of screen), or an image
+
+## Position of Features in AR
+
+Here a few ways the API can specify the position of map features (points, symbols, or polygons) to be displayed in AR.
+
+* Fixed placement – a number of pixels or percentage from the top, bottom, left, or right of the screen
+* Surface placement – on a floor or wall surface, centered or placed at an offset from the edge of the surface
+* Point placement – a marker placed at a specified coordinate in space either relative to the headset or in a global coordinate system
