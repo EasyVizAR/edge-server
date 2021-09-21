@@ -23,10 +23,139 @@ The API specification is divided into functions intended for the headsets and fo
 * Get position of wearable device(s)
 * Add a map feature: this could be a waypoint for directions, a target, a point of interest and may include rendering information such as text, arrows, polygons, colors, display duration, position hint (e.g. top of screen), or an image
 
+## API Function Specifications
+
+The goal should be to follow REST API design practices to the extent that is reasonable.
+See: https://docs.microsoft.com/en-us/azure/architecture/best-practices/api-design
+
+| List headsets ||
+| ---               | --- |
+| URL               | /headsets |
+| Method            | GET |
+| URL Parameters    | N/A |
+| Success Response  | Code: 200 OK <br \> Content: `[{ *headset* }, ...]` |
+| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }`|
+
+| Show headset ||
+| ---               | --- |
+| URL               | /headsets/:id |
+| Method            | GET |
+| URL Parameters    | Required: <br \> `id=[GUID]` |
+| Success Response  | Code: 200 OK <br \> Content: `{ *headset* }` |
+| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }` |
+| Error Response    | Code: 404 NOT FOUND <br \> Content: `{ "error": "The requested headset does not exist." }` |
+
+| List maps ||
+| ---               | --- |
+| URL               | /maps |
+| Method            | GET |
+| URL Parameters    | N/A |
+| Success Response  | Code: 200 OK <br \> Content: `[{ *map* }, ...]` |
+| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }`|
+
+| Show map ||
+| ---               | --- |
+| URL               | /maps/:id |
+| Method            | GET |
+| URL Parameters    | Required: <br \> `id=[GUID]` |
+| Success Response  | Code: 200 OK <br \> Content: `{ *map* }` |
+| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }` |
+| Error Response    | Code: 404 NOT FOUND <br \> Content: `{ "error": "The requested map does not exist." }` |
+
+| List map features ||
+| ---               | --- |
+| URL               | /maps/:map-id/features |
+| Method            | GET |
+| URL Parameters    | Required: <br \> `map-id=[GUID]` |
+| Success Response  | Code: 200 OK <br \> Content: `[{ *feature* }, ...]` |
+| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }`|
+| Error Response    | Code: 404 NOT FOUND <br \> Content: `{ "error": "The requested map does not exist." }` |
+
+| Add map feature ||
+| ---               | --- |
+| URL               | /maps/:map-id/features |
+| Method            | POST |
+| URL Parameters    | Required: <br \> `map-id=[GUID]` |
+| Data              | `{ *map feature* }`
+| Success Response  | Code: 201 CREATED <br \> Content: `{ *feature* }` |
+| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }`|
+| Error Response    | Code: 404 NOT FOUND <br \> Content: `{ "error": "The requested map does not exist." }` |
+
+| Update a headset position ||
+| ---               | --- |
+| URL               | /headsets/:headset-id/updates |
+| Method            | POST |
+| URL Parameters    | Required: <br \> `headset-id=[GUID]` |
+| Data              | `{ *headset update* }`
+| Success Response  | Code: 201 CREATED <br \> Content: `{ *headset update* }` |
+| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }`|
+| Error Response    | Code: 404 NOT FOUND <br \> Content: `{ "error": "The requested headset does not exist." }` |
+
+### Headset Object
+
+```json
+{
+    "id": "337329fb-4c07-4957-8bbe-072a92817ea3",
+    "name": "Headset 3",
+    "position": {
+        "x": 10,
+        "y": 10,
+        "z": 10
+    },
+    "mapID": "b5c6fc5a-e5f7-4c7e-9e8e-d1d5276a54b6",
+    "lastUpdate": "2021-09-21 14:06:39",
+}
+```
+
+### Map Object
+
+```json
+{
+    "id": "b5c6fc5a-e5f7-4c7e-9e8e-d1d5276a54b6",
+    "name": "CS 7th Floor",
+    "image": "/images/maps/b5c6fc5a-e5f7-4c7e-9e8e-d1d5276a54b6.png"
+}
+```
+
+### Map Feature Object
+
+```json
+{
+    "id": "c4b1e5bb-9e2a-4f76-987b-9ece3e06639e",
+    "name": "Office",
+    "position": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    },
+    "mapID": "b5c6fc5a-e5f7-4c7e-9e8e-d1d5276a54b6",
+    "style": {
+        "placement": "floating|surface|point",
+        "topOffset": "10%",
+        "leftOffset: "10%",
+        "icon": "/images/icons/marker.png"
+    }
+}
+```
+
+### Headset Update Object
+
+```json
+{
+    "headsetID": "337329fb-4c07-4957-8bbe-072a92817ea3",
+    "position": {
+        "x": 20,
+        "y": 20,
+        "z": 20
+    },
+    "mapID": "b5c6fc5a-e5f7-4c7e-9e8e-d1d5276a54b6"
+}
+```
+
 ## Position of Features in AR
 
 Here a few ways the API can specify the position of map features (points, symbols, or polygons) to be displayed in AR.
 
-* Fixed placement – a number of pixels or percentage from the top, bottom, left, or right of the screen
+* Floating placement – a number of pixels or percentage from the top, bottom, left, or right of the screen
 * Surface placement – on a floor or wall surface, centered or placed at an offset from the edge of the surface
 * Point placement – a marker placed at a specified coordinate in space either relative to the headset or in a global coordinate system
