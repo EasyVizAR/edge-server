@@ -132,7 +132,7 @@ See: https://docs.microsoft.com/en-us/azure/architecture/best-practices/api-desi
     "style": {
         "placement": "floating|surface|point",
         "topOffset": "10%",
-        "leftOffset: "10%",
+        "leftOffset": "10%",
         "icon": "/images/icons/marker.png"
     }
 }
