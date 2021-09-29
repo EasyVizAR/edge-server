@@ -32,7 +32,7 @@ async def show_map(id):
 
     if found_map:
         return {"code": "200 OK",
-                "map": map}
+                "map": found_map}
     else:
         return {"code": "404 NOT FOUND",
                 "error": "The requested map does not exist"}
