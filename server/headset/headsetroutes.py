@@ -18,6 +18,12 @@ async def get_all():
 @blueprint.route('/headsets/<id>', methods=['GET'])
 async def get(id):
     headset = headset_repository.get_headset(id)
+
+    if headset is None:
+        return await make_response(
+            jsonify({"message": "The requested headset does not exist.", "severity": "Error"}),
+            HTTPStatus.NOT_FOUND)
+
     return await make_response(jsonify(json.dumps(headset, cls=GenericJsonEncoder)), HTTPStatus.OK)
 
 
@@ -65,6 +71,11 @@ async def update_position(headsetId):
             HTTPStatus.BAD_REQUEST)
 
     position = {'x': body['x'], 'y': body['y'], 'z': body['z']}
-    headset_repository.update_position(headsetId, position)
+    updated_headset = headset_repository.update_position(headsetId, position)
 
-    return await make_response(position, HTTPStatus.OK)
+    if updated_headset is None:
+        return await make_response(
+            jsonify({"message": "The requested headset does not exist.", "severity": "Error"}),
+            HTTPStatus.NOT_FOUND)
+
+    return await make_response(jsonify(json.dumps(updated_headset, cls=GenericJsonEncoder)), HTTPStatus.OK)

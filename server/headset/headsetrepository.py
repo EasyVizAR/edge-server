@@ -27,13 +27,18 @@ class Repository:
         return self.headsets
 
     def get_headset(self, id):
+        if id not in self.headsets:
+            return None
         return self.headsets[id]
 
     def update_position(self, id, position):
+        if id not in self.headsets:
+            return None
         self.headsets[id].position['x'] = position['x']
         self.headsets[id].position['y'] = position['y']
         self.headsets[id].position['z'] = position['z']
         self.headsets[id].lastUpdate = time.time()
+        return self.headsets[id]
 
 
 headset_repository = Repository()
