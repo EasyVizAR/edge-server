@@ -9,7 +9,7 @@ from server.utils.utils import GenericJsonEncoder
 blueprint = Blueprint('headsets', __name__)
 
 
-@blueprint.route('/headsets/', methods=['GET'])
+@blueprint.route('/headsets', methods=['GET'])
 async def get_all():
     headsets = headset_repository.headsets
     return await make_response(jsonify(json.dumps(headsets, cls=GenericJsonEncoder)), HTTPStatus.OK)

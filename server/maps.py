@@ -1,11 +1,12 @@
-from quart import Quart, request
+from quart import Blueprint, request
 
-app = Quart(__name__)
+maps = Blueprint('maps', __name__)
+
 
 '''
 Lists all maps found
 '''
-@app.route('/maps', methods=['GET'])
+@maps.route('/maps', methods=['GET'])
 async def list_maps():
 
     # TODO: check authorization
@@ -20,7 +21,7 @@ async def list_maps():
 '''
 Lists the map with the given id
 '''
-@app.route('/maps/<id>', methods=['GET'])
+@maps.route('/maps/<id>', methods=['GET'])
 async def show_map(id):
 
     # TODO: check authorization
@@ -40,7 +41,7 @@ async def show_map(id):
 '''
 Lists the map features with the given id
 '''
-@app.route('/maps/<id>/features', methods=['GET'])
+@maps.route('/maps/<id>/features', methods=['GET'])
 async def list_map_features(id):
 
     # TODO: check authorization
@@ -59,7 +60,7 @@ async def list_map_features(id):
 '''
 Adds a feature to the map with the given id
 '''
-@app.route('/maps/<id>/features', methods=['POST'])
+@maps.route('/maps/<id>/features', methods=['POST'])
 async def add_map_feature(id):
 
     # TODO: check authorization
