@@ -1,0 +1,17 @@
+name: easyvizar-edge-server
+description: Collaboration point for multiple EasyVizAR headsets
+version: 1
+
+services:
+  main:
+    command: python3 -m quart run --host 0.0.0.0 --port 5000
+    image: python3
+    source: .
+    type: light
+    environment:
+      QUART_APP: server.main:app
+      QUART_ENV: production
+
+web:
+  port: 5000
+  service: main
