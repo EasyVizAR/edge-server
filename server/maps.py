@@ -8,70 +8,120 @@ maps = Blueprint('maps', __name__)
 
 DEFAULT_ENVIRONMENT_FOLDER = './data'
 
-'''
-Lists all maps found
-'''
-@maps.route('/maps', methods=['GET'])
-async def list_maps():
 
-    # TODO: check authorization
-
-    body = await request.get_json()
-    found_maps = []
+def open_maps_dir():
+    """
+    Opens the maps directory
+    """
 
     maps_path = os.environ.get("VIZAR_DATA_DIR", DEFAULT_ENVIRONMENT_FOLDER)
     maps_path += maps_path + '/maps'
-    maps_file = os.listdir()
+    maps_list = os.listdir(maps_path)
 
-    # TODO: get list of maps
+    return maps_list, maps_path
 
-    return {
-        'code': '200 OK',
-        'maps': found_maps
-    }
 
-'''
-Lists the map with the given id
-'''
+def find_map(map_id):
+    """
+    Finds the map related to the given id
+    """
+
+    # opens maps directory
+    maps_list, maps_path = open_maps_dir()
+
+    # find map given the id
+    for map_dir in maps_list:
+        if map_id == map_dir:
+            return map_dir, maps_path
+            break
+
+    # map not found
+    return None, None
+
+
+@maps.route('/maps', methods=['GET'])
+async def list_maps():
+    """
+    Lists all maps found
+    """
+
+    # TODO: check authorization
+
+    try:
+        all_maps = []
+
+        # open maps directory
+        maps_list, maps_path = open_maps_dir()
+
+        # add all map data to all_maps
+        for map_id in maps_list:
+            map_file = open(maps_path + '/' + str(map_id) + '/map.json')
+            map_data = json.load(map_file)
+            map_file.close()
+            all_maps.append(map_data)
+
+        return make_response(
+            jsonify({"maps": all_maps}),
+            HTTPStatus.OK)
+
+    except Exception as e:
+        maps.logger.exception('Error getting map ' + str(id) + '.\n' + str(e))
+
+        return make_response(
+            jsonify({"message": "Something went wrong", "severity": "Error"}),
+            HTTPStatus.INTERNAL_SERVER_ERROR)
+
+
 @maps.route('/maps/<id>', methods=['GET'])
 async def show_map(id):
+    """
+    Lists the map with the given id
+    """
 
     # TODO: check authorization
 
-    body = await request.get_json()
-    found_map = []
-
-    # TODO: get map
     try:
-        if found_map:
-            return (found_map, 200)
-        else:
-            return ({"error": "The requested map does not exist"}, 404)
-    except Exception as e:
-        return ({"error": e}, 500)
 
-'''
-Lists the map features with the given id
-'''
+        # check if map exists
+        found_map_name, maps_path = find_map(id)
+
+        # check if map exists
+        if not found_map_name:
+            make_response(
+                jsonify({"message": "The requested map does not exist", "severity": "Error"}),
+                HTTPStatus.NOT_FOUND)
+
+        # get map data
+        map_file = open(maps_path + '/' + str(found_map_name) + '/map.json')
+        map_data = json.load(map_file)
+        map_file.close()
+
+        maps.logger.info('Map ' + str(id) + ' found')
+
+        return make_response(
+            jsonify({"map": map_data}),
+            HTTPStatus.OK)
+
+    except Exception as e:
+        maps.logger.exception('Error getting map ' + str(id) + '.\n' + str(e))
+
+        return make_response(
+            jsonify({"message": "Something went wrong", "severity": "Error"}),
+            HTTPStatus.INTERNAL_SERVER_ERROR)
+
+
 @maps.route('/maps/<id>/features', methods=['GET'])
 async def list_map_features(id):
-
-    maps.logger.info('getting map ' + str(id))
+    """
+    Lists the map features with the given id
+    """
 
     # TODO: check authorization
 
     try:
-        found_map_name = None
 
-        maps_path = os.environ.get("VIZAR_DATA_DIR", DEFAULT_ENVIRONMENT_FOLDER)
-        maps_path += maps_path + '/maps'
-        maps_list = os.listdir(maps_path)
-
-        # find map given the id
-        for map in maps_list:
-            if id == map:
-                found_map_name = map
-                break
+        # check if map exists
+        found_map_name, maps_path = find_map(id)
 
         # check if map exists
         if not found_map_name:
@@ -99,11 +149,11 @@ async def list_map_features(id):
             HTTPStatus.INTERNAL_SERVER_ERROR)
 
 
-'''
-Adds a feature to the map with the given id
-'''
 @maps.route('/maps/<id>/features', methods=['POST'])
 async def add_map_feature(id):
+    """
+    Adds a feature to the map with the given id
+    """
 
     # TODO: check authorization
 
@@ -111,17 +161,9 @@ async def add_map_feature(id):
     found_map = []
 
     try:
-        found_map_name = None
 
-        maps_path = os.environ.get("VIZAR_DATA_DIR", DEFAULT_ENVIRONMENT_FOLDER)
-        maps_path += maps_path + '/maps'
-        maps_list = os.listdir(maps_path)
-
-        # find map given the id
-        for map in maps_list:
-            if id == map:
-                found_map_name = map
-                break
+        # check if map exists
+        found_map_name, maps_path = find_map(id)
 
         # check if map exists
         if not found_map_name:
