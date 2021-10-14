@@ -55,7 +55,7 @@ async def list_maps():
 
         # add all map data to all_maps
         for map_id in maps_list:
-            map_file = open(maps_path + '/' + str(map_id) + '/map.json')
+            map_file = open(maps_path + '/' + str(map_id) + '/map.json', 'r')
             map_data = json.load(map_file)
             map_file.close()
             all_maps.append(map_data)
@@ -92,7 +92,7 @@ async def show_map(id):
                 HTTPStatus.NOT_FOUND)
 
         # get map data
-        map_file = open(maps_path + '/' + str(found_map_name) + '/map.json')
+        map_file = open(maps_path + '/' + str(found_map_name) + '/map.json', 'r')
         map_data = json.load(map_file)
         map_file.close()
 
@@ -130,7 +130,7 @@ async def list_map_features(id):
                 HTTPStatus.NOT_FOUND)
 
         # get the map features
-        map_features_file = open(maps_path + '/' + str(found_map_name) + '/features.json')
+        map_features_file = open(maps_path + '/' + str(found_map_name) + '/features.json', 'r')
         map_features = json.load(map_features_file)
         map_features_file.close()
 
@@ -158,7 +158,6 @@ async def add_map_feature(id):
     # TODO: check authorization
 
     body = await request.get_json()
-    found_map = []
 
     try:
 
@@ -168,16 +167,26 @@ async def add_map_feature(id):
         # check if map exists
         if not found_map_name:
             make_response(
-                jsonify({"message": "The requested map does not exist", "severity": "Error"}),
+                jsonify({"  message": "The requested map does not exist", "severity": "Error"}),
                 HTTPStatus.NOT_FOUND)
 
+        # get new feature
+        new_feature = body['new_feature']
+
         # get the map features
-        map_features_file = open(maps_path + '/' + str(found_map_name) + '/features.json')
+        map_features_file = open(maps_path + '/' + str(found_map_name) + '/features.json', 'r')
         map_features = json.load(map_features_file)
         map_features_file.close()
 
-        # TODO: add features of map
-        map_features = None
+        # update json
+        map_features.update(new_feature)
+
+        # open the file back up to write to it
+        map_features_file = open(maps_path + '/' + str(found_map_name) + '/features.json', 'w')
+
+        # write it back to the file
+        map_features_file.write(map_features)
+        map_features_file.close()
 
         return make_response(
             jsonify({"message": "Feature added"}),
