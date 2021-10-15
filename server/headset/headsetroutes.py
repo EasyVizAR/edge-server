@@ -1,9 +1,9 @@
 import json
 from http import HTTPStatus
 
-from quart import request, jsonify, Blueprint, Response, make_response
+from quart import request, jsonify, make_response, Blueprint
 
-from server.headset.headsetrepository import headset_repository
+from server.headset.headsetrepository import get_headset_repository
 from server.utils.utils import GenericJsonEncoder
 
 blueprint = Blueprint('headsets', __name__)
@@ -11,13 +11,13 @@ blueprint = Blueprint('headsets', __name__)
 
 @blueprint.route('/headsets/', methods=['GET'])
 async def get_all():
-    headsets = headset_repository.headsets
+    headsets = get_headset_repository().headsets
     return await make_response(jsonify(json.dumps(headsets, cls=GenericJsonEncoder)), HTTPStatus.OK)
 
 
 @blueprint.route('/headsets/<id>', methods=['GET'])
 async def get(id):
-    headset = headset_repository.get_headset(id)
+    headset = get_headset_repository().get_headset(id)
 
     if headset is None:
         return await make_response(
@@ -39,7 +39,7 @@ async def register():
     name = body['name']
     position = body['position']
     mapId = body['mapId']
-    headset_id = headset_repository.add_headset(name, position, mapId)
+    headset_id = get_headset_repository().add_headset(name, position, mapId)
 
     return await make_response({'id': headset_id}, HTTPStatus.OK)
 
@@ -71,7 +71,7 @@ async def update_position(headsetId):
             HTTPStatus.BAD_REQUEST)
 
     position = {'x': body['x'], 'y': body['y'], 'z': body['z']}
-    updated_headset = headset_repository.update_position(headsetId, position)
+    updated_headset = get_headset_repository().update_position(headsetId, position)
 
     if updated_headset is None:
         return await make_response(
@@ -79,3 +79,21 @@ async def update_position(headsetId):
             HTTPStatus.NOT_FOUND)
 
     return await make_response(jsonify(json.dumps(updated_headset, cls=GenericJsonEncoder)), HTTPStatus.OK)
+
+
+# TODO: will this be in a separate file?
+@blueprint.route('/image-uploads/', methods=['POST'])
+async def image_upload():
+    body = await request.get_json()
+
+    if 'intent' not in body or 'data' not in body or 'type' not in body:
+        return await make_response(
+            jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
+            HTTPStatus.BAD_REQUEST)
+    elif 'maps' == body['intent'] and 'mapID' not in body['data']: # TODO: What is the condition for -> For a feature, it should include bounding box(es) and feature labels.?
+        return await make_response(
+            jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
+            HTTPStatus.BAD_REQUEST)
+
+    return await make_response(jsonify(get_headset_repository().create_image(body['intent'], body['data'], body['type'])),
+                               HTTPStatus.CREATED)
