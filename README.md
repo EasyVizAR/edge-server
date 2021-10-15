@@ -91,6 +91,14 @@ See: https://docs.microsoft.com/en-us/azure/architecture/best-practices/api-desi
 | Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }`|
 | Error Response    | Code: 404 NOT FOUND <br \> Content: `{ "error": "The requested headset does not exist." }` |
 
+| Prepare an image upload ||
+| ---               | --- |
+| URL               | /image-uploads |
+| Method            | POST |
+| Data              | `{ *image upload* }`
+| Success Response  | Code: 201 CREATED <br \> Content: `{ *image upload* }` |
+| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }`|
+
 ### Headset Object
 
 ```json
@@ -151,6 +159,27 @@ See: https://docs.microsoft.com/en-us/azure/architecture/best-practices/api-desi
     "mapID": "b5c6fc5a-e5f7-4c7e-9e8e-d1d5276a54b6"
 }
 ```
+
+### Image Upload Object
+
+```json
+{
+    "id": "5586018a-761c-4a93-a3fa-bb7f4e354626",
+    "url": "/images/uploads/5586018a-761c-4a93-a3fa-bb7f4e354626.png",
+    "intent": "maps|features|detection",
+    "data": { "mapID": "b5c6fc5a-e5f7-4c7e-9e8e-d1d5276a54b6" },
+    "type": "image/png"
+}
+```
+
+When calling POST /image-uploads, the client provides the intent, data, and type fields.
+The data field depends on the intent and will be passed to that module. For a map image,
+it should include the map ID. For a feature, it should include bounding box(es) and
+feature labels. Type is a MIME type such as "image/png" or "image/jpeg".
+
+When responding to POST /image-uploads, the server fills in the id and url fields based
+on the information in the request. The url field tells the client where to upload the
+image file itself.
 
 ## Position of Features in AR
 
