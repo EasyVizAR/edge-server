@@ -4,6 +4,20 @@ This module coordinates interactions between multiple AR headsets, collects map 
 
 AR headset <- HTTP -> edge-server <- HTTP -> App or web interface
 
+# Setup
+
+Install dependencies.
+
+```console
+pip install -r requirements.txt
+```
+
+Run the server with default settings. By default, it will listen on localhost port 5000 and look in the running directory for data and configuration files.
+
+```console
+python3 -m server
+```
+
 # API
 
 The API specification is divided into functions intended for the headsets and for the app/web user interface, although there will be some overlap.
