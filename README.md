@@ -18,6 +18,13 @@ Run the server with default settings. By default, it will listen on localhost po
 python3 -m server
 ```
 
+Run all of the unit tests.
+
+```console
+python3 -m nose2
+```
+
+
 # API
 
 The API specification is divided into functions intended for the headsets and for the app/web user interface, although there will be some overlap.
