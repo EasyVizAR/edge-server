@@ -21,7 +21,7 @@ python3 -m server
 Run all of the unit tests.
 
 ```console
-python3 -m nose2
+python3 -m pytest
 ```
 
 
