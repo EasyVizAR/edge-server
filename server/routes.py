@@ -5,10 +5,9 @@ routes = Blueprint('routes', __name__)
 @routes.route("/")
 @routes.route("/index")
 @routes.route("/home")
-def home():
-    return render_template('home.html', title='Home')
+async def home():
+    return await render_template('home.html', title='Home')
 
 @routes.route("/new_map")
-def new_map():
-
-    return render_template('new_map.html', title='New Map')
+async def new_map():
+    return await render_template('new_map.html', title='New Map')
