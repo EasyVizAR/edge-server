@@ -24,6 +24,12 @@ Run all of the unit tests.
 python3 -m pytest
 ```
 
+Alternatively, build and run using Docker.
+
+```console
+docker build -t vizar-edge-server .
+docker run --rm -p 5000:5000/tcp --name vizar-edge-server vizar-edge-server
+```
 
 # API
 
