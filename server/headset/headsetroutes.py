@@ -11,12 +11,38 @@ blueprint = Blueprint('headsets', __name__)
 
 @blueprint.route('/headsets', methods=['GET'])
 async def get_all():
+    """
+    List headsets
+    ---
+    get:
+        description: List headsets
+        responses:
+            200:
+                description: A list of headsets.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: HeadsetSchema
+    """
     headsets = get_headset_repository().headsets
     return await make_response(jsonify(headsets), HTTPStatus.OK)
 
 
 @blueprint.route('/headsets/<id>', methods=['GET'])
 async def get(id):
+    """
+    Get headset
+    ---
+    get:
+        description: Get a headset
+        responses:
+            200:
+                description: A headset
+                content:
+                    application/json:
+                        schema: HeadsetSchema
+    """
     headset = get_headset_repository().get_headset(id)
 
     if headset is None:
@@ -29,6 +55,18 @@ async def get(id):
 
 @blueprint.route('/headsets/register/', methods=['POST'])
 async def register():
+    """
+    Register a headset
+    ---
+    post:
+        description: Register a headset
+        responses:
+            200:
+                description: A headset
+                content:
+                    application/json:
+                        schema: HeadsetSchema
+    """
     body = await request.get_json()
 
     if 'name' not in body or 'position' not in body or 'mapId' not in body:
@@ -46,6 +84,15 @@ async def register():
 
 @blueprint.route('/headsets/authenticate/', methods=['POST'])
 async def authenticate():
+    """
+    Authenticate a headset
+    ---
+    post:
+        description: Authenticate a headset
+        responses:
+            200:
+                description: Authentication response
+    """
     body = await request.get_json()
 
     if 'password' not in body or 'username' not in body:
@@ -63,6 +110,18 @@ async def authenticate():
 
 @blueprint.route('/headsets/<headsetId>/updates/', methods=['POST'])
 async def update_position(headsetId):
+    """
+    Update a headset
+    ---
+    post:
+        description: Update a headset
+        responses:
+            200:
+                description: A headset update object
+                content:
+                    application/json:
+                        schema: HeadsetUpdateSchema
+    """
     body = await request.get_json()
 
     if 'x' not in body or 'y' not in body or 'z' not in body:
@@ -84,6 +143,18 @@ async def update_position(headsetId):
 # TODO: will this be in a separate file?
 @blueprint.route('/image-uploads/', methods=['POST'])
 async def image_upload():
+    """
+    Initiate a file upload
+    ---
+    post:
+        description: Initiate a file upload
+        responses:
+            200:
+                description: A file upload object
+                content:
+                    application/json:
+                        schema: ImageUploadSchema
+    """
     body = await request.get_json()
 
     if 'intent' not in body or 'data' not in body or 'type' not in body:

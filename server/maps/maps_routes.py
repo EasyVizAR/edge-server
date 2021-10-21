@@ -63,6 +63,17 @@ def create_map_dir(map_id):
 async def list_maps():
     """
     Lists all maps found
+    ---
+    get:
+        description: List maps
+        responses:
+            200:
+                description: A list of maps.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: MapSchema
     """
 
     # TODO: check authorization
@@ -96,6 +107,15 @@ async def list_maps():
 async def show_map(map_id):
     """
     Lists the map with the given id
+    ---
+    get:
+        description: Get map
+        responses:
+            200:
+                description: A map.
+                content:
+                    application/json:
+                        schema: MapSchema
     """
 
     # TODO: check authorization
@@ -134,6 +154,17 @@ async def show_map(map_id):
 async def list_map_features(map_id):
     """
     Lists the map features with the given id
+    ---
+    get:
+        description: List map features
+        responses:
+            200:
+                description: A list of map features.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: MapFeatureSchema
     """
 
     # TODO: check authorization
@@ -173,6 +204,15 @@ async def list_map_features(map_id):
 async def add_map_feature(map_id):
     """
     Adds a feature to the map with the given id
+    ---
+    post:
+        description: Add map feature
+        responses:
+            200:
+                description: Feature added
+                content:
+                    application/json:
+                        schema: MapFeatureSchema
     """
 
     # TODO: check authorization
@@ -224,6 +264,15 @@ async def add_map_feature(map_id):
 async def create_map():
     """
     Creates a map
+    ---
+    post:
+        description: Add a map
+        responses:
+            200:
+                description: Map added
+                content:
+                    application/json:
+                        schema: MapSchema
     """
 
     # TODO check authorization
