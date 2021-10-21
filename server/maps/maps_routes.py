@@ -221,7 +221,7 @@ async def add_map_feature(map_id):
 
 
 @maps.route('/maps/create', methods=['POST'])
-def create_map():
+async def create_map():
     """
     Creates a map
     """
