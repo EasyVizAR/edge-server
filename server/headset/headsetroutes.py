@@ -12,7 +12,7 @@ blueprint = Blueprint('headsets', __name__)
 @blueprint.route('/headsets', methods=['GET'])
 async def get_all():
     headsets = get_headset_repository().headsets
-    return await make_response(jsonify(json.dumps(headsets, cls=GenericJsonEncoder)), HTTPStatus.OK)
+    return await make_response(jsonify(headsets), HTTPStatus.OK)
 
 
 @blueprint.route('/headsets/<id>', methods=['GET'])
