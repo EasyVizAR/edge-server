@@ -26,7 +26,7 @@ async def get_all():
                             items: HeadsetSchema
     """
     headsets = get_headset_repository().headsets
-    return await make_response(jsonify(headsets), HTTPStatus.OK)
+    return await make_response(jsonify(json.dumps(headsets, cls=GenericJsonEncoder)), HTTPStatus.OK)
 
 
 @blueprint.route('/headsets/<id>', methods=['GET'])
