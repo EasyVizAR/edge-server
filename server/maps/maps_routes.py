@@ -15,6 +15,7 @@ def open_maps_dir():
 
     data_dir = os.environ.get("VIZAR_DATA_DIR", DEFAULT_ENVIRONMENT_FOLDER)
     maps_path = os.path.join(data_dir, "maps")
+    os.makedirs(maps_path, exist_ok=True)
     maps_list = os.listdir(maps_path)
 
     return maps_list, maps_path

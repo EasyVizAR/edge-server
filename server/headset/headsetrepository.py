@@ -34,6 +34,7 @@ class Repository:
 
     def __init__(self):
         headset_dir = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'])
+        os.makedirs(headset_dir, exist_ok=True)
         for folder in os.scandir(headset_dir):
             if folder.is_dir():
                 headset = json.load(open(f"{folder.path}/headset.json", 'r'))
