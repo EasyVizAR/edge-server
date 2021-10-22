@@ -64,17 +64,6 @@ def create_map_dir(map_id):
 async def list_maps():
     """
     Lists all maps found
-    ---
-    get:
-        description: List maps
-        responses:
-            200:
-                description: A list of maps.
-                content:
-                    application/json:
-                        schema:
-                            type: array
-                            items: MapSchema
     """
 
     # TODO: check authorization
@@ -92,14 +81,14 @@ async def list_maps():
             map_file.close()
             all_maps.append(map_data)
 
-        return await make_response(
-            jsonify(all_maps),
+        return make_response(
+            jsonify({"maps": all_maps}),
             HTTPStatus.OK)
 
     except Exception as e:
         maps.logger.exception('Error getting map ' + str(id) + '.\n' + str(e))
 
-        return await make_response(
+        return make_response(
             jsonify({"message": "Something went wrong", "severity": "Error"}),
             HTTPStatus.INTERNAL_SERVER_ERROR)
 
@@ -108,15 +97,6 @@ async def list_maps():
 async def show_map(map_id):
     """
     Lists the map with the given id
-    ---
-    get:
-        description: Get map
-        responses:
-            200:
-                description: A map.
-                content:
-                    application/json:
-                        schema: MapSchema
     """
 
     # TODO: check authorization
@@ -128,7 +108,7 @@ async def show_map(map_id):
 
         # check if map exists
         if not found_map_name:
-            return await make_response(
+            make_response(
                 jsonify({"message": "The requested map does not exist", "severity": "Error"}),
                 HTTPStatus.NOT_FOUND)
 
@@ -139,14 +119,14 @@ async def show_map(map_id):
 
         maps.logger.info('Map ' + str(map_id) + ' found')
 
-        return await make_response(
-            jsonify(map_data),
+        return make_response(
+            jsonify({"map": map_data}),
             HTTPStatus.OK)
 
     except Exception as e:
         maps.logger.exception('Error getting map ' + str(map_id) + '.\n' + str(e))
 
-        return await make_response(
+        return make_response(
             jsonify({"message": "Something went wrong", "severity": "Error"}),
             HTTPStatus.INTERNAL_SERVER_ERROR)
 
@@ -155,17 +135,6 @@ async def show_map(map_id):
 async def list_map_features(map_id):
     """
     Lists the map features with the given id
-    ---
-    get:
-        description: List map features
-        responses:
-            200:
-                description: A list of map features.
-                content:
-                    application/json:
-                        schema:
-                            type: array
-                            items: MapFeatureSchema
     """
 
     # TODO: check authorization
@@ -188,15 +157,15 @@ async def list_map_features(map_id):
 
         maps.logger.info('Map ' + str(map_id) + ' features found')
 
-        return await make_response(
-            jsonify(map_features),
+        return make_response(
+            jsonify({"features": map_features}),
             HTTPStatus.OK)
 
 
     except Exception as e:
         maps.logger.exception('Error getting map ' + str(map_id) + '.\n' + str(e))
 
-        return await make_response(
+        return make_response(
             jsonify({"message": "Something went wrong", "severity": "Error"}),
             HTTPStatus.INTERNAL_SERVER_ERROR)
 
@@ -205,15 +174,6 @@ async def list_map_features(map_id):
 async def add_map_feature(map_id):
     """
     Adds a feature to the map with the given id
-    ---
-    post:
-        description: Add map feature
-        responses:
-            200:
-                description: Feature added
-                content:
-                    application/json:
-                        schema: MapFeatureSchema
     """
 
     # TODO: check authorization
@@ -249,36 +209,27 @@ async def add_map_feature(map_id):
         map_features_file.write(map_features)
         map_features_file.close()
 
-        return await make_response(
-            jsonify(new_feature),
+        return make_response(
+            jsonify({"message": "Feature added"}),
             HTTPStatus.CREATED)
 
     except Exception as e:
         maps.logger.exception('Error getting map ' + str(map_id) + '.\n' + str(e))
 
-        return await make_response(
+        return make_response(
             jsonify({"message": "Something went wrong", "severity": "Error"}),
             HTTPStatus.INTERNAL_SERVER_ERROR)
 
 
 @maps.route('/maps/create', methods=['POST'])
-async def create_map():
+def create_map():
     """
     Creates a map
-    ---
-    post:
-        description: Add a map
-        responses:
-            200:
-                description: Map added
-                content:
-                    application/json:
-                        schema: MapSchema
     """
 
     # TODO check authorization
 
-    body = await request.get_json()
+    body = request.get_json()
 
     # generate new map id and get map features
     new_id = None
@@ -296,7 +247,7 @@ async def create_map():
 
     # check if the directory was created
     if not map_path:
-        return await make_response(jsonify({"message": "Cannot create map", "severity": "Error"}),
+        return make_response(jsonify({"message": "Cannot create map", "severity": "Error"}),
                              HTTPStatus.BAD_REQUEST)
 
     # creates and initializes features file
@@ -317,5 +268,5 @@ async def create_map():
     map_file.close()
 
     # map was created
-    return await make_response(jsonify(map_json_content),
+    return make_response(jsonify({"message": "Map created", "map_id": new_id}),
                          HTTPStatus.CREATED)
