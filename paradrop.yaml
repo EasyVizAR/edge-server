@@ -14,6 +14,9 @@ services:
       QUART_ENV: production
       VIZAR_HOST: 0.0.0.0
       VIZAR_PORT: 5000
+    requests:
+      port-bindings:
+        "5000": 5000
 
 web:
   port: 5000
