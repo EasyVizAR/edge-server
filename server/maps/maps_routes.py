@@ -1,7 +1,8 @@
-from http import HTTPStatus
-from quart import Blueprint, request, make_response, jsonify
+import uuid
 import os
 import json
+from http import HTTPStatus
+from quart import Blueprint, request, make_response, jsonify
 
 maps = Blueprint('maps', __name__)
 
@@ -62,10 +63,10 @@ def create_map_dir(map_id):
 def generate_new_id():
     """
     Creates new map id
-    :return: map id, none if there is a problem
+    :return: map id
     """
-    # TODO generate map id
-    return 1
+
+    return uuid.uuid1()
 
 
 @maps.route('/maps', methods=['GET'])
@@ -234,7 +235,13 @@ async def create_map():
 
     body = await request.get_json()
 
-    if not body or 'name' not in body or 'image' not in body:
+    if not body:
+        return await make_response(
+            jsonify({"message": "Missing body",
+                     "severity": "Warning"}),
+            HTTPStatus.BAD_REQUEST)
+
+    if 'name' not in body or 'image' not in body:
         return await make_response(
             jsonify({"message": "Missing parameter in body",
                      "severity": "Warning"}),
