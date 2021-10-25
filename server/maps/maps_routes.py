@@ -77,28 +77,21 @@ async def list_maps():
 
     # TODO: check authorization
 
-    try:
-        all_maps = []
+    all_maps = []
 
-        # open maps directory
-        map_list, maps_path = open_maps_dir()
+    # open maps directory
+    map_list, maps_path = open_maps_dir()
 
-        # add all map data to all_maps
-        for map_id in map_list:
-            map_file = open(maps_path + '/' + str(map_id) + '/map.json', 'r')
-            map_data = json.load(map_file)
-            map_file.close()
-            all_maps.append(map_data)
+    # add all map data to all_maps
+    for map_id in map_list:
+        map_file = open(maps_path + '/' + str(map_id) + '/map.json', 'r')
+        map_data = json.load(map_file)
+        map_file.close()
+        all_maps.append(map_data)
 
-        return await make_response(
-            jsonify({"maps": all_maps}),
-            HTTPStatus.OK)
-
-    except Exception as e:
-        return await make_response(
-            jsonify({"message": "Something went wrong",
-                     "severity": "Error"}),
-            HTTPStatus.INTERNAL_SERVER_ERROR)
+    return await make_response(
+        jsonify({"maps": all_maps}),
+        HTTPStatus.OK)
 
 
 @maps.route('/maps/<map_id>', methods=['GET'])
@@ -109,32 +102,24 @@ async def show_map(map_id):
 
     # TODO: check authorization
 
-    try:
+    # check if map exists
+    found_map_name, maps_path = find_map(map_id)
 
-        # check if map exists
-        found_map_name, maps_path = find_map(map_id)
-
-        # check if map exists
-        if not found_map_name:
-            return await make_response(
-                jsonify({"message": "The requested map does not exist",
-                         "severity": "Error"}),
-                HTTPStatus.NOT_FOUND)
-
-        # get map data
-        map_file = open(maps_path + '/' + str(found_map_name) + '/map.json', 'r')
-        map_data = json.load(map_file)
-        map_file.close()
-
+    # check if map exists
+    if not found_map_name:
         return await make_response(
-            jsonify({"map": map_data}),
-            HTTPStatus.OK)
+            jsonify({"message": "The requested map does not exist",
+                     "severity": "Warning"}),
+            HTTPStatus.NOT_FOUND)
 
-    except Exception as e:
-        return await make_response(
-            jsonify({"message": "Something went wrong",
-                     "severity": "Error"}),
-            HTTPStatus.INTERNAL_SERVER_ERROR)
+    # get map data
+    map_file = open(maps_path + '/' + str(found_map_name) + '/map.json', 'r')
+    map_data = json.load(map_file)
+    map_file.close()
+
+    return await make_response(
+        jsonify({"map": map_data}),
+        HTTPStatus.OK)
 
 
 @maps.route('/maps/<map_id>/features', methods=['GET'])
@@ -145,33 +130,24 @@ async def list_map_features(map_id):
 
     # TODO: check authorization
 
-    try:
+    # check if map exists
+    found_map_name, maps_path = find_map(map_id)
 
-        # check if map exists
-        found_map_name, maps_path = find_map(map_id)
-
-        # check if map exists
-        if not found_map_name:
-            return await make_response(
-                jsonify({"message": "The requested map does not exist",
-                         "severity": "Error"}),
-                HTTPStatus.NOT_FOUND)
-
-        # get the map features
-        map_features_file = open(maps_path + '/' + str(found_map_name) + '/features.json', 'r')
-        map_features = json.load(map_features_file)
-        map_features_file.close()
-
+    # check if map exists
+    if not found_map_name:
         return await make_response(
-            jsonify({"features": map_features}),
-            HTTPStatus.OK)
+            jsonify({"message": "The requested map does not exist",
+                     "severity": "Warning"}),
+            HTTPStatus.NOT_FOUND)
 
+    # get the map features
+    map_features_file = open(maps_path + '/' + str(found_map_name) + '/features.json', 'r')
+    map_features = json.load(map_features_file)
+    map_features_file.close()
 
-    except Exception as e:
-        return await make_response(
-            jsonify({"message": "Something went wrong",
-                     "severity": "Error"}),
-            HTTPStatus.INTERNAL_SERVER_ERROR)
+    return await make_response(
+        jsonify({"features": map_features}),
+        HTTPStatus.OK)
 
 
 @maps.route('/maps/<map_id>/features', methods=['POST'])
@@ -184,45 +160,119 @@ async def add_map_feature(map_id):
 
     body = await request.get_json()
 
-    try:
-
-        # check if map exists
-        found_map_name, maps_path = find_map(map_id)
-
-        # check if map exists
-        if not found_map_name:
-            return await make_response(
-                jsonify({"message": "The requested map does not exist",
-                         "severity": "Error"}),
-                HTTPStatus.NOT_FOUND)
-
-        # get new feature
-        new_feature = body['new_feature']
-
-        # get the map features
-        map_features_file = open(maps_path + '/' + str(found_map_name) + '/features.json', 'r')
-        map_features = json.load(map_features_file)
-        map_features_file.close()
-
-        # update json
-        map_features.update(new_feature)
-
-        # open the file back up to write to it
-        map_features_file = open(maps_path + '/' + str(found_map_name) + '/features.json', 'w')
-
-        # write it back to the file
-        map_features_file.write(map_features)
-        map_features_file.close()
-
+    if not body:
         return await make_response(
-            jsonify({"message": "Feature added"}),
-            HTTPStatus.CREATED)
+            jsonify({"message": "Missing body",
+                     "severity": "Warning"}),
+            HTTPStatus.BAD_REQUEST)
 
-    except Exception as e:
+    if 'new_feature' not in body:
         return await make_response(
-            jsonify({"message": "Something went wrong",
-                     "severity": "Error"}),
-            HTTPStatus.INTERNAL_SERVER_ERROR)
+            jsonify({"message": "Missing parameter in body",
+                     "severity": "Warning"}),
+            HTTPStatus.BAD_REQUEST)
+
+
+    # check if map exists
+    found_map_name, maps_path = find_map(map_id)
+
+    # check if map exists
+    if not found_map_name:
+        return await make_response(
+            jsonify({"message": "The requested map does not exist",
+                     "severity": "Warning"}),
+            HTTPStatus.NOT_FOUND)
+
+    # get new feature
+    new_feature = body['new_feature']
+
+    # get the map features
+    map_features_file = open(maps_path + '/' + str(found_map_name) + '/features.json', 'r')
+    map_features = json.load(map_features_file)
+    map_features_file.close()
+
+    # update json
+    map_features.update(new_feature)
+
+    # open the file back up to write to it
+    map_features_file = open(maps_path + '/' + str(found_map_name) + '/features.json', 'w')
+
+    # write it back to the file
+    map_features_file.write(map_features)
+    map_features_file.close()
+
+    return await make_response(
+        jsonify({"message": "Feature added"}),
+        HTTPStatus.CREATED)
+
+
+@maps.route('/maps/<map_id>/replace', methods=['PUT'])
+async def replace_map(map_id):
+    """
+    Replaces a current map
+    :return: 201 if the map was replaced
+    """
+
+    # TODO check authorization
+
+    if not map_id:
+        return await make_response(
+            jsonify({"message": "No map id",
+                     "severity": "Warning"}),
+            HTTPStatus.BAD_REQUEST)
+
+    # get body of request
+    body = await request.get_json()
+
+    if not body:
+        return await make_response(
+            jsonify({"message": "Missing body",
+                     "severity": "Warning"}),
+            HTTPStatus.BAD_REQUEST)
+
+    if 'name' not in body or 'image' not in body:
+        return await make_response(
+            jsonify({"message": "Missing parameter in body",
+                     "severity": "Warning"}),
+            HTTPStatus.BAD_REQUEST)
+
+    # check if map exists
+    found_map_name, maps_path = find_map(map_id)
+
+    # check if map exists
+    if not found_map_name:
+        return await make_response(
+            jsonify({"message": "The requested map does not exist",
+                     "severity": "Warning"}),
+            HTTPStatus.NOT_FOUND)
+
+    map_name = body['name']
+    map_image = body['image']
+
+    if not map_name:
+        map_name = ''
+
+    if not map_image:
+        map_image = ''
+
+    # creates and intializes map json file
+    map_file = open(maps_path + '/map.json', 'w')
+
+    map_json_content = {
+        'id': map_id,
+        'name': map_name,
+        'image': map_image
+    }
+
+    json_object = json.dumps(map_json_content, indent=4)
+    map_file.write(json_object)
+    map_file.close()
+
+    # map was created
+    return await make_response(
+        jsonify({"message": "Map replaced",
+                 "map_id": map_id}),
+        HTTPStatus.CREATED)
 
 
 @maps.route('/maps/create', methods=['POST'])
@@ -252,17 +302,17 @@ async def create_map():
     map_name = body['name']
     map_image = body['image']
 
-    if not new_id:
-        return await make_response(
-            jsonify({"message": "Cannot create map",
-                     "severity": "Error"}),
-            HTTPStatus.BAD_REQUEST)
-
     if not map_name:
         map_name = ''
 
     if not map_image:
         map_image = ''
+
+    if not new_id:
+        return await make_response(
+            jsonify({"message": "Cannot create map",
+                     "severity": "Error"}),
+            HTTPStatus.BAD_REQUEST)
 
     # create the new directory
     map_path = create_map_dir(new_id)
