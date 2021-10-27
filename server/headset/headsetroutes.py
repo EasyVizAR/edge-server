@@ -1,3 +1,4 @@
+import datetime
 import json
 from http import HTTPStatus
 
@@ -108,7 +109,7 @@ async def authenticate():
     return await make_response({"token": token}, HTTPStatus.OK)
 
 
-@blueprint.route('/headsets/<headsetId>/updates/', methods=['POST'])
+@blueprint.route('/headsets/<headsetId>/updates', methods=['POST'])
 async def update_position(headsetId):
     """
     Update a headset
@@ -123,14 +124,17 @@ async def update_position(headsetId):
                         schema: HeadsetUpdateSchema
     """
     body = await request.get_json()
+    print(body)
 
-    if 'x' not in body or 'y' not in body or 'z' not in body:
+    if 'position' not in body or 'orientation' not in body:
         return await make_response(
             jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
             HTTPStatus.BAD_REQUEST)
 
-    position = {'x': body['x'], 'y': body['y'], 'z': body['z']}
-    updated_headset = get_headset_repository().update_position(headsetId, position)
+    position = body['position']
+    orientation = body['orientation']
+
+    updated_headset = get_headset_repository().update_pose(headsetId, position, orientation)
 
     if updated_headset is None:
         return await make_response(

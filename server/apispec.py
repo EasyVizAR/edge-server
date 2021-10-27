@@ -11,6 +11,7 @@ from marshmallow import Schema, fields
 
 from .main import app
 from .maps import maps_routes
+from .meshes import routes as meshes_routes
 from .headset import headsetroutes
 
 
@@ -107,6 +108,9 @@ async def add_routes_to_spec():
         spec.path(view=maps_routes.list_map_features)
         spec.path(view=maps_routes.add_map_feature)
         spec.path(view=maps_routes.create_map)
+
+        spec.path(view=meshes_routes.update_mesh)
+
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(add_routes_to_spec())
