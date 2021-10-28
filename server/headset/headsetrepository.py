@@ -89,8 +89,15 @@ class Repository:
         update_line = get_csv_line([id, headset.name, headset.mapId, position['x'], position['y'], position['z'],
                                     orientation['x'], orientation['y'], orientation['z'], headset.lastUpdate])
         append_to_file(update_line, filepath)
+        
+        update = {
+            "headsetID": id,
+            "position": position,
+            "orientation": orientation,
+            "mapID": None
+        }
 
-        return headset
+        return update
 
     def update_position(self, id, position):
         orientation = {'x': 0.0, 'y': 0.0, 'z': 0.0}

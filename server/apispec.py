@@ -15,7 +15,7 @@ from .meshes import routes as meshes_routes
 from .headset import headsetroutes
 
 
-class PointSchema(Schema):
+class VectorSchema(Schema):
     x = fields.Float(required = True)
     y = fields.Float(required = True)
     z = fields.Float(required = True)
@@ -24,14 +24,16 @@ class PointSchema(Schema):
 class HeadsetSchema(Schema):
     id = fields.Str()
     name = fields.Str()
-    position = fields.Nested(PointSchema())
+    position = fields.Nested(VectorSchema())
+    orientation = fields.Nested(VectorSchema())
     mapID = fields.Str()
     lastUpdate = fields.DateTime()
 
 
 class HeadsetUpdateSchema(Schema):
     headsetID = fields.Str()
-    position = fields.Nested(PointSchema())
+    position = fields.Nested(VectorSchema())
+    orientation = fields.Nested(VectorSchema())
     mapID = fields.Str()
 
 
@@ -51,7 +53,7 @@ class MapFeatureStyleSchema(Schema):
 class MapFeatureSchema(Schema):
     id = fields.Str()
     name = fields.Str()
-    position = fields.Nested(PointSchema())
+    position = fields.Nested(VectorSchema())
     mapID = fields.Str()
     style = fields.Nested(MapFeatureStyleSchema())
 
@@ -119,7 +121,7 @@ loop.run_until_complete(add_routes_to_spec())
 if __name__ == "__main__":
     print(spec.to_yaml())
 
-    with open("openapi.json", "w") as output:
+    with open("docs/openapi.json", "w") as output:
         output.write(json.dumps(spec.to_dict()))
 
 

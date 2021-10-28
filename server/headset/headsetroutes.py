@@ -115,7 +115,11 @@ async def update_position(headsetId):
     Update a headset
     ---
     post:
-        description: Update a headset
+        description: Create a new headset update
+        parameters:
+            - in: body
+              required: true
+              schema: HeadsetUpdateSchema
         responses:
             200:
                 description: A headset update object
@@ -124,7 +128,6 @@ async def update_position(headsetId):
                         schema: HeadsetUpdateSchema
     """
     body = await request.get_json()
-    print(body)
 
     if 'position' not in body or 'orientation' not in body:
         return await make_response(
@@ -134,14 +137,14 @@ async def update_position(headsetId):
     position = body['position']
     orientation = body['orientation']
 
-    updated_headset = get_headset_repository().update_pose(headsetId, position, orientation)
+    headset_update = get_headset_repository().update_pose(headsetId, position, orientation)
 
-    if updated_headset is None:
+    if headset_update is None:
         return await make_response(
             jsonify({"message": "The requested headset does not exist.", "severity": "Error"}),
             HTTPStatus.NOT_FOUND)
 
-    return await make_response(jsonify(json.dumps(updated_headset, cls=GenericJsonEncoder)), HTTPStatus.OK)
+    return headset_update, HTTPStatus.OK
 
 
 # TODO: will this be in a separate file?
