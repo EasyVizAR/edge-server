@@ -9,7 +9,7 @@ AR headset <- HTTP -> edge-server <- HTTP -> App or web interface
 Install dependencies.
 
 ```console
-pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 ```
 
 Run the server with default settings. By default, it will listen on localhost port 5000 and look in the running directory for data and configuration files.

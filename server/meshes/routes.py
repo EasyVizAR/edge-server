@@ -3,7 +3,7 @@ import os
 import re
 
 from http import HTTPStatus
-from quart import Blueprint, request, make_response, jsonify
+from quart import Blueprint, current_app, request, make_response, jsonify
 from werkzeug.utils import secure_filename
 
 
@@ -16,7 +16,7 @@ def get_mesh_dir():
     """
     Opens the meshes directory
     """
-    data_dir = os.environ.get("VIZAR_DATA_DIR", DEFAULT_ENVIRONMENT_FOLDER)
+    data_dir = current_app.config['VIZAR_DATA_DIR']
     mesh_dir = os.path.join(data_dir, "meshes")
     os.makedirs(mesh_dir, exist_ok=True)
     return mesh_dir

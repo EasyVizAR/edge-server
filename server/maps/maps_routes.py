@@ -2,7 +2,7 @@ import uuid
 import os
 import json
 from http import HTTPStatus
-from quart import Blueprint, request, make_response, jsonify
+from quart import Blueprint, current_app, request, make_response, jsonify
 
 maps = Blueprint('maps', __name__)
 
@@ -13,8 +13,7 @@ def open_maps_dir():
     """
     Opens the maps directory
     """
-
-    data_dir = os.environ.get("VIZAR_DATA_DIR", DEFAULT_ENVIRONMENT_FOLDER)
+    data_dir = current_app.config['VIZAR_DATA_DIR']
     maps_path = os.path.join(data_dir, "maps")
     os.makedirs(maps_path, exist_ok=True)
     maps_list = os.listdir(maps_path)
@@ -49,7 +48,7 @@ def create_map_dir(map_id):
     if not map_id:
         return None
 
-    parent_dir = os.environ.get("VIZAR_DATA_DIR", DEFAULT_ENVIRONMENT_FOLDER)
+    parent_dir = current_app.config['VIZAR_DATA_DIR']
     path = os.path.join(parent_dir, map_id)
 
     try:
