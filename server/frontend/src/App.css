@@ -1,0 +1,40 @@
+.App {
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.app-body {
+  margin-left:10px;
+  margin-right:10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.dropdown {
+  margin: 10px;
+  display: flex;
+  justify-self: left;
+  justify-items: left;
+  min-width: 50px;
+  max-height: fit-content;
+}
+
+.map-image-container {
+  margin: 10px;
+  display: flex;
+  justify-self: center;
+  justify-items: center;
+  align-items: center;
+}
+
+#map-image {
+  display: flex;
+  justify-self: center;
+  align-self: center;
+}

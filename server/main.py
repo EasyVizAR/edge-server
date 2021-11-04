@@ -1,13 +1,15 @@
 import os
 
 from quart import Quart
+from quart_cors import cors
 
 from server.headset.headsetroutes import blueprint as headset_blueprint
 from server.maps.maps_routes import maps
 from server.meshes.routes import meshes
 from server.routes import routes
 
-app = Quart(__name__)
+app = Quart(__name__, static_folder='./frontend/build/', static_url_path='/')
+app = cors(app)
 
 app.config.from_pyfile('default_settings.py')
 if 'APPLICATION_CONFIG' in os.environ:
