@@ -1,11 +1,12 @@
-import datetime
 import json
+import os
 from http import HTTPStatus
 
-from quart import request, jsonify, make_response, Blueprint
+from quart import request, jsonify, make_response, Blueprint, current_app, send_file
+from werkzeug.utils import secure_filename
 
 from server.headset.headsetrepository import get_headset_repository
-from server.utils.utils import GenericJsonEncoder
+from server.utils.utils import GenericJsonEncoder, save_image
 
 blueprint = Blueprint('headsets', __name__)
 
@@ -27,7 +28,7 @@ async def get_all():
                             items: HeadsetSchema
     """
     headsets = get_headset_repository().headsets
-    return await make_response(jsonify(json.dumps(headsets, cls=GenericJsonEncoder)), HTTPStatus.OK)
+    return await make_response(json.loads(json.dumps(headsets, cls=GenericJsonEncoder)), HTTPStatus.OK)
 
 
 @blueprint.route('/headsets/<id>', methods=['GET'])
@@ -145,6 +146,24 @@ async def update_position(headsetId):
             HTTPStatus.NOT_FOUND)
 
     return headset_update, HTTPStatus.OK
+
+
+@blueprint.route('/image-upload/<imageId>', methods=['POST'])
+async def upload(imageId):
+    request_files = await request.files
+    image = request_files['image']
+    folder_path = current_app.config['VIZAR_DATA_DIR'] + current_app.config['IMAGE_UPLOADS']
+    file_path = os.path.join(folder_path, str(secure_filename(image.filename)))
+    await save_image(file_path, image)
+    return await make_response({'success': 'true'})
+
+
+# @blueprint.route('/map-image/<mapId>', methods=['GET'])
+# async def get_image(mapId):
+#     folder_path = current_app.config['VIZAR_DATA_DIR'] + current_app.config['IMAGE_UPLOADS']
+#     file_path = os.path.join(folder_path, f"{mapId}.jpeg")
+#     print(f"Sending file {file_path}")
+#     return await send_file(file_path, as_attachment=True)
 
 
 # TODO: will this be in a separate file?

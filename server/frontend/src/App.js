@@ -1,25 +1,82 @@
 import logo from './logo.svg';
 import './App.css';
 import { Navbar, Container, Dropdown, DropdownButton, Form, Table } from 'react-bootstrap';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 function App() {
 
-  const [selectedImage, setSelectedImage] = useState("https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885_960_720.jpg");
+  let host = '127.0.0.1'
+
+  const [selectedImage, setSelectedImage] = useState('');
+  const [headsets, setHeadsets] = useState([]);
+  const [maps, setMaps] = useState([]);
+
+  useEffect(() => {
+    fetch(`http://${host}:5000/maps`)
+      .then(response => response.json())
+      .then(data => {
+        console.log(data);
+        var fetchedMaps = []
+        for (var idx in data['maps']) {
+          console.log(data['maps'][idx]['id']);
+          fetchedMaps.push({'id': data['maps'][idx]['id'], 'name': data['maps'][idx]['name'], 'image': data['maps'][idx]['image']});
+        }
+        setMaps(fetchedMaps); 
+      });
+      setSelectedImage(getDefaultMapImage());
+  }, []);
+
+  useEffect(() => {
+    fetch(`http://${host}:5000/headsets`)
+      .then(response => response.json())
+      .then(data => {
+        console.log(data);
+        var fetchedHeadsets = []
+        for (var k in data) {
+          var v = data[k];
+          fetchedHeadsets.push({'id': v.id, 'lastUpdate': v.lastUpdate, 'mapId': v.mapId, 'name': v.name, 
+          'orientationX':v.orientation.x, 'orientationY':v.orientation.y, 'orientationZ':v.orientation.z, 
+          'positionX':v.position.x, 'positionY':v.position.y, 'positionZ':v.position.z});
+        }
+        setHeadsets(fetchedHeadsets); 
+        // for (var idx in data['maps']) {
+        //   console.log(data['maps'][idx]['id']);
+        //   fetchedHeadsets.push({'eventKey': data['maps'][idx]['id'], 'name': data['maps'][idx]['name'], 'image': data['maps'][idx]['image']});
+        // }
+        // setMaps(fetchedHeadsets); 
+      });
+      // setSelectedImage(getDefaultMapImage());
+  }, []);
+
+  const getMapImage = (mapId) => {
+    if ("2e1a03e6-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
+      return `http://${host}:5000/uploads/seventhfloor.png`;
+    } else if ("0a820028-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
+      return "https://media.istockphoto.com/photos/dramatic-sunset-over-a-quiet-lake-picture-id1192051826?k=20&m=1192051826&s=612x612&w=0&h=9HyN74dQTBcTZXB7g-BZp6mXV3upTgSvIav0x7hLm-I=";
+    } else {
+      return "https://media.istockphoto.com/photos/sycamore-tree-in-summer-field-at-sunset-england-uk-picture-id476116580?k=20&m=476116580&s=612x612&w=0&h=tZL4WDfgtV-0ko0nxidANitYB2bv2tCPDLhgYWYEnC4=";
+    }
+  }
 
   const handleMapSelection = (e, o) => {
-    if ("map-1" == e) {
-      setSelectedImage("https://cdn.pixabay.com/photo/2015/04/23/22/00/tree-736885_960_720.jpg");
-    } else if ("map-2" == e) {
-      setSelectedImage("https://media.istockphoto.com/photos/dramatic-sunset-over-a-quiet-lake-picture-id1192051826?k=20&m=1192051826&s=612x612&w=0&h=9HyN74dQTBcTZXB7g-BZp6mXV3upTgSvIav0x7hLm-I=");
-    } else {
-      setSelectedImage("https://media.istockphoto.com/photos/sycamore-tree-in-summer-field-at-sunset-england-uk-picture-id476116580?k=20&m=476116580&s=612x612&w=0&h=tZL4WDfgtV-0ko0nxidANitYB2bv2tCPDLhgYWYEnC4=");
-    }
-    fetch("http://localhost:5000/headsets")
+    console.log('e: ' + e);
+    setSelectedImage(getMapImage(e));
+    fetch(`http://${host}:5000/maps`)
       .then(response => response.json())
       .then(data => {
         console.log(data);
       })
+  }
+
+  const getDefaultMapSelection = () => {
+    if (maps.length == 0)
+      return '';
+    console.log(`EventKey for mapImage: ${maps[0]['id']}`);
+    return maps[0]['id'];
+  }
+
+  const getDefaultMapImage = () => {
+    return getMapImage(getDefaultMapSelection());
   }
 
   return (
@@ -31,10 +88,12 @@ function App() {
       </Navbar>
       <div className="app-body">
         <div className="dropdown-container">
-          <DropdownButton id="map-dropdown" title="Select Map" onSelect={handleMapSelection} defaultValue="map-1">
-            <Dropdown.Item eventKey="map-1">Map-1</Dropdown.Item>
-            <Dropdown.Item eventKey="map-2">Map-2</Dropdown.Item>
-            <Dropdown.Item eventKey="map-3">Map-3</Dropdown.Item>
+          <DropdownButton id="map-dropdown" title="Select Map" onSelect={handleMapSelection} defaultValue={getDefaultMapSelection}>
+            {
+              maps.map((e, index) => {
+                return <Dropdown.Item eventKey={e.id}>{e.name}</Dropdown.Item>
+              })
+            }
           </DropdownButton>
         </div>
         <div className="map-image-container">
@@ -44,43 +103,61 @@ function App() {
           <Table striped bordered hover>
             <thead>
               <tr>
-                <th>Headset ID</th>
-                <th>Name</th>
-                <th>Position - X</th>
-                <th>Position - Y</th>
-                <th>Position - Z</th>
-                <th>Map ID</th>
-                <th>Last Update</th>
+                <th rowSpan='2'>Headset ID</th>
+                <th rowSpan='2'>Name</th>
+                <th rowSpan='2'>Map ID</th>
+                <th rowSpan='2'>Last Update</th>
+                <th colSpan='3'>Position</th>
+                <th colSpan='3'>Orientation</th>
+              </tr>
+              <tr>
+                <th>X</th>
+                <th>Y</th>
+                <th>Z</th>
+                <th>X</th>
+                <th>Y</th>
+                <th>Z</th>
               </tr>
             </thead>
             <tbody>
+              {
+                headsets.map((e, index) => {
+                  return <tr>
+                      <td>{e.id}</td>
+                      <td>{e.name}</td>
+                      <td>{e.mapId}</td>
+                      <td>{e.lastUpdate}</td>
+                      <td>{e.positionX}</td>
+                      <td>{e.positionY}</td>
+                      <td>{e.positionZ}</td>
+                      <td>{e.orientationX}</td>
+                      <td>{e.orientationY}</td>
+                      <td>{e.orientationZ}</td>
+                    </tr>
+                })
+              }
+            </tbody>
+          </Table>
+        </div>
+        <div>
+          <Table striped bordered hover>
+            <thead>
               <tr>
-                <td>1</td>
-                <td>Headset 1</td>
-                <td>22</td>
-                <td>88</td>
-                <td>4</td>
-                <td>b5c6fc5a-e5f7-4c7e-9e8e-d1d5276a54b6</td>
-                <td>2021-09-21 14:06:39</td>
+                <th rowSpan='2'>Map ID</th>
+                <th rowSpan='2'>Name</th>
+                <th rowSpan='2'>Image</th>
               </tr>
-              <tr>
-                <td>2</td>
-                <td>Headset 2</td>
-                <td>22</td>
-                <td>88</td>
-                <td>4</td>
-                <td>b5c6fc5a-e5f7-4c7e-9e8e-d1d5276a54b6</td>
-                <td>2021-09-21 14:06:39</td>
-              </tr>
-              <tr>
-                <td>3</td>
-                <td>Headset 2</td>
-                <td>22</td>
-                <td>88</td>
-                <td>4</td>
-                <td>b5c6fc5a-e5f7-4c7e-9e8e-d1d5276a54b6</td>
-                <td>2021-09-21 14:06:39</td>
-              </tr>
+            </thead>
+            <tbody>
+              {
+                maps.map((e, index) => {
+                  return <tr>
+                      <td>{e.id}</td>
+                      <td>{e.name}</td>
+                      <td>{e.image}</td>
+                    </tr>
+                })
+              }
             </tbody>
           </Table>
         </div>
