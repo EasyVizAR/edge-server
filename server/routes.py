@@ -5,8 +5,8 @@ routes = Blueprint('routes', __name__)
 
 
 @routes.route('/')
-def index():
-    return quart.current_app.send_static_file('index.html')
+async def index():
+    return await quart.current_app.send_static_file('index.html')
 
 @routes.route("/new_map")
 async def new_map():
