@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# npm node_modules
+server/frontend/node_modules/
+
+# Data directory
+data/
