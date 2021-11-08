@@ -5,7 +5,6 @@ from quart_cors import cors
 
 from server.headset.headsetroutes import blueprint as headset_blueprint
 from server.maps.maps_routes import maps
-from server.meshes.routes import meshes
 from server.routes import routes
 
 app = Quart(__name__, static_folder='./frontend/build/', static_url_path='/')
@@ -17,6 +16,5 @@ if 'APPLICATION_CONFIG' in os.environ:
 
 app.register_blueprint(headset_blueprint)
 app.register_blueprint(maps)
-app.register_blueprint(meshes)
 app.register_blueprint(routes)
 
