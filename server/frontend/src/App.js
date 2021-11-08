@@ -1,6 +1,9 @@
 import logo from './logo.svg';
 import './App.css';
-import { Navbar, Container, Dropdown, DropdownButton, Form, Table } from 'react-bootstrap';
+import { Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button, Modal } from 'react-bootstrap';
+import './forms/map_form.js';
+import Popup from './Popup'
+import 'reactjs-popup/dist/index.css';
 import { useState, useEffect } from 'react';
 
 function App() {
@@ -21,7 +24,7 @@ function App() {
           console.log(data['maps'][idx]['id']);
           fetchedMaps.push({'id': data['maps'][idx]['id'], 'name': data['maps'][idx]['name'], 'image': data['maps'][idx]['image']});
         }
-        setMaps(fetchedMaps); 
+        setMaps(fetchedMaps);
       });
       setSelectedImage(getDefaultMapImage());
   }, []);
@@ -34,16 +37,16 @@ function App() {
         var fetchedHeadsets = []
         for (var k in data) {
           var v = data[k];
-          fetchedHeadsets.push({'id': v.id, 'lastUpdate': v.lastUpdate, 'mapId': v.mapId, 'name': v.name, 
-          'orientationX':v.orientation.x, 'orientationY':v.orientation.y, 'orientationZ':v.orientation.z, 
+          fetchedHeadsets.push({'id': v.id, 'lastUpdate': v.lastUpdate, 'mapId': v.mapId, 'name': v.name,
+          'orientationX':v.orientation.x, 'orientationY':v.orientation.y, 'orientationZ':v.orientation.z,
           'positionX':v.position.x, 'positionY':v.position.y, 'positionZ':v.position.z});
         }
-        setHeadsets(fetchedHeadsets); 
+        setHeadsets(fetchedHeadsets);
         // for (var idx in data['maps']) {
         //   console.log(data['maps'][idx]['id']);
         //   fetchedHeadsets.push({'eventKey': data['maps'][idx]['id'], 'name': data['maps'][idx]['name'], 'image': data['maps'][idx]['image']});
         // }
-        // setMaps(fetchedHeadsets); 
+        // setMaps(fetchedHeadsets);
       });
       // setSelectedImage(getDefaultMapImage());
   }, []);
@@ -68,6 +71,10 @@ function App() {
       })
   }
 
+  const showModal = (e) => {
+        console.log("Show Modal");
+    };
+
   const getDefaultMapSelection = () => {
     if (maps.length == 0)
       return '';
@@ -84,6 +91,10 @@ function App() {
       <Navbar bg="dark" variant="dark">
         <Container>
           <Navbar.Brand>Easy Viz AR Admin</Navbar.Brand>
+          <Navbar.Toggle aria-controls="basic-navbar-nav" />
+          <Nav className="me-auto">
+            <Nav.Link href="/map_form">Create Map</Nav.Link>
+          </Nav>
         </Container>
       </Navbar>
       <div className="app-body">
@@ -96,6 +107,7 @@ function App() {
             }
           </DropdownButton>
         </div>
+        <Popup/>
         <div className="map-image-container">
           <img id="map-image" src={selectedImage} />
         </div>

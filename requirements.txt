@@ -47,3 +47,4 @@ urllib3==1.25.8
 webencodings==0.5.1
 Werkzeug==2.0.2
 wsproto==1.0.0
+Quart-CORS==0.5.0
