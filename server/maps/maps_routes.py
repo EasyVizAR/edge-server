@@ -11,6 +11,41 @@ maps = Blueprint('maps', __name__)
 DEFAULT_ENVIRONMENT_FOLDER = './data'
 
 
+def initialize_maps(app):
+    """
+    Initialize maps storage.
+
+    Make sure the maps directory exists, and create a new "current" map if one
+    does not exist. This may make starting up a new system easier.
+    """
+    data_dir = app.config['VIZAR_DATA_DIR']
+    maps_dir = os.path.join(data_dir, 'maps')
+    os.makedirs(maps_dir, exist_ok=True)
+
+    if not os.path.exists(os.path.join(maps_dir, 'current')):
+        map_id = str(generate_new_id())
+
+        # Create meshes subdirectory.
+        subdir = os.path.join(maps_dir, map_id)
+        os.makedirs(os.path.join(subdir, 'meshes'))
+
+        # Initialize features file
+        features_file = open(os.path.join(subdir, 'features.json'), 'w')
+        features_file.close()
+
+        map_info = {
+            'id': map_id,
+            'name': 'New Map'
+        }
+
+        # Initialize map file
+        map_file = open(os.path.join(subdir, 'map.json'), 'w')
+        map_file.write(json.dumps(map_info))
+        map_file.close()
+
+        os.symlink(map_id, os.path.join(maps_dir, 'current'), target_is_directory=True)
+
+
 def open_maps_dir():
     """
     Opens the maps directory
@@ -96,6 +131,10 @@ async def list_maps():
 
     # add all map data to all_maps
     for map_id in map_list:
+        # Ignore the link to the current map because it would result in duplication.
+        if map_id == 'current':
+            continue
+
         map_file = open(maps_path + '/' + str(map_id) + '/map.json', 'r')
         map_data = json.load(map_file)
         map_file.close()
