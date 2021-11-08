@@ -4,10 +4,7 @@ version: 1
 
 services:
   main:
-    command: python3 -m server
-    image: python3
-    source: .
-    type: light
+    dockerfile: Dockerfile
     environment:
       QUART_APP: server.main:app
       QUART_ENV: production

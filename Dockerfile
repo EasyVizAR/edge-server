@@ -1,3 +1,19 @@
+#
+# Build the frontend using npm
+#
+FROM node:16.13.0 AS build
+
+WORKDIR /usr/src/frontend
+
+COPY server/frontend/package*.json /usr/src/frontend/
+RUN npm install
+
+COPY server/frontend /usr/src/frontend
+RUN npm run build
+
+#
+# Prepare the application server using Python
+#
 FROM python:3.8
 
 ENV QUART_APP=server.main:app
@@ -13,6 +29,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+COPY --from=build /usr/src/frontend/build /usr/src/app/server/frontend/build
 
 RUN mkdir -p data/maps data/headsets
 
