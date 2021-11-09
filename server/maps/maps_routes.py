@@ -25,9 +25,9 @@ def initialize_maps(app):
     if not os.path.exists(os.path.join(maps_dir, 'current')):
         map_id = str(generate_new_id())
 
-        # Create meshes subdirectory.
+        # Create surfaces subdirectory.
         subdir = os.path.join(maps_dir, map_id)
-        os.makedirs(os.path.join(subdir, 'meshes'))
+        os.makedirs(os.path.join(subdir, 'surfaces'))
 
         # Initialize features file
         features_file = open(os.path.join(subdir, 'features.json'), 'w')
@@ -57,15 +57,15 @@ def open_maps_dir():
     return maps_list, maps_path
 
 
-def get_mesh_dir(map_id, create=True):
+def get_surface_dir(map_id, create=True):
     """
-    Returns the directory for map meshes.
+    Returns the directory for map surfaces.
     """
     data_dir = current_app.config['VIZAR_DATA_DIR']
-    mesh_dir = os.path.join(data_dir, "maps", map_id, "meshes")
+    surface_dir = os.path.join(data_dir, "maps", map_id, "surfaces")
     if create:
-        os.makedirs(mesh_dir, exist_ok=True)
-    return mesh_dir
+        os.makedirs(surface_dir, exist_ok=True)
+    return surface_dir
 
 
 def find_map(map_id):
@@ -257,61 +257,81 @@ async def add_map_feature(map_id):
         HTTPStatus.CREATED)
 
 
-@maps.route('/maps/<map_id>/meshes', methods=['GET'])
-async def list_map_meshes(map_id):
+@maps.route('/maps/<map_id>/surfaces', methods=['GET'])
+async def list_map_surfaces(map_id):
     """
-    Get list of meshes associated with a map.
+    Get list of surfaces associated with a map.
+    ---
+    get:
+        description: List surfaces
+        responses:
+            200:
+                description: A list of surfaces.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: SurfaceFileInformationSchema
     """
 
     # TODO check authorization
 
-    mesh_dir = get_mesh_dir(map_id, create=False)
+    surface_dir = get_surface_dir(map_id, create=False)
 
-    meshes = []
-    for entry in os.scandir(mesh_dir):
+    surfaces = []
+    for entry in os.scandir(surface_dir):
         if not entry.name.startswith('.') and entry.is_file():
             stat = entry.stat()
-            meshes.append({
+            surfaces.append({
                 "id": os.path.splitext(entry.name)[0],
                 "filename": entry.name,
                 "modified": stat.st_mtime,
                 "size": stat.st_size
             })
 
-    return jsonify(meshes), HTTPStatus.OK
+    return jsonify(surfaces), HTTPStatus.OK
 
 
-@maps.route('/maps/<map_id>/meshes/<mesh_id>', methods=['PUT'])
-async def replace_mesh(map_id, mesh_id):
+@maps.route('/maps/<map_id>/surfaces/<surface_id>', methods=['PUT'])
+async def replace_surface(map_id, surface_id):
     """
-    Replace a mesh.
+    Replace a surface.
 
     This expects to receive a PLY file and stores it in the data directory.
+    ---
+    put:
+        description: Create or update a surface
+        responses:
+            200:
+                description: A surface file information object
+                content:
+                    application/json:
+                        schema: SurfaceFileInformationSchema
     """
 
     # TODO check authorization
 
     body = await request.get_data()
     if body[0:3].decode() == "ply":
-        filename = secure_filename("{}.ply".format(mesh_id))
-        path = os.path.join(get_mesh_dir(map_id, create=True), filename)
+        filename = secure_filename("{}.ply".format(surface_id))
+        path = os.path.join(get_surface_dir(map_id, create=True), filename)
         is_new = not os.path.exists(path)
 
         with open(path, "wb") as output:
             output.write(body)
 
         stat = os.stat(path)
-        mesh = {
-            "id": mesh_id,
+        surface = {
+            "id": surface_id,
             "filename": filename,
             "modified": stat.st_mtime,
             "size": stat.st_size
         }
 
         if is_new:
-            return mesh, HTTPStatus.CREATED
+            return surface, HTTPStatus.CREATED
         else:
-            return mesh, HTTPStatus.OK
+            return surface, HTTPStatus.OK
 
 
 @maps.route('/maps/<map_id>/replace', methods=['PUT'])

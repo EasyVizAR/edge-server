@@ -65,6 +65,13 @@ class ImageUploadSchema(Schema):
     type = fields.Str()
 
 
+class SurfaceFileInformationSchema(Schema):
+    id = fields.Str()
+    filename = fields.Str()
+    modified = fields.Float()
+    size = fields.Integer()
+
+
 spec = APISpec(
     title="EasyVizAR Edge API",
     version="0.1",
@@ -93,6 +100,7 @@ spec.components.schema("HeadsetUpdate", schema=HeadsetUpdateSchema)
 spec.components.schema("Map", schema=MapSchema)
 spec.components.schema("MapFeature", schema=MapFeatureSchema)
 spec.components.schema("ImageUpload", schema=ImageUploadSchema)
+spec.components.schema("SurfaceFileInformation", schema=SurfaceFileInformationSchema)
 
 async def add_routes_to_spec():
     async with app.test_request_context("/"):
