@@ -2,9 +2,12 @@ import uuid
 import os
 import json
 
+import pyqrcode
+
 from http import HTTPStatus
-from quart import Blueprint, current_app, request, make_response, jsonify
+from quart import Blueprint, current_app, request, make_response, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
+
 
 maps = Blueprint('maps', __name__)
 
@@ -474,3 +477,34 @@ async def create_map():
         jsonify({"message": "Map created",
                  "map_id": new_id}),
         HTTPStatus.CREATED)
+
+
+@maps.route('/maps/<map_id>/qrcode', methods=['GET'])
+async def get_map_qrcode(map_id):
+    """
+    Get a QR code for the map.
+    ---
+    get:
+        description: List surfaces
+        responses:
+            200:
+                description: A list of surfaces.
+                content: image/svg+xml
+    """
+
+    # TODO check authorization
+
+    data_dir = current_app.config['VIZAR_DATA_DIR']
+    map_dir = os.path.join(data_dir, 'maps', map_id)
+    image_path = os.path.join(map_dir, 'qrcode.svg')
+
+    if not os.path.isdir(map_dir):
+        return {"error": "Map does not exist."}, HTTPStatus.NOT_FOUND
+
+    if not os.path.exists(image_path):
+        url = 'vizar://{}/maps/{}'.format(current_app.config['VIZAR_EDGE_HOST'], map_id)
+
+        code = pyqrcode.create(url, error='L')
+        code.svg(image_path, title=url)
+
+    return await send_from_directory(map_dir, 'qrcode.svg')

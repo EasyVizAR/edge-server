@@ -10,6 +10,7 @@ function App() {
 
   let host = '127.0.0.1'
 
+  const [selectedMap, setSelectedMap] = useState('');
   const [selectedImage, setSelectedImage] = useState('');
   const [headsets, setHeadsets] = useState([]);
   const [maps, setMaps] = useState([]);
@@ -26,6 +27,7 @@ function App() {
         }
         setMaps(fetchedMaps);
       });
+      setSelectedMap(getDefaultMapSelection());
       setSelectedImage(getDefaultMapImage());
   }, []);
 
@@ -63,6 +65,7 @@ function App() {
 
   const handleMapSelection = (e, o) => {
     console.log('e: ' + e);
+    setSelectedMap(e);
     setSelectedImage(getMapImage(e));
     fetch(`http://${host}:5000/maps`)
       .then(response => response.json())
@@ -77,7 +80,7 @@ function App() {
 
   const getDefaultMapSelection = () => {
     if (maps.length == 0)
-      return '';
+      return 'current';
     console.log(`EventKey for mapImage: ${maps[0]['id']}`);
     return maps[0]['id'];
   }
@@ -109,7 +112,8 @@ function App() {
         </div>
         <Popup/>
         <div className="map-image-container">
-          <img id="map-image" src={selectedImage} />
+          <img id="map-image" className="img-fluid" src={selectedImage} alt="Map of the environment" />
+          <img id="map-qrcode" className="img-fluid" src={`http://${host}:5000/maps/${selectedMap}/qrcode`} alt="QR code to synchronize headsets" style={{width:400}}/>
         </div>
         <div>
           <Table striped bordered hover>
