@@ -74,8 +74,8 @@ function App() {
   }
 
   const showModal = (e) => {
-        console.log("Show Modal");
-    };
+    console.log("need to show the add a feature modal");
+  }
 
   const getDefaultMapSelection = () => {
     if (maps.length == 0)
@@ -85,7 +85,7 @@ function App() {
   }
 
   const getDefaultMapImage = () => {
-    return getMapImage(getDefaultMapSelection());
+    //return getMapImage(getDefaultMapSelection());
   }
 
   return (
@@ -100,16 +100,21 @@ function App() {
         </Container>
       </Navbar>
       <div className="app-body">
-        <div className="dropdown-container">
-          <DropdownButton id="map-dropdown" title="Select Map" onSelect={handleMapSelection} defaultValue={getDefaultMapSelection}>
-            {
-              maps.map((e, index) => {
-                return <Dropdown.Item eventKey={e.id}>{e.name}</Dropdown.Item>
-              })
-            }
-          </DropdownButton>
+        <div className="nav">
+          <div className="dropdown-container">
+            <DropdownButton id="map-dropdown" title="Select Map" onSelect={handleMapSelection} defaultValue={getDefaultMapSelection}>
+              {
+                maps.map((e, index) => {
+                  return <Dropdown.Item eventKey={e.id}>{e.name}</Dropdown.Item>
+                })
+              }
+            </DropdownButton>
+          </div>
+          <div className="add-feature-button">
+            <Button variant="secondary" title="Add Feature" value="Add Feature" onClick={(e) => showModal(e)}>Add Feature</Button>
+          </div>
         </div>
-        <Popup/>
+        <Popup id="add-feature-modal"/>
         <div className="map-image-container">
           <img id="map-image" className="img-fluid" src={selectedImage} alt="Map of the environment" />
           <img id="map-qrcode" className="img-fluid" src={`http://${host}:5000/maps/${selectedMap}/qrcode`} alt="QR code to synchronize headsets" style={{width:400}}/>
