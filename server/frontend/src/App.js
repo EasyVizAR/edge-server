@@ -7,8 +7,7 @@ import 'reactjs-popup/dist/index.css';
 import { useState, useEffect } from 'react';
 
 function App() {
-
-  let host = '127.0.0.1'
+  const host = window.location.hostname;
 
   const [selectedMap, setSelectedMap] = useState('');
   const [selectedImage, setSelectedImage] = useState('');
