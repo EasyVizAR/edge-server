@@ -58,7 +58,7 @@ function App() {
     } else if ("0a820028-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
       return "https://media.istockphoto.com/photos/dramatic-sunset-over-a-quiet-lake-picture-id1192051826?k=20&m=1192051826&s=612x612&w=0&h=9HyN74dQTBcTZXB7g-BZp6mXV3upTgSvIav0x7hLm-I=";
     } else {
-      return "https://media.istockphoto.com/photos/sycamore-tree-in-summer-field-at-sunset-england-uk-picture-id476116580?k=20&m=476116580&s=612x612&w=0&h=tZL4WDfgtV-0ko0nxidANitYB2bv2tCPDLhgYWYEnC4=";
+      return "http://pages.cs.wisc.edu/~hartung/easyvizar/seventhfloor.png";
     }
   }
 
