@@ -1,28 +1,39 @@
-import { Button, Modal } from 'react-bootstrap';
+import { Button, Form } from 'react-bootstrap';
 import './Popup.css';
+import {useState, useEffect } from 'react';
 
-function Popup(){
+function Popup(props){
+    /*const[popUpClass, changeClass] = useState(props.PopupClass ? 'popUpClassShow' : 'popUpClassHide');
 
-    const state = {
-        show: false
-    };
+    useEffect(() => {
+      console.log(popUpClass);
+    });*/
+
+    if (!props.popUpClass){
+      return null;
+    }
 
     return (
-        <div className="Popup">
-            <Modal.Dialog>
-                <Modal.Header closeButton>
-                    <Modal.Title>Add Feature</Modal.Title>
-                </Modal.Header>
+        <div className="popUpClassShow">
+          <div className="inner-modal">
+            <h2>Add a Feature</h2>
+            <div id="form-div">
+              <Form>
+                <Form.Group className="mb-3" controlId="featureName">
+                  <Form.Label>Feature Name</Form.Label>
+                  <Form.Control type="text" placeholder="Feature Name" />
+                </Form.Group>
 
-                <Modal.Body>
-                    <p>Modal body text goes here.</p>
-                </Modal.Body>
-
-                <Modal.Footer>
-                    <Button variant="secondary">Close</Button>
-                    <Button variant="primary">Save changes</Button>
-                </Modal.Footer>
-            </Modal.Dialog>
+                <Form.Group className="mb-3" controlId="formBasicPassword">
+                  <Form.Label>Password</Form.Label>
+                  <Form.Control type="password" placeholder="Password" />
+                </Form.Group>
+                <Button variant="primary" type="submit">
+                  Submit
+                </Button>
+              </Form>
+            </div>
+          </div>
         </div>
     );
 }

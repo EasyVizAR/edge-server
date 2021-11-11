@@ -13,6 +13,7 @@ function App() {
   const [selectedImage, setSelectedImage] = useState('');
   const [headsets, setHeadsets] = useState([]);
   const [maps, setMaps] = useState([]);
+  const [popUpClass, displayModal] = useState(false);
 
   useEffect(() => {
     fetch(`http://${host}:5000/maps`)
@@ -52,29 +53,25 @@ function App() {
       // setSelectedImage(getDefaultMapImage());
   }, []);
 
-  const getMapImage = (mapId) => {
-    if ("2e1a03e6-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
-      return `http://${host}:5000/uploads/seventhfloor.png`;
-    } else if ("0a820028-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
-      return "https://media.istockphoto.com/photos/dramatic-sunset-over-a-quiet-lake-picture-id1192051826?k=20&m=1192051826&s=612x612&w=0&h=9HyN74dQTBcTZXB7g-BZp6mXV3upTgSvIav0x7hLm-I=";
-    } else {
-      return "http://pages.cs.wisc.edu/~hartung/easyvizar/seventhfloor.png";
-    }
-  }
+  //const getMapImage = (mapId) => {
+    //if ("2e1a03e6-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
+      //return `http://${host}:5000/uploads/seventhfloor.png`;
+    //} else if ("0a820028-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
+     // return "https://media.istockphoto.com/photos/dramatic-sunset-over-a-quiet-lake-picture-id1192051826?k=20&m=1192051826&s=612x612&w=0&h=9HyN74dQTBcTZXB7g-BZp6mXV3upTgSvIav0x7hLm-I=";
+   // } else {
+    //  return "http://pages.cs.wisc.edu/~hartung/easyvizar/seventhfloor.png";
+   // }
+ // }
 
   const handleMapSelection = (e, o) => {
-    console.log('e: ' + e);
-    setSelectedMap(e);
-    setSelectedImage(getMapImage(e));
-    fetch(`http://${host}:5000/maps`)
-      .then(response => response.json())
-      .then(data => {
-        console.log(data);
-      })
-  }
-
-  const showModal = (e) => {
-    console.log("need to show the add a feature modal");
+   // console.log('e: ' + e);
+   // setSelectedMap(e);
+   // setSelectedImage(getMapImage(e));
+    //fetch(`http://${host}:5000/maps`)
+    //  .then(response => response.json())
+     // .then(data => {
+     //   console.log(data);
+     // })
   }
 
   const getDefaultMapSelection = () => {
@@ -95,7 +92,7 @@ function App() {
           <Navbar.Brand>Easy Viz AR Admin</Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Nav className="me-auto">
-            <Nav.Link href="/map_form">Create Map</Nav.Link>
+            <Nav.Link href="/new_map">Create Map</Nav.Link>
           </Nav>
         </Container>
       </Navbar>
@@ -111,10 +108,10 @@ function App() {
             </DropdownButton>
           </div>
           <div className="add-feature-button">
-            <Button variant="secondary" title="Add Feature" value="Add Feature" onClick={(e) => showModal(e)}>Add Feature</Button>
+            <Button variant="secondary" title="Add Feature" value="Add Feature" onClick={(e) => displayModal(popUpClass ? false : true)}>Add Feature</Button>
           </div>
         </div>
-        <Popup id="add-feature-modal"/>
+        <Popup popUpClass={popUpClass}/>
         <div className="map-image-container">
           <img id="map-image" className="img-fluid" src={selectedImage} alt="Map of the environment" />
           <img id="map-qrcode" className="img-fluid" src={`http://${host}:5000/maps/${selectedMap}/qrcode`} alt="QR code to synchronize headsets" style={{width:400}}/>
@@ -127,7 +124,7 @@ function App() {
                 <th rowSpan='2'>Name</th>
                 <th rowSpan='2'>Map ID</th>
                 <th rowSpan='2'>Last Update</th>
-                <th colSpan='3'>Position</th>
+                <th colSpan='3'>Position</th>b
                 <th colSpan='3'>Orientation</th>
               </tr>
               <tr>
