@@ -53,25 +53,25 @@ function App() {
       // setSelectedImage(getDefaultMapImage());
   }, []);
 
-  //const getMapImage = (mapId) => {
-    //if ("2e1a03e6-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
-      //return `http://${host}:5000/uploads/seventhfloor.png`;
-    //} else if ("0a820028-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
-     // return "https://media.istockphoto.com/photos/dramatic-sunset-over-a-quiet-lake-picture-id1192051826?k=20&m=1192051826&s=612x612&w=0&h=9HyN74dQTBcTZXB7g-BZp6mXV3upTgSvIav0x7hLm-I=";
-   // } else {
-    //  return "http://pages.cs.wisc.edu/~hartung/easyvizar/seventhfloor.png";
-   // }
- // }
+  const getMapImage = (mapId) => {
+    if ("2e1a03e6-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
+      return `http://${host}:5000/uploads/seventhfloor.png`;
+    } else if ("0a820028-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
+      return "https://media.istockphoto.com/photos/dramatic-sunset-over-a-quiet-lake-picture-id1192051826?k=20&m=1192051826&s=612x612&w=0&h=9HyN74dQTBcTZXB7g-BZp6mXV3upTgSvIav0x7hLm-I=";
+    } else {
+      return "http://pages.cs.wisc.edu/~hartung/easyvizar/seventhfloor.png";
+    }
+  }
 
   const handleMapSelection = (e, o) => {
-   // console.log('e: ' + e);
-   // setSelectedMap(e);
-   // setSelectedImage(getMapImage(e));
-    //fetch(`http://${host}:5000/maps`)
-    //  .then(response => response.json())
-     // .then(data => {
-     //   console.log(data);
-     // })
+    console.log('e: ' + e);
+    setSelectedMap(e);
+    setSelectedImage(getMapImage(e));
+    fetch(`http://${host}:5000/maps`)
+      .then(response => response.json())
+      .then(data => {
+        console.log(data);
+      })
   }
 
   const getDefaultMapSelection = () => {
@@ -82,7 +82,7 @@ function App() {
   }
 
   const getDefaultMapImage = () => {
-    //return getMapImage(getDefaultMapSelection());
+    return getMapImage(getDefaultMapSelection());
   }
 
   return (
