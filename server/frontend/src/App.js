@@ -111,6 +111,7 @@ function App() {
             <Button variant="secondary" title="Add Feature" value="Add Feature" onClick={(e) => displayModal(popUpClass ? false : true)}>Add Feature</Button>
           </div>
         </div>
+        <hr/>
         <Popup popUpClass={popUpClass}/>
         <div className="map-image-container">
           <img id="map-image" className="img-fluid" src={selectedImage} alt="Map of the environment" />

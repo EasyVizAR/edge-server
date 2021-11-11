@@ -1,13 +1,7 @@
-import { Button, Form } from 'react-bootstrap';
+import { Button, Form, FloatingLabel } from 'react-bootstrap';
 import './Popup.css';
-import {useState, useEffect } from 'react';
 
 function Popup(props){
-    /*const[popUpClass, changeClass] = useState(props.PopupClass ? 'popUpClassShow' : 'popUpClassHide');
-
-    useEffect(() => {
-      console.log(popUpClass);
-    });*/
 
     if (!props.popUpClass){
       return null;
@@ -19,21 +13,30 @@ function Popup(props){
             <h2>Add a Feature</h2>
             <div id="form-div">
               <Form>
-                <Form.Group className="mb-3" controlId="featureName">
-                  <Form.Label>Feature Name</Form.Label>
-                  <Form.Control type="text" placeholder="Feature Name" />
+                <Form.Group className="mb-3" controlId="feature-name">
+                  <FloatingLabel controlId="floating-name" label="Feature Name">
+                    <Form.Control type="text" placeholder="Feature Name" />
+                  </FloatingLabel>
                 </Form.Group>
 
-                <Form.Group className="mb-3" controlId="formBasicPassword">
-                  <Form.Label>Password</Form.Label>
-                  <Form.Control type="password" placeholder="Password" />
+
+                <Form.Group className="mb-3" controlId="placement-type">
+                  <Form.Label>Placement Type</Form.Label>
+                  <Form.Select aria-label="Placement Type">
+                    <option>--Select--</option>
+                    <option value="floating">Floating</option>
+                    <option value="surface">Surface</option>
+                    <option value="point">Point</option>
+                  </Form.Select>
                 </Form.Group>
+
                 <Button variant="primary" type="submit">
                   Submit
                 </Button>
               </Form>
             </div>
           </div>
+          <hr/>
         </div>
     );
 }
