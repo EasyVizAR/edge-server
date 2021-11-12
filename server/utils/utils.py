@@ -2,6 +2,8 @@ import errno
 import os
 from json import JSONEncoder
 
+import numpy as np
+
 
 class GenericJsonEncoder(JSONEncoder):
     def default(self, o):
@@ -45,3 +47,31 @@ def append_to_file(line, file_path):
 
 def get_csv_line(params):
     return ",".join([str(p) for p in params]) + "\n"
+
+
+def get_pixels(extrinsic, intrinsic, X):
+    """
+    Returns the x, y pixels for the given X vector
+    :param extrinsic: extrinsic (4*4) matrix obtained from the headset
+    :param intrinsic: intrinsic (3*3) matrix obtained from the headset
+    :param X: the position vector
+    :return: image pixels for the vector
+    """
+    intm = np.dot(extrinsic, X)
+    intm = (intm / intm[2])[:3]
+    intm = np.dot(intrinsic, intm)[:2]
+    return intm[0], intm[1]
+
+
+def get_vector(extrinsic, intrinsic, Y):
+    """
+    Returns the original vector from the image pixels
+    :param extrinsic: extrinsic (4*4) matrix obtained from the headset
+    :param intrinsic: intrinsic (3*3) matrix obtained from the headset
+    :param Y: the image pixels
+    :return: original vector
+    """
+    intm = np.dot(np.linalg.inv(intrinsic), np.append(Y, 1))
+    intm = intm * extrinsic[2][3]
+    intm = np.append(intm, 1)
+    return intm
