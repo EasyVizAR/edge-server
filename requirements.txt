@@ -26,6 +26,7 @@ lockfile==0.12.2
 MarkupSafe==2.0.1
 mccabe==0.6.1
 msgpack==0.6.2
+numpy==1.21.4
 packaging==20.3
 pep517==0.8.2
 pluggy==1.0.0
@@ -35,7 +36,7 @@ py==1.10.0
 pycodestyle==2.8.0
 pyflakes==2.4.0
 pyparsing==2.4.6
-pyqrcode==1.2.1
+PyQRCode==1.2.1
 pytest==6.2.5
 pytoml==0.1.21
 Quart==0.15.1
@@ -48,4 +49,3 @@ urllib3==1.25.8
 webencodings==0.5.1
 Werkzeug==2.0.2
 wsproto==1.0.0
-Quart-CORS==0.5.0
