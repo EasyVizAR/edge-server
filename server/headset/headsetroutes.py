@@ -55,7 +55,7 @@ async def get(id):
     return await make_response(jsonify(json.dumps(headset, cls=GenericJsonEncoder)), HTTPStatus.OK)
 
 
-@blueprint.route('/headsets/register/', methods=['POST'])
+@blueprint.route('/headsets', methods=['POST'])
 async def register():
     """
     Register a headset
@@ -71,17 +71,22 @@ async def register():
     """
     body = await request.get_json()
 
-    if 'name' not in body or 'position' not in body or 'mapId' not in body:
+    if 'name' not in body:
         return await make_response(jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
                                    HTTPStatus.BAD_REQUEST)
 
     # TODO: Finalize authentication method
-    name = body['name']
-    position = body['position']
-    mapId = body['mapId']
-    headset_id = get_headset_repository().add_headset(name, position, mapId)
 
-    return await make_response({'id': headset_id}, HTTPStatus.OK)
+    headset = {
+        'id': headset_id,
+        'name': body['name'],
+        'mapId': body.get('mapId', 'current'),
+        'position': body.get('position')
+    }
+
+    headset_id = get_headset_repository().add_headset(headset['name'], headset['position'], headset['mapId'])
+
+    return headset, HTTPStatus.OK
 
 
 @blueprint.route('/headsets/authenticate/', methods=['POST'])
