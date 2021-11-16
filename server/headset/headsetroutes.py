@@ -78,13 +78,12 @@ async def register():
     # TODO: Finalize authentication method
 
     headset = {
-        'id': headset_id,
         'name': body['name'],
         'mapId': body.get('mapId', 'current'),
         'position': body.get('position')
     }
 
-    headset_id = get_headset_repository().add_headset(headset['name'], headset['position'], headset['mapId'])
+    headset['id'] = get_headset_repository().add_headset(headset['name'], headset['position'], headset['mapId'])
 
     return headset, HTTPStatus.OK
 
