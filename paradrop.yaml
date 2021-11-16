@@ -10,6 +10,7 @@ services:
       QUART_ENV: production
       VIZAR_HOST: 0.0.0.0
       VIZAR_PORT: 5000
+      VIZAR_DATA_DIR: /data
     requests:
       port-bindings:
         "5000": 5000
