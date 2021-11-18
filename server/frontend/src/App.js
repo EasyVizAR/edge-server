@@ -1,6 +1,5 @@
-import logo from './logo.svg';
 import './App.css';
-import { Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button, Modal } from 'react-bootstrap';
+import { Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button } from 'react-bootstrap';
 import './forms/map_form.js';
 import Popup from './Popup'
 import 'reactjs-popup/dist/index.css';

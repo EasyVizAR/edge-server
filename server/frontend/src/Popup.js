@@ -1,16 +1,35 @@
-import { Button, Form, FloatingLabel } from 'react-bootstrap';
+import { Button, Form, FloatingLabel, Row, Col } from 'react-bootstrap';
 import './Popup.css';
 import React from "react";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 function Popup(props){
     const state = {
       feature_name: "",
       placement_type: "",
+      x: null,
+      y: null,
+      z: null,
+      offset: null,
     }
+
+    const hideDisplay = {
+      display: "none"
+    }
+
+    const showDisplay = {
+      display: "block"
+    }
+
     const[formVal, updateForm] = useState(state);
     const[feature_name, setName] = useState('');
     const[placement_type, setPlacement] = useState('');
+    const[x_pos, setX] = useState(null);
+    const[y_pos, setY] = useState(null);
+    const[z_pos, setZ] = useState(null);
+    const[offset_percent, setOffPer] = useState("0");
+    const[posStyle, setPosStyle] = useState(hideDisplay);
+    const[offsetPerStyle, setOffsetPerStyle] = useState(hideDisplay);
 
     if (!props.popUpClass){
       return null;
@@ -27,10 +46,37 @@ function Popup(props){
           break;
         case "placement-type":
           setPlacement(val);
+          hideAllSections();
+          if (val == "point"){
+            setPosStyle(showDisplay);
+          }else if(val == "floating"){
+            setOffsetPerStyle(showDisplay);
+            console.log(offsetPerStyle);
+          }
           break;
+        case "offset-percent":
+          setOffPer(val);
+          break;
+        case "point-x":
+          setX(val);
+          break;
+        case "point-y":
+          setY(val);
+          break;
+        case "point-z":
+          setZ(val);
+          break;
+        default:
+          console.warn('Bad type');
+          return null;
       }
-      updateForm({feature_name:feature_name, placement_type:placement_type});
-      //console.log(formVal);
+      updateForm({feature_name:feature_name, placement_type:placement_type, x:x_pos, y:y_pos, z:z_pos, offset:offset_percent});
+      console.log(formVal);
+    }
+
+    function hideAllSections(){
+      setOffsetPerStyle(hideDisplay);
+      setPosStyle(hideDisplay);
     }
 
     const handleSubmit = (event) => {
@@ -55,7 +101,6 @@ function Popup(props){
     }
 
     return (
-
         <div className="popUpClassShow">
           <div className="inner-modal">
             <h2>Add a Feature</h2>
@@ -78,6 +123,35 @@ function Popup(props){
                   </FloatingLabel>
                 </Form.Group>
 
+                <Form.Group className="mb-3" controlId="offset-percent" style={offsetPerStyle}>
+                  <FloatingLabel controlId="offset-percent" label="Offset (%)">
+                    <Form.Control type="number" max="100" min="0" defaultValue="0" placeholder="Offset (%)" name="offset-percent" onChange={(e) => updateState(e, "offset-percent")}/>
+                  </FloatingLabel>
+                </Form.Group>
+
+                <Row className="mb-3" style={posStyle}>
+                  <Col>
+                    <Form.Group className="mb-3" controlId="point-pos-x">
+                      <FloatingLabel controlId="floating-x-position" label="X Position">
+                        <Form.Control type="number" placeholder="X Position" name="x_pos" onChange={(e) => updateState(e, "point-x")}/>
+                      </FloatingLabel>
+                    </Form.Group>
+                  </Col>
+                  <Col>
+                    <Form.Group className="mb-3" controlId="point-pos-y">
+                      <FloatingLabel controlId="floating-y-position" label="Y Position">
+                        <Form.Control type="number" placeholder="Y Position" name="y_pos" onChange={(e) => updateState(e, "point-y")}/>
+                      </FloatingLabel>
+                    </Form.Group>
+                  </Col>
+                  <Col>
+                    <Form.Group className="mb-3" controlId="point-pos-z">
+                      <FloatingLabel controlId="floating-z-position" label="Z Position">
+                        <Form.Control type="number" placeholder="Z Position" name="z_pos" onChange={(e) => updateState(e, "point-z")}/>
+                      </FloatingLabel>
+                    </Form.Group>
+                  </Col>
+                </Row>
                 <Button variant="primary" onClick={handleSubmit}>
                   Submit
                 </Button>
