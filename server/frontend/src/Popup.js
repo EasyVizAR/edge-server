@@ -1,7 +1,7 @@
 import { Button, Form, FloatingLabel, Row, Col } from 'react-bootstrap';
 import './Popup.css';
 import React from "react";
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 function Popup(props){
     const state = {
@@ -20,6 +20,10 @@ function Popup(props){
 
     const showDisplay = {
       display: "block"
+    }
+
+    const displayflex = {
+      display: "flex"
     }
 
     const[formVal, updateForm] = useState(state);
@@ -50,7 +54,7 @@ function Popup(props){
           setPlacement(val);
           hideAllSections();
           if (val == "point"){
-            setPosStyle(showDisplay);
+            setPosStyle(displayflex);
           }else if(val == "floating" || val == "surface"){
             setOffsetPerStyle(showDisplay);
           }
