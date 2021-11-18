@@ -11,6 +11,7 @@ function Popup(props){
       y: null,
       z: null,
       offset: null,
+      placement_location: null,
     }
 
     const hideDisplay = {
@@ -28,6 +29,7 @@ function Popup(props){
     const[y_pos, setY] = useState(null);
     const[z_pos, setZ] = useState(null);
     const[offset_percent, setOffPer] = useState("0");
+    const[placement_location, setPlacementLoc] = useState(null);
     const[posStyle, setPosStyle] = useState(hideDisplay);
     const[offsetPerStyle, setOffsetPerStyle] = useState(hideDisplay);
 
@@ -49,9 +51,8 @@ function Popup(props){
           hideAllSections();
           if (val == "point"){
             setPosStyle(showDisplay);
-          }else if(val == "floating"){
+          }else if(val == "floating" || val == "surface"){
             setOffsetPerStyle(showDisplay);
-            console.log(offsetPerStyle);
           }
           break;
         case "offset-percent":
@@ -66,11 +67,14 @@ function Popup(props){
         case "point-z":
           setZ(val);
           break;
+        case "placement-location":
+          setPlacementLoc(val);
+          break;
         default:
           console.warn('Bad type');
           return null;
       }
-      updateForm({feature_name:feature_name, placement_type:placement_type, x:x_pos, y:y_pos, z:z_pos, offset:offset_percent});
+      updateForm({feature_name:feature_name, placement_type:placement_type, x:x_pos, y:y_pos, z:z_pos, offset:offset_percent, placement_location:placement_location});
       console.log(formVal);
     }
 
@@ -119,6 +123,16 @@ function Popup(props){
                       <option value="floating">Floating</option>
                       <option value="surface">Surface</option>
                       <option value="point">Point</option>
+                    </Form.Select>
+                  </FloatingLabel>
+                </Form.Group>
+
+                <Form.Group className="mb-3" controlId="placement-location" style={offsetPerStyle}>
+                  <FloatingLabel controlId="placement-location" label="Placement Location">
+                    <Form.Select aria-label="Placement Location" onChange={(e) => updateState(e, "placement-location")}>
+                      <option>--Select--</option>
+                      <option value="ceiling">Ceiling</option>
+                      <option value="floor">Floor</option>
                     </Form.Select>
                   </FloatingLabel>
                 </Form.Group>
