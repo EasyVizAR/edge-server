@@ -89,7 +89,7 @@ class Repository:
         update_line = get_csv_line([id, headset.name, headset.mapId, position['x'], position['y'], position['z'],
                                     orientation['x'], orientation['y'], orientation['z'], headset.lastUpdate])
         append_to_file(update_line, filepath)
-        
+
         update = {
             "headsetID": id,
             "position": position,
@@ -102,13 +102,6 @@ class Repository:
     def update_position(self, id, position):
         orientation = {'x': 0.0, 'y': 0.0, 'z': 0.0}
         return self.update_pose(id, position, orientation)
-
-    # TODO: Will this have a separate
-    def create_image(self, intent, data, type):
-        id = str(uuid.uuid4())
-        img_type = type.split("/")[1]
-        url = f"{current_app.config['IMAGE_UPLOADS']}{id}.{img_type}"
-        return {'id': id, 'url': url, 'intent': intent, 'data': data, 'type': type}
 
 
 def get_headset_repository():
