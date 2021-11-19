@@ -8,10 +8,10 @@ from http import HTTPStatus
 from quart import Blueprint, current_app, request, make_response, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 
+from server.maps.maprepository import get_map_repository
+from server.utils.utils import get_pixels, GenericJsonEncoder
 
 maps = Blueprint('maps', __name__)
-
-DEFAULT_ENVIRONMENT_FOLDER = './data'
 
 
 def initialize_maps(app):
@@ -99,7 +99,7 @@ def create_map_dir(map_id):
     if not map_id:
         return None
 
-    parent_dir = current_app.config['VIZAR_DATA_DIR']
+    parent_dir = current_app.config['VIZAR_DATA_DIR'] + 'maps/'
     path = os.path.join(parent_dir, map_id)
 
     try:
@@ -120,32 +120,14 @@ def generate_new_id():
 
 
 @maps.route('/maps', methods=['GET'])
-async def list_maps():
+async def get_all_maps():
     """
     Lists all maps found
     """
 
     # TODO: check authorization
-
-    all_maps = []
-
-    # open maps directory
-    map_list, maps_path = open_maps_dir()
-
-    # add all map data to all_maps
-    for map_id in map_list:
-        # Ignore the link to the current map because it would result in duplication.
-        if map_id == 'current':
-            continue
-
-        map_file = open(maps_path + '/' + str(map_id) + '/map.json', 'r')
-        map_data = json.load(map_file)
-        map_file.close()
-        all_maps.append(map_data)
-
-    return await make_response(
-        jsonify({"maps": all_maps}),
-        HTTPStatus.OK)
+    maps = get_map_repository().get_all_maps()
+    return await make_response(json.loads(json.dumps(maps, cls=GenericJsonEncoder)), HTTPStatus.OK)
 
 
 @maps.route('/maps/<map_id>', methods=['GET'])
@@ -158,21 +140,16 @@ async def show_map(map_id):
 
     # check if map exists
     found_map_name, maps_path = find_map(map_id)
-
+    map = get_map_repository().get_map(map_id)
+    print(map)
     # check if map exists
-    if not found_map_name:
+    if map is None:
         return await make_response(
             jsonify({"message": "The requested map does not exist",
                      "severity": "Warning"}),
             HTTPStatus.NOT_FOUND)
-
-    # get map data
-    map_file = open(maps_path + '/' + str(found_map_name) + '/map.json', 'r')
-    map_data = json.load(map_file)
-    map_file.close()
-
     return await make_response(
-        jsonify({"map": map_data}),
+        json.loads(json.dumps(map, cls=GenericJsonEncoder)),
         HTTPStatus.OK)
 
 
@@ -184,23 +161,17 @@ async def list_map_features(map_id):
 
     # TODO: check authorization
 
-    # check if map exists
-    found_map_name, maps_path = find_map(map_id)
+    features = get_map_repository().get_map_features(map_id)
 
     # check if map exists
-    if not found_map_name:
+    if features is None:
         return await make_response(
             jsonify({"message": "The requested map does not exist",
                      "severity": "Warning"}),
             HTTPStatus.NOT_FOUND)
 
-    # get the map features
-    map_features_file = open(maps_path + '/' + str(found_map_name) + '/features.json', 'r')
-    map_features = json.load(map_features_file)
-    map_features_file.close()
-
     return await make_response(
-        jsonify({"features": map_features}),
+        jsonify(json.loads(json.dumps(features, cls=GenericJsonEncoder))),
         HTTPStatus.OK)
 
 
@@ -220,40 +191,23 @@ async def add_map_feature(map_id):
                      "severity": "Warning"}),
             HTTPStatus.BAD_REQUEST)
 
-    if 'new_feature' not in body:
-        return await make_response(
-            jsonify({"message": "Missing parameter in body",
-                     "severity": "Warning"}),
-            HTTPStatus.BAD_REQUEST)
+    if 'name' not in body or 'mapID' not in body\
+            or 'position' not in body or 'style' not in body:
+        return await make_response(jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
+                                   HTTPStatus.BAD_REQUEST)
 
+    feature = get_map_repository().add_feature(body['id'],
+                                               body['name'],
+                                               body['position'],
+                                               body['mapID'],
+                                               body['style'])
 
     # check if map exists
-    found_map_name, maps_path = find_map(map_id)
-
-    # check if map exists
-    if not found_map_name:
+    if feature is None:
         return await make_response(
             jsonify({"message": "The requested map does not exist",
                      "severity": "Warning"}),
             HTTPStatus.NOT_FOUND)
-
-    # get new feature
-    new_feature = body['new_feature']
-
-    # get the map features
-    map_features_file = open(maps_path + '/' + str(found_map_name) + '/features.json', 'r')
-    map_features = json.load(map_features_file)
-    map_features_file.close()
-
-    # update json
-    map_features.update(new_feature)
-
-    # open the file back up to write to it
-    map_features_file = open(maps_path + '/' + str(found_map_name) + '/features.json', 'w')
-
-    # write it back to the file
-    map_features_file.write(map_features)
-    map_features_file.close()
 
     return await make_response(
         jsonify({"message": "Feature added"}),
@@ -367,46 +321,26 @@ async def replace_map(map_id):
                      "severity": "Warning"}),
             HTTPStatus.BAD_REQUEST)
 
-    # check if map exists
-    found_map_name, maps_path = find_map(map_id)
+    map_name = body['name']
+    map_image = body['image']
+
+    id = get_map_repository().replace_map(map_id, map_name, map_image)
 
     # check if map exists
-    if not found_map_name:
+    if id is None:
         return await make_response(
             jsonify({"message": "The requested map does not exist",
                      "severity": "Warning"}),
             HTTPStatus.NOT_FOUND)
 
-    map_name = body['name']
-    map_image = body['image']
-
-    if not map_name:
-        map_name = ''
-
-    if not map_image:
-        map_image = ''
-
-    # creates and intializes map json file
-    map_file = open(maps_path + '/map.json', 'w')
-
-    map_json_content = {
-        'id': map_id,
-        'name': map_name,
-        'image': map_image
-    }
-
-    json_object = json.dumps(map_json_content, indent=4)
-    map_file.write(json_object)
-    map_file.close()
-
     # map was created
     return await make_response(
         jsonify({"message": "Map replaced",
-                 "map_id": map_id}),
+                 "map_id": id}),
         HTTPStatus.CREATED)
 
 
-@maps.route('/maps/create', methods=['POST'])
+@maps.route('/maps', methods=['POST'])
 async def create_map():
     """
     Creates a map
@@ -428,55 +362,45 @@ async def create_map():
                      "severity": "Warning"}),
             HTTPStatus.BAD_REQUEST)
 
-    # generate new map id and get map features
-    new_id = generate_new_id()
-    map_name = body['name']
-    map_image = body['image']
+    id = None
+    if 'id' in body and str(body['id']).strip() != '':
+        id = body['id']
 
-    if not map_name:
-        map_name = ''
+    created_id = get_map_repository().add_map(id, body['name'], body['image'])
 
-    if not map_image:
-        map_image = ''
-
-    if not new_id:
-        return await make_response(
-            jsonify({"message": "Cannot create map",
-                     "severity": "Error"}),
-            HTTPStatus.BAD_REQUEST)
-
-    # create the new directory
-    map_path = create_map_dir(new_id)
-
-    # check if the directory was created
-    if not map_path:
-        return await make_response(
-            jsonify({"message": "Cannot create map",
-                     "severity": "Error"}),
-            HTTPStatus.BAD_REQUEST)
-
-    # creates and initializes features file
-    features_file = open(map_path + '/features.json', 'w')
-    features_file.close()
-
-    # creates and intializes map json file
-    map_file = open(map_path + '/map.json', 'w')
-
-    map_json_content = {
-        'id': new_id,
-        'name': map_name,
-        'image': map_image
-    }
-
-    json_object = json.dumps(map_json_content, indent=4)
-    map_file.write(json_object)
-    map_file.close()
-
-    # map was created
     return await make_response(
         jsonify({"message": "Map created",
-                 "map_id": new_id}),
+                 "map_id": created_id}),
         HTTPStatus.CREATED)
+
+
+@maps.route('/image-uploads/', methods=['POST'])
+async def image_upload():
+    """
+    Initiate a file upload
+    ---
+    post:
+        description: Initiate a file upload
+        responses:
+            200:
+                description: A file upload object
+                content:
+                    application/json:
+                        schema: ImageUploadSchema
+    """
+    body = await request.get_json()
+
+    if 'intent' not in body or 'data' not in body or 'type' not in body:
+        return await make_response(
+            jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
+            HTTPStatus.BAD_REQUEST)
+    elif 'maps' == body['intent'] and 'mapID' not in body['data']: # TODO: What is the condition for -> For a feature, it should include bounding box(es) and feature labels.?
+        return await make_response(
+            jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
+            HTTPStatus.BAD_REQUEST)
+
+    return await make_response(jsonify(get_map_repository().create_image(body['intent'], body['data'], body['type'], body['extrinsic'], body['intrinsic'])),
+                               HTTPStatus.CREATED)
 
 
 @maps.route('/maps/<map_id>/qrcode', methods=['GET'])

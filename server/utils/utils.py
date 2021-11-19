@@ -57,10 +57,10 @@ def get_pixels(extrinsic, intrinsic, X):
     :param X: the position vector
     :return: image pixels for the vector
     """
-    intm = np.dot(extrinsic, X)
+    intm = np.dot(extrinsic, np.append(X, 1))
     intm = (intm / intm[2])[:3]
     intm = np.dot(intrinsic, intm)[:2]
-    return intm[0], intm[1]
+    return [intm[0], intm[1]]
 
 
 def get_vector(extrinsic, intrinsic, Y):
@@ -74,4 +74,4 @@ def get_vector(extrinsic, intrinsic, Y):
     intm = np.dot(np.linalg.inv(intrinsic), np.append(Y, 1))
     intm = intm * extrinsic[2][3]
     intm = np.append(intm, 1)
-    return intm
+    return intm.tolist()

@@ -52,7 +52,7 @@ async def get(id):
             jsonify({"message": "The requested headset does not exist.", "severity": "Error"}),
             HTTPStatus.NOT_FOUND)
 
-    return await make_response(jsonify(json.dumps(headset, cls=GenericJsonEncoder)), HTTPStatus.OK)
+    return await make_response(json.loads(json.dumps(headset, cls=GenericJsonEncoder)), HTTPStatus.OK)
 
 
 @blueprint.route('/headsets', methods=['POST'])
@@ -169,32 +169,3 @@ async def upload(imageId):
 #     print(f"Sending file {file_path}")
 #     return await send_file(file_path, as_attachment=True)
 
-
-# TODO: will this be in a separate file?
-@blueprint.route('/image-uploads/', methods=['POST'])
-async def image_upload():
-    """
-    Initiate a file upload
-    ---
-    post:
-        description: Initiate a file upload
-        responses:
-            200:
-                description: A file upload object
-                content:
-                    application/json:
-                        schema: ImageUploadSchema
-    """
-    body = await request.get_json()
-
-    if 'intent' not in body or 'data' not in body or 'type' not in body:
-        return await make_response(
-            jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
-            HTTPStatus.BAD_REQUEST)
-    elif 'maps' == body['intent'] and 'mapID' not in body['data']: # TODO: What is the condition for -> For a feature, it should include bounding box(es) and feature labels.?
-        return await make_response(
-            jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
-            HTTPStatus.BAD_REQUEST)
-
-    return await make_response(jsonify(get_headset_repository().create_image(body['intent'], body['data'], body['type'])),
-                               HTTPStatus.CREATED)
