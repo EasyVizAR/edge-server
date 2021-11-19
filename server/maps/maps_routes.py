@@ -46,7 +46,7 @@ def initialize_maps(app):
         map_file.write(json.dumps(map_info))
         map_file.close()
 
-        os.symlink(map_id, os.path.join(maps_dir, 'current'), target_is_directory=True)
+        #os.symlink(map_id, os.path.join(maps_dir, 'current'), target_is_directory=True)
 
 
 def open_maps_dir():

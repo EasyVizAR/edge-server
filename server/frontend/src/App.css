@@ -39,6 +39,10 @@
   align-self: center;
 }
 
-.add-feature-button{
+.header-button{
   margin-top: 10px;
+}
+
+.new-map-button{
+  margin-right: 10px;
 }

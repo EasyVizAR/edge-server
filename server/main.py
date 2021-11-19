@@ -12,7 +12,8 @@ app = cors(app)
 
 app.config.from_pyfile('default_settings.py')
 if 'APPLICATION_CONFIG' in os.environ:
-    app.config.from_envvar('APPLICATION_CONFIG')
+    pass
+    #app.config.from_envvar('APPLICATION_CONFIG')
 
 app.register_blueprint(headset_blueprint)
 app.register_blueprint(maps)

@@ -10,3 +10,11 @@
 .form-div{
   width: 50%;
 }
+
+.icon-select-label{
+  margin-top: 20px;
+}
+
+.iconImg:hover{
+  cursor: pointer;
+}

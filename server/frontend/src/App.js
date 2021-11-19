@@ -1,18 +1,23 @@
 import './App.css';
 import { Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button } from 'react-bootstrap';
-import './forms/map_form.js';
-import Popup from './Popup'
+import NewMap from './NewMap.js';
+import NewFeature from './NewFeature.js'
 import 'reactjs-popup/dist/index.css';
 import { useState, useEffect } from 'react';
 
 function App() {
   const host = window.location.hostname;
 
+  const buttonStyle = {
+    marginBottom: "20px"
+  }
+
   const [selectedMap, setSelectedMap] = useState('');
   const [selectedImage, setSelectedImage] = useState('');
   const [headsets, setHeadsets] = useState([]);
   const [maps, setMaps] = useState([]);
   const [popUpClass, displayModal] = useState(false);
+  const [showNewMap, showMap] = useState(false);
 
   useEffect(() => {
     fetch(`http://${host}:5000/maps`)
@@ -90,9 +95,6 @@ function App() {
         <Container>
           <Navbar.Brand>Easy Viz AR Admin</Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
-          <Nav className="me-auto">
-            <Nav.Link href="/new_map">Create Map</Nav.Link>
-          </Nav>
         </Container>
       </Navbar>
       <div className="app-body">
@@ -106,12 +108,16 @@ function App() {
               }
             </DropdownButton>
           </div>
-          <div className="add-feature-button">
+          <div className="new-map-button header-button">
+            <Button variant="secondary" style={buttonStyle} onClick={(e) => showMap(showNewMap ? false : true)}>New Map</Button>
+          </div>
+          <div className="add-feature-button header-button">
             <Button variant="secondary" title="Add Feature" value="Add Feature" onClick={(e) => displayModal(popUpClass ? false : true)}>Add Feature</Button>
           </div>
         </div>
         <hr/>
-        <Popup popUpClass={popUpClass}/>
+        <NewFeature popUpClass={popUpClass}/>
+        <NewMap showNewMap={showNewMap}/>
         <div className="map-image-container">
           <img id="map-image" className="img-fluid" src={selectedImage} alt="Map of the environment" />
           <img id="map-qrcode" className="img-fluid" src={`http://${host}:5000/maps/${selectedMap}/qrcode`} alt="QR code to synchronize headsets" style={{width:400}}/>
