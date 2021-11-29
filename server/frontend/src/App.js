@@ -89,6 +89,18 @@ function App() {
     return getMapImage(getDefaultMapSelection());
   }
 
+  const showFeature = (e) => {
+    if (showNewMap == false){
+      displayModal(popUpClass ? false : true)
+    }
+  }
+
+  const showMapPopup = (e) => {
+    if (popUpClass == false){
+      showMap(showNewMap ? false : true)
+    }
+  }
+
   return (
     <div className="App">
       <Navbar bg="dark" variant="dark">
@@ -109,10 +121,10 @@ function App() {
             </DropdownButton>
           </div>
           <div className="new-map-button header-button">
-            <Button variant="secondary" style={buttonStyle} onClick={(e) => showMap(showNewMap ? false : true)}>New Map</Button>
+            <Button variant="secondary" style={buttonStyle} onClick={(e) => showMapPopup(e)}>New Map</Button>
           </div>
           <div className="add-feature-button header-button">
-            <Button variant="secondary" title="Add Feature" value="Add Feature" onClick={(e) => displayModal(popUpClass ? false : true)}>Add Feature</Button>
+            <Button variant="secondary" title="Add Feature" value="Add Feature" onClick={(e) => showFeature(e)}>Add Feature</Button>
           </div>
         </div>
         <hr/>

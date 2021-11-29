@@ -1,13 +1,15 @@
-import quart
-from quart import Blueprint, render_template, url_for
+import os
+from http import HTTPStatus
+from quart import Blueprint, make_response, jsonify
 
 routes = Blueprint('routes', __name__)
 
-
-@routes.route('/')
+@routes.route('/icon_urls', methods=['GET'])
 async def index():
-    return await quart.current_app.send_static_file('index.html')
+    files = os.listdir('server/frontend/build/icons')
+    totalFiles = []
+    for file in files:
+        totalFiles.append("icons/" + file)
 
-@routes.route("/new_map")
-async def new_map():
-    return await render_template('new_map.html', title='New Map')
+    return await make_response(jsonify({"file_paths": totalFiles}),
+                               HTTPStatus.OK)

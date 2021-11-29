@@ -13,6 +13,7 @@ function NewFeature(props){
       offset: null,
       placement_location: null,
       coord_location: null,
+      icon: -1,
     }
 
     const hideDisplay = {
@@ -42,21 +43,47 @@ function NewFeature(props){
     const[coordStyle, setCoordStyle] = useState(hideDisplay);
     const[offsetPerStyle, setOffsetPerStyle] = useState(hideDisplay);
     const[iconPaths, setIconPaths] = useState(null);
+    const[iconIndex, changeIcon] = useState(-1);
 
     useEffect(() => {
-      const url = `http://${host}:5000/maps`;
-      //fetch(url)
-      //.then(response => response.json())
-      //.then(data => {
-        //setImagePaths(data);
-      //});
-      const temp = [`http://${host}:5000/icons/fire.png`, `http://${host}:5000/icons/medical.png`, `http://${host}:5000/icons/obstacle.png`, `http://${host}:5000/icons/target.png`];
-      setIconPaths(temp);
-      console.log(iconPaths);
+      const url = `http://${host}:5000/icon_urls`;
+      fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        data['file_paths'].map((path, index) => {
+          const url = `http://${host}:5000/` + path;
+          data['file_paths'][index] = url;
+        });
+        setPaths(data['file_paths']);
+      });
+      //const temp = [fire.png`, `http://${host}:5000/icons/medical.png`, `http://${host}:5000/icons/obstacle.png`, `http://${host}:5000/icons/target.png`];
+      //setIconPaths(temp);
     }, []);
 
     if (!props.popUpClass){
       return null;
+    }
+
+    function setPaths(paths){
+
+      // TODO: bug here. Does not update iconPaths
+
+      setIconPaths("hi");
+      console.log("here1");
+      console.log(iconPaths);
+      console.log(paths);
+      setIconPaths(paths);
+      console.log("here2");
+      console.log(iconPaths);
+    }
+
+    function setIcon(index){
+      changeIcon(index);
+      console.log(iconIndex);
+
+      // TODO: set css of selected icon
+
+      updateForm({feature_name:feature_name, placement_type:placement_type, x:x_pos, y:y_pos, z:z_pos, offset:offset_percent, placement_location:placement_location, coord_location: coord_location, icon: iconIndex});
     }
 
     function Icons(props){
@@ -68,14 +95,9 @@ function NewFeature(props){
           marginLeft: "10px"
         }
 
-        const imageCss = {
-          width: "50px",
-          height: "50px"
-        }
-
-        const listItems = iconPaths.map((icon) =>
+        const listItems = iconPaths.map((icon, index) =>
           <Col>
-            <img src={icon} className="iconImg" alt="Icon"/>
+            <img onClick={(e) => setIcon(index)} src={icon} className="iconImg" alt="Icon"/>
           </Col>
         );
         return (
@@ -86,6 +108,9 @@ function NewFeature(props){
     }
 
     function updateState(e, type){
+
+      // TODO: bug here. lags when updating variables
+
       let val = e.target.value;
       switch(type){
         case "feature-name":
@@ -126,7 +151,7 @@ function NewFeature(props){
           console.warn('Bad type');
           return null;
       }
-      updateForm({feature_name:feature_name, placement_type:placement_type, x:x_pos, y:y_pos, z:z_pos, offset:offset_percent, placement_location:placement_location, coord_location: coord_location});
+      updateForm({feature_name:feature_name, placement_type:placement_type, x:x_pos, y:y_pos, z:z_pos, offset:offset_percent, placement_location:placement_location, coord_location: coord_location, icon: iconIndex});
       console.log(formVal);
     }
 

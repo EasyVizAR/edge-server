@@ -17,4 +17,10 @@
 
 .iconImg:hover{
   cursor: pointer;
+  background-color: #ccc;
+  border-radius: 5px;
+}
+
+.selectedIcon{
+  background-color: black;
 }
