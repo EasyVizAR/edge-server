@@ -25,12 +25,35 @@
   max-height: fit-content;
 }
 
-.map-image-container, .nav-container {
+.nav-container {
   margin: 10px;
   display: flex;
   justify-self: center;
   justify-items: center;
   align-items: center;
+  width: 50%;
+  height: 50%;
+}
+
+.map-image-container {
+  position: relative;
+  top: 0;
+  left: 0;
+}
+
+#map-image {
+  position: relative;
+  width: 85%;
+  top: 0;
+  left: 0;
+  border: 1px solid #000000;
+}
+
+.features {
+  position: absolute;
+  /* left: 924px;
+  top: 66.5px; */
+  border: 1px solid #000000;
 }
 
 #map-image {

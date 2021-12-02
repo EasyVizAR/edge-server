@@ -2,6 +2,7 @@ import { Button, Form, FloatingLabel, Row, Col } from 'react-bootstrap';
 import './NewFeature.css';
 import React from "react";
 import { useState, useEffect } from 'react';
+import {port} from "./App";
 
 function NewFeature(props){
     const state = {
@@ -46,17 +47,17 @@ function NewFeature(props){
     const[iconIndex, changeIcon] = useState(-1);
 
     useEffect(() => {
-      const url = `http://${host}:5000/icon_urls`;
+      const url = `http://${host}:${port}/icon_urls`;
       fetch(url)
       .then(response => response.json())
       .then(data => {
         data['file_paths'].map((path, index) => {
-          const url = `http://${host}:5000/` + path;
+          const url = `http://${host}:${port}/` + path;
           data['file_paths'][index] = url;
         });
         setPaths(data['file_paths']);
       });
-      //const temp = [fire.png`, `http://${host}:5000/icons/medical.png`, `http://${host}:5000/icons/obstacle.png`, `http://${host}:5000/icons/target.png`];
+      //const temp = [fire.png`, `http://${host}:${port}/icons/medical.png`, `http://${host}:${port}/icons/obstacle.png`, `http://${host}:${port}/icons/target.png`];
       //setIconPaths(temp);
     }, []);
 
@@ -168,7 +169,7 @@ function NewFeature(props){
         new_feature: formData,
       }
       let mapID = "2e1a03e6-3d9d-11ec-a64a-0237d8a5e2fd";
-      let url = `http://${host}:5000/maps/${mapID}/features`;
+      let url = `http://${host}:${port}/maps/${mapID}/features`;
       const requestData = {
         method: 'POST',
         headers: {

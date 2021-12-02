@@ -12,7 +12,7 @@ function NewMap(props){
     }
 
     const handleSubmit = (event) => {
-      let url = `http://${App.host}:5000/maps`;
+      let url = `http://${App.host}:${App.port}/maps`;
       fetch(url)
       .then(response => response.json())
       .then(data => {
