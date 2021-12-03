@@ -3,6 +3,7 @@ import numpy as np
 
 import visualize_pointcloud
 from sympy import Point3D, Plane
+import svgwrite
 
 if __name__ == "__main__":
     """
@@ -12,11 +13,11 @@ if __name__ == "__main__":
     cube_red.paint_uniform_color((1.0, 0.0, 0.0))
     o3d.visualization.draw(cube_red)"""
 
-    mesh = o3d.geometry.TriangleMesh.create_sphere(1, create_uv_map=True)
-    lines = o3d.geometry.LineSet.create_from_triangle_mesh(mesh)
-    zpoints = visualize_pointcloud.isolate_zplane(mesh, 0.5)
+    #mesh = o3d.geometry.TriangleMesh.create_sphere(1, create_uv_map=True)
+    #lines = o3d.geometry.LineSet.create_from_triangle_mesh(mesh)
+    #zpoints = visualize_pointcloud.isolate_zplane(mesh, 0.5)
     """o3d.visualization.draw_geometries([zpoints[0], zpoints[1], zpoints[2], lines])"""
-    visualize_pointcloud.plotplanecoords(zpoints[0])
+    #visualize_pointcloud.plotplanecoords(zpoints[0])
 
     """plane = Plane(Point3D([2, 0, 0]), Point3D([0, 2, 0]), Point3D([0, 0, 2]))
     pointList = [

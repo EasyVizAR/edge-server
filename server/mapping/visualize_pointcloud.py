@@ -196,6 +196,58 @@ def isolate_zplane(mesh, vertical, verticalz = True):
 
     return pcdnew, pcdtri, lineset
 
+def slice(mesh, vertical, verticalz = True):
+    points = np.asarray(mesh.vertices)
+    triangles = np.asarray(mesh.triangles)
+
+    newpoints = []
+    #tripoints = []
+
+    vaxis = 0
+    if verticalz:
+        vaxis = 2
+    else:
+        vaxis = 1
+    vnorm = [0, abs(vaxis-2), abs(vaxis-1)]
+    vcord = [x*vertical for x in vnorm]
+
+    lines = []
+    pointindex = 0
+
+    # iterate through list of triangle arrays
+    # triangle array = [point 1, point 2, point 3]
+    for i in range(len(triangles)):
+        #intersect = False
+        #intersecting = []
+        intersecting_points = []
+
+        for j in range(3):
+            p0 = points[triangles[i, j]]
+            p1 = points[triangles[i, (j+1)%3]]
+            b = (p0[vaxis] > vertical > p1[vaxis]) or (p0[vaxis] < vertical < p1[vaxis])
+            plane_splits_edge = splitpoints(p0, p1, vcord, vnorm)
+            if b != plane_splits_edge:
+                print("Uh oh shitteroo")
+            if plane_splits_edge:
+                pi = lp_intersect(p0, p1, vcord, vnorm)
+                newpoints.append(pi)
+                intersecting_points.append(pi)
+                #intersect = True
+                #intersecting.append(pointindex)
+                #pointindex += 1
+                #print("Gotem")
+
+        #print(len(intersecting))
+        if len(intersecting_points) == 2:
+            lines.append([intersecting_points[0], intersecting_points[1]])
+
+        """if intersect:
+            tripoints.append(points[triangles[i, 0]])
+            tripoints.append(points[triangles[i, 1]])
+            tripoints.append(points[triangles[i, 2]])"""
+
+    return newpoints, lines
+
 def lp_intersect(p0, p1, p_co, p_no, epsilon=1e-6):
     """
     p0, p1: Define the line.
