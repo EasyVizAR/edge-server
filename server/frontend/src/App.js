@@ -15,15 +15,11 @@ function App() {
     }
 
     const [selectedMap, setSelectedMap] = useState('');
-    const [fireLogo, setFireLogo] = useState('fire32.png');
-    const [officeLogo, setOfficeLogo] = useState('office24.png');
     const [features, setFeatures] = useState([]);
     const [selectedImage, setSelectedImage] = useState('');
     const [headsets, setHeadsets] = useState([]);
     const [maps, setMaps] = useState([]);
     const [popUpClass, displayModal] = useState(false);
-    const [x, setFeatureX] = useState([]);
-    const [y, setFeatureY] = useState([]);
     const [showNewMap, showMap] = useState(false);
 
     useEffect(() => {
@@ -55,20 +51,15 @@ function App() {
                 fetchedHeadsets.push({
                     'id': v.id, 'lastUpdate': v.lastUpdate, 'mapId': v.mapId, 'name': v.name,
                     'orientationX': v.orientation.x, 'orientationY': v.orientation.y, 'orientationZ': v.orientation.z,
-                    'positionX': v.position.x, 'positionY': v.position.y, 'positionZ': v.position.z
+                    'positionX': v.position.x, 'positionY': v.position.y, 'positionZ': v.position.z,
+                    'pixelX': v.pixelPosition['x'], 'pixelY': v.pixelPosition['y']
                 });
             }
             setHeadsets(fetchedHeadsets);
-            // for (var idx in data['maps']) {
-            //   console.log(data['maps'][idx]['id']);
-            //   fetchedHeadsets.push({'eventKey': data['maps'][idx]['id'], 'name': data['maps'][idx]['name'], 'image': data['maps'][idx]['image']});
-            // }
-            // setMaps(fetchedHeadsets);
         });
-        // setSelectedImage(getDefaultMapImage());
     }, []);
 
-    const onMapLoad = (origX, origY) => {
+    const onMapLoad = () => {
         var scaledWidth = document.getElementById('map-image').offsetWidth;
         var scaledHeight = document.getElementById('map-image').offsetHeight;
         var origWidth = document.getElementById('map-image').naturalWidth;
@@ -110,52 +101,41 @@ function App() {
                     'scaledX': v.pixelPosition['x'] * widthScaling,
                     'scaledY': v.pixelPosition['y'] * heightScaling
                 });
+                console.log(`Headset: ${v.pixelPosition['x'] * widthScaling}, ${v.pixelPosition['x'] * widthScaling}`);
             }
-            setFeatures(fetchedFeatures);
+            // setFeatures(fetchedFeatures);
+
+            fetch(`http://${host}:${port}/headsets`)
+                .then(response => {
+                    return response.json()
+                }).then(data => {
+                let fetchedHeadsets = []
+                for (let k in data) {
+                    let v = data[k];
+                    if (selectedMap === v.mapId) {
+                        fetchedHeadsets.push({
+                            'id': v.id,
+                            'lastUpdate': v.lastUpdate,
+                            'mapId': v.mapId,
+                            'name': v.name,
+                            'orientationX': v.orientation.x,
+                            'orientationY': v.orientation.y,
+                            'orientationZ': v.orientation.z,
+                            'positionX': v.position.x,
+                            'positionY': v.position.y,
+                            'positionZ': v.position.z,
+                            'scaledX': v.pixelPosition['x'] * widthScaling,
+                            'scaledY': v.pixelPosition['y'] * heightScaling,
+                            'icon': '/icons/headset24.png'
+                        });
+                    }
+                }
+                fetchedHeadsets = fetchedHeadsets.concat(fetchedFeatures);
+                setFeatures(fetchedHeadsets);
+            });
+
+
         });
-
-        // fetch(`http://${host}:${port}/headsets`)
-        //     .then(response => {
-        //       return response.json()
-        //     }).then(data => {
-        //   console.log(data);
-        //   var fetchedHeadsets = []
-        //   for (let k in data) {
-        //     var v = data[k];
-        //     fetchedHeadsets.push({'id': v.id, 'lastUpdate': v.lastUpdate, 'mapId': v.mapId, 'name': v.name,
-        //       'orientationX':v.orientation.x, 'orientationY':v.orientation.y, 'orientationZ':v.orientation.z,
-        //       'positionX':v.position.x, 'positionY':v.position.y, 'positionZ':v.position.z, 'scaledX': v.pixelPosition['x'] * widthScaling, 'scaledY': v.pixelPosition['y'] * heightScaling});
-        //   }
-        //   setHeadsets(fetchedHeadsets);
-        //   // for (var idx in data['maps']) {
-        //   //   console.log(data['maps'][idx]['id']);
-        //   //   fetchedHeadsets.push({'eventKey': data['maps'][idx]['id'], 'name': data['maps'][idx]['name'], 'image': data['maps'][idx]['image']});
-        //   // }
-        //   // setMaps(fetchedHeadsets);
-        // });
-
-        // fetch(`http://${host}:${port}/headsets`)
-        //     .then(response => {
-        //       return response.json()
-        //     }).then(data => {
-        //   console.log(data);
-        //   var fetchedFeatures = features;
-        //   for (var k in data) {
-        //     var v = data[k];
-        //     features.push({'id': v.id, 'name': v.name, 'pixelX': v.pixelPosition['x'], 'pixelY': v.pixelPosition['y'],
-        //         'positionX':v.position.x, 'positionY':v.position.y, 'positionZ':v.position.z, 'icon': '/icons/headset16.png',
-        //         'scaledX': v.pixelPosition['x'] * widthScaling, 'scaledY': v.pixelPosition['y'] * heightScaling});
-        //     // fetchedFeatures.push({'id': v.id, 'lastUpdate': v.lastUpdate, 'mapId': v.mapId, 'name': v.name,
-        //     //   'orientationX':v.orientation.x, 'orientationY':v.orientation.y, 'orientationZ':v.orientation.z,
-        //     //   'positionX':v.position.x, 'positionY':v.position.y, 'positionZ':v.position.z});
-        //   }
-        //   setFeatures(features);
-        //   // for (var idx in data['maps']) {
-        //   //   console.log(data['maps'][idx]['id']);
-        //   //   fetchedHeadsets.push({'eventKey': data['maps'][idx]['id'], 'name': data['maps'][idx]['name'], 'image': data['maps'][idx]['image']});
-        //   // }
-        //   // setMaps(fetchedHeadsets);
-        // });
 
     }
 
@@ -190,7 +170,7 @@ function App() {
         return getMapImage(getDefaultMapSelection());
     }
 
-    const onMapMouseMove = (e) => {
+    const onMouseClick = (e) => {
         console.log(`x=${e.clientX - e.target.x}, y=${e.clientY - e.target.y}`);
         var scaledWidth = document.getElementById('map-image').offsetWidth;
         var scaledHeight = document.getElementById('map-image').offsetHeight;
@@ -264,7 +244,7 @@ function App() {
                 <NewMap showNewMap={showNewMap}/>
                 <div className="map-image-container">
                     <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
-                         onClick={onMapMouseMove}/>
+                         onClick={onMouseClick}/>
                     {features.map((f, index) => {
                         return <img className="features" id={f.id} src={`http://${host}:${port}${f.icon}`} alt={f.name}
                                     style={{left: features[index].scaledX, top: features[index].scaledY}}/>
