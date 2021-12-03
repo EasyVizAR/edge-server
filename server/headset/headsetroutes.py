@@ -27,7 +27,7 @@ async def get_all():
                             type: array
                             items: HeadsetSchema
     """
-    headsets = get_headset_repository().headsets
+    headsets = get_headset_repository().get_all_headsets()
     return await make_response(json.loads(json.dumps(headsets, cls=GenericJsonEncoder)), HTTPStatus.OK)
 
 

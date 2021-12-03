@@ -1,4 +1,5 @@
 import './NewMap.css';
+import App from './App.js';
 import { Form, Button, FloatingLabel } from 'react-bootstrap';
 import React from "react";
 import { useState } from 'react';
@@ -25,7 +26,7 @@ function NewMap(props){
         body: JSON.stringify(new_map)
       };
 
-      let url = `http://${host}:5000/maps`;
+      let url = `http://${host}:${App.port}/maps`;
       fetch(url, requestData)
       .then(response => response.json())
       .then(data => {

@@ -5,6 +5,7 @@ import uuid
 
 from quart import current_app
 
+from server.maps.maprepository import get_map_repository
 from server.utils.utils import *
 from server.utils.utils import GenericJsonEncoder
 
@@ -28,6 +29,10 @@ class HeadSet:
             'x': 0.0,
             'y': 0.0,
             'z': 0.0
+        }
+        self.pixelPosition = {
+            "x": None,
+            "y": None
         }
         if lastUpdate is None:
             self.lastUpdate = time.time()
@@ -62,6 +67,16 @@ class Repository:
         return headset.id
 
     def get_all_headsets(self):
+        for key in self.headsets:
+            headset = self.headsets[key]
+            if get_map_repository().get_map(headset.mapId) is not None:
+                intrinsic = get_map_repository().get_map(headset.mapId).intrinsic
+                extrinsic = get_map_repository().get_map(headset.mapId).extrinsic
+                if intrinsic is not None and extrinsic is not None:
+                    pixels = get_pixels(extrinsic, intrinsic,
+                                                            [headset.position['x'],headset.position['y'],headset.position['z']])
+                    headset.pixelPosition['x'] = pixels[0]
+                    headset.pixelPosition['y'] = pixels[1]
         return self.headsets
 
     def get_headset(self, id):

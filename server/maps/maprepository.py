@@ -76,7 +76,14 @@ class Repository:
                 if len(features) > 0:
                     for feature in features:
                         print(feature.keys())
-                        feature_list.append(Feature(feature['name'], feature['position'], feature['mapId'], feature['style'], id = feature['id']))
+                        feature_obj = Feature(feature['name'], feature['position'], feature['mapId'], feature['style'],
+                                id=feature['id'])
+                        if 'pixelPosition' in feature:
+                            if 'x' in feature['pixelPosition']:
+                                feature_obj.pixelPosition['x'] = feature['pixelPosition']['x']
+                            if 'y' in feature['pixelPosition']:
+                                feature_obj.pixelPosition['y'] = feature['pixelPosition']['y']
+                        feature_list.append(feature_obj)
                 self.features[map['id']] = feature_list
 
     def create_image(self, intent, data, type, ext = None, ints = None):
