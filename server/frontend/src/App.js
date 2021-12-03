@@ -2,8 +2,9 @@ import './App.css';
 import { Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button } from 'react-bootstrap';
 import NewMap from './NewMap.js';
 import NewFeature from './NewFeature.js'
+//import Save_Delete_Buttons from './Save_Delete_Buttons.js'
 import 'reactjs-popup/dist/index.css';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function App() {
   const host = window.location.hostname;
@@ -18,6 +19,10 @@ function App() {
   const [maps, setMaps] = useState([]);
   const [popUpClass, displayModal] = useState(false);
   const [showNewMap, showMap] = useState(false);
+  const [inEditMode, setInEditMode] = useState({
+    status: false,
+    rowKey: null
+  });
 
   useEffect(() => {
     fetch(`http://${host}:5000/maps`)
@@ -101,6 +106,31 @@ function App() {
     }
   }
 
+  const onEdit = (e, id) => {
+    setInEditMode({
+        status: true,
+        rowKey: id
+    });
+    console.log("edit mode set on row: " + id);
+  }
+
+  const onSave = (id) => {
+    // TODO: save data
+    console.log("save")
+  }
+
+  const onCancel = () => {
+      // reset the inEditMode state value
+      setInEditMode({
+          status: false,
+          rowKey: null
+      });
+  }
+
+  function updateMapName(newMapName){
+    console.log("New map name: " + newMapName);
+  }
+
   return (
     <div className="App">
       <Navbar bg="dark" variant="dark">
@@ -142,8 +172,9 @@ function App() {
                 <th rowSpan='2'>Name</th>
                 <th rowSpan='2'>Map ID</th>
                 <th rowSpan='2'>Last Update</th>
-                <th colSpan='3'>Position</th>b
+                <th colSpan='3'>Position</th>
                 <th colSpan='3'>Orientation</th>
+                <th colSpan='1'></th>
               </tr>
               <tr>
                 <th>X</th>
@@ -152,6 +183,7 @@ function App() {
                 <th>X</th>
                 <th>Y</th>
                 <th>Z</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -159,7 +191,16 @@ function App() {
                 headsets.map((e, index) => {
                   return <tr>
                       <td>{e.id}</td>
-                      <td>{e.name}</td>
+                      <td>
+                        {
+                          inEditMode.status && inEditMode.rowKey === index ? (
+                            <input value={e.name}
+                                   onChange={(event) => updateMapName(event.target.value)}/>
+                          ) : (
+                            e.name
+                          )
+                        }
+                      </td>
                       <td>{e.mapId}</td>
                       <td>{e.lastUpdate}</td>
                       <td>{e.positionX}</td>
@@ -168,6 +209,32 @@ function App() {
                       <td>{e.orientationX}</td>
                       <td>{e.orientationY}</td>
                       <td>{e.orientationZ}</td>
+                      <td>
+                        {
+      (inEditMode.status && inEditMode.rowKey === index) ? (
+        <React.Fragment>
+          <button
+            className={"btn-success"}
+            onClick={() => onSave({id: index})}>
+            Save
+          </button>
+
+          <button
+            className={"btn-secondary"}
+            style={{marginLeft: 8}}
+            onClick={() => onCancel()}>
+            Cancel
+          </button>
+        </React.Fragment>
+      ) : (
+        <button
+          className={"btn-primary"}
+          onClick={(e) => onEdit(e, index)}>
+            Edit
+        </button>
+      )
+    }
+                      </td>
                     </tr>
                 })
               }
@@ -188,8 +255,20 @@ function App() {
                 maps.map((e, index) => {
                   return <tr>
                       <td>{e.id}</td>
-                      <td>{e.name}</td>
-                      <td>{e.image}</td>
+                      <td>
+                        <input
+                          placeholder="type here"
+                          name="input"
+                          type="text"
+                          value={e.name}/>
+                      </td>
+                      <td>
+                        <input
+                          placeholder="type here"
+                          name="input"
+                          type="text"
+                          value={e.image}/>
+                      </td>
                     </tr>
                 })
               }

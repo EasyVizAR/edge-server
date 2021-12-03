@@ -1,10 +1,10 @@
 import './NewMap.css';
-import App from './App.js';
 import { Form, Button, FloatingLabel } from 'react-bootstrap';
 import React from "react";
 import { useState } from 'react';
 
 function NewMap(props){
+    const host = window.location.hostname;
     const[mapName, setMapName] = useState(null);
 
     if (!props.showNewMap){
@@ -12,8 +12,21 @@ function NewMap(props){
     }
 
     const handleSubmit = (event) => {
-      let url = `http://${App.host}:5000/maps`;
-      fetch(url)
+
+      const new_map = {
+        name: mapName,
+      }
+
+      const requestData = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(new_map)
+      };
+
+      let url = `http://${host}:5000/maps`;
+      fetch(url, requestData)
       .then(response => response.json())
       .then(data => {
         console.log(data);
