@@ -127,7 +127,7 @@ async def get_all_maps():
 
     # TODO: check authorization
     maps = get_map_repository().get_all_maps()
-    return await make_response(json.loads(json.dumps(maps, cls=GenericJsonEncoder)), HTTPStatus.OK)
+    return jsonify(maps), HTTPStatus.OK
 
 
 @maps.route('/maps/<map_id>', methods=['GET'])
@@ -148,9 +148,8 @@ async def show_map(map_id):
             jsonify({"message": "The requested map does not exist",
                      "severity": "Warning"}),
             HTTPStatus.NOT_FOUND)
-    return await make_response(
-        json.loads(json.dumps(map, cls=GenericJsonEncoder)),
-        HTTPStatus.OK)
+    else:
+        return jsonify(map), HTTPStatus.OK
 
 
 @maps.route('/maps/<map_id>/features', methods=['GET'])
@@ -169,10 +168,8 @@ async def list_map_features(map_id):
             jsonify({"message": "The requested map does not exist",
                      "severity": "Warning"}),
             HTTPStatus.NOT_FOUND)
-
-    return await make_response(
-        jsonify(json.loads(json.dumps(features, cls=GenericJsonEncoder))),
-        HTTPStatus.OK)
+    else:
+        return jsonify(features), HTTPStatus.OK
 
 
 @maps.route('/maps/<map_id>/features', methods=['POST'])
@@ -209,9 +206,8 @@ async def add_map_feature(map_id):
                      "severity": "Warning"}),
             HTTPStatus.NOT_FOUND)
 
-    return await make_response(
-        jsonify({"message": "Feature added"}),
-        HTTPStatus.CREATED)
+    else:
+        return jsonify(feature), HTTPStatus.CREATED
 
 
 @maps.route('/maps/<map_id>/surfaces', methods=['GET'])

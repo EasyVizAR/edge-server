@@ -7,7 +7,10 @@ import numpy as np
 
 class GenericJsonEncoder(JSONEncoder):
     def default(self, o):
-        return o.__dict__
+        if isinstance(o, (list, tuple, set)):
+            return super().default(o)
+        else:
+            return o.__dict__
 
 
 async def save_image(file_path, image):

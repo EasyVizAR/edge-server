@@ -38,6 +38,7 @@ pyflakes==2.4.0
 pyparsing==2.4.6
 PyQRCode==1.2.1
 pytest==6.2.5
+pytest-asyncio==0.16.0
 pytoml==0.1.21
 Quart==0.15.1
 Quart-CORS==0.5.0

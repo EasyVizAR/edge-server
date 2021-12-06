@@ -77,7 +77,7 @@ class Repository:
                                                             [headset.position['x'],headset.position['y'],headset.position['z']])
                     headset.pixelPosition['x'] = pixels[0]
                     headset.pixelPosition['y'] = pixels[1]
-        return self.headsets
+        return list(self.headsets.values())
 
     def get_headset(self, id):
         if id not in self.headsets:

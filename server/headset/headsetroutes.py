@@ -28,7 +28,7 @@ async def get_all():
                             items: HeadsetSchema
     """
     headsets = get_headset_repository().get_all_headsets()
-    return await make_response(json.loads(json.dumps(headsets, cls=GenericJsonEncoder)), HTTPStatus.OK)
+    return jsonify(headsets), HTTPStatus.OK
 
 
 @blueprint.route('/headsets/<id>', methods=['GET'])
@@ -51,8 +51,8 @@ async def get(id):
         return await make_response(
             jsonify({"message": "The requested headset does not exist.", "severity": "Error"}),
             HTTPStatus.NOT_FOUND)
-
-    return await make_response(json.loads(json.dumps(headset, cls=GenericJsonEncoder)), HTTPStatus.OK)
+    else:
+        return jsonify(headset), HTTPStatus.OK
 
 
 @blueprint.route('/headsets', methods=['POST'])
@@ -85,7 +85,7 @@ async def register():
 
     headset['id'] = get_headset_repository().add_headset(headset['name'], headset['position'], headset['mapId'])
 
-    return headset, HTTPStatus.OK
+    return jsonify(headset), HTTPStatus.OK
 
 
 @blueprint.route('/headsets/authenticate/', methods=['POST'])
@@ -149,7 +149,8 @@ async def update_position(headsetId):
             jsonify({"message": "The requested headset does not exist.", "severity": "Error"}),
             HTTPStatus.NOT_FOUND)
 
-    return headset_update, HTTPStatus.OK
+    else:
+        return jsonify(headset_update), HTTPStatus.OK
 
 
 @blueprint.route('/image-upload/<imageId>', methods=['POST'])

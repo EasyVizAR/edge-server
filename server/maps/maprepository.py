@@ -71,7 +71,13 @@ class Repository:
                     image = map['image']
                 self.maps[map['id']] = Map(map['name'], image, intrinsic, extrinsic, map['id'])
 
-                features = json.load(open(f"{folder.path}/features.json", 'r'))
+                feature_filename = f"{folder.path}/features.json"
+                try:
+                    features = json.load(open(feature_filename, 'r'))
+                except json.decoder.JSONDecodeError:
+                    print("Error reading {}".format(feature_filename))
+                    features = []
+
                 feature_list = []
                 if len(features) > 0:
                     for feature in features:
@@ -164,8 +170,7 @@ class Repository:
         return self.maps[id]
 
     def get_all_maps(self):
-        return self.maps
-
+        return list(self.maps.values())
 
 
 def get_map_repository():

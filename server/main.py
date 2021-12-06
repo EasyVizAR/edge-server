@@ -6,9 +6,12 @@ from quart_cors import cors
 from server.headset.headsetroutes import blueprint as headset_blueprint
 from server.maps.maps_routes import initialize_maps, maps
 from server.routes import routes
+from server.utils.utils import GenericJsonEncoder
 
 app = Quart(__name__, static_folder='./frontend/build/', static_url_path='/')
 app = cors(app)
+
+app.json_encoder = GenericJsonEncoder
 
 app.config.from_pyfile('default_settings.py')
 if 'APPLICATION_CONFIG' in os.environ:
