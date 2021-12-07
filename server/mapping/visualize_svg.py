@@ -1,24 +1,25 @@
 import csv
 import glob
 import os
-import visualize_pointcloud as v
 import numpy as np
 import svgwrite
 
 import open3d as o3d
 
-if __name__ == "__main__":
+from . import visualize_pointcloud as v
+
+def create_topdown_svg(surface_dir, output_path):
     planepoints = []
     pointgroups = []
     linegroups = []
     mtime = {}
 
-    for i, path in enumerate(glob.glob("HoloLensData/seventhfloor/*.ply")):
+    for i, path in enumerate(glob.glob(os.path.join(surface_dir, "*.ply"))):
         # If the path is not in size, we want to look at it and put it in size
         # If the path is in size and the current size is larger than the previous size, we want to look at it
         # If the path is in size and the current size is equal to the previous size, we don't want to look at it
 
-        mt = os.path.getmtime()
+        mt = os.path.getmtime(path)
         if path not in mtime or mtime[path] < mt:
             mtime[path] = mt
             mesh = o3d.io.read_triangle_mesh(path)
@@ -47,15 +48,16 @@ if __name__ == "__main__":
     imgrange = 300
     range = max(rangex, rangez)
 
-    scale = 10
-    dwg = svgwrite.Drawing('svgwrite-example.svg', profile='tiny')
+    scale = 1
+    dwg = svgwrite.Drawing(output_path, profile='tiny', size=(rangex, rangez))
     for i, group in enumerate(linegroups):
         for j, line in enumerate(group):
             p1f = ((line[0][0] - minx) * scale, (line[0][2] - minz) * scale)
             p2f = ((line[1][0] - minx) * scale, (line[1][2] - minz) * scale)
             dwg.add(dwg.line(start=p1f,
                              end=p2f,
-                             stroke=svgwrite.rgb(0, 0, 255, '%')
+                             stroke='black',
+                             stroke_width='0.1'
                              )
                     )
 
@@ -64,3 +66,5 @@ if __name__ == "__main__":
     print("Svg saved")
 
 
+if __name__ == "__main__":
+    create_topdown_svg("HoloLensData/seventhfloor", "svgwrite-example.svg")
