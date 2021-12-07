@@ -28,6 +28,9 @@ WORKDIR /usr/src/app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY server/mapping/requirements.txt ./requirements-mapping.txt
+RUN pip install --no-cache-dir -r requirements-mapping.txt
+
 COPY . .
 COPY --from=build /usr/src/frontend/build /usr/src/app/server/frontend/build
 
