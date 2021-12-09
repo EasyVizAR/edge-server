@@ -1,8 +1,8 @@
 import math
 
 import numpy as np
-import open3d as o3d
-import matplotlib.pyplot as plt
+#import open3d as o3d
+#import matplotlib.pyplot as plt
 
 # Removing points with vector normals in specific directions
 def remove_normals(pcd):

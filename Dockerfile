@@ -25,14 +25,8 @@ EXPOSE 5000/tcp
 
 WORKDIR /usr/src/app
 
-# Required for map rendering
-RUN apt-get update && apt-get install -y libgl1
-
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-
-COPY server/mapping/requirements.txt ./requirements-mapping.txt
-RUN pip install --no-cache-dir -r requirements-mapping.txt
 
 COPY . .
 COPY --from=build /usr/src/frontend/build /usr/src/app/server/frontend/build
