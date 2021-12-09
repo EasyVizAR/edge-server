@@ -23,8 +23,8 @@ function App() {
     const [popUpClass, displayModal] = useState(false);
     const [showNewMap, showMap] = useState(false);
     const [inEditMode, setInEditMode] = useState({
-      status: false,
-      rowKey: null
+        status: false,
+        rowKey: null
     });
 
     useEffect(() => {
@@ -167,7 +167,7 @@ function App() {
 
     const getDefaultMapSelection = () => {
         if (maps.length == 0)
-            return 'current';
+            return 'cs-5';
         return maps[0]['id'];
     }
 
@@ -177,18 +177,18 @@ function App() {
 
     const onMouseClick = (e) => {
         console.log(`x=${e.clientX - e.target.x}, y=${e.clientY - e.target.y}`);
-        var scaledWidth = document.getElementById('map-image').offsetWidth;
-        var scaledHeight = document.getElementById('map-image').offsetHeight;
-        var origWidth = document.getElementById('map-image').naturalWidth;
-        var origHeight = document.getElementById('map-image').naturalHeight;
+        let scaledWidth = document.getElementById('map-image').offsetWidth;
+        let scaledHeight = document.getElementById('map-image').offsetHeight;
+        let origWidth = document.getElementById('map-image').naturalWidth;
+        let origHeight = document.getElementById('map-image').naturalHeight;
 
-        var widthScaling = scaledWidth / origWidth;
-        var heightScaling = scaledHeight / origHeight;
+        let widthScaling = scaledWidth / origWidth;
+        let heightScaling = scaledHeight / origHeight;
 
         console.log(`x=${(e.clientX - e.target.x) * widthScaling}, y=${(e.clientY - e.target.y) * heightScaling}`);
 
-        var f = []
-        for (var i in features) {
+        let f = []
+        for (let i in features) {
             f.push(features[i]);
         }
         f.push({
@@ -198,9 +198,7 @@ function App() {
             scaledY: (e.clientY - e.target.y),
             icon: "/icons/headset16.png"
         })
-        console.log(f);
         setFeatures(f);
-        console.log(features);
     }
 
     const showFeature = (e) => {
@@ -216,61 +214,73 @@ function App() {
     }
 
     const onEdit = (e, id) => {
-    setInEditMode({
-        status: true,
-        rowKey: id
-    });
-    console.log("edit mode set on row: " + id);
-  }
+        setInEditMode({
+            status: true,
+            rowKey: id
+        });
+        console.log("edit mode set on row: " + id);
+    }
 
-  const onSave = (id) => {
-    // TODO: save data
-    console.log("save")
-  }
+    const onSave = (id) => {
+        // TODO: save data
+        console.log("save")
+    }
 
-  const onCancel = () => {
-      // reset the inEditMode state value
-      setInEditMode({
-          status: false,
-          rowKey: null
-      });
-  }
+    const onCancel = () => {
+        // reset the inEditMode state value
+        setInEditMode({
+            status: false,
+            rowKey: null
+        });
+    }
 
-  function updateMapName(newMapName){
-    console.log("New map name: " + newMapName);
-  }
+    const updateMapName = (e) => {
+        console.log("New map name: " + e);
+        var newMaps = [];
+        for (var x in maps) {
+            if (maps[x]['id'] == e.target.id) {
+                maps[x]['name'] = e.target.value;
+            }
+            console.log(maps[x]);
+            newMaps.push(maps[x]);
+        }
+        setMaps(newMaps);
+    }
 
-  return (
-    <div className="App">
-      <Navbar bg="dark" variant="dark">
-        <Container>
-          <Navbar.Brand>Easy Viz AR Admin</Navbar.Brand>
-          <Navbar.Toggle aria-controls="basic-navbar-nav" />
-        </Container>
-      </Navbar>
-      <div className="app-body">
-        <div className="nav">
-          <div className="dropdown-container">
-            <DropdownButton id="map-dropdown" title="Select Map" onSelect={handleMapSelection} defaultValue={getDefaultMapSelection}>
-              {
-                maps.map((e, index) => {
-                  return <Dropdown.Item eventKey={e.id}>{e.name}</Dropdown.Item>
-                })
-              }
-            </DropdownButton>
-          </div>
-          <div className="new-map-button header-button">
-            <Button variant="secondary" style={buttonStyle} onClick={(e) => showMapPopup(e)}>New Map</Button>
-          </div>
-          <div className="add-feature-button header-button">
-            <Button variant="secondary" title="Add Feature" value="Add Feature" onClick={(e) => showFeature(e)}>Add Feature</Button>
-          </div>
-        </div>
-        <hr/>
-        <NewFeature popUpClass={popUpClass}/>
-        <NewMap showNewMap={showNewMap}/>
-        <div className="map-image-container">
-          <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
+    return (
+        <div className="App">
+            <Navbar bg="dark" variant="dark">
+                <Container>
+                    <Navbar.Brand>Easy Viz AR Admin</Navbar.Brand>
+                    <Navbar.Toggle aria-controls="basic-navbar-nav"/>
+                </Container>
+            </Navbar>
+            <div className="app-body">
+                <div className="nav">
+                    <div className="dropdown-container">
+                        <DropdownButton id="map-dropdown" title="Select Map" onSelect={handleMapSelection}
+                                        defaultValue={getDefaultMapSelection}>
+                            {
+                                maps.map((e, index) => {
+                                    return <Dropdown.Item eventKey={e.id}>{e.name}</Dropdown.Item>
+                                })
+                            }
+                        </DropdownButton>
+                    </div>
+                    <div className="new-map-button header-button">
+                        <Button variant="secondary" style={buttonStyle} onClick={(e) => showMapPopup(e)}>New
+                            Map</Button>
+                    </div>
+                    <div className="add-feature-button header-button">
+                        <Button variant="secondary" title="Add Feature" value="Add Feature"
+                                onClick={(e) => showFeature(e)}>Add Feature</Button>
+                    </div>
+                </div>
+                <hr/>
+                <NewFeature popUpClass={popUpClass}/>
+                <NewMap showNewMap={showNewMap}/>
+                <div className="map-image-container">
+                    <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
                          onClick={onMouseClick}/>
                     {features.map((f, index) => {
                         return <img className="features" id={f.id} src={`http://${host}:${port}${f.icon}`} alt={f.name}
@@ -287,111 +297,113 @@ function App() {
                             <th rowSpan='2'>Last Update</th>
                             <th colSpan='3'>Position</th>
 
-                <th colSpan='3'>Orientation</th>
-                <th colSpan='1'></th>
-              </tr>
-              <tr>
-                <th>X</th>
-                <th>Y</th>
-                <th>Z</th>
-                <th>X</th>
-                <th>Y</th>
-                <th>Z</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {
-                headsets.map((e, index) => {
-                  return <tr>
-                      <td>{e.id}</td>
-                      <td>
+                            <th colSpan='3'>Orientation</th>
+                            <th colSpan='1'></th>
+                        </tr>
+                        <tr>
+                            <th>X</th>
+                            <th>Y</th>
+                            <th>Z</th>
+                            <th>X</th>
+                            <th>Y</th>
+                            <th>Z</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody>
                         {
-                          inEditMode.status && inEditMode.rowKey === index ? (
-                            <input value={e.name}
-                                   onChange={(event) => updateMapName(event.target.value)}/>
-                          ) : (
-                            e.name
-                          )
-                        }
-                      </td>
-                      <td>{e.mapId}</td>
-                      <td>{e.lastUpdate}</td>
-                      <td>{e.positionX}</td>
-                      <td>{e.positionY}</td>
-                      <td>{e.positionZ}</td>
-                      <td>{e.orientationX}</td>
-                      <td>{e.orientationY}</td>
-                      <td>{e.orientationZ}</td>
-                      <td>
-                        {
-      (inEditMode.status && inEditMode.rowKey === index) ? (
-        <React.Fragment>
-          <button
-            className={"btn-success"}
-            onClick={() => onSave({id: index})}>
-            Save
-          </button>
+                            headsets.map((e, index) => {
+                                return <tr>
+                                    <td>{e.id}</td>
+                                    <td>
+                                        {
+                                            inEditMode.status && inEditMode.rowKey === index ? (
+                                                <input value={e.name}
+                                                       onChange={(event) => updateMapName(e)}/>
+                                            ) : (
+                                                e.name
+                                            )
+                                        }
+                                    </td>
+                                    <td>{e.mapId}</td>
+                                    <td>{e.lastUpdate}</td>
+                                    <td>{e.positionX}</td>
+                                    <td>{e.positionY}</td>
+                                    <td>{e.positionZ}</td>
+                                    <td>{e.orientationX}</td>
+                                    <td>{e.orientationY}</td>
+                                    <td>{e.orientationZ}</td>
+                                    <td>
+                                        {
+                                            (inEditMode.status && inEditMode.rowKey === index) ? (
+                                                <React.Fragment>
+                                                    <button
+                                                        className={"btn-success"}
+                                                        onClick={() => onSave({id: index})}>
+                                                        Save
+                                                    </button>
 
-          <button
-            className={"btn-secondary"}
-            style={{marginLeft: 8}}
-            onClick={() => onCancel()}>
-            Cancel
-          </button>
-        </React.Fragment>
-      ) : (
-        <button
-          className={"btn-primary"}
-          onClick={(e) => onEdit(e, index)}>
-            Edit
-        </button>
-      )
-    }
-                      </td>
-                    </tr>
-                })
-              }
-            </tbody>
-          </Table>
+                                                    <button
+                                                        className={"btn-secondary"}
+                                                        style={{marginLeft: 8}}
+                                                        onClick={() => onCancel()}>
+                                                        Cancel
+                                                    </button>
+                                                </React.Fragment>
+                                            ) : (
+                                                <button
+                                                    className={"btn-primary"}
+                                                    onClick={(e) => onEdit(e, index)}>
+                                                    Edit
+                                                </button>
+                                            )
+                                        }
+                                    </td>
+                                </tr>
+                            })
+                        }
+                        </tbody>
+                    </Table>
+                </div>
+                <div>
+                    <Table striped bordered hover>
+                        <thead>
+                        <tr>
+                            <th rowSpan='2'>Map ID</th>
+                            <th rowSpan='2'>Name</th>
+                            <th rowSpan='2'>Image</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {
+                            maps.map((e, index) => {
+                                return <tr>
+                                    <td>{e.id}</td>
+                                    <td>
+                                        <input
+                                            placeholder="type here"
+                                            name="input"
+                                            type="text"
+                                            id={e.id}
+                                            onChange={updateMapName}
+                                            value={e.name}/>
+                                    </td>
+                                    <td>
+                                        <input
+                                            placeholder="type here"
+                                            name="input"
+                                            type="text"
+                                            value={e.image}/>
+                                    </td>
+                                </tr>
+                            })
+                        }
+                        </tbody>
+                    </Table>
+                </div>
+            </div>
         </div>
-        <div>
-          <Table striped bordered hover>
-            <thead>
-              <tr>
-                <th rowSpan='2'>Map ID</th>
-                <th rowSpan='2'>Name</th>
-                <th rowSpan='2'>Image</th>
-              </tr>
-            </thead>
-            <tbody>
-              {
-                maps.map((e, index) => {
-                  return <tr>
-                      <td>{e.id}</td>
-                      <td>
-                        <input
-                          placeholder="type here"
-                          name="input"
-                          type="text"
-                          value={e.name}/>
-                      </td>
-                      <td>
-                        <input
-                          placeholder="type here"
-                          name="input"
-                          type="text"
-                          value={e.image}/>
-                      </td>
-                    </tr>
-                })
-              }
-            </tbody>
-          </Table>
-        </div>
-      </div>
-    </div>
-  );
+    );
 }
 
 export default App;
