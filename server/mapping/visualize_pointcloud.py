@@ -196,7 +196,7 @@ def isolate_zplane(mesh, vertical, verticalz = True):
 
     return pcdnew, pcdtri, lineset
 
-def slice(mesh, vertical, verticalz = True):
+def slice(mesh, vertical, verticalz = True, json_serialize=False):
     points = np.asarray(mesh.vertices)
     triangles = np.asarray(mesh.triangles)
 
@@ -224,14 +224,18 @@ def slice(mesh, vertical, verticalz = True):
         for j in range(3):
             p0 = points[triangles[i, j]]
             p1 = points[triangles[i, (j+1)%3]]
-            b = (p0[vaxis] > vertical > p1[vaxis]) or (p0[vaxis] < vertical < p1[vaxis])
+            #b = (p0[vaxis] > vertical > p1[vaxis]) or (p0[vaxis] < vertical < p1[vaxis])
             plane_splits_edge = splitpoints(p0, p1, vcord, vnorm)
-            if b != plane_splits_edge:
-                print("Uh oh shitteroo")
+            #if b != plane_splits_edge:
+            #    print("Uh oh shitteroo")
             if plane_splits_edge:
                 pi = lp_intersect(p0, p1, vcord, vnorm)
-                newpoints.append(pi)
-                intersecting_points.append(pi)
+                if json_serialize:
+                    newpoints.append(pi.tolist())
+                    intersecting_points.append(pi.tolist())
+                else:
+                    newpoints.append(pi)
+                    intersecting_points.append(pi)
                 #intersect = True
                 #intersecting.append(pointindex)
                 #pointindex += 1

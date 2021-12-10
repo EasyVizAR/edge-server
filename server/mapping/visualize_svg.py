@@ -4,38 +4,158 @@ import os
 import visualize_pointcloud as v
 import numpy as np
 import svgwrite
-
+import json
+from time import time
 import open3d as o3d
 
-if __name__ == "__main__":
+def initialize(object_files_path):
+    data = {}
+
+    for i, path in enumerate(glob.glob(object_files_path)):
+        time_of_prev_mod = os.path.getmtime(path)
+        mesh = o3d.io.read_triangle_mesh(path)
+        zplane = v.slice(mesh, 0, verticalz=False, json_serialize=True)
+        data[path] = {"last_modified": time_of_prev_mod, "lines": zplane[1]}
+
+    with open('data.json', 'w') as f:
+        json.dump(data, f)
+    print("Data, JSON file initialized")
+
+    return data
+
+def write_image(data, svg_destination_path):
+    minx = maxx = minz = maxz = 0
+    for path in data:
+        for i in range(2):
+            if len(data[path]["lines"]) > 0:
+                minx = min(min([x[0] for x in data[path]["lines"][i]]), minx)
+                maxx = max(max([x[0] for x in data[path]["lines"][i]]), maxx)
+                minz = min(min([x[2] for x in data[path]["lines"][i]]), minz)
+                maxz = max(max([x[2] for x in data[path]["lines"][i]]), maxz)
+
+    scale = 10
+    # standard name = 'svgwrite-example.svg'
+    dwg = svgwrite.Drawing(svg_destination_path, profile='tiny')
+    for path in data:
+        for line in data[path]["lines"]:
+            p1f = ((line[0][0] - minx) * scale, (line[0][2] - minz) * scale)
+            p2f = ((line[1][0] - minx) * scale, (line[1][2] - minz) * scale)
+            dwg.add(dwg.line(start=p1f,
+                             end=p2f,
+                             stroke=svgwrite.rgb(0, 0, 255, '%')
+                             )
+                    )
+
+    dwg.save()
+    print("Svg saved")
+
+def update(object_files_path):
+    with open('data.json', 'r') as f:
+        data = json.load(f)
+    data_init_size = len(data)
+
+    for i, path in enumerate(glob.glob(object_files_path)):
+        time_of_prev_mod = os.path.getmtime(path)
+        if path not in data or data[path]["last_modified"] < time_of_prev_mod:
+            mesh = o3d.io.read_triangle_mesh(path)
+            zplane = v.slice(mesh, 0, verticalz=False, json_serialize=True)
+            data[path] = {"last_modified": time_of_prev_mod, "lines": zplane[1]}
+
+    if len(data) > data_init_size:
+        with open('data.json', 'w') as f:
+            json.dump(data, f)
+            print("Data, JSON updated")
+    else:
+        print("JSON already up to date")
+
+    return data
+
+def update_lines(object_files_path, initialize = True):
+    if initialize == True:
+        data = {}
+    else:   # Update current line values
+        with open('data.json', 'r') as f:
+            data = json.load(f)
+            data_init_size = len(data)
+
+    for i, path in enumerate(glob.glob(object_files_path)):
+        time_of_prev_mod = os.path.getmtime(path)
+        update_lines_at_path = data == None or path not in data or data[path]["last_modified"] < time_of_prev_mod
+        if initialize or update_lines_at_path:
+            mesh = o3d.io.read_triangle_mesh(path)
+            zplane = v.slice(mesh, 0, verticalz=False, json_serialize=True)
+            data[path] = {"last_modified": time_of_prev_mod, "lines": zplane[1]}
+
+    if initialize or len(data) > data_init_size:
+        with open('data.json', 'w') as f:
+            json.dump(data, f)
+        print("Data, JSON updated")
+    else:
+        print("JSON already up to date")
+
+    return data
+
+def main():
     planepoints = []
     pointgroups = []
     linegroups = []
     mtime = {}
+    map_pcd_lines = {}
 
+    data = None
+    with open('data.json', 'r') as f:
+        data = json.load(f)
+    data_init_size = len(data)
+
+    t1 = time()
     for i, path in enumerate(glob.glob("HoloLensData/seventhfloor/*.ply")):
         # If the path is not in size, we want to look at it and put it in size
         # If the path is in size and the current size is larger than the previous size, we want to look at it
         # If the path is in size and the current size is equal to the previous size, we don't want to look at it
 
-        mt = os.path.getmtime()
-        if path not in mtime or mtime[path] < mt:
-            mtime[path] = mt
+        mt = os.path.getmtime(path)
+        # if path not in mtime or mtime[path] < mt:
+        if path not in data or data[path]["last_modified"] < mt:
+            # mtime[path] = mt
             mesh = o3d.io.read_triangle_mesh(path)
-            zplane = v.slice(mesh, 0, verticalz=False)
+            zplane = v.slice(mesh, 0, verticalz=False, json_serialize=True)
             planepoints.extend(zplane[0])
-            #pointgroups.append(zplane[0])
-            #linegroups.append(zplane[2])
-            linegroups.append(zplane[1])
-            if i % 10 == 0:
-                print(i)
+            # pointgroups.append(zplane[0])
+            # linegroups.append(zplane[2])
+            # map_pcd_lines[path] = {"last_modified":mt, "lines":zplane[1]}
+            map_pcd_lines[path] = {"last_modified": mt, "lines": zplane[1]}
+            # linegroups.append(zplane[1])
 
-    # Normalize planepoints
-    #print(planepoints)
-    #planepoints = v.flattenpoints(planepoints, verticalz = False)
+            print(i)
 
+    t2 = time()
+    print(f"Slicing the mesh took {t2 - t1} seconds")
 
-    minx = min([x[0] for x in planepoints])
+    t1 = time()
+    if len(data) > data_init_size:
+        with open('data.json', 'w') as f:
+            json.dump(map_pcd_lines, f)
+    t2 = time()
+    print(f"Writing everything to JSON took {t2 - t1} seconds")
+
+    data = None
+    t1 = time()
+    with open('data.json', 'r') as f:
+        data = json.load(f)
+    t2 = time()
+    print(f"Reading everything from JSON took {t2 - t1} seconds")
+
+    # print(type(data))
+    t1 = time()
+    lines = []
+    for file in data:
+        print(file)
+        print(data[file])
+        lines.extend(data[file]["lines"])
+    t2 = time()
+    print(f"Loading everything into array took {t2 - t1} seconds")
+
+    """minx = min([x[0] for x in planepoints])
     maxx = max([x[0] for x in planepoints])
     minz = min([x[2] for x in planepoints])
     maxz = max([x[2] for x in planepoints])
@@ -61,6 +181,11 @@ if __name__ == "__main__":
 
     #print(dwg.tostring())
     dwg.save()
-    print("Svg saved")
+    print("Svg saved")"""
 
+if __name__ == "__main__":
+    #data = initialize()
+
+    data = update_lines("HoloLensData/seventhfloor/*.ply", initialize=False)
+    write_image(data, 'svgwrite-example.svg')
 
