@@ -1,12 +1,14 @@
-import json
-import math
-import numpy as np
-import open3d as o3d
-import matplotlib.pyplot as plt
 import csv
 import glob
+import json
+import math
 import os
+
+import numpy as np
 import svgwrite
+
+from .plyutil import read_ply_file
+
 
 def splitpoints(p0, p1, pcord, pnorm):
     v0 = np.dot(p0, pnorm) - np.dot(pcord, pnorm)
@@ -51,9 +53,11 @@ def lp_intersect(p0, p1, p_co, p_no, epsilon=1e-6):
 
 class Floorplanner:
 
-    def __init__(self, raw_ply_path):
+    def __init__(self, raw_ply_path, json_data_path=None):
         self.raw_ply_path = raw_ply_path
+        self.json_data_path = json_data_path
         self.data = {}
+        self.first_load_json = json_data_path is not None
 
     def calculate_intersections(self, mesh, headset_position=[0, 0, 0], vector_normal=[0, 1, 0], json_serialize=False):
         points = np.asarray(mesh.vertices)
@@ -84,28 +88,28 @@ class Floorplanner:
 
     def update_lines(self, initialize=True):
         if initialize == True:
-            data = {}
-        else:
-            with open('data.json', 'r') as f:
-                data = json.load(f)
-                data_init_size = len(data)
+            self.data = {}
+        elif self.first_load_json and os.path.exists(self.json_data_path):
+            with open(self.json_data_path, 'r') as f:
+                self.data = json.load(f)
+            self.first_load_json = False
 
+        changes = 0
         for i, path in enumerate(glob.glob(self.raw_ply_path)):
             time_of_prev_mod = os.path.getmtime(path)
-            update_lines_at_path = path not in data or data[path]["last_modified"] < time_of_prev_mod
+            update_lines_at_path = path not in self.data or self.data[path]["last_modified"] < time_of_prev_mod
             if initialize or update_lines_at_path:
-                mesh = o3d.io.read_triangle_mesh(path)
-                zplane = Floorplanner.calculate_intersections(self, mesh, json_serialize=True)
-                data[path] = {"last_modified": time_of_prev_mod, "lines": zplane}
+                mesh = read_ply_file(path)
+                zplane = self.calculate_intersections(mesh, json_serialize=True)
+                self.data[path] = {"last_modified": time_of_prev_mod, "lines": zplane}
+                changes += 1
 
-        if initialize or len(data) > data_init_size:
-            with open('data.json', 'w') as f:
-                json.dump(data, f)
-                print("Data, JSON updated")
-        else:
-            print("JSON already up to date")
+        if (initialize or changes > 0) and self.json_data_path is not None:
+            with open(self.json_data_path, 'w') as f:
+                json.dump(self.data, f)
+                print("Map updated with {} surfaces changed".format(changes))
 
-        self.data = data
+        return changes
 
     def write_image(self, svg_destination_path):
         minx = maxx = minz = maxz = 0
@@ -119,21 +123,21 @@ class Floorplanner:
 
         scale = 10
         # standard name = 'svgwrite-example.svg'
-        dwg = svgwrite.Drawing(svg_destination_path, profile='tiny')
+
+        dwg = svgwrite.Drawing(svg_destination_path, profile='tiny', size=(scale*(maxx-minx), scale*(maxz-minz)))
         for path in self.data:
             for line in self.data[path]["lines"]:
                 p1f = ((line[0][0] - minx) * scale, (line[0][2] - minz) * scale)
                 p2f = ((line[1][0] - minx) * scale, (line[1][2] - minz) * scale)
                 dwg.add(dwg.line(start=p1f,
                                  end=p2f,
-                                 stroke=svgwrite.rgb(0, 0, 255, '%')
+                                 stroke='black'
                                  )
                         )
-
         dwg.save()
-        print("Svg saved")
+
 
 if __name__ == '__main__':
-    fp = Floorplanner("HoloLensData/seventhfloor/*.ply")
+    fp = Floorplanner("HoloLensData/seventhfloor/*.ply", json_data_path='data.json')
     fp.update_lines(initialize=True)
     fp.write_image('svgwrite-example.svg')

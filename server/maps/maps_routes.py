@@ -10,16 +10,14 @@ from http import HTTPStatus
 from quart import Blueprint, current_app, request, make_response, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 
-try:
-    from server.mapping.visualize_svg import create_topdown_svg
-except Exception as e:
-    print("Warning: could not import server.mapping.visualize_svg ({})".format(e))
-    create_topdown_svg = None
-
+from server.mapping.floorplanner import Floorplanner
+from server.maps.mapping_thread import MappingThread
 from server.maps.maprepository import get_map_repository
 from server.utils.utils import get_pixels, GenericJsonEncoder
 
 maps = Blueprint('maps', __name__)
+
+mapping_threads = dict()
 
 
 def initialize_maps(app):
@@ -282,6 +280,14 @@ async def replace_surface(map_id, surface_id):
         with open(path, "wb") as output:
             output.write(body)
 
+        if map_id not in mapping_threads:
+            data_dir = current_app.config['VIZAR_DATA_DIR']
+            map_dir = os.path.join(data_dir, 'maps', map_id)
+            mapping_threads[map_id] = MappingThread(map_dir)
+            mapping_threads[map_id].start()
+
+        mapping_threads[map_id].notify()
+
         stat = os.stat(path)
         surface = {
             "id": surface_id,
@@ -289,13 +295,6 @@ async def replace_surface(map_id, surface_id):
             "modified": stat.st_mtime,
             "size": stat.st_size
         }
-
-        # Running on every surface update is a bit too much.
-        #if create_topdown_svg is not None:
-        #    image_path = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'maps', map_id, 'top-down.svg')
-        #    writer = functools.partial(create_topdown_svg, surface_dir, image_path)
-        #    loop = asyncio.get_event_loop()
-        #    loop.run_in_executor(None, writer)
 
         if is_new:
             return surface, HTTPStatus.CREATED
@@ -452,11 +451,21 @@ async def get_map_topdown(map_id):
     map_dir = os.path.join(data_dir, 'maps', map_id)
     image_path = os.path.join(map_dir, 'top-down.svg')
 
-    # TODO: We can return the existing file if there have not been many changes.
-    if create_topdown_svg is not None:
-        surface_dir = get_surface_dir(map_id, create=False)
-        writer = functools.partial(create_topdown_svg, surface_dir, image_path)
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, writer)
+    # This should be the common case. The mapping thread runs in the
+    # background and produces up-to-date images.
+    if os.path.exists(image_path):
+        return await send_from_directory(map_dir, 'top-down.svg')
+
+    # If the image happens to not exist for some reason, we can do a one-time
+    # calculation. This will be a bit slow, unfortunately.
+    def create_map():
+        ply_files = os.path.join(map_dir, 'surfaces', '*.ply')
+        json_file = os.path.join(map_dir, 'top-down.json')
+        floorplanner = Floorplanner(ply_files, json_file)
+        floorplanner.update_lines(initialize=False)
+        floorplanner.write_image(image_path)
+
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, create_map)
 
     return await send_from_directory(map_dir, 'top-down.svg')

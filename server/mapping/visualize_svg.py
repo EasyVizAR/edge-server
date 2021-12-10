@@ -9,43 +9,8 @@ from time import time
 import numpy as np
 import svgwrite
 
-# Open3D is nice, but it is a pretty bulky library.
-# It also requires libGL, which does not work on some of our test hardware.
-USE_OPEN3D = False
-if USE_OPEN3D:
-    import open3d as o3d
-else:
-    from plyfile import PlyData
-
 from . import visualize_pointcloud as v
-
-
-def read_ply(path):
-    stream = io.BytesIO()
-
-    # Reformat the PLY file because plyfile expects one triangle per line,
-    # and we have some data files that were not formatted properly.
-    with open(path, 'r') as source:
-        for line in source:
-            if len(line) >= 60 and line.startswith("3 "):
-                words = line.strip().split()
-                for i in range(int(len(words) / 4)):
-                    start = i * 4
-                    line = " ".join(words[start:start+4]) + "\n"
-                    stream.write(line.encode('utf8'))
-            else:
-                stream.write(line.encode('utf8'))
-
-    stream.seek(0)
-    mesh = PlyData.read(stream)
-
-    # Add two attributes for compatibility with existing code.
-    mesh.vertices = []
-    for v in mesh['vertex'].data:
-        mesh.vertices.append([v['x'], v['y'], v['z']])
-    mesh.triangles = np.vstack(mesh['face'].data['vertex_index'])
-
-    return mesh
+from .plyutil import read_ply_file
 
 
 def initialize(object_files_path):
@@ -53,10 +18,7 @@ def initialize(object_files_path):
 
     for i, path in enumerate(glob.glob(object_files_path)):
         time_of_prev_mod = os.path.getmtime(path)
-        if USE_OPEN3D:
-            mesh = o3d.io.read_triangle_mesh(path)
-        else:
-            mesh = read_ply(path)
+        mesh = read_ply_file(path)
         zplane = v.slice(mesh, 0, verticalz=False, json_serialize=True)
         data[path] = {"last_modified": time_of_prev_mod, "lines": zplane[1]}
 
@@ -100,10 +62,7 @@ def update(object_files_path):
     for i, path in enumerate(glob.glob(object_files_path)):
         time_of_prev_mod = os.path.getmtime(path)
         if path not in data or data[path]["last_modified"] < time_of_prev_mod:
-            if USE_OPEN3D:
-                mesh = o3d.io.read_triangle_mesh(path)
-            else:
-                mesh = read_ply(path)
+            mesh = read_ply_file(path)
             zplane = v.slice(mesh, 0, verticalz=False, json_serialize=True)
             data[path] = {"last_modified": time_of_prev_mod, "lines": zplane[1]}
 
@@ -129,10 +88,7 @@ def update_lines(object_files_path, initialize = True):
         time_of_prev_mod = os.path.getmtime(path)
         update_lines_at_path = data == None or path not in data or data[path]["last_modified"] < time_of_prev_mod
         if initialize or update_lines_at_path:
-            if USE_OPEN3D:
-                mesh = o3d.io.read_triangle_mesh(path)
-            else:
-                mesh = read_ply(path)
+            mesh = read_ply_file(path)
             zplane = v.slice(mesh, 0, verticalz=False, json_serialize=True)
             data[path] = {"last_modified": time_of_prev_mod, "lines": zplane[1]}
 
@@ -167,10 +123,7 @@ def main():
         # if path not in mtime or mtime[path] < mt:
         if path not in data or data[path]["last_modified"] < mt:
             # mtime[path] = mt
-            if USE_OPEN3D:
-                mesh = o3d.io.read_triangle_mesh(path)
-            else:
-                mesh = read_ply(path)
+            mesh = read_ply_file(path)
             zplane = v.slice(mesh, 0, verticalz=False, json_serialize=True)
             planepoints.extend(zplane[0])
             # pointgroups.append(zplane[0])
