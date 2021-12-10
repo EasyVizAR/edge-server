@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 import threading
 
@@ -36,4 +37,6 @@ class MappingThread(threading.Thread):
 
                 floorplanner.write_image(temp_path)
 
-                os.replace(temp_path, image_path)
+                # Use shutil.move instead of os.replace because the file may
+                # cross filesystems.
+                shutil.move(temp_path, image_path)
