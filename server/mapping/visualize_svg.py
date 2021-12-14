@@ -31,16 +31,16 @@ def initialize(object_files_path):
 def write_image(data, svg_destination_path):
     minx = maxx = minz = maxz = 0
     for path in data:
-        for i in range(2):
-            if len(data[path]["lines"]) > 0:
-                minx = min(min([x[0] for x in data[path]["lines"][i]]), minx)
-                maxx = max(max([x[0] for x in data[path]["lines"][i]]), maxx)
-                minz = min(min([x[2] for x in data[path]["lines"][i]]), minz)
-                maxz = max(max([x[2] for x in data[path]["lines"][i]]), maxz)
+        for segment in data[path]['lines']:
+            for point in segment:
+                minx = min(point[0], minx)
+                maxx = max(point[0], maxx)
+                minz = min(point[2], minz)
+                maxz = max(point[2], maxz)
 
     scale = 10
     # standard name = 'svgwrite-example.svg'
-    dwg = svgwrite.Drawing(svg_destination_path, profile='tiny')
+    dwg = svgwrite.Drawing(svg_destination_path, profile='tiny', size=(scale*(maxx-minx), scale*(maxz-minz)))
     for path in data:
         for line in data[path]["lines"]:
             p1f = ((line[0][0] - minx) * scale, (line[0][2] - minz) * scale)

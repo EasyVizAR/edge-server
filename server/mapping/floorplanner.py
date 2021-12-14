@@ -114,15 +114,14 @@ class Floorplanner:
     def write_image(self, svg_destination_path):
         minx = maxx = minz = maxz = 0
         for path in self.data:
-            for i in range(2):
-                if len(self.data[path]["lines"]) > 0:
-                    minx = min(min([x[0] for x in self.data[path]["lines"][i]]), minx)
-                    maxx = max(max([x[0] for x in self.data[path]["lines"][i]]), maxx)
-                    minz = min(min([x[2] for x in self.data[path]["lines"][i]]), minz)
-                    maxz = max(max([x[2] for x in self.data[path]["lines"][i]]), maxz)
+            for segment in self.data[path]['lines']:
+                for point in segment:
+                    minx = min(point[0], minx)
+                    maxx = max(point[0], maxx)
+                    minz = min(point[2], minz)
+                    maxz = max(point[2], maxz)
 
         scale = 10
-        # standard name = 'svgwrite-example.svg'
 
         dwg = svgwrite.Drawing(svg_destination_path, profile='tiny', size=(scale*(maxx-minx), scale*(maxz-minz)))
         for path in self.data:
