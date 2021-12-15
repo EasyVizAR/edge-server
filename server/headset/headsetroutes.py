@@ -114,6 +114,20 @@ async def authenticate():
     return await make_response({"token": token}, HTTPStatus.OK)
 
 
+@blueprint.route('/headsets/<headsetId>/updates', methods=['GET'])
+async def get_updates(headsetId):
+    """
+    Get headset updates
+    """
+
+    headset = get_headset_repository().get_headset(headsetId)
+    if headset is None:
+        return {"message": "The requested headset does not exist."}, HTTPStatus.NOT_FOUND
+
+    updates = headset.get_updates()
+    return jsonify(updates)
+
+
 @blueprint.route('/headsets/<headsetId>/updates', methods=['POST'])
 async def update_position(headsetId):
     """

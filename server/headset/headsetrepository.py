@@ -1,3 +1,4 @@
+import csv
 import json
 import os
 import time
@@ -38,6 +39,46 @@ class HeadSet:
             self.lastUpdate = time.time()
         else:
             self.lastUpdate = lastUpdate
+
+    def get_dir(self):
+        return os.path.join(current_app.config['VIZAR_DATA_DIR'],
+                current_app.config['VIZAR_HEADSET_DIR'], self.id)
+
+    def get_updates(self):
+        headset_dir = self.get_dir()
+        updates_csv = os.path.join(headset_dir, "updates.csv")
+
+        updates = []
+        if not os.path.exists(updates_csv):
+            return updates
+
+        with open(updates_csv, "r") as source:
+            reader = csv.reader(source)
+            for line in reader:
+                update = {
+                    "mapId": line[2],
+                    "position": {
+                        "x": line[3],
+                        "y": line[4],
+                        "z": line[5]
+                    }
+                }
+
+                if len(line) == 7:
+                    update['time'] = line[6]
+                elif len(line) == 10:
+                    update['orientation'] = {
+                        "x": line[6],
+                        "y": line[7],
+                        "z": line[8]
+                    }
+                    update['time'] = line[9]
+                else:
+                    raise Exception("Unexpected line size ({}) in {}".format(len(line), updates_csv))
+
+                updates.append(update)
+
+        return updates
 
 
 class Repository:
