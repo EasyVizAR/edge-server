@@ -22,10 +22,12 @@ function App() {
     const [maps, setMaps] = useState([]);
     const [popUpClass, displayModal] = useState(false);
     const [showNewMap, showMap] = useState(false);
+    const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
     const [inEditMode, setInEditMode] = useState({
         status: false,
         rowKey: null
     });
+    const [cursor, setCursor] = useState('auto');
 
     useEffect(() => {
         fetch(`http://${host}:${port}/maps`)
@@ -176,6 +178,8 @@ function App() {
     }
 
     const onMouseClick = (e) => {
+        if (cursor != 'crosshair')
+            return;
         console.log(`x=${e.clientX - e.target.x}, y=${e.clientY - e.target.y}`);
         let scaledWidth = document.getElementById('map-image').offsetWidth;
         let scaledHeight = document.getElementById('map-image').offsetHeight;
@@ -196,7 +200,7 @@ function App() {
             name: 'Fire',
             scaledX: (e.clientX - e.target.x),
             scaledY: (e.clientY - e.target.y),
-            icon: "/icons/headset16.png"
+            icon: crossHairIcon
         })
         setFeatures(f);
     }
@@ -247,6 +251,17 @@ function App() {
         setMaps(newMaps);
     }
 
+    const toggleCursor = (e) => {
+        if (cursor == 'crosshair')
+            setCursor('auto');
+        else
+            setCursor('crosshair');
+    }
+
+    const changeIcon = (v) => {
+        setCrossHairIcon(v);
+    }
+
     return (
         <div className="App">
             <Navbar bg="dark" variant="dark">
@@ -277,11 +292,11 @@ function App() {
                     </div>
                 </div>
                 <hr/>
-                <NewFeature popUpClass={popUpClass}/>
+                <NewFeature popUpClass={popUpClass} changeCursor={toggleCursor} changeIcon={changeIcon}/>
                 <NewMap showNewMap={showNewMap}/>
                 <div className="map-image-container">
                     <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
-                         onClick={onMouseClick}/>
+                         onClick={onMouseClick} style={{cursor: cursor}}/>
                     {features.map((f, index) => {
                         return <img className="features" id={f.id} src={`http://${host}:${port}${f.icon}`} alt={f.name}
                                     style={{left: features[index].scaledX, top: features[index].scaledY}}/>
