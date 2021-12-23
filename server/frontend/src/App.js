@@ -238,6 +238,17 @@ function App() {
         });
     }
 
+    const updateHeadsetName = (e) => {
+        var newHeadsets = [];
+        for (var x in headsets) {
+            if ('headset' + headsets[x]['id'] == e.target.id) {
+                headsets[x]['name'] = e.target.value;
+            }
+            newHeadsets.push(headsets[x]);
+        }
+        setHeadsets(newHeadsets);
+    }
+
     const updateMapName = (e) => {
         console.log("New map name: " + e);
         var newMaps = [];
@@ -333,8 +344,12 @@ function App() {
                                     <td>
                                         {
                                             inEditMode.status && inEditMode.rowKey === index ? (
-                                                <input value={e.name}
-                                                       onChange={(event) => updateMapName(e)}/>
+                                                <input
+                                                  value={e.name}
+                                                  onChange={updateHeadsetName}
+                                                  name={"headsetinput" + e.id}
+                                                  type="text"
+                                                  id={'headset' + e.id}/>
                                             ) : (
                                                 e.name
                                             )
