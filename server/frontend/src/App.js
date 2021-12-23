@@ -249,14 +249,23 @@ function App() {
         setHeadsets(newHeadsets);
     }
 
-    const updateMapName = (e) => {
-        console.log("New map name: " + e);
+    const updateImage = (e) => {
         var newMaps = [];
         for (var x in maps) {
-            if (maps[x]['id'] == e.target.id) {
+            if ('image' + maps[x]['id'] == e.target.id) {
+                maps[x]['image'] = e.target.value;
+            }
+            newMaps.push(maps[x]);
+        }
+        setMaps(newMaps);
+    }
+
+    const updateMapName = (e) => {
+        var newMaps = [];
+        for (var x in maps) {
+            if ('mapname' + maps[x]['id'] == e.target.id) {
                 maps[x]['name'] = e.target.value;
             }
-            console.log(maps[x]);
             newMaps.push(maps[x]);
         }
         setMaps(newMaps);
@@ -414,7 +423,7 @@ function App() {
                                             placeholder="type here"
                                             name="input"
                                             type="text"
-                                            id={e.id}
+                                            id={'mapname' + e.id}
                                             onChange={updateMapName}
                                             value={e.name}/>
                                     </td>
@@ -423,6 +432,8 @@ function App() {
                                             placeholder="type here"
                                             name="input"
                                             type="text"
+                                            id={'image' + e.id}
+                                            onChange={updateImage}
                                             value={e.image}/>
                                     </td>
                                 </tr>
