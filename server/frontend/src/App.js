@@ -225,9 +225,43 @@ function App() {
         console.log("edit mode set on row: " + id);
     }
 
-    const onSave = (id) => {
-        // TODO: save data
-        console.log("save")
+    const saveData = (url, requestData) => {
+      fetch(url, requestData)
+        .then(response => {
+          console.log(response.json())
+        }).then(data => {
+          console.log(data);
+        });
+
+        console.log("Data saved to " + url);
+    }
+
+    const onSaveHeadsets = (e) => {
+      console.log("Saving headset...");
+    }
+
+    const saveMap = (e) => {
+      const map = null;
+      const id = e.target.id.substring(7,e.target.id.length);
+      const url = `http://${host}:${port}/maps/${id}`;
+      for (var x in maps) {
+          if (maps[x]['id'] == id) {
+              console.log("map: " + maps[x]['id']);
+
+              const requestData = {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(maps[x])
+              };
+
+              console.log(requestData['body'])
+              saveData(url, requestData);
+              break;
+          }
+      }
+      console.log("map saved");
     }
 
     const onCancel = () => {
@@ -241,7 +275,7 @@ function App() {
     const updateHeadsetName = (e) => {
         var newHeadsets = [];
         for (var x in headsets) {
-            if ('headset' + headsets[x]['id'] == e.target.id) {
+            if (headsets[x]['id'] == e.target.id) {
                 headsets[x]['name'] = e.target.value;
             }
             newHeadsets.push(headsets[x]);
@@ -252,7 +286,7 @@ function App() {
     const updateImage = (e) => {
         var newMaps = [];
         for (var x in maps) {
-            if ('image' + maps[x]['id'] == e.target.id) {
+            if (maps[x]['id'] == e.target.id) {
                 maps[x]['image'] = e.target.value;
             }
             newMaps.push(maps[x]);
@@ -263,7 +297,7 @@ function App() {
     const updateMapName = (e) => {
         var newMaps = [];
         for (var x in maps) {
-            if ('mapname' + maps[x]['id'] == e.target.id) {
+            if (maps[x]['id'] == e.target.id) {
                 maps[x]['name'] = e.target.value;
             }
             newMaps.push(maps[x]);
@@ -358,7 +392,7 @@ function App() {
                                                   onChange={updateHeadsetName}
                                                   name={"headsetinput" + e.id}
                                                   type="text"
-                                                  id={'headset' + e.id}/>
+                                                  id={e.id}/>
                                             ) : (
                                                 e.name
                                             )
@@ -378,7 +412,8 @@ function App() {
                                                 <React.Fragment>
                                                     <button
                                                         className={"btn-success"}
-                                                        onClick={() => onSave({id: index})}>
+                                                        id={'savebtn' + e.id}
+                                                        onClick={onSaveHeadsets}>
                                                         Save
                                                     </button>
 
@@ -419,22 +454,61 @@ function App() {
                                 return <tr>
                                     <td>{e.id}</td>
                                     <td>
-                                        <input
-                                            placeholder="type here"
-                                            name="input"
-                                            type="text"
-                                            id={'mapname' + e.id}
-                                            onChange={updateMapName}
-                                            value={e.name}/>
+                                      {
+                                        inEditMode.status && inEditMode.rowKey === index ? (
+                                          <input
+                                              placeholder="type here"
+                                              name="input"
+                                              type="text"
+                                              id={e.id}
+                                              onChange={updateMapName}
+                                              value={e.name}/>
+                                        ) : (
+                                          e.name
+                                        )
+                                      }
                                     </td>
                                     <td>
+                                      {
+                                        inEditMode.status && inEditMode.rowKey === index ? (
                                         <input
                                             placeholder="type here"
                                             name="input"
                                             type="text"
-                                            id={'image' + e.id}
+                                            id={e.id}
                                             onChange={updateImage}
                                             value={e.image}/>
+                                        ) : (
+                                          e.name
+                                        )
+                                      }
+                                    </td>
+                                    <td>
+                                        {
+                                            (inEditMode.status && inEditMode.rowKey === index) ? (
+                                                <React.Fragment>
+                                                    <button
+                                                        className={"btn-success"}
+                                                        id={'mapsbtn' + e.id}
+                                                        onClick={saveMap}>
+                                                        Save
+                                                    </button>
+
+                                                    <button
+                                                        className={"btn-secondary"}
+                                                        style={{marginLeft: 8}}
+                                                        onClick={() => onCancel()}>
+                                                        Cancel
+                                                    </button>
+                                                </React.Fragment>
+                                            ) : (
+                                                <button
+                                                    className={"btn-primary"}
+                                                    onClick={(e) => onEdit(e, index)}>
+                                                    Edit
+                                                </button>
+                                            )
+                                        }
                                     </td>
                                 </tr>
                             })

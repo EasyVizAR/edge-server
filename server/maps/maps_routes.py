@@ -302,7 +302,7 @@ async def replace_surface(map_id, surface_id):
             return surface, HTTPStatus.OK
 
 
-@maps.route('/maps/<map_id>/replace', methods=['PUT'])
+@maps.route('/maps/<map_id>/', methods=['PUT'])
 async def replace_map(map_id):
     """
     Replaces a current map
