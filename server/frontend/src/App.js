@@ -222,19 +222,29 @@ function App() {
     }
 
     const onEditMap = (e, id) => {
+        if (inEditModeMap.status == true && inEditModeMap.rowKey != null){
+          alert("Please save or cancel edit on other map before editing another map");
+          return;
+        }
+
         setInEditModeMap({
             status: true,
             rowKey: id
         });
-        console.log("edit mode set on row: " + id);
+        console.log("edit map mode set on row: " + id);
     }
 
     const onEditHeadset = (e, id) => {
+        if (inEditModeHeadset.status == true && inEditModeHeadset.rowKey != null){
+          alert("Please save or cancel edit on other headset before editing another headset");
+          return;
+        }
+
         setInEditModeHeadset({
             status: true,
             rowKey: id
         });
-        console.log("edit mode set on row: " + id);
+        console.log("edit headset mode set on row: " + id);
     }
 
     const saveData = (url, requestData) => {
@@ -257,23 +267,23 @@ function App() {
       const id = e.target.id.substring(7,e.target.id.length);
       const url = `http://${host}:${port}/maps/${id}`;
       for (var x in maps) {
-          if (maps[x]['id'] == id) {
-              console.log("map: " + maps[x]['id']);
+        if (maps[x]['id'] == id) {
+          console.log("map: " + maps[x]['id']);
 
-              const requestData = {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(maps[x])
-              };
+          const requestData = {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(maps[x])
+          };
 
-              console.log(requestData['body'])
-              saveData(url, requestData);
-              break;
-          }
+          console.log(requestData['body'])
+          saveData(url, requestData);
+          break;
+        }
       }
-      console.log("map saved");
+      onCancelMap();
     }
 
     const onCancelMap = () => {
