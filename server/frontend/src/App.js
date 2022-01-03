@@ -23,7 +23,11 @@ function App() {
     const [popUpClass, displayModal] = useState(false);
     const [showNewMap, showMap] = useState(false);
     const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
-    const [inEditMode, setInEditMode] = useState({
+    const [inEditModeMap, setInEditModeMap] = useState({
+        status: false,
+        rowKey: null
+    });
+    const [inEditModeHeadset, setInEditModeHeadset] = useState({
         status: false,
         rowKey: null
     });
@@ -217,8 +221,16 @@ function App() {
         }
     }
 
-    const onEdit = (e, id) => {
-        setInEditMode({
+    const onEditMap = (e, id) => {
+        setInEditModeMap({
+            status: true,
+            rowKey: id
+        });
+        console.log("edit mode set on row: " + id);
+    }
+
+    const onEditHeadset = (e, id) => {
+        setInEditModeHeadset({
             status: true,
             rowKey: id
         });
@@ -237,7 +249,7 @@ function App() {
     }
 
     const onSaveHeadsets = (e) => {
-      console.log("Saving headset...");
+      console.log("saving headset...");
     }
 
     const saveMap = (e) => {
@@ -264,9 +276,17 @@ function App() {
       console.log("map saved");
     }
 
-    const onCancel = () => {
+    const onCancelMap = () => {
         // reset the inEditMode state value
-        setInEditMode({
+        setInEditModeMap({
+            status: false,
+            rowKey: null
+        });
+    }
+
+    const onCancelHeadset = () => {
+        // reset the inEditMode state value
+        setInEditModeHeadset({
             status: false,
             rowKey: null
         });
@@ -386,9 +406,10 @@ function App() {
                                     <td>{e.id}</td>
                                     <td>
                                         {
-                                            inEditMode.status && inEditMode.rowKey === index ? (
+                                            inEditModeHeadset.status && inEditModeHeadset.rowKey === index ? (
                                                 <input
                                                   value={e.name}
+                                                  placeholder="Edit Headset Name"
                                                   onChange={updateHeadsetName}
                                                   name={"headsetinput" + e.id}
                                                   type="text"
@@ -408,7 +429,7 @@ function App() {
                                     <td>{e.orientationZ}</td>
                                     <td>
                                         {
-                                            (inEditMode.status && inEditMode.rowKey === index) ? (
+                                            (inEditModeHeadset.status && inEditModeHeadset.rowKey === index) ? (
                                                 <React.Fragment>
                                                     <button
                                                         className={"btn-success"}
@@ -420,14 +441,14 @@ function App() {
                                                     <button
                                                         className={"btn-secondary"}
                                                         style={{marginLeft: 8}}
-                                                        onClick={() => onCancel()}>
+                                                        onClick={() => onCancelHeadset()}>
                                                         Cancel
                                                     </button>
                                                 </React.Fragment>
                                             ) : (
                                                 <button
                                                     className={"btn-primary"}
-                                                    onClick={(e) => onEdit(e, index)}>
+                                                    onClick={(e) => onEditHeadset(e, index)}>
                                                     Edit
                                                 </button>
                                             )
@@ -455,9 +476,9 @@ function App() {
                                     <td>{e.id}</td>
                                     <td>
                                       {
-                                        inEditMode.status && inEditMode.rowKey === index ? (
+                                        inEditModeMap.status && inEditModeMap.rowKey === index ? (
                                           <input
-                                              placeholder="type here"
+                                              placeholder="Edit Map Name"
                                               name="input"
                                               type="text"
                                               id={e.id}
@@ -470,22 +491,22 @@ function App() {
                                     </td>
                                     <td>
                                       {
-                                        inEditMode.status && inEditMode.rowKey === index ? (
+                                        inEditModeMap.status && inEditModeMap.rowKey === index ? (
                                         <input
-                                            placeholder="type here"
+                                            placeholder="Edit Map Image"
                                             name="input"
                                             type="text"
                                             id={e.id}
                                             onChange={updateImage}
                                             value={e.image}/>
                                         ) : (
-                                          e.name
+                                          e.image
                                         )
                                       }
                                     </td>
                                     <td>
                                         {
-                                            (inEditMode.status && inEditMode.rowKey === index) ? (
+                                            (inEditModeMap.status && inEditModeMap.rowKey === index) ? (
                                                 <React.Fragment>
                                                     <button
                                                         className={"btn-success"}
@@ -497,14 +518,14 @@ function App() {
                                                     <button
                                                         className={"btn-secondary"}
                                                         style={{marginLeft: 8}}
-                                                        onClick={() => onCancel()}>
+                                                        onClick={() => onCancelMap()}>
                                                         Cancel
                                                     </button>
                                                 </React.Fragment>
                                             ) : (
                                                 <button
                                                     className={"btn-primary"}
-                                                    onClick={(e) => onEdit(e, index)}>
+                                                    onClick={(e) => onEditMap(e, index)}>
                                                     Edit
                                                 </button>
                                             )
