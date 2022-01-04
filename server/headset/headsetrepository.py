@@ -42,7 +42,7 @@ class HeadSet:
 
     def get_dir(self):
         return os.path.join(current_app.config['VIZAR_DATA_DIR'],
-                current_app.config['VIZAR_HEADSET_DIR'], self.id)
+                            current_app.config['VIZAR_HEADSET_DIR'], self.id)
 
     def get_updates(self):
         headset_dir = self.get_dir()
@@ -95,10 +95,12 @@ class Repository:
 
     def add_headset(self, name, position, mapId, id=None):
         headset = HeadSet(name, position, mapId, id=id)
-        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'], str(headset.id), "headset.json")
+        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'],
+                                str(headset.id), "headset.json")
         write_to_file(json.dumps(headset, cls=GenericJsonEncoder), filepath)
 
-        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'], str(headset.id), "updates.csv")
+        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'],
+                                str(headset.id), "updates.csv")
         update_line = get_csv_line(
             [headset.id, headset.name, headset.mapId, position['x'], position['y'], position['z'],
              headset.lastUpdate])
@@ -115,7 +117,7 @@ class Repository:
                 extrinsic = get_map_repository().get_map(headset.mapId).extrinsic
                 if intrinsic is not None and extrinsic is not None:
                     pixels = get_pixels(extrinsic, intrinsic,
-                                                            [headset.position['x'],headset.position['y'],headset.position['z']])
+                                        [headset.position['x'], headset.position['y'], headset.position['z']])
                     headset.pixelPosition['x'] = pixels[0]
                     headset.pixelPosition['y'] = pixels[1]
         return list(self.headsets.values())
@@ -138,10 +140,12 @@ class Repository:
 
         headset = self.headsets[id]
 
-        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'], str(headset.id), "headset.json")
+        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'],
+                                str(headset.id), "headset.json")
         write_to_file(json.dumps(headset, cls=GenericJsonEncoder), filepath)
 
-        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'], str(headset.id), "updates.csv")
+        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'],
+                                str(headset.id), "updates.csv")
         update_line = get_csv_line([id, headset.name, headset.mapId, position['x'], position['y'], position['z'],
                                     orientation['x'], orientation['y'], orientation['z'], headset.lastUpdate])
         append_to_file(update_line, filepath)
@@ -158,6 +162,29 @@ class Repository:
     def update_position(self, id, position):
         orientation = {'x': 0.0, 'y': 0.0, 'z': 0.0}
         return self.update_pose(id, position, orientation)
+
+    def update_headset_name(self, headset_id, name):
+
+        # check if headset exists
+        if headset_id not in self.headsets:
+            return None
+
+        # update the headset name
+        self.headsets[headset_id].name = name
+
+        headset = self.headsets[headset_id]
+
+        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'],
+                                str(headset.id), "headset.json")
+        write_to_file(json.dumps(headset, cls=GenericJsonEncoder), filepath)
+
+        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'],
+                                str(headset.id), "updates.csv")
+        update_line = get_csv_line([headset_id, headset.name, headset.mapId, headset.position['x'], headset.position['y'], headset.position['z'],
+                                    headset.orientation['x'], headset.orientation['y'], headset.orientation['z'], headset.lastUpdate])
+        append_to_file(update_line, filepath)
+
+        return headset_id
 
 
 def get_headset_repository():

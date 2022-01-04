@@ -177,6 +177,41 @@ async def upload(imageId):
     return await make_response({'success': 'true'})
 
 
+@blueprint.route('/headsets/<headsetId>/', methods=['PUT'])
+async def update_headset(headsetId):
+
+    if not headsetId:
+        return await make_response(
+            jsonify({"message": "No headset id",
+                     "severity": "Warning"}),
+            HTTPStatus.BAD_REQUEST)
+
+    # get body of request
+    body = await request.get_json()
+
+    # check if the request has all the required information
+    if 'name' not in body:
+        return await make_response(
+            jsonify({"message": "Missing parameter in body",
+                     "severity": "Warning"}),
+            HTTPStatus.BAD_REQUEST)
+
+    # update the info in the repo
+    returned_id = get_headset_repository().update_headset_name(headsetId, body['name'])
+
+    # check if headset exists
+    if returned_id is None:
+        return await make_response(
+            jsonify({"message": "The requested headset does not exist",
+                     "severity": "Warning"}),
+            HTTPStatus.NOT_FOUND)
+
+    # headset was updated
+    return await make_response(
+            jsonify({"message": "Headset updated",
+                     "headset_id": returned_id}),
+            HTTPStatus.CREATED)
+
 # @blueprint.route('/map-image/<mapId>', methods=['GET'])
 # async def get_image(mapId):
 #     folder_path = current_app.config['VIZAR_DATA_DIR'] + current_app.config['IMAGE_UPLOADS']

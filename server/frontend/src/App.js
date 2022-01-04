@@ -231,7 +231,6 @@ function App() {
             status: true,
             rowKey: id
         });
-        console.log("edit map mode set on row: " + id);
     }
 
     const onEditHeadset = (e, id) => {
@@ -244,22 +243,37 @@ function App() {
             status: true,
             rowKey: id
         });
-        console.log("edit headset mode set on row: " + id);
     }
 
     const saveData = (url, requestData) => {
+      console.log("Sending request to " + url);
       fetch(url, requestData)
         .then(response => {
-          console.log(response.json())
+          console.log("response: " + response.json())
         }).then(data => {
-          console.log(data);
+          console.log("data: " + data);
         });
-
-        console.log("Data saved to " + url);
     }
 
     const onSaveHeadsets = (e) => {
-      console.log("saving headset...");
+      const headset = null;
+      const id = e.target.id.substring(7,e.target.id.length);
+      const url = `http://${host}:${port}/headsets/${id}`;
+      for (var x in headsets) {
+        if (headsets[x]['id'] == id) {
+          const requestData = {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(headsets[x])
+          };
+          saveData(url, requestData);
+          break;
+        }
+      }
+      onCancelHeadset();
+      console.log("headset updated");
     }
 
     const saveMap = (e) => {
@@ -268,8 +282,6 @@ function App() {
       const url = `http://${host}:${port}/maps/${id}`;
       for (var x in maps) {
         if (maps[x]['id'] == id) {
-          console.log("map: " + maps[x]['id']);
-
           const requestData = {
             method: 'PUT',
             headers: {
@@ -277,8 +289,6 @@ function App() {
             },
             body: JSON.stringify(maps[x])
           };
-
-          console.log(requestData['body'])
           saveData(url, requestData);
           break;
         }
