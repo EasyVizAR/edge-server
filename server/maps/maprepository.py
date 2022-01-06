@@ -1,6 +1,7 @@
 import json
 import os
 import uuid
+import shutil
 
 import numpy as np
 from quart import current_app
@@ -163,6 +164,21 @@ class Repository:
             return None
         id = self.add_map(id, name, image, intrinsic, extrinsic)
         return id
+
+    def remove_map(self, map_id):
+        if map_id not in self.maps.keys():
+            return False
+
+        dir_path = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'maps/', str(map_id))
+        try:
+            shutil.rmtree(dir_path)
+            self.maps.pop(map_id)
+        except OSError as e:
+            print("Error in removing map: %s : %s" % (dir_path, e.strerror))
+            return False
+
+        return True
+
 
     def get_map(self, id):
         if id not in self.maps.keys():

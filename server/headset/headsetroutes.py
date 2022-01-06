@@ -177,6 +177,26 @@ async def upload(imageId):
     return await make_response({'success': 'true'})
 
 
+@blueprint.route('/headsets/<headset_id>/delete', methods=['POST'])
+async def delete_map(headset_id):
+
+    # TODO check authorization
+
+    if not headset_id:
+        return await make_response(jsonify({"message": "No map id", "severity": "Warning"}), HTTPStatus.BAD_REQUEST)
+
+    deleted = get_headset_repository().remove_headset(headset_id)
+
+    if deleted:
+
+        # map was deleted
+        return await make_response(jsonify({"message": "Headset deleted"}), HTTPStatus.OK)
+    else:
+
+        # map was deleted
+        return await make_response(jsonify({"message": "Headset could not be deleted"}), HTTPStatus.BAD_REQUEST)
+
+
 @blueprint.route('/headsets/<headsetId>/', methods=['PUT'])
 async def update_headset(headsetId):
 

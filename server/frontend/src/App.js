@@ -34,21 +34,12 @@ function App() {
     const [cursor, setCursor] = useState('auto');
 
     useEffect(() => {
-        fetch(`http://${host}:${port}/maps`)
-            .then(response => response.json())
-            .then(data => {
-                for (var key in data) {
-                    maps.push({'id': data[key]['id'], 'name': data[key]['name'], 'image': data[key]['image']});
-                }
-            });
-        setSelectedMap(getDefaultMapSelection());
-        setSelectedImage(getDefaultMapImage());
+      get_maps();
     }, []);
 
     useEffect(() => {
         console.log('Changes in features!!!');
     }, [features, setFeatures])
-
 
     useEffect(() => {
         fetch(`http://${host}:${port}/headsets`)
@@ -69,6 +60,18 @@ function App() {
             setHeadsets(fetchedHeadsets);
         });
     }, []);
+
+    function get_maps(){
+      fetch(`http://${host}:${port}/maps`)
+      .then(response => response.json())
+      .then(data => {
+        for (var key in data) {
+           maps.push({'id': data[key]['id'], 'name': data[key]['name'], 'image': data[key]['image']});
+        }
+      });
+      setSelectedMap(getDefaultMapSelection());
+      setSelectedImage(getDefaultMapImage());
+    }
 
     const onMapLoad = () => {
         var scaledWidth = document.getElementById('map-image').offsetWidth;
@@ -100,6 +103,7 @@ function App() {
             let fetchedFeatures = []
             for (let i in data) {
                 let v = data[i];
+
                 fetchedFeatures.push({
                     'id': v.id,
                     'name': v.name,
@@ -356,6 +360,77 @@ function App() {
         setCrossHairIcon(v);
     }
 
+    function deleteHeadset(id, name){
+      const del = window.confirm("Are you sure you want to delete headset '" + name + "'?");
+      if (!del){
+        return;
+      }
+
+      const url = `http://${host}:${port}/headsets/${id}/delete`;
+      const requestData = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      };
+
+      fetch(url, requestData)
+      .then(response => {
+        for (var x in headsets) {
+          if(headsets[x]['id'] == id){
+            headsets.pop(headsets[x]);
+          }
+        }
+        window.location.reload(false);
+      });
+    }
+
+    function deleteMap(id, name){
+      const del = window.confirm("Are you sure you want to delete map '" + name + "'?");
+      if (!del){
+        return;
+      }
+
+      const url = `http://${host}:${port}/maps/${id}/delete`;
+      const requestData = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      };
+
+      fetch(url, requestData)
+      .then(response => {
+        for (var x in maps) {
+          if(maps[x]['id'] == id){
+            maps.pop(maps[x]);
+          }
+        }
+        window.location.reload(false);
+      });
+    }
+
+    function TrashIcon(props) {
+      const item = props.item;
+      const itemId = props.id;
+      const itemName = props.name;
+      const src = `http://${host}:${port}/icons/temp/trash_can.png`;
+
+      if (item == 'headset'){
+        return (
+          <button style={{width: "30px", height: "30px"}} className='btn-danger' onClick={(e) => deleteHeadset(itemId, itemName)} title="Delete Headset">
+            <img style={{margin: 'auto', width: "20px", height: "20px", position: 'relative', right: '3.5px', top: '-3px'}} src={src} alt="Trash"/>
+          </button>
+        );
+      }else{
+        return (
+          <button style={{width: "30px", height: "30px"}} className='btn-danger' onClick={(e) => deleteMap(itemId, itemName)} title="Delete Map">
+            <img style={{margin: 'auto', width: "20px", height: "20px", position: 'relative', right: '3.5px', top: '-3px'}} src={src} alt="Trash"/>
+          </button>
+        );
+      }
+    }
+
     return (
         <div className="App">
             <Navbar bg="dark" variant="dark">
@@ -454,25 +529,33 @@ function App() {
                                                     <button
                                                         className={"btn-success"}
                                                         id={'savebtn' + e.id}
-                                                        onClick={onSaveHeadsets}>
+                                                        onClick={onSaveHeadsets}
+                                                        title='Save'>
                                                         Save
                                                     </button>
 
                                                     <button
                                                         className={"btn-secondary"}
                                                         style={{marginLeft: 8}}
-                                                        onClick={() => onCancelHeadset()}>
+                                                        onClick={() => onCancelHeadset()}
+                                                        title='Cancel'>
                                                         Cancel
                                                     </button>
                                                 </React.Fragment>
                                             ) : (
                                                 <button
                                                     className={"btn-primary"}
-                                                    onClick={(e) => onEditHeadset(e, index)}>
+                                                    onClick={(e) => onEditHeadset(e, index)}
+                                                    title='Edit'>
                                                     Edit
                                                 </button>
                                             )
                                         }
+                                    </td>
+                                    <td>
+                                      <div>
+                                        <TrashIcon item='headset' id={e.id} name={e.name}/>
+                                      </div>
                                     </td>
                                 </tr>
                             })
@@ -531,25 +614,33 @@ function App() {
                                                     <button
                                                         className={"btn-success"}
                                                         id={'mapsbtn' + e.id}
-                                                        onClick={saveMap}>
+                                                        onClick={saveMap}
+                                                        title='Save'>
                                                         Save
                                                     </button>
 
                                                     <button
                                                         className={"btn-secondary"}
                                                         style={{marginLeft: 8}}
-                                                        onClick={() => onCancelMap()}>
+                                                        onClick={() => onCancelMap()}
+                                                        title='Cancel'>
                                                         Cancel
                                                     </button>
                                                 </React.Fragment>
                                             ) : (
                                                 <button
                                                     className={"btn-primary"}
-                                                    onClick={(e) => onEditMap(e, index)}>
+                                                    onClick={(e) => onEditMap(e, index)}
+                                                    title='Edit'>
                                                     Edit
                                                 </button>
                                             )
                                         }
+                                    </td>
+                                    <td>
+                                      <div>
+                                        <TrashIcon item='map' id={e.id} name={e.name}/>
+                                      </div>
                                     </td>
                                 </tr>
                             })

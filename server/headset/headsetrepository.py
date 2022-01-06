@@ -3,6 +3,7 @@ import json
 import os
 import time
 import uuid
+import shutil
 
 from quart import current_app
 
@@ -186,6 +187,20 @@ class Repository:
 
         return headset_id
 
+    def remove_headset(self, headset_id):
+        # check if headset exists
+        if headset_id not in self.headsets:
+            return False
+
+        dir_path = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'headsets/', str(headset_id))
+        try:
+            self.headsets.pop(headset_id)
+            shutil.rmtree(dir_path)
+        except OSError as e:
+            print("Error in removing headset: %s : %s" % (dir_path, e.strerror))
+            return False
+
+        return True
 
 def get_headset_repository():
     global headset_repository

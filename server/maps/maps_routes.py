@@ -351,6 +351,25 @@ async def replace_map(map_id):
         HTTPStatus.CREATED)
 
 
+@maps.route('/maps/<map_id>/delete', methods=['POST'])
+async def delete_map(map_id):
+
+    # TODO check authorization
+
+    if not map_id:
+        return await make_response(jsonify({"message": "No map id", "severity": "Warning"}), HTTPStatus.BAD_REQUEST)
+
+    deleted = get_map_repository().remove_map(map_id)
+
+    if deleted:
+
+        # map was deleted
+        return await make_response(jsonify({"message": "Map deleted"}), HTTPStatus.OK)
+    else:
+
+        # map was deleted
+        return await make_response(jsonify({"message": "Map could not be deleted"}), HTTPStatus.BAD_REQUEST)
+
 @maps.route('/maps', methods=['POST'])
 async def create_map():
     """
