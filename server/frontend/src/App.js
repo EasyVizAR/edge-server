@@ -266,7 +266,7 @@ function App() {
       for (var x in headsets) {
         if (headsets[x]['id'] == id) {
 
-          var dup = checkHeadsetName(headsets[x]['name']);
+          var dup = checkHeadsetName(headsets[x]['name'], headsets[x]['id']);
           if (dup){
             var conf = window.confirm('There is another headset with the same name. Are you sure you want to continue?');
             if (!conf){
@@ -296,9 +296,17 @@ function App() {
       for (var x in maps) {
         if (maps[x]['id'] == id) {
 
-          var dup = checkMapName(maps[x]['name']);
-          if (dup){
+          var dup_name = checkMapName(maps[x]['name'], maps[x]['id']);
+          if (dup_name){
             var conf = window.confirm('There is another map with the same name. Are you sure you want to continue?');
+            if (!conf){
+              return;
+            }
+          }
+
+          var dup_image = checkMapImage(maps[x]['image'], maps[x]['id']);
+          if (dup_image){
+            var conf = window.confirm('There is another map with the same image. Are you sure you want to continue?');
             if (!conf){
               return;
             }
@@ -369,18 +377,27 @@ function App() {
         setMaps(newMaps);
     }
 
-    function checkMapName(name){
+    function checkMapImage(image, id){
       for (var x in maps) {
-        if (maps[x]['name'] == name) {
+        if (maps[x]['image'] == image && maps[x]['id'] != id) {
           return true;
         }
       }
       return false;
     }
 
-    function checkHeadsetName(name){
+    function checkMapName(name, id){
+      for (var x in maps) {
+        if (maps[x]['name'] == name && maps[x]['id'] != id) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function checkHeadsetName(name, id){
       for (var x in headsets) {
-        if (headsets[x]['name'] == name) {
+        if (headsets[x]['name'] == name && maps[x]['id'] != id) {
           return true;
         }
       }
