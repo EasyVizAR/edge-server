@@ -265,6 +265,15 @@ function App() {
       const url = `http://${host}:${port}/headsets/${id}`;
       for (var x in headsets) {
         if (headsets[x]['id'] == id) {
+
+          var dup = checkHeadsetName(headsets[x]['name']);
+          if (dup){
+            var conf = window.confirm('There is another headset with the same name. Are you sure you want to continue?');
+            if (!conf){
+              return;
+            }
+          }
+
           const requestData = {
             method: 'PUT',
             headers: {
@@ -286,6 +295,15 @@ function App() {
       const url = `http://${host}:${port}/maps/${id}`;
       for (var x in maps) {
         if (maps[x]['id'] == id) {
+
+          var dup = checkMapName(maps[x]['name']);
+          if (dup){
+            var conf = window.confirm('There is another map with the same name. Are you sure you want to continue?');
+            if (!conf){
+              return;
+            }
+          }
+
           const requestData = {
             method: 'PUT',
             headers: {
@@ -318,6 +336,7 @@ function App() {
 
     const updateHeadsetName = (e) => {
         var newHeadsets = [];
+
         for (var x in headsets) {
             if (headsets[x]['id'] == e.target.id) {
                 headsets[x]['name'] = e.target.value;
@@ -340,6 +359,7 @@ function App() {
 
     const updateMapName = (e) => {
         var newMaps = [];
+
         for (var x in maps) {
             if (maps[x]['id'] == e.target.id) {
                 maps[x]['name'] = e.target.value;
@@ -347,6 +367,24 @@ function App() {
             newMaps.push(maps[x]);
         }
         setMaps(newMaps);
+    }
+
+    function checkMapName(name){
+      for (var x in maps) {
+        if (maps[x]['name'] == name) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function checkHeadsetName(name){
+      for (var x in headsets) {
+        if (headsets[x]['name'] == name) {
+          return true;
+        }
+      }
+      return false;
     }
 
     const toggleCursor = (e) => {
