@@ -6,7 +6,7 @@ import shutil
 import numpy as np
 from quart import current_app
 
-from server.utils.utils import GenericJsonEncoder, write_to_file, get_pixels
+from server.utils.utils import GenericJsonEncoder, write_to_file, get_pixels, get_vector
 
 map_repository = None
 
@@ -23,21 +23,29 @@ class Map:
         self.intrinsic = intrinsic
 
     def __str__(self):
-        return "id=" + self.id + ", name=" + self.name + ", image=" + str(self.image) + ", extrinsic=" + str(self.extrinsic) + ", intrinsic=" + str(self.intrinsic)
+        return "id=" + self.id + ", name=" + self.name + ", image=" + str(self.image) + ", extrinsic=" + str(
+            self.extrinsic) + ", intrinsic=" + str(self.intrinsic)
 
 
 class Feature:
-    def __init__(self, name, position, mapId, style, id=None):
+    def __init__(self, name, mapId, style, id=None, position=None, pixelPosition=None):
         if id is None:
             self.id = str(uuid.uuid4())
         else:
             self.id = id
         self.name = name
-        self.position = {
-            'x': position['x'],
-            'y': position['y'],
-            'z': position['z']
-        }
+        if position is not None:
+            self.position = {
+                'x': position['x'],
+                'y': position['y'],
+                'z': position['z']
+            }
+        else:
+            self.position = {
+                'x': None,
+                'y': None,
+                'z': None
+            }
         self.mapId = mapId
         self.style = {
             "placement": style['placement'],
@@ -45,10 +53,16 @@ class Feature:
             "leftOffset": style['leftOffset'],
             "icon": style['icon']
         }
-        self.pixelPosition = {
-            "x": None,
-            "y": None
-        }
+        if pixelPosition is not None:
+            self.pixelPosition = {
+                "x": pixelPosition['x'],
+                "y": pixelPosition['y']
+            }
+        else:
+            self.pixelPosition = {
+                "x": None,
+                "y": None
+            }
 
 
 class Repository:
@@ -83,8 +97,8 @@ class Repository:
                 if len(features) > 0:
                     for feature in features:
                         print(feature.keys())
-                        feature_obj = Feature(feature['name'], feature['position'], feature['mapId'], feature['style'],
-                                id=feature['id'])
+                        feature_obj = Feature(feature['name'], feature['mapId'], feature['style'],
+                                              id=feature['id'], position=feature['position'])
                         if 'pixelPosition' in feature:
                             if 'x' in feature['pixelPosition']:
                                 feature_obj.pixelPosition['x'] = feature['pixelPosition']['x']
@@ -93,7 +107,7 @@ class Repository:
                         feature_list.append(feature_obj)
                 self.features[map['id']] = feature_list
 
-    def create_image(self, intent, data, type, ext = None, ints = None):
+    def create_image(self, intent, data, type, ext=None, ints=None):
         intentId = data['mapID'] if 'maps' == intent else str(uuid.uuid4())
         img_type = type.split("/")[1]
         url = f"{current_app.config['IMAGE_UPLOADS']}{intentId}.{img_type}"
@@ -120,17 +134,25 @@ class Repository:
                                         str(intentId), "features.json")
                 write_to_file(json.dumps(self.features[intentId], cls=GenericJsonEncoder), filepath)
 
-        return {'id': intentId, 'url': url, 'intent': intent, 'data': data, 'type': type, 'intrinsic': intrinsic, 'extrinsic': extrinsic}
+        return {'id': intentId, 'url': url, 'intent': intent, 'data': data, 'type': type, 'intrinsic': intrinsic,
+                'extrinsic': extrinsic}
 
-    def add_feature(self, id, name, position, mapId, style):
+    def add_feature(self, id, name, mapId, style, position=None, pixelPosition=None):
         if mapId not in self.maps.keys():
             return None
-        feature = Feature(name, position, mapId, style, id=id)
+        feature = Feature(name, mapId, style, id=id)
         if self.maps[mapId].intrinsic is not None and self.maps[mapId].extrinsic is not None:
-            vector = [feature.position['x'], feature.position['y'], feature.position['z']]
-            pixPos = get_pixels(self.maps[mapId].extrinsic, self.maps[mapId].intrinsic, vector)
-            feature.pixelPosition['x'] = pixPos[0]
-            feature.pixelPosition['y'] = pixPos[1]
+            if position is not None:
+                vector = [feature.position['x'], feature.position['y'], feature.position['z']]
+                pixPos = get_pixels(self.maps[mapId].extrinsic, self.maps[mapId].intrinsic, vector)
+                feature.pixelPosition['x'] = pixPos[0]
+                feature.pixelPosition['y'] = pixPos[1]
+            else:
+                pixPos = [pixelPosition['x'], pixelPosition['y']]
+                vector = get_vector(self.maps[mapId].extrinsic, self.maps[mapId].intrinsic, pixPos)
+                feature.position['x'] = vector[0]
+                feature.position['y'] = vector[1]
+                feature.position['z'] = vector[2]
 
         map_features = []
         if mapId in self.features:

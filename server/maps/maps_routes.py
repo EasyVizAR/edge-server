@@ -195,15 +195,22 @@ async def add_map_feature(map_id):
             HTTPStatus.BAD_REQUEST)
 
     if 'name' not in body or 'mapID' not in body\
-            or 'position' not in body or 'style' not in body:
+            or ('position' not in body and 'pixelPosition' not in body) or 'style' not in body:
         return await make_response(jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
                                    HTTPStatus.BAD_REQUEST)
 
-    feature = get_map_repository().add_feature(body['id'],
-                                               body['name'],
-                                               body['position'],
-                                               body['mapID'],
-                                               body['style'])
+    if 'pixelPosition' in body:
+        feature = get_map_repository().add_feature(body['id'],
+                                                   body['name'],
+                                                   body['mapID'],
+                                                   body['style'],
+                                                   pixelPosition=body['pixelPosition'])
+    else:
+        feature = get_map_repository().add_feature(body['id'],
+                                                   body['name'],
+                                                   body['mapID'],
+                                                   body['style'],
+                                                   position=body['position'])
 
     # check if map exists
     if feature is None:
