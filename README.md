@@ -33,98 +33,13 @@ docker run --rm -p 5000:5000/tcp --name vizar-edge-server vizar-edge-server
 
 # API
 
-The API specification is divided into functions intended for the headsets and for the app/web user interface, although there will be some overlap.
+One function for the edge server is to provide a central exchange point for collaboration between multiple headset users. Therefore, the edge API will be consumed by a variety of applications including code running on the AR headset, a web interface, and even an Android app.
 
-## AR Headset API
+The latest version of the API specification can be found [here](https://easyvizar.github.io/edge-server/apispec.html). This document is automatically produced from comments in the code by using the apispec library.
 
-* Authenticate / register device
-* Update map data: TBD whether these are individual points, surfaces, point clouds, and whether we have color or other image data
-* Update position: TBD how to handle the coordinate systems of different headsets
-* Get map features: return features to be rendered in AR, possibly filter by location or proximity
-* Send an image or DNN intermediate layer for classification (included for completeness, but this probably should go through a different protocol)
+To the extent it is reasonable, we plan to adhere to the [REST API design principles](https://docs.microsoft.com/en-us/azure/architecture/best-practices/api-design).
 
-## Web Interface API
-
-* Authenticate user
-* Get combined map data
-* Get position of wearable device(s)
-* Add a map feature: this could be a waypoint for directions, a target, a point of interest and may include rendering information such as text, arrows, polygons, colors, display duration, position hint (e.g. top of screen), or an image
-
-## API Function Specifications
-
-The goal should be to follow REST API design practices to the extent that is reasonable.
-See: https://docs.microsoft.com/en-us/azure/architecture/best-practices/api-design
-
-| List headsets ||
-| ---               | --- |
-| URL               | /headsets |
-| Method            | GET |
-| URL Parameters    | N/A |
-| Success Response  | Code: 200 OK <br \> Content: `[{ *headset* }, ...]` |
-| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }`|
-
-| Show headset ||
-| ---               | --- |
-| URL               | /headsets/:id |
-| Method            | GET |
-| URL Parameters    | Required: <br \> `id=[GUID]` |
-| Success Response  | Code: 200 OK <br \> Content: `{ *headset* }` |
-| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }` |
-| Error Response    | Code: 404 NOT FOUND <br \> Content: `{ "error": "The requested headset does not exist." }` |
-
-| List maps ||
-| ---               | --- |
-| URL               | /maps |
-| Method            | GET |
-| URL Parameters    | N/A |
-| Success Response  | Code: 200 OK <br \> Content: `[{ *map* }, ...]` |
-| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }`|
-
-| Show map ||
-| ---               | --- |
-| URL               | /maps/:id |
-| Method            | GET |
-| URL Parameters    | Required: <br \> `id=[GUID]` |
-| Success Response  | Code: 200 OK <br \> Content: `{ *map* }` |
-| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }` |
-| Error Response    | Code: 404 NOT FOUND <br \> Content: `{ "error": "The requested map does not exist." }` |
-
-| List map features ||
-| ---               | --- |
-| URL               | /maps/:map-id/features |
-| Method            | GET |
-| URL Parameters    | Required: <br \> `map-id=[GUID]` |
-| Success Response  | Code: 200 OK <br \> Content: `[{ *feature* }, ...]` |
-| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }`|
-| Error Response    | Code: 404 NOT FOUND <br \> Content: `{ "error": "The requested map does not exist." }` |
-
-| Add map feature ||
-| ---               | --- |
-| URL               | /maps/:map-id/features |
-| Method            | POST |
-| URL Parameters    | Required: <br \> `map-id=[GUID]` |
-| Data              | `{ *map feature* }`
-| Success Response  | Code: 201 CREATED <br \> Content: `{ *feature* }` |
-| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }`|
-| Error Response    | Code: 404 NOT FOUND <br \> Content: `{ "error": "The requested map does not exist." }` |
-
-| Update a headset position ||
-| ---               | --- |
-| URL               | /headsets/:headset-id/updates |
-| Method            | POST |
-| URL Parameters    | Required: <br \> `headset-id=[GUID]` |
-| Data              | `{ *headset update* }`
-| Success Response  | Code: 201 CREATED <br \> Content: `{ *headset update* }` |
-| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }`|
-| Error Response    | Code: 404 NOT FOUND <br \> Content: `{ "error": "The requested headset does not exist." }` |
-
-| Prepare an image upload ||
-| ---               | --- |
-| URL               | /image-uploads |
-| Method            | POST |
-| Data              | `{ *image upload* }`
-| Success Response  | Code: 201 CREATED <br \> Content: `{ *image upload* }` |
-| Error Response    | Code: 401 UNAUTHORIZED <br \> Content: `{ "error": "Not authorized. Please log in." }`|
+## Example JSON Objects
 
 ### Headset Object
 

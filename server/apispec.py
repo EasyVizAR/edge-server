@@ -86,12 +86,12 @@ spec = APISpec(
 )
 
 headset_tag = {
-    "name": "Headsets",
+    "name": "headsets",
     "description": "Operations on Headset objects"
 }
 
 map_tag = {
-    "name": "Maps",
+    "name": "maps",
     "description": "Operations on Map objects"
 }
 
@@ -102,21 +102,29 @@ spec.components.schema("MapFeature", schema=MapFeatureSchema)
 spec.components.schema("ImageUpload", schema=ImageUploadSchema)
 spec.components.schema("SurfaceFileInformation", schema=SurfaceFileInformationSchema)
 
+spec.tag(headset_tag)
+spec.tag(map_tag)
+
 async def add_routes_to_spec():
     async with app.test_request_context("/"):
-        spec.path(view=headsetroutes.get_all)
-        spec.path(view=headsetroutes.get)
         spec.path(view=headsetroutes.register)
         spec.path(view=headsetroutes.authenticate)
+        spec.path(view=headsetroutes.get_updates)
         spec.path(view=headsetroutes.update_position)
+        spec.path(view=headsetroutes.update_headset)
+        spec.path(view=headsetroutes.delete_headset)
 
-        spec.path(view=headsetroutes.image_upload)
-
-        spec.path(view=maps_routes.list_maps)
+        spec.path(view=maps_routes.get_all_maps)
         spec.path(view=maps_routes.show_map)
         spec.path(view=maps_routes.list_map_features)
         spec.path(view=maps_routes.add_map_feature)
+        spec.path(view=maps_routes.list_map_surfaces)
+        spec.path(view=maps_routes.replace_surface)
+        spec.path(view=maps_routes.replace_map)
+        spec.path(view=maps_routes.delete_map)
         spec.path(view=maps_routes.create_map)
+        spec.path(view=maps_routes.get_map_qrcode)
+        spec.path(view=maps_routes.get_map_topdown)
 
 
 loop = asyncio.get_event_loop()

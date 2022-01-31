@@ -18,6 +18,8 @@ async def get_all():
     ---
     get:
         description: List headsets
+        tags:
+          - headsets
         responses:
             200:
                 description: A list of headsets.
@@ -38,6 +40,13 @@ async def get(id):
     ---
     get:
         description: Get a headset
+        tags:
+          - headsets
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Headset ID
         responses:
             200:
                 description: A headset
@@ -76,6 +85,13 @@ async def register():
     ---
     post:
         description: Register a headset
+        tags:
+          - headsets
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: HeadsetSchema
         responses:
             200:
                 description: A headset
@@ -109,6 +125,8 @@ async def authenticate():
     ---
     post:
         description: Authenticate a headset
+        tags:
+          - headsets
         responses:
             200:
                 description: Authentication response
@@ -132,8 +150,25 @@ async def authenticate():
 async def get_updates(headsetId):
     """
     Get headset updates
+    ---
+    get:
+        description: Get headset updates
+        tags:
+          - headsets
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Headset ID
+        responses:
+            200:
+                description: A list of headset updates.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: HeadsetUpdateSchema
     """
-
     headset = get_headset_repository().get_headset(headsetId)
     if headset is None:
         return {"message": "The requested headset does not exist."}, HTTPStatus.NOT_FOUND
@@ -149,10 +184,13 @@ async def update_position(headsetId):
     ---
     post:
         description: Create a new headset update
-        parameters:
-            - in: body
-              required: true
-              schema: HeadsetUpdateSchema
+        tags:
+          - headsets
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: HeadsetUpdateSchema
         responses:
             200:
                 description: A headset update object
@@ -193,6 +231,22 @@ async def upload(imageId):
 
 @blueprint.route('/headsets/<headset_id>', methods=['DELETE'])
 async def delete_headset(headset_id):
+    """
+    Delete a headset
+    ---
+    delete:
+        description: Delete a headset
+        tags:
+          - headsets
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Headset ID
+        responses:
+            200:
+                description: Headset deleted
+    """
 
     # TODO check authorization
 
@@ -207,8 +261,32 @@ async def delete_headset(headset_id):
         return await make_response(jsonify({"message": "Headset could not be deleted"}), HTTPStatus.BAD_REQUEST)
 
 
-@blueprint.route('/headsets/<headsetId>/', methods=['PUT'])
+@blueprint.route('/headsets/<headsetId>', methods=['PUT'])
 async def update_headset(headsetId):
+    """
+    Update a headset
+    ---
+    put:
+        description: Update a headset
+        tags:
+          - headsets
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Headset ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: HeadsetSchema
+        responses:
+            200:
+                description: New headset object
+                content:
+                    application/json:
+                        schema: HeadsetSchema
+    """
 
     if not headsetId:
         return await make_response(
