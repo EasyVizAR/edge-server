@@ -55,6 +55,20 @@ async def get(id):
         return jsonify(headset), HTTPStatus.OK
 
 
+@blueprint.route('/headsets/<headset_id>/history', methods=['GET'])
+async def get_headset_history(headset_id):
+    headset = get_headset_repository().get_headset(headset_id)
+
+    if headset is None:
+        return await make_response(
+            jsonify({"message": "The requested headset does not exist.", "severity": "Error"}),
+            HTTPStatus.NOT_FOUND)
+
+    headset_history = headset.get_history()
+
+    return jsonify(headset_history), HTTPStatus.OK
+
+
 @blueprint.route('/headsets', methods=['POST'])
 async def register():
     """
