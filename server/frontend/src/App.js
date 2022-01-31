@@ -32,6 +32,7 @@ function App() {
         rowKey: null
     });
     const [cursor, setCursor] = useState('auto');
+    const [headsetNames, setHeadsetNames] = useState([]);
 
     useEffect(() => {
       get_maps();
@@ -48,6 +49,7 @@ function App() {
             }).then(data => {
             console.log(data);
             var fetchedHeadsets = []
+            var headsetNamesList = []
             for (var k in data) {
                 var v = data[k];
                 fetchedHeadsets.push({
@@ -56,8 +58,10 @@ function App() {
                     'positionX': v.position.x, 'positionY': v.position.y, 'positionZ': v.position.z,
                     'pixelX': v.pixelPosition['x'], 'pixelY': v.pixelPosition['y']
                 });
+                headsetNamesList.push(v.name);
             }
             setHeadsets(fetchedHeadsets);
+            setHeadsetNames(headsetNamesList);
         });
     }, []);
 
@@ -125,6 +129,7 @@ function App() {
                     return response.json()
                 }).then(data => {
                 let fetchedHeadsets = []
+                var headsetNamesList = []
                 for (let k in data) {
                     let v = data[k];
                     if (selectedMap === v.mapId) {
@@ -144,9 +149,11 @@ function App() {
                             'icon': '/icons/headset24.png'
                         });
                     }
+                    headsetNamesList.push(v.name);
                 }
                 fetchedHeadsets = fetchedHeadsets.concat(fetchedFeatures);
                 setFeatures(fetchedHeadsets);
+                setHeadsetNames(headsetNamesList);
             });
 
 
@@ -334,8 +341,7 @@ function App() {
         });
     }
 
-    const onCancelHeadset = () => {
-        // reset the inEditMode state value
+    const onCancelHeadset = (element, id, rowIndex) => {
         setInEditModeHeadset({
             status: false,
             rowKey: null
@@ -397,7 +403,7 @@ function App() {
 
     function checkHeadsetName(name, id){
       for (var x in headsets) {
-        if (headsets[x]['name'] == name && maps[x]['id'] != id) {
+        if (headsets[x]['name'] == name && headsets[x]['id'] != id) {
           return true;
         }
       }
@@ -474,13 +480,13 @@ function App() {
       if (item == 'headset'){
         return (
           <button style={{width: "30px", height: "30px"}} className='btn-danger' onClick={(e) => deleteHeadset(itemId, itemName)} title="Delete Headset">
-            <img style={{margin: 'auto', width: "20px", height: "20px", position: 'relative', right: '3.5px', top: '-3px'}} src={src} alt="Trash"/>
+            <img style={{margin: 'auto', width: "20px", height: "20px", position: 'relative', right: '3.5px', top: '-3px'}} src={src}  alt="Delete Headset"/>
           </button>
         );
       }else{
         return (
           <button style={{width: "30px", height: "30px"}} className='btn-danger' onClick={(e) => deleteMap(itemId, itemName)} title="Delete Map">
-            <img style={{margin: 'auto', width: "20px", height: "20px", position: 'relative', right: '3.5px', top: '-3px'}} src={src} alt="Trash"/>
+            <img style={{margin: 'auto', width: "20px", height: "20px", position: 'relative', right: '3.5px', top: '-3px'}} src={src}  alt="Delete Map"/>
           </button>
         );
       }
@@ -554,7 +560,7 @@ function App() {
                             headsets.map((e, index) => {
                                 return <tr>
                                     <td>{e.id}</td>
-                                    <td>
+                                    <td id={"headsetName" + index}>
                                         {
                                             inEditModeHeadset.status && inEditModeHeadset.rowKey === index ? (
                                                 <input
@@ -565,7 +571,7 @@ function App() {
                                                   type="text"
                                                   id={e.id}/>
                                             ) : (
-                                                e.name
+                                                  headsetNames[index]
                                             )
                                         }
                                     </td>
@@ -592,7 +598,7 @@ function App() {
                                                     <button
                                                         className={"btn-secondary"}
                                                         style={{marginLeft: 8}}
-                                                        onClick={() => onCancelHeadset()}
+                                                        onClick={(event) => onCancelHeadset(event, e.id, index)}
                                                         title='Cancel'>
                                                         Cancel
                                                     </button>
