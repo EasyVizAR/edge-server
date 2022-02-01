@@ -129,6 +129,19 @@ def generate_new_id():
 async def get_all_maps():
     """
     Lists all maps found
+    ---
+    get:
+        description: List maps
+        tags:
+          - maps
+        responses:
+            200:
+                description: A list of Map objects.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: MapSchema
     """
 
     # TODO: check authorization
@@ -140,6 +153,22 @@ async def get_all_maps():
 async def show_map(map_id):
     """
     Lists the map with the given id
+    ---
+    get:
+        description: Get map
+        tags:
+          - maps
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Map ID
+        responses:
+            200:
+                description: A Map object
+                content:
+                    application/json:
+                        schema: HeadsetSchema
     """
 
     # TODO: check authorization
@@ -162,6 +191,24 @@ async def show_map(map_id):
 async def list_map_features(map_id):
     """
     Lists the map features with the given id
+    ---
+    get:
+        description: List map features
+        tags:
+          - maps
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Map ID
+        responses:
+            200:
+                description: A list of MapFeature objects
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: MapFeatureSchema
     """
 
     # TODO: check authorization
@@ -182,6 +229,27 @@ async def list_map_features(map_id):
 async def add_map_feature(map_id):
     """
     Adds a feature to the map with the given id
+    ---
+    post:
+        description: Add a map feature
+        tags:
+          - maps
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Map ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: MapFeatureSchema
+        responses:
+            201:
+                description: MapFeature object
+                content:
+                    application/json:
+                        schema: MapFeatureSchema
     """
 
     # TODO: check authorization
@@ -230,6 +298,13 @@ async def list_map_surfaces(map_id):
     ---
     get:
         description: List surfaces
+        tags:
+          - maps
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Map ID
         responses:
             200:
                 description: A list of surfaces.
@@ -266,7 +341,19 @@ async def replace_surface(map_id, surface_id):
     This expects to receive a PLY file and stores it in the data directory.
     ---
     put:
-        description: Create or update a surface
+        summary: Update map surface
+        description: Create or update a surface, which should be a triangle mesh in PLY file format
+        tags:
+          - maps
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Map ID
+        requestBody:
+            required: true
+            content:
+                application/ply: {}
         responses:
             200:
                 description: A surface file information object
@@ -309,11 +396,36 @@ async def replace_surface(map_id, surface_id):
             return surface, HTTPStatus.OK
 
 
-@maps.route('/maps/<map_id>/', methods=['PUT'])
+@maps.route('/maps/<map_id>', methods=['PUT'])
 async def replace_map(map_id):
     """
     Replaces a current map
-    :return: 201 if the map was replaced
+    ---
+    put:
+        description: Replace a map
+        tags:
+          - maps
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Map ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: MapSchema
+        responses:
+            200:
+                description: Map replaced
+                content:
+                    application/json:
+                        schema: MapSchema
+            201:
+                description: Map created
+                content:
+                    application/json:
+                        schema: MapSchema
     """
 
     # TODO check authorization
@@ -358,8 +470,24 @@ async def replace_map(map_id):
         HTTPStatus.CREATED)
 
 
-@maps.route('/maps/<map_id>/delete', methods=['POST'])
+@maps.route('/maps/<map_id>', methods=['DELETE'])
 async def delete_map(map_id):
+    """
+    Delete a map
+    ---
+    delete:
+        description: Delete a map
+        tags:
+          - maps
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Map ID
+        responses:
+            200:
+                description: Map deleted
+    """
 
     # TODO check authorization
 
@@ -377,10 +505,27 @@ async def delete_map(map_id):
         # map was deleted
         return await make_response(jsonify({"message": "Map could not be deleted"}), HTTPStatus.BAD_REQUEST)
 
+
 @maps.route('/maps', methods=['POST'])
 async def create_map():
     """
     Creates a map
+    ---
+    post:
+        description: Create a map
+        tags:
+          - maps
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: MapSchema
+        responses:
+            201:
+                description: Map created
+                content:
+                    application/json:
+                        schema: MapSchema
     """
 
     # TODO check authorization
@@ -418,6 +563,8 @@ async def image_upload():
     ---
     post:
         description: Initiate a file upload
+        tags:
+          - maps
         responses:
             200:
                 description: A file upload object
@@ -446,11 +593,19 @@ async def get_map_qrcode(map_id):
     Get a QR code for the map.
     ---
     get:
-        description: List surfaces
+        description: Get a QR code for the map.
+        tags:
+          - maps
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Map ID
         responses:
             200:
-                description: A list of surfaces.
-                content: image/svg+xml
+                description: An SVG image file.
+                content:
+                    image/svg+xml: {}
     """
 
     # TODO check authorization
@@ -473,6 +628,24 @@ async def get_map_qrcode(map_id):
 
 @maps.route('/maps/<map_id>/top-down.svg', methods=['GET'])
 async def get_map_topdown(map_id):
+    """
+    Get a top-down floor plan image.
+    ---
+    get:
+        description: Get a top-down floor plan image.
+        tags:
+          - maps
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Map ID
+        responses:
+            200:
+                description: An SVG image file.
+                content:
+                    image/svg+xml: {}
+    """
     data_dir = current_app.config['VIZAR_DATA_DIR']
     map_dir = os.path.join(data_dir, 'maps', map_id)
     image_path = os.path.join(map_dir, 'top-down.svg')

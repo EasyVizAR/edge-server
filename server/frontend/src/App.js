@@ -435,9 +435,9 @@ function App() {
         return;
       }
 
-      const url = `http://${host}:${port}/headsets/${id}/delete`;
+      const url = `http://${host}:${port}/headsets/${id}`;
       const requestData = {
-        method: 'POST',
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
         }
@@ -460,9 +460,9 @@ function App() {
         return;
       }
 
-      const url = `http://${host}:${port}/maps/${id}/delete`;
+      const url = `http://${host}:${port}/maps/${id}`;
       const requestData = {
-        method: 'POST',
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
         }
