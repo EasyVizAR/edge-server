@@ -53,8 +53,9 @@ def lp_intersect(p0, p1, p_co, p_no, epsilon=1e-6):
 
 class Floorplanner:
 
-    def __init__(self, raw_ply_path, json_data_path=None):
+    def __init__(self, raw_ply_path, image_scale=1, json_data_path=None):
         self.raw_ply_path = raw_ply_path
+        self.image_scale = image_scale
         self.json_data_path = json_data_path
         self.data = {}
         self.first_load_json = json_data_path is not None
@@ -87,7 +88,7 @@ class Floorplanner:
         return lines
 
     def update_lines(self, initialize=True):
-        if initialize == True:
+        if initialize:
             self.data = {}
         elif self.first_load_json and os.path.exists(self.json_data_path):
             with open(self.json_data_path, 'r') as f:
@@ -112,6 +113,9 @@ class Floorplanner:
         return changes
 
     def write_image(self, svg_destination_path):
+        """
+        Write map image file as an SVG.
+        """
         minx = maxx = minz = maxz = 0
         for path in self.data:
             for segment in self.data[path]['lines']:
@@ -121,22 +125,21 @@ class Floorplanner:
                     minz = min(point[2], minz)
                     maxz = max(point[2], maxz)
 
-        scale = 10
+        scale = self.image_scale
+        image_width = scale * (maxx - minx)
+        image_height = scale * (maxz - minz)
 
-        dwg = svgwrite.Drawing(svg_destination_path, profile='tiny', size=(scale*(maxx-minx), scale*(maxz-minz)))
+        dwg = svgwrite.Drawing(svg_destination_path, profile='tiny',
+                viewBox="{} {} {} {}".format(scale*minx, scale*minz, image_width, image_height))
         for path in self.data:
             for line in self.data[path]["lines"]:
-                p1f = ((line[0][0] - minx) * scale, (line[0][2] - minz) * scale)
-                p2f = ((line[1][0] - minx) * scale, (line[1][2] - minz) * scale)
-                dwg.add(dwg.line(start=p1f,
-                                 end=p2f,
-                                 stroke='black'
-                                 )
-                        )
+                p1f = ((line[0][0]) * scale, (line[0][2]) * scale)
+                p2f = ((line[1][0]) * scale, (line[1][2]) * scale)
+                dwg.add(dwg.line(start=p1f, end=p2f, stroke='black', stroke_width=0.1))
         dwg.save()
 
 
 if __name__ == '__main__':
-    fp = Floorplanner("HoloLensData/seventhfloor/*.ply", json_data_path='data.json')
+    fp = Floorplanner("seventhfloor/*.ply", json_data_path='data.json')
     fp.update_lines(initialize=True)
     fp.write_image('svgwrite-example.svg')
