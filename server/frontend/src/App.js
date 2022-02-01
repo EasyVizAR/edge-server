@@ -246,6 +246,8 @@ function App() {
           return;
         }
 
+        //document.getElementById(id).value = "hello";
+
         setInEditModeMap({
             status: true,
             rowKey: id
@@ -358,9 +360,11 @@ function App() {
 
     const updateHeadsetName = (e) => {
         var newHeadsets = [];
+        var prefix = "headsetName";
+        var headset_id = e.target.id.substring(prefix.length, e.target.id.length);
 
         for (var x in headsets) {
-            if (headsets[x]['id'] == e.target.id) {
+            if (headsets[x]['id'] == headset_id) {
                 headsets[x]['name'] = e.target.value;
             }
             newHeadsets.push(headsets[x]);
@@ -370,8 +374,10 @@ function App() {
 
     const updateImage = (e) => {
         var newMaps = [];
+        var prefix = "mapImage";
+        var image_id = e.target.id.substring(prefix.length, e.target.id.length);
         for (var x in maps) {
-            if (maps[x]['id'] == e.target.id) {
+            if (maps[x]['id'] == image_id) {
                 maps[x]['image'] = e.target.value;
             }
             newMaps.push(maps[x]);
@@ -381,9 +387,11 @@ function App() {
 
     const updateMapName = (e) => {
         var newMaps = [];
+        var prefix = "mapName";
+        var map_id = e.target.id.substring(prefix.length, e.target.id.length);
 
         for (var x in maps) {
-            if (maps[x]['id'] == e.target.id) {
+            if (maps[x]['id'] == map_id) {
                 maps[x]['name'] = e.target.value;
             }
             newMaps.push(maps[x]);
@@ -577,7 +585,7 @@ function App() {
                                                   onChange={updateHeadsetName}
                                                   name={"headsetinput" + e.id}
                                                   type="text"
-                                                  id={e.id}/>
+                                                  id={'headsetName' + e.id}/>
                                             ) : (
                                                   headsetNames[index]
                                             )
@@ -653,7 +661,7 @@ function App() {
                                               placeholder="Edit Map Name"
                                               name="input"
                                               type="text"
-                                              id={e.id}
+                                              id={'mapName' + e.id}
                                               onChange={updateMapName}
                                               value={e.name}/>
                                         ) : (
@@ -668,7 +676,7 @@ function App() {
                                             placeholder="Edit Map Image"
                                             name="input"
                                             type="text"
-                                            id={e.id}
+                                            id={'mapImage' + e.id}
                                             onChange={updateImage}
                                             value={e.image}/>
                                         ) : (
