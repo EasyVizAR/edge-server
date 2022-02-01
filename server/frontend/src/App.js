@@ -33,6 +33,7 @@ function App() {
     });
     const [cursor, setCursor] = useState('auto');
     const [headsetNames, setHeadsetNames] = useState([]);
+    const [mapNames, setMapNames] = useState([]);
 
     useEffect(() => {
       get_maps();
@@ -69,9 +70,16 @@ function App() {
       fetch(`http://${host}:${port}/maps`)
       .then(response => response.json())
       .then(data => {
+        var map_names = []
         for (var key in data) {
            maps.push({'id': data[key]['id'], 'name': data[key]['name'], 'image': data[key]['image']});
+           var temp = {
+            'name': data[key]['name'],
+            'image': data[key]['image']
+           }
+           map_names.push(temp)
         }
+        setMapNames(map_names)
       });
       setSelectedMap(getDefaultMapSelection());
       setSelectedImage(getDefaultMapImage());
@@ -649,7 +657,7 @@ function App() {
                                               onChange={updateMapName}
                                               value={e.name}/>
                                         ) : (
-                                          e.name
+                                          mapNames[index]['name']
                                         )
                                       }
                                     </td>
@@ -664,7 +672,7 @@ function App() {
                                             onChange={updateImage}
                                             value={e.image}/>
                                         ) : (
-                                          e.image
+                                          mapNames[index]['image']
                                         )
                                       }
                                     </td>
