@@ -22,6 +22,12 @@ async def test_headsets_routes():
         data = await response.get_json()
         assert isinstance(data, list)
 
+        response = await client.get('/headsets/')
+        assert response.status_code == 200
+        assert response.is_json
+        data = await response.get_json()
+        assert isinstance(data, list)
+
 
 @pytest.mark.asyncio
 async def test_maps_routes():
@@ -31,6 +37,12 @@ async def test_maps_routes():
     from server.main import app
     async with app.test_client() as client:
         response = await client.get('/maps')
+        assert response.status_code == 200
+        assert response.is_json
+        data = await response.get_json()
+        assert isinstance(data, list)
+
+        response = await client.get('/maps/')
         assert response.status_code == 200
         assert response.is_json
         data = await response.get_json()

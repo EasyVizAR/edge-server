@@ -13,6 +13,14 @@ app = cors(app)
 
 app.json_encoder = GenericJsonEncoder
 
+# Use less-strict matching for trailing slashes in URLs. This is more likely to
+# match user intent. For example, the following two requests are treated the same
+# with strict_slashes disabled.
+#
+# GET /headsets
+# GET /headsets/
+app.url_map.strict_slashes = False
+
 app.config.from_pyfile('default_settings.py')
 if 'APPLICATION_CONFIG' in os.environ:
     app.config.from_envvar('APPLICATION_CONFIG')
