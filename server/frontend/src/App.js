@@ -246,11 +246,11 @@ function App() {
           return;
         }
 
-        //document.getElementById(id).value = "hello";
-
         setInEditModeMap({
             status: true,
-            rowKey: id
+            rowKey: id,
+            map_name: maps[id]['name'],
+            map_image: maps[id]['image']
         });
     }
 
@@ -262,7 +262,8 @@ function App() {
 
         setInEditModeHeadset({
             status: true,
-            rowKey: id
+            rowKey: id,
+            headset_name: headsets[id]['name']
         });
     }
 
@@ -270,13 +271,13 @@ function App() {
       console.log("Sending request to " + url);
       fetch(url, requestData)
         .then(response => {
-          console.log("response: " + response.json())
+          window.location.reload(false);
         }).then(data => {
           console.log("data: " + data);
         });
     }
 
-    const onSaveHeadsets = (e) => {
+    const onSaveHeadsets = (e, index) => {
       const headset = null;
       const id = e.target.id.substring(7,e.target.id.length);
       const url = `http://${host}:${port}/headsets/${id}`;
@@ -302,18 +303,19 @@ function App() {
           break;
         }
       }
-      onCancelHeadset();
+      onCancelHeadset(index);
       console.log("headset updated");
     }
 
-    const saveMap = (e) => {
-      const map = null;
+    const saveMap = (e, index) => {
+      console.log(e.target);
       const id = e.target.id.substring(7,e.target.id.length);
       const url = `http://${host}:${port}/maps/${id}`;
+      var i = 0;
       for (var x in maps) {
         if (maps[x]['id'] == id) {
 
-          var dup_name = checkMapName(maps[x]['name'], maps[x]['id']);
+          var dup_name = checkMapName(mapNames[i]['name'], maps[x]['id']);
           if (dup_name){
             var conf = window.confirm('There is another map with the same name. Are you sure you want to continue?');
             if (!conf){
@@ -321,7 +323,7 @@ function App() {
             }
           }
 
-          var dup_image = checkMapImage(maps[x]['image'], maps[x]['id']);
+          var dup_image = checkMapImage(mapNames[i]['image'], maps[x]['id']);
           if (dup_image){
             var conf = window.confirm('There is another map with the same image. Are you sure you want to continue?');
             if (!conf){
@@ -339,22 +341,33 @@ function App() {
           saveData(url, requestData);
           break;
         }
+        i = i + 1
       }
-      onCancelMap();
+      onCancelMap(index);
     }
 
-    const onCancelMap = () => {
+    const onCancelMap = (index) => {
+
+        maps[index]['name'] = mapNames[index]['name']
+        maps[index]['image'] = mapNames[index]['image']
+
         // reset the inEditMode state value
         setInEditModeMap({
             status: false,
-            rowKey: null
+            rowKey: null,
+            map_name: null,
+            map_image: null
         });
     }
 
-    const onCancelHeadset = (element, id, rowIndex) => {
+    const onCancelHeadset = (element, index) => {
+
+        headsets[index]['name'] = headsetNames[index];
+
         setInEditModeHeadset({
             status: false,
-            rowKey: null
+            rowKey: null,
+            headset_name: null
         });
     }
 
@@ -366,6 +379,7 @@ function App() {
         for (var x in headsets) {
             if (headsets[x]['id'] == headset_id) {
                 headsets[x]['name'] = e.target.value;
+                inEditModeHeadset.headset_name = e.target.value;
             }
             newHeadsets.push(headsets[x]);
         }
@@ -379,6 +393,7 @@ function App() {
         for (var x in maps) {
             if (maps[x]['id'] == image_id) {
                 maps[x]['image'] = e.target.value;
+                inEditModeMap.map_image = e.target.value;
             }
             newMaps.push(maps[x]);
         }
@@ -393,6 +408,7 @@ function App() {
         for (var x in maps) {
             if (maps[x]['id'] == map_id) {
                 maps[x]['name'] = e.target.value;
+                inEditModeMap.map_name = e.target.value;
             }
             newMaps.push(maps[x]);
         }
@@ -401,7 +417,7 @@ function App() {
 
     function checkMapImage(image, id){
       for (var x in maps) {
-        if (maps[x]['image'] == image && maps[x]['id'] != id) {
+        if (maps[x]['image'] === image && maps[x]['id'] != id) {
           return true;
         }
       }
@@ -410,7 +426,7 @@ function App() {
 
     function checkMapName(name, id){
       for (var x in maps) {
-        if (maps[x]['name'] == name && maps[x]['id'] != id) {
+        if (maps[x]['name'] === name && maps[x]['id'] != id) {
           return true;
         }
       }
@@ -580,7 +596,7 @@ function App() {
                                         {
                                             inEditModeHeadset.status && inEditModeHeadset.rowKey === index ? (
                                                 <input
-                                                  value={e.name}
+                                                  value={inEditModeHeadset.headset_name}
                                                   placeholder="Edit Headset Name"
                                                   onChange={updateHeadsetName}
                                                   name={"headsetinput" + e.id}
@@ -606,7 +622,7 @@ function App() {
                                                     <button
                                                         className={"btn-success"}
                                                         id={'savebtn' + e.id}
-                                                        onClick={onSaveHeadsets}
+                                                        onClick={(e) => onSaveHeadsets(e, index)}
                                                         title='Save'>
                                                         Save
                                                     </button>
@@ -614,7 +630,7 @@ function App() {
                                                     <button
                                                         className={"btn-secondary"}
                                                         style={{marginLeft: 8}}
-                                                        onClick={(event) => onCancelHeadset(event, e.id, index)}
+                                                        onClick={(event) => onCancelHeadset(event, index)}
                                                         title='Cancel'>
                                                         Cancel
                                                     </button>
@@ -663,7 +679,7 @@ function App() {
                                               type="text"
                                               id={'mapName' + e.id}
                                               onChange={updateMapName}
-                                              value={e.name}/>
+                                              value={inEditModeMap.map_name}/>
                                         ) : (
                                           mapNames[index]['name']
                                         )
@@ -678,7 +694,7 @@ function App() {
                                             type="text"
                                             id={'mapImage' + e.id}
                                             onChange={updateImage}
-                                            value={e.image}/>
+                                            value={inEditModeMap.map_image}/>
                                         ) : (
                                           mapNames[index]['image']
                                         )
@@ -691,7 +707,7 @@ function App() {
                                                     <button
                                                         className={"btn-success"}
                                                         id={'mapsbtn' + e.id}
-                                                        onClick={saveMap}
+                                                        onClick={(e) => saveMap(e, index)}
                                                         title='Save'>
                                                         Save
                                                     </button>
@@ -699,7 +715,7 @@ function App() {
                                                     <button
                                                         className={"btn-secondary"}
                                                         style={{marginLeft: 8}}
-                                                        onClick={() => onCancelMap()}
+                                                        onClick={() => onCancelMap(index)}
                                                         title='Cancel'>
                                                         Cancel
                                                     </button>
