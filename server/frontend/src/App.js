@@ -66,6 +66,7 @@ function App() {
         });
     }, []);
 
+    // gets list of maps from server
     function get_maps(){
       fetch(`http://${host}:${port}/maps`)
       .then(response => response.json())
@@ -228,18 +229,21 @@ function App() {
         setFeatures(f);
     }
 
+    // shows the new feature popup
     const showFeature = (e) => {
         if (showNewMap == false) {
             displayModal(popUpClass ? false : true)
         }
     }
 
+    // shows the new map popup
     const showMapPopup = (e) => {
         if (popUpClass == false) {
             showMap(showNewMap ? false : true)
         }
     }
 
+    // turns on map editing
     const onEditMap = (e, id) => {
         if (inEditModeMap.status == true && inEditModeMap.rowKey != null){
           alert("Please save or cancel edit on other map before editing another map");
@@ -254,6 +258,7 @@ function App() {
         });
     }
 
+    // turns on headset editing
     const onEditHeadset = (e, id) => {
         if (inEditModeHeadset.status == true && inEditModeHeadset.rowKey != null){
           alert("Please save or cancel edit on other headset before editing another headset");
@@ -267,6 +272,7 @@ function App() {
         });
     }
 
+    // sends request to url, usually used for saving headset and map data. Reloads window on response
     const saveData = (url, requestData) => {
       console.log("Sending request to " + url);
       fetch(url, requestData)
@@ -277,6 +283,7 @@ function App() {
         });
     }
 
+    // saves the headset data
     const onSaveHeadsets = (e, index) => {
       const headset = null;
       const id = e.target.id.substring(7,e.target.id.length);
@@ -307,6 +314,7 @@ function App() {
       console.log("headset updated");
     }
 
+    // saves the map data
     const saveMap = (e, index) => {
       console.log(e.target);
       const id = e.target.id.substring(7,e.target.id.length);
@@ -346,6 +354,7 @@ function App() {
       onCancelMap(index);
     }
 
+    // cancels map editing
     const onCancelMap = (index) => {
 
         maps[index]['name'] = mapNames[index]['name']
@@ -360,6 +369,7 @@ function App() {
         });
     }
 
+    // turns off headset editing
     const onCancelHeadset = (element, index) => {
 
         headsets[index]['name'] = headsetNames[index];
@@ -371,6 +381,7 @@ function App() {
         });
     }
 
+    // onchange handler for updating headset name
     const updateHeadsetName = (e) => {
         var newHeadsets = [];
         var prefix = "headsetName";
@@ -386,6 +397,7 @@ function App() {
         setHeadsets(newHeadsets);
     }
 
+    // onchange handler for updating map image
     const updateImage = (e) => {
         var newMaps = [];
         var prefix = "mapImage";
@@ -400,6 +412,7 @@ function App() {
         setMaps(newMaps);
     }
 
+    // on change handler for updating map name
     const updateMapName = (e) => {
         var newMaps = [];
         var prefix = "mapName";
@@ -415,6 +428,7 @@ function App() {
         setMaps(newMaps);
     }
 
+    // checks if an image associated with a map already exists
     function checkMapImage(image, id){
       for (var x in maps) {
         if (maps[x]['image'] === image && maps[x]['id'] != id) {
@@ -424,6 +438,7 @@ function App() {
       return false;
     }
 
+    // checks if a map name already exists
     function checkMapName(name, id){
       for (var x in maps) {
         if (maps[x]['name'] === name && maps[x]['id'] != id) {
@@ -433,6 +448,7 @@ function App() {
       return false;
     }
 
+    // check if a headset name already exists
     function checkHeadsetName(name, id){
       for (var x in headsets) {
         if (headsets[x]['name'] == name && headsets[x]['id'] != id) {
@@ -453,6 +469,7 @@ function App() {
         setCrossHairIcon(v);
     }
 
+    // deletes headset with the id and name
     function deleteHeadset(id, name){
       const del = window.confirm("Are you sure you want to delete headset '" + name + "'?");
       if (!del){
@@ -503,6 +520,7 @@ function App() {
       });
     }
 
+    // code that creates the trash icons
     function TrashIcon(props) {
       const item = props.item;
       const itemId = props.id;
