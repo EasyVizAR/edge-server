@@ -28,6 +28,13 @@ async def test_headsets_routes():
         data = await response.get_json()
         assert isinstance(data, list)
 
+        position = dict(x=0, y=0, z=0)
+        response = await client.post("/headsets", json=dict(name="test", position=position))
+        assert response.status_code == 200
+        assert response.is_json
+        data = await response.get_json()
+        assert isinstance(data, dict)
+
 
 @pytest.mark.asyncio
 async def test_maps_routes():

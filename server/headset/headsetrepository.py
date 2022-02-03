@@ -160,10 +160,10 @@ class Repository:
         filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'],
                                 str(headset.id), "history.csv")
         headset_history = headset.position_history
-        new_line = get_csv_line([headset_history.get('position').get('x'), headset_history.get('position').get('y'),
-                                 headset_history.get('position').get('z'), headset_history.get('orientation').get('x'),
-                                 headset_history.get('orientation').get('y'),
-                                 headset_history.get('orientation').get('z'), headset_history.get('time_stamp')])
+        new_line = get_csv_line([headset_history[-1].get('position').get('x'), headset_history[-1].get('position').get('y'),
+                                 headset_history[-1].get('position').get('z'), headset_history[-1].get('orientation').get('x'),
+                                 headset_history[-1].get('orientation').get('y'),
+                                 headset_history[-1].get('orientation').get('z'), headset_history[-1].get('time_stamp')])
         append_to_file(new_line, filepath)
 
         self.headsets[headset.id] = headset
