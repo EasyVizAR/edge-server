@@ -4,6 +4,7 @@ import json
 import math
 import os
 
+import networkx as nx
 import numpy as np
 import svgwrite
 
@@ -73,14 +74,20 @@ class Floorplanner:
         points = np.asarray(mesh.vertices)
         triangles = np.asarray(mesh.triangles)
 
-        lines = []
+        paths = []
+
+        # We will construct a graph, where each node represents an intersection
+        # point along the edge of a triangle. Each triangle should have two
+        # intersection points, which will be connected by an edge in the graph,
+        # and later, a line segment in the map.
+        graph = nx.Graph()
 
         pdotplane = calculate_dot_plane(points, headset_position, vector_normal)
 
         # iterate through list of triangle arrays
         # triangle array = [point 1, point 2, point 3]
         for i in range(len(triangles)):
-            intersecting_points = []
+            nodes = []
 
             for j in range(3):
                 v0 = pdotplane[triangles[i, j]]
@@ -89,19 +96,57 @@ class Floorplanner:
                 # The line segment intersects with the cutting plane if this
                 # product is negative, meaning v0 and v1 have opposite signs.
                 if v0 * v1 <= 0:
-                    p0 = points[triangles[i, j]]
-                    p1 = points[triangles[i, (j + 1) % 3]]
+                    # These are integer point indices that identify the
+                    # edge of the triangle.
+                    p0 = triangles[i, j]
+                    p1 = triangles[i, (j + 1) % 3]
 
-                    pi = lp_intersect(p0, p1, headset_position, vector_normal)
-                    if json_serialize:
-                        intersecting_points.append(pi.tolist())
+                    node = (p0, p1)
+                    if p0 < p1:
+                        node = (p0, p1)
                     else:
-                        intersecting_points.append(pi)
+                        node = (p1, p0)
 
-            if len(intersecting_points) == 2:
-                lines.append([intersecting_points[0], intersecting_points[1]])
+                    nodes.append(node)
 
-        return lines
+            if len(nodes) == 2:
+                graph.add_node(nodes[0])
+                graph.add_node(nodes[1])
+                graph.add_edge(nodes[0], nodes[1])
+
+        # Each connected component in the graph corresponds to a list of points
+        # that can become a polyline in the SVG output.
+        for component in nx.connected_components(graph):
+            output_path = []
+
+            subgraph = graph.subgraph(component).copy()
+
+            path_length = 0
+            longest_path = 0
+
+            # Find all shortest paths between pairs of points in the subgraph.
+            # Then find the longest shortest path, which we will use for the
+            # output.
+            all_shortest_paths = nx.shortest_path(subgraph)
+            for s in all_shortest_paths.keys():
+                for t in all_shortest_paths[s].keys():
+                    if len(all_shortest_paths[s][t]) > path_length:
+                        path_length = len(all_shortest_paths[s][t])
+                        longest_path = all_shortest_paths[s][t]
+
+            # Recall that each node in the graph corresponds to an
+            # edge of a triangle. Here is where we look back at the
+            # mesh and calculate the point of intersection with the
+            # cutting plane.
+            for node in longest_path:
+                p0 = points[node[0]]
+                p1 = points[node[1]]
+                pi = lp_intersect(p0, p1, headset_position, vector_normal)
+                output_path.append(pi.tolist())
+
+            paths.append(output_path)
+
+        return paths
 
     def update_lines(self, initialize=True):
         if initialize:
@@ -118,7 +163,7 @@ class Floorplanner:
             if initialize or update_lines_at_path:
                 mesh = read_ply_file(path)
                 zplane = self.calculate_intersections(mesh, json_serialize=True)
-                self.data[path] = {"last_modified": time_of_prev_mod, "lines": zplane}
+                self.data[path] = {"last_modified": time_of_prev_mod, "polylines": zplane}
                 changes += 1
 
         if (initialize or changes > 0) and self.json_data_path is not None:
@@ -134,8 +179,15 @@ class Floorplanner:
         """
         minx = maxx = minz = maxz = 0
         for path in self.data:
-            for segment in self.data[path]['lines']:
+            for segment in self.data[path].get('lines', []):
                 for point in segment:
+                    minx = min(point[0], minx)
+                    maxx = max(point[0], maxx)
+                    minz = min(point[2], minz)
+                    maxz = max(point[2], maxz)
+
+            for polyline in self.data[path].get('polylines', []):
+                for point in polyline:
                     minx = min(point[0], minx)
                     maxx = max(point[0], maxx)
                     minz = min(point[2], minz)
@@ -148,10 +200,16 @@ class Floorplanner:
         dwg = svgwrite.Drawing(svg_destination_path, profile='tiny',
                 viewBox="{} {} {} {}".format(scale*minx, scale*minz, image_width, image_height))
         for path in self.data:
-            for line in self.data[path]["lines"]:
+            for line in self.data[path].get("lines", []):
                 p1f = ((line[0][0]) * scale, (line[0][2]) * scale)
                 p2f = ((line[1][0]) * scale, (line[1][2]) * scale)
                 dwg.add(dwg.line(start=p1f, end=p2f, stroke='black', stroke_width=0.1))
+
+            for polyline in self.data[path].get("polylines", []):
+                dwg.add(dwg.polyline(
+                    points=[(x[0], x[2]) for x in polyline],
+                    stroke='black', stroke_width=0.1, fill="none"))
+
         dwg.save()
 
 
