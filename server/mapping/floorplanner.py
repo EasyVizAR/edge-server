@@ -10,13 +10,22 @@ import svgwrite
 from .plyutil import read_ply_file
 
 
-def splitpoints(p0, p1, pcord, pnorm):
-    v0 = np.dot(p0, pnorm) - np.dot(pcord, pnorm)
-    v1 = np.dot(p1, pnorm) - np.dot(pcord, pnorm)
+def calculate_dot_plane(points, headset_position, plane_normal):
+    """
+    Calculate dot product of each triangle point with the cutting plane.
 
-    # If v0 and v1 are different signs, where one is positive and the other is negative
-    # , then they are on opposite sides of the plane.
-    return True if v0 * v1 <= 0 else False
+    These values will be used to test if edges cross the cutting plane.
+    However, it is faster to compute this dot product once for each point in
+    the mesh, since the dot product will need to be used for each edge out of
+    the point (at least twice).
+    """
+    plane = np.dot(headset_position, plane_normal)
+
+    pdotplane = []
+    for p in points:
+        pdotplane.append(np.dot(p, plane_normal) - plane)
+
+    return pdotplane
 
 
 def lp_intersect(p0, p1, p_co, p_no, epsilon=1e-6):
@@ -66,16 +75,23 @@ class Floorplanner:
 
         lines = []
 
+        pdotplane = calculate_dot_plane(points, headset_position, vector_normal)
+
         # iterate through list of triangle arrays
         # triangle array = [point 1, point 2, point 3]
         for i in range(len(triangles)):
             intersecting_points = []
 
             for j in range(3):
-                p0 = points[triangles[i, j]]
-                p1 = points[triangles[i, (j + 1) % 3]]
-                plane_splits_edge = splitpoints(p0, p1, headset_position, vector_normal)
-                if plane_splits_edge:
+                v0 = pdotplane[triangles[i, j]]
+                v1 = pdotplane[triangles[i, (j + 1) % 3]]
+
+                # The line segment intersects with the cutting plane if this
+                # product is negative, meaning v0 and v1 have opposite signs.
+                if v0 * v1 <= 0:
+                    p0 = points[triangles[i, j]]
+                    p1 = points[triangles[i, (j + 1) % 3]]
+
                     pi = lp_intersect(p0, p1, headset_position, vector_normal)
                     if json_serialize:
                         intersecting_points.append(pi.tolist())
