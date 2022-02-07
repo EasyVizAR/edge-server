@@ -19,7 +19,7 @@ class MappingThread(threading.Thread):
     def run(self):
         ply_files = os.path.join(self.map_dir, 'surfaces', '*.ply')
         json_file = os.path.join(self.map_dir, 'top-down.json')
-        floorplanner = Floorplanner(ply_files, json_file)
+        floorplanner = Floorplanner(ply_files, json_data_path=json_file)
 
         image_path = os.path.join(self.map_dir, 'top-down.svg')
 

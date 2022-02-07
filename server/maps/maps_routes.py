@@ -660,7 +660,7 @@ async def get_map_topdown(map_id):
     def create_map():
         ply_files = os.path.join(map_dir, 'surfaces', '*.ply')
         json_file = os.path.join(map_dir, 'top-down.json')
-        floorplanner = Floorplanner(ply_files, json_file)
+        floorplanner = Floorplanner(ply_files, json_data_path=json_file)
         floorplanner.update_lines(initialize=False)
         floorplanner.write_image(image_path)
 
