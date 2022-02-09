@@ -20,6 +20,11 @@ async def get_all():
         description: List headsets
         tags:
           - headsets
+        parameters:
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
         responses:
             200:
                 description: A list of headsets.
@@ -30,7 +35,15 @@ async def get_all():
                             items: HeadsetSchema
     """
     headsets = get_headset_repository().get_all_headsets()
-    return jsonify(headsets), HTTPStatus.OK
+
+    # Wrap the maps list if the caller requested an envelope.
+    query = request.args
+    if "envelope" in query:
+        result = {query.get("envelope"): headsets}
+    else:
+        result = headsets
+
+    return jsonify(result), HTTPStatus.OK
 
 
 @blueprint.route('/headsets/<id>', methods=['GET'])
@@ -160,6 +173,10 @@ async def get_updates(headsetId):
             in: path
             required: true
             description: Headset ID
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
         responses:
             200:
                 description: A list of headset updates.
@@ -174,7 +191,15 @@ async def get_updates(headsetId):
         return {"message": "The requested headset does not exist."}, HTTPStatus.NOT_FOUND
 
     updates = headset.get_updates()
-    return jsonify(updates)
+
+    # Wrap the maps list if the caller requested an envelope.
+    query = request.args
+    if "envelope" in query:
+        result = {query.get("envelope"): updates}
+    else:
+        result = updates
+
+    return jsonify(result)
 
 
 @blueprint.route('/headsets/<headsetId>/updates', methods=['POST'])

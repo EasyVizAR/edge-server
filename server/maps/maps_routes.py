@@ -134,6 +134,11 @@ async def get_all_maps():
         description: List maps
         tags:
           - maps
+        parameters:
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
         responses:
             200:
                 description: A list of Map objects.
@@ -146,7 +151,15 @@ async def get_all_maps():
 
     # TODO: check authorization
     maps = get_map_repository().get_all_maps()
-    return jsonify(maps), HTTPStatus.OK
+
+    # Wrap the maps list if the caller requested an envelope.
+    query = request.args
+    if "envelope" in query:
+        result = {query.get("envelope"): maps}
+    else:
+        result = maps
+
+    return jsonify(result), HTTPStatus.OK
 
 
 @maps.route('/maps/<map_id>', methods=['GET'])
@@ -201,6 +214,10 @@ async def list_map_features(map_id):
             in: path
             required: true
             description: Map ID
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
         responses:
             200:
                 description: A list of MapFeature objects
@@ -221,8 +238,15 @@ async def list_map_features(map_id):
             jsonify({"message": "The requested map does not exist",
                      "severity": "Warning"}),
             HTTPStatus.NOT_FOUND)
+
+    # Wrap the maps list if the caller requested an envelope.
+    query = request.args
+    if "envelope" in query:
+        result = {query.get("envelope"): maps}
     else:
-        return jsonify(features), HTTPStatus.OK
+        result = maps
+
+    return jsonify(result), HTTPStatus.OK
 
 
 @maps.route('/maps/<map_id>/features', methods=['POST'])
