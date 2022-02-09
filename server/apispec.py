@@ -107,6 +107,7 @@ spec.tag(map_tag)
 
 async def add_routes_to_spec():
     async with app.test_request_context("/"):
+        spec.path(view=headsetroutes.get_all)
         spec.path(view=headsetroutes.register)
         spec.path(view=headsetroutes.authenticate)
         spec.path(view=headsetroutes.get_updates)
