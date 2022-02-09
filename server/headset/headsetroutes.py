@@ -1,5 +1,7 @@
+import asyncio
 import json
 import os
+
 from http import HTTPStatus
 
 from quart import request, jsonify, make_response, Blueprint, current_app, send_file
@@ -165,7 +167,10 @@ async def get_updates(headsetId):
     Get headset updates
     ---
     get:
-        description: Get headset updates
+        description: >-
+            Get headset updates. The optional "after" and "wait" query
+            parameters make it possible for the caller to wait for the next
+            update or time out with no results.
         tags:
           - headsets
         parameters:
@@ -173,10 +178,21 @@ async def get_updates(headsetId):
             in: path
             required: true
             description: Headset ID
+          - name: after
+            in: query
+            required: false
+            description: Limit results to updates after the given timestamp.
           - name: envelope
             in: query
             required: false
             description: If set, the returned list will be wrapped in an envelope with this name.
+          - name: wait
+            in: query
+            required: false
+            description: >-
+                Maximum time (seconds) to wait for the next update. If set, and
+                if there are no results immediately available, the server will
+                wait for the next update or return no results after a timeout.
         responses:
             200:
                 description: A list of headset updates.
@@ -185,12 +201,27 @@ async def get_updates(headsetId):
                         schema:
                             type: array
                             items: HeadsetUpdateSchema
+            204:
+                description: A waiting request timed out without any results.
     """
     headset = get_headset_repository().get_headset(headsetId)
     if headset is None:
         return {"message": "The requested headset does not exist."}, HTTPStatus.NOT_FOUND
 
-    updates = headset.get_updates()
+    after = float(request.args.get("after", 0))
+
+    updates = headset.get_updates(after=after)
+
+    # Wait for new updates if the query returned no results and the caller
+    # specified a wait timeout. If there are still no results, we return a
+    # No-Content 204 code.
+    wait = float(request.args.get("wait", 0))
+    if len(updates) == 0 and wait > 0:
+        try:
+            future = headset.wait_for_headset_update()
+            updates.append(await asyncio.wait_for(future, timeout=wait))
+        except asyncio.TimeoutError:
+            return jsonify([]), HTTPStatus.NO_CONTENT
 
     # Wrap the maps list if the caller requested an envelope.
     query = request.args

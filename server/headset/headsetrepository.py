@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import json
 import os
@@ -56,11 +57,14 @@ class HeadSet:
         else:
             self.position_history = history
 
+        # List of futures to resolve on the next headset update.
+        self.headset_update_watchers = []
+
     def get_dir(self):
         return os.path.join(current_app.config['VIZAR_DATA_DIR'],
                             current_app.config['VIZAR_HEADSET_DIR'], self.id)
 
-    def get_updates(self):
+    def get_updates(self, after=0):
         headset_dir = self.get_dir()
         updates_csv = os.path.join(headset_dir, "updates.csv")
 
@@ -81,23 +85,35 @@ class HeadSet:
                 }
 
                 if len(line) == 7:
-                    update['time'] = line[6]
+                    update['time'] = float(line[6])
                 elif len(line) == 10:
                     update['orientation'] = {
                         "x": line[6],
                         "y": line[7],
                         "z": line[8]
                     }
-                    update['time'] = line[9]
+                    update['time'] = float(line[9])
                 else:
                     raise Exception("Unexpected line size ({}) in {}".format(len(line), updates_csv))
 
-                updates.append(update)
+                if update['time'] >= after:
+                    updates.append(update)
 
         return updates
 
     def get_history(self):
         return self.position_history
+
+    def notify_headset_update_watchers(self, update):
+        for watcher in self.headset_update_watchers:
+            if not watcher.cancelled():
+                watcher.set_result(update)
+        self.headset_update_watchers.clear()
+
+    def wait_for_headset_update(self):
+        future = asyncio.get_event_loop().create_future()
+        self.headset_update_watchers.append(future)
+        return future
 
 
 class Repository:
@@ -255,6 +271,8 @@ class Repository:
             "orientation": orientation,
             "mapID": None
         }
+
+        headset.notify_headset_update_watchers(update)
 
         return update
 
