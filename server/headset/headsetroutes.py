@@ -167,10 +167,13 @@ async def get_updates(headsetId):
     Get headset updates
     ---
     get:
+        summary: List headset updates.
         description: >-
-            Get headset updates. The optional "after" and "wait" query
-            parameters make it possible for the caller to wait for the next
-            update or time out with no results.
+            List headset updates.
+
+            The optional "after" and "wait" query parameters make it possible
+            for the caller to wait for the next update by passing the last
+            timestamp the caller has received.
         tags:
           - headsets
         parameters:
@@ -190,9 +193,12 @@ async def get_updates(headsetId):
             in: query
             required: false
             description: >-
-                Maximum time (seconds) to wait for the next update. If set, and
-                if there are no results immediately available, the server will
-                wait for the next update or return no results after a timeout.
+                Request that the server wait a time limit (in seconds) for an
+                update if none are immediately available. The server will
+                return one or more results as soon as they are available, or if
+                the time limit has passed, the server will return a No Content
+                204 result indicating timeout. A time limit of 30-60 seconds is
+                recommended.
         responses:
             200:
                 description: A list of headset updates.
