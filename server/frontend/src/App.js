@@ -2,7 +2,6 @@ import './App.css';
 import {Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button} from 'react-bootstrap';
 import NewMap from './NewMap.js';
 import NewFeature from './NewFeature.js'
-//import Save_Delete_Buttons from './Save_Delete_Buttons.js'
 import 'reactjs-popup/dist/index.css';
 import React, {useState, useEffect} from 'react';
 
@@ -542,6 +541,20 @@ function App() {
       }
     }
 
+    function createNewIncident(){
+      const requestData = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      };
+      const url = `http://${host}:${port}/incidents/create`;
+      fetch(url.toString(), requestData).then(response => {
+        console.log("Incident created");
+        alert('Starting new incident');
+      });
+    }
+
     return (
         <div className="App">
             <Navbar bg="dark" variant="dark">
@@ -569,6 +582,12 @@ function App() {
                     <div className="add-feature-button header-button">
                         <Button variant="secondary" title="Add Feature" value="Add Feature"
                                 onClick={(e) => showFeature(e)}>Add Feature</Button>
+                    </div>
+
+                    <div className="header-button new-incident-btn" style={{position: "absolute", right: "0", paddingRight: "20px"}}>
+                      <Button variant="primary" onClick={createNewIncident}>
+                            New Incident
+                      </Button>
                     </div>
                 </div>
                 <hr/>
