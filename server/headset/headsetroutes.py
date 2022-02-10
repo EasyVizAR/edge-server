@@ -1,5 +1,7 @@
+import asyncio
 import json
 import os
+
 from http import HTTPStatus
 
 from quart import request, jsonify, make_response, Blueprint, current_app, send_file
@@ -20,6 +22,11 @@ async def get_all():
         description: List headsets
         tags:
           - headsets
+        parameters:
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
         responses:
             200:
                 description: A list of headsets.
@@ -30,7 +37,15 @@ async def get_all():
                             items: HeadsetSchema
     """
     headsets = get_headset_repository().get_all_headsets()
-    return jsonify(headsets), HTTPStatus.OK
+
+    # Wrap the maps list if the caller requested an envelope.
+    query = request.args
+    if "envelope" in query:
+        result = {query.get("envelope"): headsets}
+    else:
+        result = headsets
+
+    return jsonify(result), HTTPStatus.OK
 
 
 @blueprint.route('/headsets/<id>', methods=['GET'])
@@ -152,7 +167,13 @@ async def get_updates(headsetId):
     Get headset updates
     ---
     get:
-        description: Get headset updates
+        summary: List headset updates.
+        description: >-
+            List headset updates.
+
+            The optional "after" and "wait" query parameters make it possible
+            for the caller to wait for the next update by passing the last
+            timestamp the caller has received.
         tags:
           - headsets
         parameters:
@@ -160,6 +181,24 @@ async def get_updates(headsetId):
             in: path
             required: true
             description: Headset ID
+          - name: after
+            in: query
+            required: false
+            description: Limit results to updates after the given timestamp.
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
+          - name: wait
+            in: query
+            required: false
+            description: >-
+                Request that the server wait a time limit (in seconds) for an
+                update if none are immediately available. The server will
+                return one or more results as soon as they are available, or if
+                the time limit has passed, the server will return a No Content
+                204 result indicating timeout. A time limit of 30-60 seconds is
+                recommended.
         responses:
             200:
                 description: A list of headset updates.
@@ -168,13 +207,36 @@ async def get_updates(headsetId):
                         schema:
                             type: array
                             items: HeadsetUpdateSchema
+            204:
+                description: A waiting request timed out without any results.
     """
     headset = get_headset_repository().get_headset(headsetId)
     if headset is None:
         return {"message": "The requested headset does not exist."}, HTTPStatus.NOT_FOUND
 
-    updates = headset.get_updates()
-    return jsonify(updates)
+    after = float(request.args.get("after", 0))
+
+    updates = headset.get_updates(after=after)
+
+    # Wait for new updates if the query returned no results and the caller
+    # specified a wait timeout. If there are still no results, we return a
+    # No-Content 204 code.
+    wait = float(request.args.get("wait", 0))
+    if len(updates) == 0 and wait > 0:
+        try:
+            future = headset.wait_for_headset_update()
+            updates.append(await asyncio.wait_for(future, timeout=wait))
+        except asyncio.TimeoutError:
+            return jsonify([]), HTTPStatus.NO_CONTENT
+
+    # Wrap the maps list if the caller requested an envelope.
+    query = request.args
+    if "envelope" in query:
+        result = {query.get("envelope"): updates}
+    else:
+        result = updates
+
+    return jsonify(result)
 
 
 @blueprint.route('/headsets/<headsetId>/updates', methods=['POST'])
