@@ -66,3 +66,29 @@ async def test_maps_routes():
         assert response.is_json
         data = await response.get_json()
         assert isinstance(data['items'], list)
+
+
+@pytest.mark.asyncio
+async def test_work_item_routes():
+    """
+    Test some work_item routes that should always work.
+    """
+    from server.main import app
+    async with app.test_client() as client:
+        response = await client.get('/work-items')
+        assert response.status_code == 200
+        assert response.is_json
+        data = await response.get_json()
+        assert isinstance(data, list)
+
+        response = await client.get('/work-items/')
+        assert response.status_code == 200
+        assert response.is_json
+        data = await response.get_json()
+        assert isinstance(data, list)
+
+        response = await client.get('/work-items?envelope=items')
+        assert response.status_code == 200
+        assert response.is_json
+        data = await response.get_json()
+        assert isinstance(data['items'], list)
