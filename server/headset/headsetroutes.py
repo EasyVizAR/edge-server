@@ -80,7 +80,7 @@ async def get(id):
         return jsonify(headset), HTTPStatus.OK
 
 
-@blueprint.route('/headsets/<headset_id>/history', methods=['GET'])
+@blueprint.route('/headsets/<headset_id>/poses', methods=['GET'])
 async def get_headset_history(headset_id):
     headset = get_headset_repository().get_headset(headset_id)
 
