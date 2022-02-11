@@ -7,12 +7,13 @@ import numpy as np
 from quart import current_app
 
 from server.utils.utils import GenericJsonEncoder, write_to_file, get_pixels, get_vector
+from server.incidents.incident_handler import init_incidents_handler
 
 map_repository = None
 
 
 class Map:
-    def __init__(self, name, image='', intrinsic=None, extrinsic=None, id=None):
+    def __init__(self, name, image='', intrinsic=None, extrinsic=None, id=None, incident=-1):
         if id is None:
             self.id = str(uuid.uuid4())
         else:
@@ -21,6 +22,7 @@ class Map:
         self.image = image
         self.extrinsic = extrinsic
         self.intrinsic = intrinsic
+        self.incident = incident
 
     def __str__(self):
         return "id=" + self.id + ", name=" + self.name + ", image=" + str(self.image) + ", extrinsic=" + str(
@@ -70,8 +72,15 @@ class Repository:
     features = {}
 
     def __init__(self):
-        map_dir = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'maps/')
+
+        # init incidents handler if it is not already
+        self.incident_handler = init_incidents_handler(app=current_app)
+
+        map_dir = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
+                               str(self.incident_handler.current_incident), 'maps')
+
         os.makedirs(map_dir, exist_ok=True)
+
         for folder in os.scandir(map_dir):
             if folder.is_dir():
                 map = json.load(open(f"{folder.path}/map.json", 'r'))
@@ -84,7 +93,8 @@ class Repository:
                     extrinsic = map['extrinsic']
                 if 'image' in map:
                     image = map['image']
-                self.maps[map['id']] = Map(map['name'], image, intrinsic, extrinsic, map['id'])
+                self.maps[map['id']] = Map(map['name'], image, intrinsic, extrinsic, map['id'],
+                                           incident=self.incident_handler.current_incident)
 
                 feature_filename = f"{folder.path}/features.json"
                 try:
@@ -120,7 +130,7 @@ class Repository:
         if intent == 'maps' and intrinsic is not None and extrinsic is not None:
             self.maps[intentId].intrinsic = intrinsic
             self.maps[intentId].extrinsic = extrinsic
-            filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'maps/',
+            filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents', str(self.incident_handler.current_incident), 'maps/',
                                     str(intentId), "map.json")
             write_to_file(json.dumps(self.maps[intentId], cls=GenericJsonEncoder), filepath)
 
@@ -130,8 +140,8 @@ class Repository:
                     pixPos = get_pixels(extrinsic, intrinsic, vector)
                     feature.pixelPosition['x'] = pixPos[0]
                     feature.pixelPosition['y'] = pixPos[1]
-                filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'maps/',
-                                        str(intentId), "features.json")
+                filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents', str(self.incident_handler.current_incident),
+                                        'maps/', str(intentId), "features.json")
                 write_to_file(json.dumps(self.features[intentId], cls=GenericJsonEncoder), filepath)
 
         return {'id': intentId, 'url': url, 'intent': intent, 'data': data, 'type': type, 'intrinsic': intrinsic,
@@ -140,6 +150,7 @@ class Repository:
     def add_feature(self, id, name, mapId, style, position=None, pixelPosition=None):
         if mapId not in self.maps.keys():
             return None
+
         feature = Feature(name, mapId, style, id=id)
         if self.maps[mapId].intrinsic is not None and self.maps[mapId].extrinsic is not None:
             if position is not None:
@@ -159,7 +170,7 @@ class Repository:
             map_features = self.features[mapId]
 
         map_features.append(feature)
-        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'maps/',
+        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents', str(self.incident_handler.current_incident), 'maps/',
                                 str(feature.mapId), "features.json")
         write_to_file(json.dumps(map_features, cls=GenericJsonEncoder), filepath)
         self.features[mapId] = map_features
@@ -171,11 +182,11 @@ class Repository:
         return self.features[mapId]
 
     def add_map(self, id, name, image, intrinsic=None, extrinsic=None):
-        map = Map(name, image, intrinsic, extrinsic, id)
-        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'maps/',
+        map = Map(name, image, intrinsic, extrinsic, id, incident=self.incident_handler.current_incident)
+        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents', str(self.incident_handler.current_incident), 'maps/',
                                 str(map.id), "map.json")
         write_to_file(json.dumps(map, cls=GenericJsonEncoder), filepath)
-        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'maps/',
+        filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents', str(self.incident_handler.current_incident), 'maps/',
                                 str(map.id), "features.json")
         write_to_file('[]', filepath)
         self.maps[map.id] = map
@@ -184,14 +195,16 @@ class Repository:
     def replace_map(self, id, name, image, intrinsic=None, extrinsic=None):
         if id not in self.maps.keys():
             return None
-        id = self.add_map(id, name, image, intrinsic, extrinsic)
+
+        id = self.add_map(id, name, image, intrinsic, extrinsic, incident=self.incident_handler.current_incident)
         return id
 
     def remove_map(self, map_id):
         if map_id not in self.maps.keys():
             return False
 
-        dir_path = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'maps/', str(map_id))
+        dir_path = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
+                                str(self.incident_handler.current_incident), 'maps/', str(map_id))
         try:
             shutil.rmtree(dir_path)
             self.maps.pop(map_id)

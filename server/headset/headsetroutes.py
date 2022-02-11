@@ -8,6 +8,7 @@ from quart import request, jsonify, make_response, Blueprint, current_app, send_
 from werkzeug.utils import secure_filename
 
 from server.headset.headsetrepository import get_headset_repository
+from server.incidents.incident_handler import init_incidents_handler
 from server.utils.utils import GenericJsonEncoder, save_image
 
 blueprint = Blueprint('headsets', __name__)
@@ -88,7 +89,11 @@ async def get_headset_history(headset_id):
             jsonify({"message": "The requested headset does not exist.", "severity": "Error"}),
             HTTPStatus.NOT_FOUND)
 
-    headset_history = headset.get_history()
+    # init incidents handler if it is not already
+    incident_handler = init_incidents_handler(app=current_app)
+    incident = incident_handler.current_incident
+
+    headset_history = headset.get_history(headset_id, incident)
 
     return jsonify(headset_history), HTTPStatus.OK
 

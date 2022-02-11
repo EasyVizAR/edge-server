@@ -10,6 +10,7 @@ from http import HTTPStatus
 from quart import Blueprint, current_app, request, make_response, jsonify, send_from_directory
 from werkzeug.utils import secure_filename
 
+from server.incidents.incident_handler import init_incidents_handler
 from server.mapping.floorplanner import Floorplanner
 from server.maps.mapping_thread import MappingThread
 from server.maps.maprepository import get_map_repository
@@ -27,8 +28,13 @@ def initialize_maps(app):
     Make sure the maps directory exists, and create a new "current" map if one
     does not exist. This may make starting up a new system easier.
     """
+
+    # init incidents handler if it is not already
+    incident_handler = init_incidents_handler(app=app)
+    curr_incident = incident_handler.current_incident
+
     data_dir = app.config['VIZAR_DATA_DIR']
-    maps_dir = os.path.join(data_dir, 'maps')
+    maps_dir = os.path.join(data_dir, 'incidents', str(curr_incident), 'maps')
     os.makedirs(maps_dir, exist_ok=True)
 
     if not os.path.exists(os.path.join(maps_dir, 'current')):
@@ -52,7 +58,7 @@ def initialize_maps(app):
         map_file.write(json.dumps(map_info))
         map_file.close()
 
-        os.symlink(map_id, os.path.join(maps_dir, 'current'), target_is_directory=True)
+        #os.symlink(map_id, os.path.join(maps_dir, 'current'), target_is_directory=True)
 
 
 def open_maps_dir():
