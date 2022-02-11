@@ -12,6 +12,9 @@ from marshmallow import Schema, fields
 from .main import app
 from .maps import maps_routes
 from .headset import headsetroutes
+from .work_items import routes as work_items
+
+from .work_items.models import WorkItem
 
 
 class VectorSchema(Schema):
@@ -95,15 +98,22 @@ map_tag = {
     "description": "Operations on Map objects"
 }
 
+work_item_tag = {
+    "name": "work-items",
+    "description": "Operations on WorkItem objects"
+}
+
 spec.components.schema("Headset", schema=HeadsetSchema)
 spec.components.schema("HeadsetUpdate", schema=HeadsetUpdateSchema)
 spec.components.schema("Map", schema=MapSchema)
 spec.components.schema("MapFeature", schema=MapFeatureSchema)
 spec.components.schema("ImageUpload", schema=ImageUploadSchema)
 spec.components.schema("SurfaceFileInformation", schema=SurfaceFileInformationSchema)
+spec.components.schema("WorkItem", schema=WorkItem.Schema())
 
 spec.tag(headset_tag)
 spec.tag(map_tag)
+spec.tag(work_item_tag)
 
 async def add_routes_to_spec():
     async with app.test_request_context("/"):
@@ -126,6 +136,8 @@ async def add_routes_to_spec():
         spec.path(view=maps_routes.create_map)
         spec.path(view=maps_routes.get_map_qrcode)
         spec.path(view=maps_routes.get_map_topdown)
+
+        spec.path(view=work_items.list_work_items)
 
 
 loop = asyncio.get_event_loop()

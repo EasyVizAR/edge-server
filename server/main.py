@@ -5,6 +5,7 @@ from quart_cors import cors
 
 from server.headset.headsetroutes import blueprint as headset_blueprint
 from server.maps.maps_routes import initialize_maps, maps
+from server.work_items.routes import work_items
 from server.routes import routes
 from server.utils.utils import GenericJsonEncoder
 
@@ -27,6 +28,7 @@ if 'APPLICATION_CONFIG' in os.environ:
 
 app.register_blueprint(headset_blueprint)
 app.register_blueprint(maps)
+app.register_blueprint(work_items)
 app.register_blueprint(routes)
 
 # Initialize maps storage and create the first map if there is not one.

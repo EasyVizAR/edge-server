@@ -24,6 +24,8 @@ itsdangerous==2.0.1
 Jinja2==3.0.2
 lockfile==0.12.2
 MarkupSafe==2.0.1
+marshmallow==3.14.0
+marshmallow-dataclass==8.5.3
 mccabe==0.6.1
 msgpack==0.6.2
 networkx==2.5
