@@ -17,7 +17,7 @@ headset_repository = None
 
 
 class HeadSet:
-    def __init__(self, name, position, mapId, id=None, lastUpdate=None, history=None):
+    def __init__(self, name, position, mapId, id=None, lastUpdate=None, pose=None):
 
         if id is None:
             self.id = str(uuid.uuid4())
@@ -26,7 +26,7 @@ class HeadSet:
 
         self.name = name
         self.mapId = mapId
-        self.position_history = []
+        self.past_poses = []
 
         self.position = {
             'x': position['x'],
@@ -48,7 +48,7 @@ class HeadSet:
         else:
             self.lastUpdate = lastUpdate
 
-        if history is None:
+        if pose is None:
 
             # add origin
             past_pos = {
@@ -56,9 +56,9 @@ class HeadSet:
                 'orientation': self.orientation,
                 'time_stamp': self.lastUpdate
             }
-            self.position_history.append(past_pos)
+            self.past_poses.append(past_pos)
         else:
-            self.position_history = history
+            self.past_poses = pose
 
         # List of futures to resolve on the next headset update.
         self.headset_update_watchers = []
@@ -104,14 +104,14 @@ class HeadSet:
 
         return updates
 
-    def get_history(self, headset_id, incident):
-        self.position_history.clear()
-        history_filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
-                                        str(incident),
-                                        current_app.config['VIZAR_HEADSET_DIR'], headset_id, "history.csv")
+    def get_past_poses(self, headset_id, incident):
+        self.past_poses.clear()
+        poses_filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
+                                      str(incident),
+                                      current_app.config['VIZAR_HEADSET_DIR'], headset_id, "poses.csv")
 
-        history_file = open(history_filepath, 'r')
-        reader = csv.reader(history_file)
+        poses_file = open(poses_filepath, 'r')
+        reader = csv.reader(poses_file)
         for line in reader:
             past_pos = {
                 'position': {
@@ -126,10 +126,10 @@ class HeadSet:
                 },
                 'time_stamp': line[6]
             }
-            self.position_history.append(past_pos)
+            self.past_poses.append(past_pos)
 
-        history_file.close()
-        return self.position_history
+        poses_file.close()
+        return self.past_poses
 
     def notify_headset_update_watchers(self, update):
         for watcher in self.headset_update_watchers:
@@ -154,7 +154,8 @@ class Repository:
         # save one headset to the headsets folder and one to the headsets folder in the incident
         headset_dir = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'])
         incident_dir = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
-                                    str(self.incident_handler.current_incident), current_app.config['VIZAR_HEADSET_DIR'])
+                                    str(self.incident_handler.current_incident),
+                                    current_app.config['VIZAR_HEADSET_DIR'])
 
         os.makedirs(headset_dir, exist_ok=True)
         os.makedirs(incident_dir, exist_ok=True)
@@ -163,15 +164,15 @@ class Repository:
             if folder.is_dir():
                 headset = json.load(open(f"{folder.path}/headset.json", 'r'))
 
-                # read in history
+                # read in past poses
                 try:
-                    history_filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
+                    poses_filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
                                                     str(self.incident_handler.current_incident),
                                                     current_app.config['VIZAR_HEADSET_DIR'], str(headset['id']),
-                                                    "history.csv")
+                                                    "poses.csv")
 
-                    history_file = open(history_filepath, 'r')
-                    reader = csv.reader(history_file)
+                    poses_file = open(poses_filepath, 'r')
+                    reader = csv.reader(poses_file)
                     temp_history = []
                     for line in reader:
                         past_pos = {
@@ -189,12 +190,12 @@ class Repository:
                         }
                         temp_history.append(past_pos)
 
-                    history_file.close()
+                    poses_file.close()
                     self.headsets[headset['id']] = HeadSet(headset['name'], headset['position'], headset['mapId'],
                                                            id=headset['id'], lastUpdate=headset['lastUpdate'],
-                                                           history=temp_history)
+                                                           pose=temp_history)
                 except Exception as e:
-                    # there is no history
+                    # there is no past poses
                     self.headsets[headset['id']] = HeadSet(headset['name'], headset['position'], headset['mapId'],
                                                            id=headset['id'], lastUpdate=headset['lastUpdate'])
 
@@ -206,7 +207,7 @@ class Repository:
                                          str(self.incident_handler.current_incident),
                                          current_app.config['VIZAR_HEADSET_DIR'], str(headset.id), "headset.json")
 
-        headset_without_history = {
+        headset_without_past_poses = {
             'id': headset.id,
             'name': headset.name,
             'mapId': headset.mapId,
@@ -216,8 +217,8 @@ class Repository:
             'lastUpdate': headset.lastUpdate
         }
 
-        write_to_file(json.dumps(headset_without_history, cls=GenericJsonEncoder), filepath)
-        write_to_file(json.dumps(headset_without_history, cls=GenericJsonEncoder), incident_filepath)
+        write_to_file(json.dumps(headset_without_past_poses, cls=GenericJsonEncoder), filepath)
+        write_to_file(json.dumps(headset_without_past_poses, cls=GenericJsonEncoder), incident_filepath)
 
         filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'],
                                 str(headset.id), "updates.csv")
@@ -232,18 +233,18 @@ class Repository:
         append_to_file(update_line, incident_filepath)
 
         # create headset history file
-        history_filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
-                                        str(self.incident_handler.current_incident),
-                                        current_app.config['VIZAR_HEADSET_DIR'], str(headset.id), "history.csv")
-        headset_history = headset.position_history
-        new_line = get_csv_line([headset_history[-1].get('position').get('x'),
-                                 headset_history[-1].get('position').get('y'),
-                                 headset_history[-1].get('position').get('z'),
-                                 headset_history[-1].get('orientation').get('x'),
-                                 headset_history[-1].get('orientation').get('y'),
-                                 headset_history[-1].get('orientation').get('z'),
-                                 headset_history[-1].get('time_stamp')])
-        append_to_file(new_line, history_filepath)
+        poses_filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
+                                      str(self.incident_handler.current_incident),
+                                      current_app.config['VIZAR_HEADSET_DIR'], str(headset.id), "poses.csv")
+        headset_poses = headset.past_poses
+        new_line = get_csv_line([headset_poses[-1].get('position').get('x'),
+                                 headset_poses[-1].get('position').get('y'),
+                                 headset_poses[-1].get('position').get('z'),
+                                 headset_poses[-1].get('orientation').get('x'),
+                                 headset_poses[-1].get('orientation').get('y'),
+                                 headset_poses[-1].get('orientation').get('z'),
+                                 headset_poses[-1].get('time_stamp')])
+        append_to_file(new_line, poses_filepath)
 
         self.headsets[headset.id] = headset
         return headset.id
@@ -287,7 +288,7 @@ class Repository:
             },
             'time_stamp': update_time
         }
-        headset.position_history.append(past_pos)
+        headset.past_poses.append(past_pos)
 
         # then update current position
         headset.position['x'] = position['x']
@@ -301,10 +302,11 @@ class Repository:
         filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'],
                                 str(headset.id), 'headset.json')
         incident_filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
-                                         str(self.incident_handler.current_incident), current_app.config['VIZAR_HEADSET_DIR'],
+                                         str(self.incident_handler.current_incident),
+                                         current_app.config['VIZAR_HEADSET_DIR'],
                                          str(headset.id), 'headset.json')
 
-        headset_without_history = {
+        headset_without_past_poses = {
             'id': headset.id,
             'name': headset.name,
             'mapId': headset.mapId,
@@ -314,13 +316,14 @@ class Repository:
             'lastUpdate': headset.lastUpdate
         }
 
-        write_to_file(json.dumps(headset_without_history, cls=GenericJsonEncoder), filepath)
-        write_to_file(json.dumps(headset_without_history, cls=GenericJsonEncoder), incident_filepath)
+        write_to_file(json.dumps(headset_without_past_poses, cls=GenericJsonEncoder), filepath)
+        write_to_file(json.dumps(headset_without_past_poses, cls=GenericJsonEncoder), incident_filepath)
 
         filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'],
                                 str(headset.id), "updates.csv")
         incident_filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
-                                         str(self.incident_handler.current_incident), current_app.config['VIZAR_HEADSET_DIR'],
+                                         str(self.incident_handler.current_incident),
+                                         current_app.config['VIZAR_HEADSET_DIR'],
                                          str(headset.id), 'updates.csv')
 
         update_line = get_csv_line([id, headset.name, headset.mapId, position['x'], position['y'], position['z'],
@@ -330,14 +333,15 @@ class Repository:
         append_to_file(update_line, incident_filepath)
 
         # write headset history to file
-        history_filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
-                                        str(self.incident_handler.current_incident), current_app.config['VIZAR_HEADSET_DIR'],
-                                        str(headset.id), "history.csv")
+        poses_filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
+                                        str(self.incident_handler.current_incident),
+                                        current_app.config['VIZAR_HEADSET_DIR'],
+                                        str(headset.id), "poses.csv")
         new_line = get_csv_line([past_pos.get('position').get('x'), past_pos.get('position').get('y'),
                                  past_pos.get('position').get('z'), past_pos.get('orientation').get('x'),
                                  past_pos.get('orientation').get('y'),
                                  past_pos.get('orientation').get('z'), past_pos.get('time_stamp')])
-        append_to_file(new_line, history_filepath)
+        append_to_file(new_line, poses_filepath)
 
         update = {
             "headsetID": id,
@@ -368,11 +372,12 @@ class Repository:
         filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'],
                                 str(headset.id), "headset.json")
         incident_filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
-                                         str(self.incident_handler.current_incident), current_app.config['VIZAR_HEADSET_DIR'],
+                                         str(self.incident_handler.current_incident),
+                                         current_app.config['VIZAR_HEADSET_DIR'],
                                          str(headset.id), 'headset.json')
 
         temp_headset = self.headsets[id]
-        headset_without_history = {
+        headset_without_past_poses = {
             'id': temp_headset.id,
             'name': temp_headset.name,
             'mapId': temp_headset.mapId,
@@ -382,13 +387,14 @@ class Repository:
             'lastUpdate': temp_headset.lastUpdate
         }
 
-        write_to_file(json.dumps(headset_without_history, cls=GenericJsonEncoder), filepath)
-        write_to_file(json.dumps(headset_without_history, cls=GenericJsonEncoder), incident_filepath)
+        write_to_file(json.dumps(headset_without_past_poses, cls=GenericJsonEncoder), filepath)
+        write_to_file(json.dumps(headset_without_past_poses, cls=GenericJsonEncoder), incident_filepath)
 
         filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'],
                                 str(headset.id), "updates.csv")
         incident_filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
-                                         str(self.incident_handler.current_incident), current_app.config['VIZAR_HEADSET_DIR'],
+                                         str(self.incident_handler.current_incident),
+                                         current_app.config['VIZAR_HEADSET_DIR'],
                                          str(headset.id), 'updates.csv')
 
         update_line = get_csv_line(

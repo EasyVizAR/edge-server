@@ -81,7 +81,7 @@ async def get(id):
 
 
 @blueprint.route('/headsets/<headset_id>/poses', methods=['GET'])
-async def get_headset_history(headset_id):
+async def get_headset_poses(headset_id):
     headset = get_headset_repository().get_headset(headset_id)
 
     if headset is None:
@@ -93,9 +93,9 @@ async def get_headset_history(headset_id):
     incident_handler = init_incidents_handler(app=current_app)
     incident = incident_handler.current_incident
 
-    headset_history = headset.get_history(headset_id, incident)
+    headset_past_poses = headset.get_past_poses(headset_id, incident)
 
-    return jsonify(headset_history), HTTPStatus.OK
+    return jsonify(headset_past_poses), HTTPStatus.OK
 
 
 @blueprint.route('/headsets', methods=['POST'])
