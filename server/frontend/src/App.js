@@ -4,6 +4,7 @@ import NewMap from './NewMap.js';
 import NewFeature from './NewFeature.js'
 import 'reactjs-popup/dist/index.css';
 import React, {useState, useEffect} from 'react';
+import moment from 'moment';
 
 export const port = '5000'
 
@@ -112,6 +113,11 @@ function App() {
                 return response.json()
             }).then(data => {
 
+            if (data[0] === undefined){
+              console.log("NO DATA FOR MAP")
+              return
+            }
+
             let fetchedFeatures = []
             for (let i in data) {
                 let v = data[i];
@@ -170,6 +176,7 @@ function App() {
     }
 
     const getMapImage = (mapId) => {
+        return "http://pages.cs.wisc.edu/~hartung/easyvizar/seventhfloor.png";
         if ("2e1a03e6-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
             return `http://${host}:${port}/uploads/seventhfloor.png`;
         } else if ("0a820028-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
@@ -645,7 +652,7 @@ function App() {
                                         }
                                     </td>
                                     <td>{e.mapId}</td>
-                                    <td>{e.lastUpdate}</td>
+                                    <td>{moment(e.lastUpdate).fromNow()}</td>
                                     <td>{e.positionX}</td>
                                     <td>{e.positionY}</td>
                                     <td>{e.positionZ}</td>
