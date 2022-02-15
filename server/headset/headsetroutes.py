@@ -80,6 +80,29 @@ async def get(id):
         return jsonify(headset), HTTPStatus.OK
 
 
+@blueprint.route('/headsets/<headset_id>/poses', methods=['POST'])
+async def get_past_incident_poses(headset_id):
+
+    body = await request.get_json()
+
+    headset = get_headset_repository().get_headset(headset_id)
+
+    if headset is None:
+        return await make_response(
+            jsonify({"message": "The requested headset does not exist.", "severity": "Error"}),
+            HTTPStatus.NOT_FOUND)
+
+    if not body or 'incident' not in body:
+        return await make_response(jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
+                                   HTTPStatus.BAD_REQUEST)
+
+    incident = body['incident']
+
+    headset_past_poses = headset.get_past_poses(headset_id, incident)
+
+    return jsonify(headset_past_poses), HTTPStatus.OK
+
+
 @blueprint.route('/headsets/<headset_id>/poses', methods=['GET'])
 async def get_headset_poses(headset_id):
     headset = get_headset_repository().get_headset(headset_id)
@@ -383,9 +406,9 @@ async def update_headset(headsetId):
 
     # headset was updated
     return await make_response(
-            jsonify({"message": "Headset updated",
-                     "headset_id": returned_id}),
-            HTTPStatus.CREATED)
+        jsonify({"message": "Headset updated",
+                 "headset_id": returned_id}),
+        HTTPStatus.CREATED)
 
 # @blueprint.route('/map-image/<mapId>', methods=['GET'])
 # async def get_image(mapId):
@@ -393,4 +416,3 @@ async def update_headset(headsetId):
 #     file_path = os.path.join(folder_path, f"{mapId}.jpeg")
 #     print(f"Sending file {file_path}")
 #     return await send_file(file_path, as_attachment=True)
-
