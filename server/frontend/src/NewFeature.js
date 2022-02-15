@@ -3,6 +3,8 @@ import './NewFeature.css';
 import React from "react";
 import {useState, useEffect} from 'react';
 import {port} from "./App";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { solid, regular, brands } from '@fortawesome/fontawesome-svg-core/import.macro'
 
 function NewFeature(props) {
     const state = {
@@ -43,52 +45,17 @@ function NewFeature(props) {
     const [posStyle, setPosStyle] = useState(hideDisplay);
     const [coordStyle, setCoordStyle] = useState(hideDisplay);
     const [offsetPerStyle, setOffsetPerStyle] = useState(hideDisplay);
-    const [iconPaths, setIconPaths] = useState(null);
     const [iconIndex, changeIcon] = useState(-1);
 
     const [placementType, setPlacementType] = useState('');
     const [editmode, setEditMode] = useState(false);
 
-    useEffect(() => {
-        const url = `http://${host}:${port}/icon_urls`;
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                data['file_paths'].map((path, index) => {
-                    const url = '/' + path;
-                    data['file_paths'][index] = url;
-                });
-                setPaths(data['file_paths']);
-                props.changeIcon(data['file_paths'][0]);
-                setIcon(0);
-            });
-        //const temp = [fire.png`, `http://${host}:${port}/icons/medical.png`, `http://${host}:${port}/icons/obstacle.png`, `http://${host}:${port}/icons/target.png`];
-        //setIconPaths(temp);
-    }, []);
-
     if (!props.popUpClass) {
         return null;
     }
 
-    function setPaths(paths) {
-
-        // TODO: bug here. Does not update iconPaths
-
-        setIconPaths("hi");
-        console.log("here1");
-        console.log(iconPaths);
-        console.log(paths);
-        setIconPaths(paths);
-        console.log("here2");
-        console.log(iconPaths);
-    }
-
     function setIcon(index) {
         changeIcon(index);
-        if (iconPaths != null && iconPaths.length > 0) {
-            props.changeIcon(iconPaths[index]);
-        }
-        console.log(iconIndex);
 
         // TODO: set css of selected icon
 
@@ -105,25 +72,30 @@ function NewFeature(props) {
         });
     }
 
-    function Icons(props) {
-        const iconPaths = props.iconPaths;
+    function Icons() {
 
-        if (iconPaths != null) {
-            const marginCss = {
-                marginBottom: "10px",
-                marginLeft: "10px"
-            }
+        // add icons here
+        const iconPaths = [];
+        iconPaths.push(solid('fire'));
+        iconPaths.push(solid('truck-medical'));
+        iconPaths.push(solid('triangle-exclamation'));
+        iconPaths.push(solid('bandage'));
+        iconPaths.push(solid('door-closed'));
 
-            const listItems = iconPaths.map((icon, index) =>
-                <Col style={{display:"flex", flexDirection:"row"}}>
-                    <input checked={iconIndex==index} onClick={(e) => setIcon(index)} type='radio' value={icon} name='feature-icon'/>
-                    <img src={`http://${host}:${port}/` + icon} alt={icon}/>
-                </Col>
-            );
-            return (
-                <Row style={marginCss}>{listItems}</Row>
-            );
+        const marginCss = {
+            marginBottom: "10px",
+            marginLeft: "10px"
         }
+
+        const listItems = iconPaths.map((local_icon, index) =>
+            <Col style={{display:"flex", flexDirection:"row"}}>
+                <input checked={iconIndex==index} onClick={(e) => setIcon(index)} type='radio' name='feature-icon' style={{marginRight: '5px'}}/>
+                <FontAwesomeIcon icon={local_icon} size="lg"/>
+            </Col>
+        );
+        return (
+            <Row style={marginCss}>{listItems}</Row>
+        );
 
     }
 
@@ -307,7 +279,7 @@ function NewFeature(props) {
 
                         <p className="icon-select-label">Select an icon:</p>
                         <div className="icon-select" style={displayflex}>
-                            <Icons iconPaths={iconPaths}/>
+                            <Icons/>
                         </div>
                         <br/>
                         <Button variant="primary" onClick={handleSubmit}>
