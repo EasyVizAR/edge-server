@@ -55,6 +55,17 @@ function NewFeature(props) {
     }
 
     function setIcon(index) {
+
+        const iconPaths = [];
+        iconPaths.push(solid('fire'));
+        iconPaths.push(solid('truck-medical'));
+        iconPaths.push(solid('triangle-exclamation'));
+        iconPaths.push(solid('bandage'));
+        iconPaths.push(solid('door-closed'));
+        iconPaths.push(solid('headset'));
+
+        //i = iconPaths[index];
+
         changeIcon(index);
 
         // TODO: set css of selected icon
@@ -81,6 +92,7 @@ function NewFeature(props) {
         iconPaths.push(solid('triangle-exclamation'));
         iconPaths.push(solid('bandage'));
         iconPaths.push(solid('door-closed'));
+        iconPaths.push(solid('headset'));
 
         const marginCss = {
             marginBottom: "10px",
