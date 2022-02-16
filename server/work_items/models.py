@@ -69,9 +69,9 @@ class WorkItem:
         # Check if this is a new object.
         created = not os.path.exists(path)
 
-        with open(path, 'w') as source:
+        with open(path, 'w') as output:
             json_out = self.Schema().dumps(self)
-            source.write(json_out)
+            output.write(json_out)
 
         # Notify any listeners if this is a new object.
         if created:

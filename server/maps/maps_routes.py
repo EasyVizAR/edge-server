@@ -7,7 +7,7 @@ import uuid
 import pyqrcode
 
 from http import HTTPStatus
-from quart import Blueprint, current_app, request, make_response, jsonify, send_from_directory
+from quart import Blueprint, current_app, request, make_response, jsonify, redirect, send_from_directory
 from werkzeug.utils import secure_filename
 
 from server.incidents.incident_handler import init_incidents_handler
@@ -19,6 +19,15 @@ from server.utils.utils import get_pixels, GenericJsonEncoder
 maps = Blueprint('maps', __name__)
 
 mapping_threads = dict()
+
+
+example_image_url = "https://pages.cs.wisc.edu/~hartung/easyvizar/seventhfloor.svg"
+example_view_box = {
+    "left": -35.44230853629791,
+    "top": -1.7768587228105028,
+    "width": 39.10819374001562,
+    "height": 52.83971533602437,
+}
 
 
 def initialize_maps(app):
@@ -33,40 +42,22 @@ def initialize_maps(app):
     incident_handler = init_incidents_handler(app=app)
     curr_incident = incident_handler.current_incident
 
-    data_dir = app.config['VIZAR_DATA_DIR']
-    maps_dir = os.path.join(data_dir, 'incidents', str(curr_incident), 'maps')
+    maps_repo = get_map_repository()
+    maps_dir = maps_repo.get_base_dir()
     os.makedirs(maps_dir, exist_ok=True)
 
     if not os.path.exists(os.path.join(maps_dir, 'current')):
         map_id = str(generate_new_id())
+        maps_repo.add_map(map_id, 'New Map', example_image_url, viewBox=example_view_box)
 
-        # Create surfaces subdirectory.
-        subdir = os.path.join(maps_dir, map_id)
-        os.makedirs(os.path.join(subdir, 'surfaces'))
-
-        # Initialize features file
-        features_file = open(os.path.join(subdir, 'features.json'), 'w')
-        features_file.close()
-
-        map_info = {
-            'id': map_id,
-            'name': 'New Map'
-        }
-
-        # Initialize map file
-        map_file = open(os.path.join(subdir, 'map.json'), 'w')
-        map_file.write(json.dumps(map_info))
-        map_file.close()
-
-        #os.symlink(map_id, os.path.join(maps_dir, 'current'), target_is_directory=True)
+        os.symlink(map_id, os.path.join(maps_dir, 'current'), target_is_directory=True)
 
 
 def open_maps_dir():
     """
     Opens the maps directory
     """
-    data_dir = current_app.config['VIZAR_DATA_DIR']
-    maps_path = os.path.join(data_dir, "maps")
+    maps_path = get_map_repository().get_base_dir()
     os.makedirs(maps_path, exist_ok=True)
     maps_list = os.listdir(maps_path)
     return maps_list, maps_path
@@ -76,8 +67,8 @@ def get_surface_dir(map_id, create=True):
     """
     Returns the directory for map surfaces.
     """
-    data_dir = current_app.config['VIZAR_DATA_DIR']
-    surface_dir = os.path.join(data_dir, "maps", map_id, "surfaces")
+    maps_path = get_map_repository().get_base_dir()
+    surface_dir = os.path.join(maps_path, map_id, "surfaces")
     if create:
         os.makedirs(surface_dir, exist_ok=True)
     return surface_dir
@@ -111,8 +102,8 @@ def create_map_dir(map_id):
     if not map_id:
         return None
 
-    parent_dir = current_app.config['VIZAR_DATA_DIR'] + 'maps/'
-    path = os.path.join(parent_dir, map_id)
+    maps_path = get_map_repository().get_base_dir()
+    path = os.path.join(maps_path, map_id)
 
     try:
         os.mkdir(path)
@@ -248,9 +239,9 @@ async def list_map_features(map_id):
     # Wrap the maps list if the caller requested an envelope.
     query = request.args
     if "envelope" in query:
-        result = {query.get("envelope"): maps}
+        result = {query.get("envelope"): features}
     else:
-        result = maps
+        result = features
 
     return jsonify(result), HTTPStatus.OK
 
@@ -292,21 +283,21 @@ async def add_map_feature(map_id):
                      "severity": "Warning"}),
             HTTPStatus.BAD_REQUEST)
 
-    if 'name' not in body or 'mapID' not in body\
-            or ('position' not in body and 'pixelPosition' not in body) or 'style' not in body:
+    if 'name' not in body \
+            or 'position' not in body or 'style' not in body:
         return await make_response(jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
                                    HTTPStatus.BAD_REQUEST)
 
     if 'pixelPosition' in body:
-        feature = get_map_repository().add_feature(body['id'],
+        feature = get_map_repository().add_feature(None,
                                                    body['name'],
-                                                   body['mapID'],
+                                                   map_id,
                                                    body['style'],
                                                    pixelPosition=body['pixelPosition'])
     else:
-        feature = get_map_repository().add_feature(body['id'],
+        feature = get_map_repository().add_feature(None,
                                                    body['name'],
-                                                   body['mapID'],
+                                                   map_id,
                                                    body['style'],
                                                    position=body['position'])
 
@@ -394,6 +385,14 @@ async def replace_surface(map_id, surface_id):
 
     # TODO check authorization
 
+    map_repo = get_map_repository()
+    map_obj = map_repo.get_map(map_id)
+    if map_obj is None:
+        return await make_response(
+            jsonify({"message": "The requested map does not exist",
+                     "severity": "Warning"}),
+            HTTPStatus.NOT_FOUND)
+
     body = await request.get_data()
     if body[0:3].decode() == "ply":
         filename = secure_filename("{}.ply".format(surface_id))
@@ -405,9 +404,8 @@ async def replace_surface(map_id, surface_id):
             output.write(body)
 
         if map_id not in mapping_threads:
-            data_dir = current_app.config['VIZAR_DATA_DIR']
-            map_dir = os.path.join(data_dir, 'maps', map_id)
-            mapping_threads[map_id] = MappingThread(map_dir)
+            map_dir = os.path.join(map_repo.get_base_dir(), map_id)
+            mapping_threads[map_id] = MappingThread(map_obj, map_dir)
             mapping_threads[map_id].start()
 
         mapping_threads[map_id].notify()
@@ -659,10 +657,19 @@ async def get_map_qrcode(map_id):
 @maps.route('/maps/<map_id>/top-down.svg', methods=['GET'])
 async def get_map_topdown(map_id):
     """
-    Get a top-down floor plan image.
+    Get map top-down.svg (deprecated, see /maps/<map_id>/floor-plan.svg).
+    """
+    location = "/maps/{}/floor-plan.svg".format(map_id)
+    return redirect(location)
+
+
+@maps.route('/maps/<map_id>/floor-plan.svg', methods=['GET'])
+async def get_map_floor_plan(map_id):
+    """
+    Get a floor plan image.
     ---
     get:
-        description: Get a top-down floor plan image.
+        description: Get a floor plan image.
         tags:
           - maps
         parameters:
@@ -676,20 +683,19 @@ async def get_map_topdown(map_id):
                 content:
                     image/svg+xml: {}
     """
-    data_dir = current_app.config['VIZAR_DATA_DIR']
-    map_dir = os.path.join(data_dir, 'maps', map_id)
-    image_path = os.path.join(map_dir, 'top-down.svg')
+    map_dir = os.path.join(get_map_repository().get_base_dir(), map_id)
+    image_path = os.path.join(map_dir, 'floor-plan.svg')
 
     # This should be the common case. The mapping thread runs in the
     # background and produces up-to-date images.
     if os.path.exists(image_path):
-        return await send_from_directory(map_dir, 'top-down.svg')
+        return await send_from_directory(map_dir, 'floor-plan.svg')
 
     # If the image happens to not exist for some reason, we can do a one-time
     # calculation. This will be a bit slow, unfortunately.
     def create_map():
         ply_files = os.path.join(map_dir, 'surfaces', '*.ply')
-        json_file = os.path.join(map_dir, 'top-down.json')
+        json_file = os.path.join(map_dir, 'floor-plan.json')
         floorplanner = Floorplanner(ply_files, json_data_path=json_file)
         floorplanner.update_lines(initialize=False)
         floorplanner.write_image(image_path)
@@ -697,4 +703,4 @@ async def get_map_topdown(map_id):
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, create_map)
 
-    return await send_from_directory(map_dir, 'top-down.svg')
+    return await send_from_directory(map_dir, 'floor-plan.svg')
