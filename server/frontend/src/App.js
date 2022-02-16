@@ -5,6 +5,8 @@ import NewFeature from './NewFeature.js'
 import 'reactjs-popup/dist/index.css';
 import React, {useState, useEffect} from 'react';
 import moment from 'moment';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { solid, regular, brands } from '@fortawesome/fontawesome-svg-core/import.macro'
 
 export const port = '5000'
 
@@ -531,18 +533,17 @@ function App() {
       const item = props.item;
       const itemId = props.id;
       const itemName = props.name;
-      const src = `http://${host}:${port}/icons/temp/trash_can.png`;
 
       if (item == 'headset'){
         return (
           <button style={{width: "30px", height: "30px"}} className='btn-danger' onClick={(e) => deleteHeadset(itemId, itemName)} title="Delete Headset">
-            <img style={{margin: 'auto', width: "20px", height: "20px", position: 'relative', right: '3.5px', top: '-3px'}} src={src}  alt="Delete Headset"/>
+            <FontAwesomeIcon icon={solid('trash-can')} size="lg" style={{position: 'relative', right: '1.5px', top: '-1px'}}/>
           </button>
         );
       }else{
         return (
           <button style={{width: "30px", height: "30px"}} className='btn-danger' onClick={(e) => deleteMap(itemId, itemName)} title="Delete Map">
-            <img style={{margin: 'auto', width: "20px", height: "20px", position: 'relative', right: '3.5px', top: '-3px'}} src={src}  alt="Delete Map"/>
+            <FontAwesomeIcon icon={solid('trash-can')} size="lg" style={{position: 'relative', right: '1.5px', top: '-1px'}}/>
           </button>
         );
       }
