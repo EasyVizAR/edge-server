@@ -10,7 +10,14 @@ class GenericJsonEncoder(JSONEncoder):
         if isinstance(o, (list, tuple, set)):
             return super().default(o)
         else:
-            return o.__dict__
+            result = dict()
+
+            # Copy object dictionary while ignoring private fields.
+            for key, value in o.__dict__.items():
+                if not key.startswith("_"):
+                    result[key] = value
+
+            return result
 
 
 async def save_image(file_path, image):

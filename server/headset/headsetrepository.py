@@ -61,7 +61,7 @@ class HeadSet:
             self.past_poses = pose
 
         # List of futures to resolve on the next headset update.
-        self.headset_update_watchers = []
+        self._headset_update_watchers = []
 
     def get_dir(self):
         return os.path.join(current_app.config['VIZAR_DATA_DIR'],
@@ -132,14 +132,14 @@ class HeadSet:
         return self.past_poses
 
     def notify_headset_update_watchers(self, update):
-        for watcher in self.headset_update_watchers:
+        for watcher in self._headset_update_watchers:
             if not watcher.cancelled():
                 watcher.set_result(update)
-        self.headset_update_watchers.clear()
+        self._headset_update_watchers.clear()
 
     def wait_for_headset_update(self):
         future = asyncio.get_event_loop().create_future()
-        self.headset_update_watchers.append(future)
+        self._headset_update_watchers.append(future)
         return future
 
 
