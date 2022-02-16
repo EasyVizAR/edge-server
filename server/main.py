@@ -33,5 +33,7 @@ app.register_blueprint(work_items)
 app.register_blueprint(routes)
 app.register_blueprint(incidents)
 
-# Initialize maps storage and create the first map if there is not one.
-initialize_maps(app)
+@app.before_first_request
+def before_first_request():
+    # Initialize maps storage and create the first map if there is not one.
+    initialize_maps(app)

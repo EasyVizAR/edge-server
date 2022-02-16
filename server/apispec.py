@@ -135,7 +135,7 @@ async def add_routes_to_spec():
         spec.path(view=maps_routes.delete_map)
         spec.path(view=maps_routes.create_map)
         spec.path(view=maps_routes.get_map_qrcode)
-        spec.path(view=maps_routes.get_map_topdown)
+        spec.path(view=maps_routes.get_map_floor_plan)
 
         spec.path(view=work_items.list_work_items)
 

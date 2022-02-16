@@ -209,8 +209,9 @@ class Floorplanner:
                 dwg.add(dwg.polyline(
                     points=[(x[0], x[2]) for x in polyline],
                     stroke='black', stroke_width=0.1, fill="none"))
-
         dwg.save()
+
+        return dict(left=scale*minx, top=scale*minz, width=image_width, height=image_height)
 
 
 if __name__ == '__main__':
