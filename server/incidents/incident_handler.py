@@ -18,17 +18,22 @@ class IncidentHandler:
 
     def set_current_incident(self):
         filepath = os.path.join(self.app.config['VIZAR_DATA_DIR'], 'incidents')
-        incident_num = 0
+        incident_num = -1
 
         os.makedirs(filepath, exist_ok=True)
         for folder in os.scandir(filepath):
-            if folder.is_dir():
-                incident_num += 1
+            # If there is at least one incident, set the current incident
+            # number to the highest valued one.
+            if folder.is_dir() and int(folder.name) > incident_num:
+                incident_num = int(folder.name)
 
         self.current_incident = incident_num
 
-        if incident_num == 0:
-            self.create_first_incident()
+        # Only create a new incident if none exist.
+        if incident_num == -1:
+            self.create_new_incident()
+
+        print("Current incident: {}".format(self.current_incident))
 
     def create_new_incident(self):
         self.current_incident += 1
