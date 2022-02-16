@@ -248,9 +248,9 @@ async def list_map_features(map_id):
     # Wrap the maps list if the caller requested an envelope.
     query = request.args
     if "envelope" in query:
-        result = {query.get("envelope"): maps}
+        result = {query.get("envelope"): features}
     else:
-        result = maps
+        result = features
 
     return jsonify(result), HTTPStatus.OK
 
@@ -292,21 +292,21 @@ async def add_map_feature(map_id):
                      "severity": "Warning"}),
             HTTPStatus.BAD_REQUEST)
 
-    if 'name' not in body or 'mapID' not in body\
-            or ('position' not in body and 'pixelPosition' not in body) or 'style' not in body:
+    if 'name' not in body \
+            or 'position' not in body or 'style' not in body:
         return await make_response(jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
                                    HTTPStatus.BAD_REQUEST)
 
     if 'pixelPosition' in body:
-        feature = get_map_repository().add_feature(body['id'],
+        feature = get_map_repository().add_feature(None,
                                                    body['name'],
-                                                   body['mapID'],
+                                                   map_id,
                                                    body['style'],
                                                    pixelPosition=body['pixelPosition'])
     else:
-        feature = get_map_repository().add_feature(body['id'],
+        feature = get_map_repository().add_feature(None,
                                                    body['name'],
-                                                   body['mapID'],
+                                                   map_id,
                                                    body['style'],
                                                    position=body['position'])
 

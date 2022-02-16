@@ -49,12 +49,7 @@ class Feature:
                 'z': None
             }
         self.mapId = mapId
-        self.style = {
-            "placement": style['placement'],
-            "topOffset": style['topOffset'],
-            "leftOffset": style['leftOffset'],
-            "icon": style['icon']
-        }
+        self.style = style
         if pixelPosition is not None:
             self.pixelPosition = {
                 "x": pixelPosition['x'],
@@ -97,8 +92,12 @@ class Repository:
                                            incident=self.incident_handler.current_incident)
 
                 feature_filename = f"{folder.path}/features.json"
+                features = []
                 try:
                     features = json.load(open(feature_filename, 'r'))
+                    if not isinstance(features, list):
+                        print("Warning: map features file {} is malformed".format(feature_filename))
+                        features = []
                 except json.decoder.JSONDecodeError:
                     print("Error reading {}".format(feature_filename))
                     features = []
