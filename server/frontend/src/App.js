@@ -38,6 +38,7 @@ function App() {
     const [headsetNames, setHeadsetNames] = useState([]);
     const [mapNames, setMapNames] = useState([]);
     const [clickCount, setClickCount] = useState(0);
+    const [iconIndex, setIconIndex] = useState(-1);
 
     useEffect(() => {
         get_maps();
@@ -242,6 +243,16 @@ function App() {
     const onMouseClick = (e) => {
         if (cursor != 'crosshair')
             return;
+
+        // update icons here
+        const iconPaths = [];
+        iconPaths.push(solid('fire'));
+        iconPaths.push(solid('truck-medical'));
+        iconPaths.push(solid('triangle-exclamation'));
+        iconPaths.push(solid('bandage'));
+        iconPaths.push(solid('door-closed'));
+        iconPaths.push(solid('headset'));
+
         console.log(`x=${e.clientX - e.target.x}, y=${e.clientY - e.target.y}`);
         let scaledWidth = document.getElementById('map-image').offsetWidth;
         let scaledHeight = document.getElementById('map-image').offsetHeight;
@@ -257,6 +268,7 @@ function App() {
         }
         if (clickCount > 0)
             f.pop();
+        console.log("cross hair icons: " + crossHairIcon);
         f.push({
             id: 'fire-1',
             name: 'Fire',
@@ -267,7 +279,8 @@ function App() {
             },
             scaledX: e.clientX - e.target.getBoundingClientRect().left,
             scaledY: e.clientY - e.target.getBoundingClientRect().top,
-            icon: crossHairIcon
+            icon: crossHairIcon,
+            iconValue: iconPaths[iconIndex]
         });
 
         setFeatures(f);
@@ -688,13 +701,14 @@ function App() {
                 </div>
                 <hr/>
                 <NewFeature popUpClass={popUpClass} changeCursor={toggleCursor} changeIcon={changeIcon}
-                            pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedMap}/>
+                            pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedMap}
+                            setIconIndex={setIconIndex}/>
                 <NewMap showNewMap={showNewMap}/>
                 <div className="map-image-container">
                     <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
                          onClick={onMouseClick} style={{cursor: cursor}}/>
                     {features.map((f, index) => {
-                        return <img className="features" id={f.id} src={`http://${host}:${port}${f.icon}`} alt={f.name}
+                        return <FontAwesomeIcon icon={f.iconValue} className="features" id={f.id}  alt={f.name}
                                     style={{left: features[index].scaledX, top: features[index].scaledY}}/>
                     })}
                 </div>
