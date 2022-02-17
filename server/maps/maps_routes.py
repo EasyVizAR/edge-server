@@ -288,18 +288,12 @@ async def add_map_feature(map_id):
         return await make_response(jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
                                    HTTPStatus.BAD_REQUEST)
 
-    if 'pixelPosition' in body:
-        feature = get_map_repository().add_feature(None,
-                                                   body['name'],
-                                                   map_id,
-                                                   body['style'],
-                                                   pixelPosition=body['pixelPosition'])
-    else:
-        feature = get_map_repository().add_feature(None,
-                                                   body['name'],
-                                                   map_id,
-                                                   body['style'],
-                                                   position=body['position'])
+    feature_id = None if 'id' not in body else body['id']
+    feature = get_map_repository().add_feature(feature_id,
+                                               body['name'],
+                                               body['mapID'],
+                                               body['style'],
+                                               position=body['position'])
 
     # check if map exists
     if feature is None:
@@ -611,7 +605,7 @@ async def image_upload():
             jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
             HTTPStatus.BAD_REQUEST)
 
-    return await make_response(jsonify(get_map_repository().create_image(body['intent'], body['data'], body['type'], body['extrinsic'], body['intrinsic'])),
+    return await make_response(jsonify(get_map_repository().create_image(body['intent'], body['data'], body['type'], body['viewBox'])),
                                HTTPStatus.CREATED)
 
 

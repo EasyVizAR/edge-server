@@ -38,10 +38,6 @@ class HeadSet:
             'y': 0.0,
             'z': 0.0
         }
-        self.pixelPosition = {
-            "x": None,
-            "y": None
-        }
 
         if lastUpdate is None:
             self.lastUpdate = time.time()
@@ -252,14 +248,6 @@ class Repository:
     def get_all_headsets(self):
         for key in self.headsets:
             headset = self.headsets[key]
-            if get_map_repository().get_map(headset.mapId) is not None:
-                intrinsic = get_map_repository().get_map(headset.mapId).intrinsic
-                extrinsic = get_map_repository().get_map(headset.mapId).extrinsic
-                if intrinsic is not None and extrinsic is not None:
-                    pixels = get_pixels(extrinsic, intrinsic,
-                                        [headset.position['x'], headset.position['y'], headset.position['z']])
-                    headset.pixelPosition['x'] = pixels[0]
-                    headset.pixelPosition['y'] = pixels[1]
         return list(self.headsets.values())
 
     def get_headset(self, id):
@@ -312,7 +300,6 @@ class Repository:
             'mapId': headset.mapId,
             'position': headset.position,
             'orientation': headset.orientation,
-            'pixelPosition': headset.pixelPosition,
             'lastUpdate': headset.lastUpdate
         }
 
@@ -383,7 +370,6 @@ class Repository:
             'mapId': temp_headset.mapId,
             'position': temp_headset.position,
             'orientation': temp_headset.orientation,
-            'pixelPosition': temp_headset.pixelPosition,
             'lastUpdate': temp_headset.lastUpdate
         }
 

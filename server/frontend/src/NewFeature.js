@@ -48,7 +48,7 @@ function NewFeature(props) {
     const [iconIndex, changeIcon] = useState(-1);
 
     const [placementType, setPlacementType] = useState('');
-    const [editmode, setEditMode] = useState(false);
+    const [mapMode, setMapMode] = useState(false);
 
     if (!props.popUpClass) {
         return null;
@@ -178,14 +178,26 @@ function NewFeature(props) {
     }
 
     const changeInputMode = (e) => {
-        setEditMode(!editmode);
+        setMapMode(!mapMode);
         props.changeCursor();
     };
 
     const handleSubmit = (event) => {
         let formData = formVal;
         const new_feature = {
-            new_feature: formData,
+            "name": feature_name,
+            "position": {
+                "x": props.pointCoordinates[0],
+                "y": props.pointCoordinates[1],
+                "z": props.pointCoordinates[2]
+            },
+            "mapID": props.mapID,
+            "style": {
+                "placement": "floating|surface|point",
+                "topOffset": "10%",
+                "leftOffset": "10%",
+                "icon": "/icons/fire32.png"
+            }
         }
         let mapID = "2e1a03e6-3d9d-11ec-a64a-0237d8a5e2fd";
         let url = `http://${host}:${port}/maps/${mapID}/features`;
@@ -257,30 +269,33 @@ function NewFeature(props) {
                             </FloatingLabel>
                         </Form.Group>
 
-                        <input style={posStyle} checked={!editmode} type='radio' value='coordinates' onClick={changeInputMode} name='input-mode-radio'/>
+                        <input style={posStyle} checked={!mapMode} type='radio' value='coordinates' onClick={changeInputMode} name='input-mode-radio'/>
                         <label style={posStyle} htmlFor="coordinates">Input Coordinates</label>
                         <Row className="mb-3" style={posStyle}>
                             <Col>
                                 <Form.Group className="mb-3" controlId="point-pos-x">
                                     <FloatingLabel controlId="floating-x-position" label="X Position">
-                                        <Form.Control type="number" disabled={editmode} placeholder="X Position"
-                                                      name="x_pos" onChange={(e) => updateState(e, "point-x")}/>
+                                        <Form.Control type="number" disabled={mapMode} placeholder="X Position"
+                                                      value={props.pointCoordinates[0]} defaultValue=''
+                                                      name="x_pos" onChange={e => props.changePointValue(e.target.value, 0)}/>
                                     </FloatingLabel>
                                 </Form.Group>
                             </Col>
                             <Col>
                                 <Form.Group className="mb-3" controlId="point-pos-y">
                                     <FloatingLabel controlId="floating-y-position" label="Y Position">
-                                        <Form.Control type="number" disabled={editmode} placeholder="Y Position"
-                                                      name="y_pos" onChange={(e) => updateState(e, "point-y")}/>
+                                        <Form.Control type="number" disabled={mapMode} placeholder="Y Position"
+                                                      value={props.pointCoordinates[1]} defaultValue=''
+                                                      name="y_pos" onChange={e => props.changePointValue(e.target.value, 1)}/>
                                     </FloatingLabel>
                                 </Form.Group>
                             </Col>
                             <Col>
                                 <Form.Group className="mb-3" controlId="point-pos-z">
                                     <FloatingLabel controlId="floating-z-position" label="Z Position">
-                                        <Form.Control type="number" disabled={editmode} placeholder="Z Position"
-                                                      name="z_pos" onChange={(e) => updateState(e, "point-z")}/>
+                                        <Form.Control type="number" disabled={mapMode} placeholder="Z Position"
+                                                      value={props.pointCoordinates[2]} defaultValue=''
+                                                      name="z_pos" onChange={e => props.changePointValue(e.target.value, 2)}/>
                                     </FloatingLabel>
                                 </Form.Group>
                             </Col>

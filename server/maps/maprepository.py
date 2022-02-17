@@ -13,15 +13,13 @@ map_repository = None
 
 
 class Map:
-    def __init__(self, name, image='', intrinsic=None, extrinsic=None, id=None, incident=-1, viewBox=None):
+    def __init__(self, name, image='', id=None, incident=-1, viewBox=None):
         if id is None:
             self.id = str(uuid.uuid4())
         else:
             self.id = id
         self.name = name
         self.image = image
-        self.extrinsic = extrinsic
-        self.intrinsic = intrinsic
         self.incident = incident
 
         if viewBox is None:
@@ -30,8 +28,8 @@ class Map:
             self.viewBox = viewBox
 
     def __str__(self):
-        return "id=" + self.id + ", name=" + self.name + ", image=" + str(self.image) + ", extrinsic=" + str(
-            self.extrinsic) + ", intrinsic=" + str(self.intrinsic)
+        return "id=" + self.id + ", name=" + self.name + ", image=" + str(self.image)
+
 
     def save(self):
         path = os.path.join(get_map_repository().get_base_dir(), self.id, "map.json")
@@ -40,7 +38,7 @@ class Map:
 
 
 class Feature:
-    def __init__(self, name, mapId, style, id=None, position=None, pixelPosition=None):
+    def __init__(self, name, mapId, style, id=None, position=None):
         if id is None:
             self.id = str(uuid.uuid4())
         else:
@@ -59,17 +57,12 @@ class Feature:
                 'z': None
             }
         self.mapId = mapId
-        self.style = style
-        if pixelPosition is not None:
-            self.pixelPosition = {
-                "x": pixelPosition['x'],
-                "y": pixelPosition['y']
-            }
-        else:
-            self.pixelPosition = {
-                "x": None,
-                "y": None
-            }
+        self.style = {
+            "placement": style['placement'],
+            "topOffset": style['topOffset'],
+            "leftOffset": style['leftOffset'],
+            "icon": style['icon']
+        }
 
 
 class Repository:
@@ -88,13 +81,13 @@ class Repository:
         for folder in os.scandir(map_dir):
             if folder.is_dir():
                 map = json.load(open(f"{folder.path}/map.json", 'r'))
-                intrinsic = map.get('intrinsic')
-                extrinsic = map.get('extrinsic')
-                image = map.get('image')
-                viewBox = map.get('viewBox')
-                self.maps[map['id']] = Map(map['name'], image, intrinsic, extrinsic, map['id'],
-                                           viewBox=viewBox,
-                                           incident=self.incident_handler.current_incident)
+                image = None
+                viewBox = None
+                if 'viewBox' in map:
+                    viewBox = map['viewBox']
+                if 'image' in map:
+                    image = map['image']
+                self.maps[map['id']] = Map(map['name'], image, viewBox, map['id'])
 
                 feature_filename = f"{folder.path}/features.json"
                 features = []
@@ -113,59 +106,31 @@ class Repository:
                         print(feature.keys())
                         feature_obj = Feature(feature['name'], feature['mapId'], feature['style'],
                                               id=feature['id'], position=feature['position'])
-                        if 'pixelPosition' in feature:
-                            if 'x' in feature['pixelPosition']:
-                                feature_obj.pixelPosition['x'] = feature['pixelPosition']['x']
-                            if 'y' in feature['pixelPosition']:
-                                feature_obj.pixelPosition['y'] = feature['pixelPosition']['y']
                         feature_list.append(feature_obj)
                 self.features[map['id']] = feature_list
 
-    def create_image(self, intent, data, type, ext=None, ints=None):
+    def create_image(self, intent, data, type, viewBox = None):
         intentId = data['mapID'] if 'maps' == intent else str(uuid.uuid4())
-        img_type = type.split("/")[1]
-        url = f"{self.app_config['IMAGE_UPLOADS']}{intentId}.{img_type}"
-        extrinsic = None
-        intrinsic = None
-        if ext is not None:
-            extrinsic = np.transpose(np.reshape(ext, (4, 4))).tolist()
-        if ints is not None:
-            intrinsic = np.transpose(np.reshape(ints, (3, 3))).tolist()
-        if intent == 'maps' and intrinsic is not None and extrinsic is not None:
-            self.maps[intentId].intrinsic = intrinsic
-            self.maps[intentId].extrinsic = extrinsic
-            filepath = os.path.join(self.get_base_dir(), str(intentId), "map.json")
+        img_type = "svg" if type.split("/")[1] == "svg+xml" else type.split("/")[1]
+        url = f"{current_app.config['IMAGE_UPLOADS']}{intentId}.{img_type}"
+        if intent == 'maps' and viewBox is not None:
+            self.maps[intentId].viewBox = viewBox
+            filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'maps/',
+                                    str(intentId), "map.json")
             write_to_file(json.dumps(self.maps[intentId], cls=GenericJsonEncoder), filepath)
 
-            if intentId in self.features.keys():
-                for feature in self.features[intentId]:
-                    vector = [feature.position['x'], feature.position['y'], feature.position['z']]
-                    pixPos = get_pixels(extrinsic, intrinsic, vector)
-                    feature.pixelPosition['x'] = pixPos[0]
-                    feature.pixelPosition['y'] = pixPos[1]
-                filepath = os.path.join(self.get_base_dir(), str(intentId), "features.json")
-                write_to_file(json.dumps(self.features[intentId], cls=GenericJsonEncoder), filepath)
+        return {'id': intentId, 'url': url, 'intent': intent, 'data': data, 'type': type, 'viewBox': viewBox}
 
-        return {'id': intentId, 'url': url, 'intent': intent, 'data': data, 'type': type, 'intrinsic': intrinsic,
-                'extrinsic': extrinsic}
-
-    def add_feature(self, id, name, mapId, style, position=None, pixelPosition=None):
+    def add_feature(self, id, name, mapId, style, position=None):
         if mapId not in self.maps.keys():
             return None
 
         feature = Feature(name, mapId, style, id=id)
-        if self.maps[mapId].intrinsic is not None and self.maps[mapId].extrinsic is not None:
-            if position is not None:
-                vector = [feature.position['x'], feature.position['y'], feature.position['z']]
-                pixPos = get_pixels(self.maps[mapId].extrinsic, self.maps[mapId].intrinsic, vector)
-                feature.pixelPosition['x'] = pixPos[0]
-                feature.pixelPosition['y'] = pixPos[1]
-            else:
-                pixPos = [pixelPosition['x'], pixelPosition['y']]
-                vector = get_vector(self.maps[mapId].extrinsic, self.maps[mapId].intrinsic, pixPos)
-                feature.position['x'] = vector[0]
-                feature.position['y'] = vector[1]
-                feature.position['z'] = vector[2]
+
+        if position is not None:
+            feature.position['x'] = position['x']
+            feature.position['y'] = position['y']
+            feature.position['z'] = position['z']
 
         map_features = []
         if mapId in self.features:
@@ -182,8 +147,8 @@ class Repository:
             return None
         return self.features[mapId]
 
-    def add_map(self, id, name, image, intrinsic=None, extrinsic=None, viewBox=None):
-        map = Map(name, image, intrinsic, extrinsic, id, incident=self.incident_handler.current_incident, viewBox=viewBox)
+    def add_map(self, id, name, image, viewBox=None):
+        map = Map(name, image, id, incident=self.incident_handler.current_incident, viewBox=viewBox)
         filepath = os.path.join(self.get_base_dir(), str(map.id), "map.json")
         write_to_file(json.dumps(map, cls=GenericJsonEncoder), filepath)
         filepath = os.path.join(self.get_base_dir(), str(map.id), "features.json")
@@ -191,11 +156,11 @@ class Repository:
         self.maps[map.id] = map
         return map.id
 
-    def replace_map(self, id, name, image, intrinsic=None, extrinsic=None):
+    def replace_map(self, id, name, image):
         if id not in self.maps.keys():
             return None
 
-        id = self.add_map(id, name, image, intrinsic, extrinsic, incident=self.incident_handler.current_incident)
+        id = self.add_map(id, name, image, incident=self.incident_handler.current_incident)
         return id
 
     def remove_map(self, map_id):
