@@ -13,7 +13,7 @@ map_repository = None
 
 
 class Map:
-    def __init__(self, name, image='', id=None, incident=-1, viewBox=None):
+    def __init__(self, name, image='', incident=-1, id=None, viewBox=None):
         if id is None:
             self.id = str(uuid.uuid4())
         else:
@@ -29,7 +29,6 @@ class Map:
 
     def __str__(self):
         return "id=" + self.id + ", name=" + self.name + ", image=" + str(self.image)
-
 
     def save(self):
         path = os.path.join(get_map_repository().get_base_dir(), self.id, "map.json")
@@ -87,7 +86,7 @@ class Repository:
                     viewBox = map['viewBox']
                 if 'image' in map:
                     image = map['image']
-                self.maps[map['id']] = Map(map['name'], image, viewBox, map['id'])
+                self.maps[map['id']] = Map(map['name'], image, viewBox=viewBox, id=map['id'])
 
                 feature_filename = f"{folder.path}/features.json"
                 features = []
@@ -109,7 +108,7 @@ class Repository:
                         feature_list.append(feature_obj)
                 self.features[map['id']] = feature_list
 
-    def create_image(self, intent, data, type, viewBox = None):
+    def create_image(self, intent, data, type, viewBox=None):
         intentId = data['mapID'] if 'maps' == intent else str(uuid.uuid4())
         img_type = "svg" if type.split("/")[1] == "svg+xml" else type.split("/")[1]
         url = f"{current_app.config['IMAGE_UPLOADS']}{intentId}.{img_type}"
@@ -148,7 +147,7 @@ class Repository:
         return self.features[mapId]
 
     def add_map(self, id, name, image, viewBox=None):
-        map = Map(name, image, id, incident=self.incident_handler.current_incident, viewBox=viewBox)
+        map = Map(name, image, incident=self.incident_handler.current_incident, id=id, viewBox=viewBox)
         filepath = os.path.join(self.get_base_dir(), str(map.id), "map.json")
         write_to_file(json.dumps(map, cls=GenericJsonEncoder), filepath)
         filepath = os.path.join(self.get_base_dir(), str(map.id), "features.json")
