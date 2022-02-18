@@ -55,19 +55,8 @@ function NewFeature(props) {
     }
 
     function setIcon(index) {
-
-        const iconPaths = [];
-        iconPaths.push(solid('fire'));
-        iconPaths.push(solid('truck-medical'));
-        iconPaths.push(solid('triangle-exclamation'));
-        iconPaths.push(solid('bandage'));
-        iconPaths.push(solid('door-closed'));
-        iconPaths.push(solid('headset'));
-
-        //i = iconPaths[index];
-
         changeIcon(index);
-
+        props.setIconIndex(index);
         // TODO: set css of selected icon
 
         updateForm({
@@ -85,7 +74,7 @@ function NewFeature(props) {
 
     function Icons() {
 
-        // add icons here
+        // update icons here
         const iconPaths = [];
         iconPaths.push(solid('fire'));
         iconPaths.push(solid('truck-medical'));
