@@ -209,7 +209,6 @@ class Repository:
             'mapId': headset.mapId,
             'position': headset.position,
             'orientation': headset.orientation,
-            'pixelPosition': headset.pixelPosition,
             'lastUpdate': headset.lastUpdate
         }
 

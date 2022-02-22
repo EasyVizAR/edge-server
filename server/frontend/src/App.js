@@ -756,7 +756,7 @@ function App() {
                                         }
                                     </td>
                                     <td>{e.mapId}</td>
-                                    <td>{moment(e.lastUpdate).fromNow()}</td>
+                                    <td>{moment.unix(e.lastUpdate).fromNow()}</td>
                                     <td>{e.positionX}</td>
                                     <td>{e.positionY}</td>
                                     <td>{e.positionZ}</td>
