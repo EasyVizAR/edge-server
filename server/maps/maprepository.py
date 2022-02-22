@@ -159,7 +159,7 @@ class Repository:
         if id not in self.maps.keys():
             return None
 
-        id = self.add_map(id, name, image, incident=self.incident_handler.current_incident)
+        id = self.add_map(id, name, image)
         return id
 
     def remove_map(self, map_id):

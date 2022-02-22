@@ -446,6 +446,8 @@ function App() {
                     body: JSON.stringify(maps[x])
                 };
                 saveData(url, requestData);
+                mapNames[x]['image'] = maps[x]['image']
+                mapNames[x]['name'] = maps[x]['name']
                 break;
             }
             i = i + 1
@@ -529,32 +531,33 @@ function App() {
 
     // checks if an image associated with a map already exists
     function checkMapImage(image, id) {
-        for (var x in maps) {
-            if (maps[x]['image'] === image && maps[x]['id'] != id) {
-                return true;
-            }
+      for (var x in maps) {
+        if (maps[x]['image'] === image && maps[x]['id'] != id) {
+          return true;
         }
-        return false;
+      }
+      return false;
     }
 
     // checks if a map name already exists
     function checkMapName(name, id) {
-        for (var x in maps) {
-            if (maps[x]['name'] === name && maps[x]['id'] != id) {
-                return true;
-            }
+      for (var x in maps) {
+        if (maps[x]['name'] === name && maps[x]['id'] != id) {
+          console.log(maps[x]['name'] + '.............' + maps[x]['id'])
+          return true;
         }
-        return false;
+      }
+      return false;
     }
 
     // check if a headset name already exists
     function checkHeadsetName(name, id) {
-        for (var x in headsets) {
-            if (headsets[x]['name'] == name && headsets[x]['id'] != id) {
-                return true;
-            }
+      for (var x in headsets) {
+        if (headsets[x]['name'] == name && headsets[x]['id'] != id) {
+          return true;
         }
-        return false;
+      }
+      return false;
     }
 
     const toggleCursor = (e) => {
