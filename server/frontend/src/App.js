@@ -49,26 +49,41 @@ function App() {
     }, [features, setFeatures])
 
     useEffect(() => {
-        fetch(`http://${host}:${port}/headsets`)
-            .then(response => {
-                return response.json()
-            }).then(data => {
-            console.log(data);
-            var fetchedHeadsets = []
-            var headsetNamesList = []
-            for (var k in data) {
-                var v = data[k];
-                fetchedHeadsets.push({
-                    'id': v.id, 'lastUpdate': v.lastUpdate, 'mapId': v.mapId, 'name': v.name,
-                    'orientationX': v.orientation.x, 'orientationY': v.orientation.y, 'orientationZ': v.orientation.z,
-                    'positionX': v.position.x, 'positionY': v.position.y, 'positionZ': v.position.z
-                });
-                headsetNamesList.push(v.name);
-            }
-            setHeadsets(fetchedHeadsets);
-            setHeadsetNames(headsetNamesList);
-        });
+      getHeadsets()
     }, []);
+
+
+    // time goes off every 10 seconds to refresh headset data
+    useEffect(() => {
+      const timer = setTimeout(() => getHeadsets(), 1e4)
+      return () => clearTimeout(timer)
+    })
+
+
+    // function that sends request to server to get headset data
+    function getHeadsets(){
+      console.log('Headsets updated')
+      fetch(`http://${host}:${port}/headsets`)
+        .then(response => {
+            return response.json()
+        }).then(data => {
+        console.log(data);
+        var fetchedHeadsets = []
+        var headsetNamesList = []
+        for (var k in data) {
+          var v = data[k];
+          fetchedHeadsets.push({
+            'id': v.id, 'lastUpdate': v.lastUpdate, 'mapId': v.mapId, 'name': v.name,
+            'orientationX': v.orientation.x, 'orientationY': v.orientation.y, 'orientationZ': v.orientation.z,
+            'positionX': v.position.x, 'positionY': v.position.y, 'positionZ': v.position.z
+          });
+          headsetNamesList.push(v.name);
+        }
+        setHeadsets(fetchedHeadsets);
+        setHeadsetNames(headsetNamesList);
+      });
+    }
+
 
     // gets list of maps from server
     function get_maps() {
