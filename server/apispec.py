@@ -60,6 +60,13 @@ class MapFeatureSchema(Schema):
     style = fields.Nested(MapFeatureStyleSchema())
 
 
+class MapFeatureTypeSchema(Schema):
+    name = fields.Str()
+    fa_icon = fields.Str()
+    unicode = fields.Str()
+    description = fields.Str()
+
+
 class ImageUploadSchema(Schema):
     id = fields.Str()
     url = fields.Str()
@@ -107,6 +114,7 @@ spec.components.schema("Headset", schema=HeadsetSchema)
 spec.components.schema("HeadsetUpdate", schema=HeadsetUpdateSchema)
 spec.components.schema("Map", schema=MapSchema)
 spec.components.schema("MapFeature", schema=MapFeatureSchema)
+spec.components.schema("MapFeatureType", schema=MapFeatureTypeSchema)
 spec.components.schema("ImageUpload", schema=ImageUploadSchema)
 spec.components.schema("SurfaceFileInformation", schema=SurfaceFileInformationSchema)
 spec.components.schema("WorkItem", schema=WorkItem.Schema())
@@ -127,6 +135,7 @@ async def add_routes_to_spec():
 
         spec.path(view=maps_routes.get_all_maps)
         spec.path(view=maps_routes.show_map)
+        spec.path(view=maps_routes.list_map_feature_types)
         spec.path(view=maps_routes.list_map_features)
         spec.path(view=maps_routes.add_map_feature)
         spec.path(view=maps_routes.list_map_surfaces)

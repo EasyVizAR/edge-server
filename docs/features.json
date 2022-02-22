@@ -1,0 +1,62 @@
+[
+  {
+    "name": "fire",
+    "fa-icon": "fa-fire",
+    "unicode": "\ud83d\udd25",
+    "description": "fire detected"
+  },
+  {
+    "name": "warning",
+    "fa-icon": "fa-triangle-exclamation",
+    "unicode": "\u26a0",
+    "description": "safety warning"
+  },
+  {
+    "name": "injury",
+    "fa-icon": "fa-bandage",
+    "unicode": "\ud83e\ude79",
+    "description": "person with an injury"
+  },
+  {
+    "name": "door",
+    "fa-icon": "fa-door-closed",
+    "unicode": "\ud83d\udeaa",
+    "description": "door"
+  },
+  {
+    "name": "elevator",
+    "fa-icon": "fa-elevator",
+    "unicode": "\u2350",
+    "description": "elevator"
+  },
+  {
+    "name": "stairs",
+    "fa-icon": "fa-stairs",
+    "unicode": "\u250f",
+    "description": "stairs"
+  },
+  {
+    "name": "user",
+    "fa-icon": "fa-user",
+    "unicode": "\u263a",
+    "description": "team member"
+  },
+  {
+    "name": "object",
+    "fa-icon": "fa-square",
+    "unicode": "\u26f6",
+    "description": "object detected"
+  },
+  {
+    "name": "extinguisher",
+    "fa-icon": "fa-fire-extinguisher",
+    "unicode": "\ud83e\uddef",
+    "description": "fire extinguisher"
+  },
+  {
+    "name": "message",
+    "fa-icon": "fa-message",
+    "unicode": "\ud83d\udcac",
+    "description": "text message"
+  }
+]

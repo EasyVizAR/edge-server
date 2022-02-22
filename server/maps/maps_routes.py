@@ -29,6 +29,8 @@ example_view_box = {
     "height": 52.83971533602437,
 }
 
+map_features_file = "docs/features.json"
+
 
 def initialize_maps(app):
     """
@@ -195,6 +197,46 @@ async def show_map(map_id):
             HTTPStatus.NOT_FOUND)
     else:
         return jsonify(map), HTTPStatus.OK
+
+
+@maps.route('/maps/features', methods=['GET'])
+async def list_map_feature_types():
+    """
+    List map feature types
+    ---
+    get:
+        summary: List map feature types
+        description: List all types of map features that the server supports.
+            Each map feature type has a name, description, icon for the web view,
+            and eventually display information for the AR headset.
+        tags:
+          - maps
+        parameters:
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
+        responses:
+            200:
+                description: A list of map feature type definitions
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: MapFeatureTypeSchema
+    """
+
+    with open(map_features_file, "r") as source:
+        features = json.loads(source.read())
+
+    # Wrap the maps list if the caller requested an envelope.
+    query = request.args
+    if "envelope" in query:
+        result = {query.get("envelope"): features}
+    else:
+        result = features
+
+    return jsonify(result), HTTPStatus.OK
 
 
 @maps.route('/maps/<map_id>/features', methods=['GET'])
