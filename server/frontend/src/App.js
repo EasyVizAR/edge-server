@@ -375,7 +375,7 @@ function App() {
         console.log("Sending request to " + url);
         fetch(url, requestData)
             .then(response => {
-                window.location.reload(false);
+                //window.location.reload(false);
             }).then(data => {
             console.log("data: " + data);
         });
@@ -405,10 +405,11 @@ function App() {
                     body: JSON.stringify(headsets[x])
                 };
                 saveData(url, requestData);
+                headsetNames[x] = headsets[x]['name']
                 break;
             }
         }
-        onCancelHeadset(index);
+        onCancelHeadset(null, index);
         console.log("headset updated");
     }
 
