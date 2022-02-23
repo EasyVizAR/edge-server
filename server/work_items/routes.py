@@ -1,8 +1,10 @@
 import asyncio
+import os
 
 from http import HTTPStatus
 
 from quart import Blueprint, current_app, request, make_response, jsonify
+from werkzeug import exceptions
 
 from .models import WorkItem
 
@@ -64,7 +66,7 @@ async def list_work_items():
 
     # TODO: check authorization
 
-    items = WorkItem.get_all(**request.args)
+    items = WorkItem.find(**request.args)
 
     # Wait for new objects if the query returned no results and the caller
     # specified a wait timeout. If there are still no results, we return a 204
@@ -93,7 +95,16 @@ async def create_work_item():
     Create a WorkItem
     ---
     post:
-        description: Create a WorkItem
+        summary: Create a WorkItem
+        description: >-
+            Create a WorkItem
+
+            A work item should include data for the worker to process, which is
+            usually an image. The file may either be specified through a URL,
+            which the worker can download to process, or it can be uploaded
+            after creating the work item. If fileUrl is unspecified, then the
+            server will set fileUrl to an appropriate upload UR, and the caller
+            should upload the file using a PUT operation.
         tags:
           - work-items
         requestBody:
@@ -114,8 +125,77 @@ async def create_work_item():
 
     new_id = WorkItem.get_next_id()
     new_item = WorkItem(new_id, **body)
+
+    # The work item either needs to specify a fileUrl for the worker to
+    # process, or the caller will need to upload a file before the work item is
+    # ready to be processed.
+    if new_item.fileUrl is None:
+        if new_item.contentType == "image/jpeg":
+            extension = "jpeg"
+        elif new_item.contentType == "image/png":
+            extension = "png"
+        else:
+            error = "Unsupported content type ({})".format(new_item.contentType)
+            raise exceptions.BadRequest(description=error)
+
+        upload_file_name = "{}.{}".format(new_item.file_basename(), extension)
+        new_item.filePath = os.path.join(WorkItem.base_dir(), upload_file_name)
+
+        # Inform the caller where to upload the file.
+        new_item.fileUrl = "/work-items/{}".format(upload_file_name)
+
+    else:
+        new_item.status = "ready"
+
     new_item.save()
 
-    # TODO: Set Location header if file upload is expected.
-
     return jsonify(new_item), HTTPStatus.CREATED
+
+
+@work_items.route('/work-items/<filename>', methods=['PUT'])
+async def upload_work_item_file(filename):
+    """
+    Replace a WorkItem data file
+    ---
+    post:
+        summary: Replace a WorkItem data file
+        description: >-
+            Use this method to upload a data file such as an image to accompany
+            a work item. This should be used after creating a work item with an
+            empty fileUrl, in which case, after which the server will have
+            determined the work item ID and path for the data file.
+        tags:
+          - work-items
+        requestBody:
+            required: true
+            content:
+                image/jpeg: {}
+                image/png: {}
+        responses:
+            200:
+                description: The updated WorkItem object
+                content:
+                    application/json:
+                        schema: WorkItem
+    """
+    # TODO: Require authentication
+
+    work_item = None
+    for item in WorkItem.find():
+        if item.fileUrl == "/work-items/{}".format(filename):
+            work_item = item
+            break
+
+    if work_item is None:
+        raise exceptions.NotFound(description="No open work item found for file upload")
+    elif work_item.status != "created":
+        raise exceptions.BadRequest(description="Work item does not require a file upload")
+
+    body = await request.get_data()
+    with open(work_item.filePath, "wb") as output:
+        output.write(body)
+
+    work_item.status = "ready"
+    work_item.save()
+
+    return jsonify(work_item), HTTPStatus.CREATED

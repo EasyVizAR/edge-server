@@ -29,8 +29,12 @@ class WorkItem:
     on_create: ClassVar[list] = []
 
     @classmethod
-    def get_all(cls, **kwargs):
-        work_item_dir = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'work_items')
+    def base_dir(cls):
+        return os.path.join(current_app.config['VIZAR_DATA_DIR'], 'work_items')
+
+    @classmethod
+    def find(cls, **kwargs):
+        work_item_dir = cls.base_dir()
         os.makedirs(work_item_dir, exist_ok=True)
 
         query = dict(after=0, contentType=None, sourceType=None, status=None)
@@ -46,6 +50,17 @@ class WorkItem:
         return work_items
 
     @classmethod
+    def find_by_id(cls, i):
+        path = os.path.join(cls.base_dir(), self.file_name())
+
+        try:
+            with open(path, 'r') as source:
+                item = cls.Schema().loads(source.read())
+                return item
+        except:
+            return None
+
+    @classmethod
     def get_next_id(cls):
         next_id = cls.next_id
 
@@ -59,12 +74,22 @@ class WorkItem:
         cls.next_id = next_id + 1
         return next_id
 
-    def save(self):
-        work_item_dir = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'work_items')
-        os.makedirs(work_item_dir, exist_ok=True)
+    def file_basename(self):
+        return "{:08x}".format(self.id)
 
-        fname = "{:08x}.json".format(self.id)
-        path = os.path.join(work_item_dir, fname)
+    def file_name(self):
+        return "{}.json".format(self.file_basename)
+
+    def matches(self, query):
+        return self.id > int(query.get('after', 0)) and \
+                query.get('contentType') in (None, self.contentType) and \
+                query.get('sourceType') in (None, self.sourceType) and \
+                query.get('status') in (None, self.status)
+
+    def save(self):
+        work_item_dir = WorkItem.base_dir()
+        os.makedirs(work_item_dir, exist_ok=True)
+        path = os.path.join(work_item_dir, self.file_name())
 
         # Check if this is a new object.
         created = not os.path.exists(path)
@@ -86,12 +111,6 @@ class WorkItem:
 
             self.on_create.clear()
             self.on_create.extend(remaining_listeners)
-
-    def matches(self, query):
-        return self.id > int(query.get('after', 0)) and \
-                query.get('contentType') in (None, self.contentType) and \
-                query.get('sourceType') in (None, self.sourceType) and \
-                query.get('status') in (None, self.status)
 
     @classmethod
     async def wait_for_work_item(cls, **kwargs):
