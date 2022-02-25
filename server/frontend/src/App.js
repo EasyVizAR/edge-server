@@ -115,10 +115,12 @@ function App() {
             .then(data => {
                 var map_names = []
                 for (var key in data) {
-                    maps.push({'id': data[key]['id'], 'name': data[key]['name'], 'image': data[key]['image']});
+                    maps.push({'id': data[key]['id'], 'name': data[key]['name'], 'image': data[key]['image'], 'viewBox': data[key]['viewBox']});
                     var temp = {
+                        'id': data[key]['id'],
                         'name': data[key]['name'],
-                        'image': data[key]['image']
+                        'image': data[key]['image'],
+                        'viewBox': data[key]['viewBox']
                     }
                     map_names.push(temp)
                 }
@@ -255,11 +257,16 @@ function App() {
     }
 
     const convertVector2Scaled = (x, yy) => {
-        var xmin = -35.4423;
-        var ymin = -1.7768587228105028;
-        var width = 39.10819374001562;
-        var height = 52.83971533602437;
         var list = [];
+        var map = {};
+        for (var i = 0; i < maps.length; i++) {
+            if (maps[i]['id'] == selectedMap)
+                map = maps[i];
+        }
+        const xmin = map['viewBox'][0];
+        const ymin = map['viewBox'][1];
+        const width = map['viewBox'][2];
+        const height = map['viewBox'][3];
         list.push(document.getElementById('map-image').offsetWidth / width * (x - xmin));
         list.push(document.getElementById('map-image').offsetHeight / height * (yy - ymin));
 
@@ -267,11 +274,16 @@ function App() {
     }
 
     const convertScaled2Vector = (px, py) => {
-        var xmin = -35.4423;
-        var ymin = -1.7768587228105028;
-        var width = 39.10819374001562;
-        var height = 52.83971533602437;
         var list = [];
+        var map = {};
+        for (var i = 0; i < maps.length; i++) {
+            if (maps[i]['id'] == selectedMap)
+                map = maps[i];
+        }
+        const xmin = map['viewBox'][0];
+        const ymin = map['viewBox'][1];
+        const width = map['viewBox'][2];
+        const height = map['viewBox'][3];
         list.push((px * width / document.getElementById('map-image').offsetWidth + xmin));
         list.push((py * height / document.getElementById('map-image').offsetHeight + ymin));
 
