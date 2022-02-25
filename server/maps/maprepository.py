@@ -114,7 +114,7 @@ class Repository:
         url = f"{current_app.config['IMAGE_UPLOADS']}{intentId}.{img_type}"
         if intent == 'maps' and viewBox is not None:
             self.maps[intentId].viewBox = viewBox
-            filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'maps/',
+            filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], f"incidents/{self.incident_handler.current_incident}/maps/",
                                     str(intentId), "map.json")
             write_to_file(json.dumps(self.maps[intentId], cls=GenericJsonEncoder), filepath)
 

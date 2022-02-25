@@ -2,11 +2,20 @@ import {Button, Form, FloatingLabel, Row, Col, ButtonGroup} from 'react-bootstra
 import './NewFeature.css';
 import React from "react";
 import {useState, useEffect} from 'react';
-import {port} from "./App";
+import App, {port} from "./App";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { solid, regular, brands } from '@fortawesome/fontawesome-svg-core/import.macro'
 
 function NewFeature(props) {
+    const icons = ['fire', 'truck-medical', 'triangle-exclamation', 'bandage', 'door-closed', 'headset'];
+    const iconPaths = [];
+    iconPaths.push(solid('fire'));
+    iconPaths.push(solid('truck-medical'));
+    iconPaths.push(solid('triangle-exclamation'));
+    iconPaths.push(solid('bandage'));
+    iconPaths.push(solid('door-closed'));
+    iconPaths.push(solid('headset'));
+
     const state = {
         feature_name: "",
         placement_type: "",
@@ -75,13 +84,6 @@ function NewFeature(props) {
     function Icons() {
 
         // update icons here
-        const iconPaths = [];
-        iconPaths.push(solid('fire'));
-        iconPaths.push(solid('truck-medical'));
-        iconPaths.push(solid('triangle-exclamation'));
-        iconPaths.push(solid('bandage'));
-        iconPaths.push(solid('door-closed'));
-        iconPaths.push(solid('headset'));
 
         const marginCss = {
             marginBottom: "10px",
@@ -185,11 +187,10 @@ function NewFeature(props) {
                 "placement": "floating|surface|point",
                 "topOffset": "10%",
                 "leftOffset": "10%",
-                "icon": "/icons/fire32.png"
+                "icon": icons[iconIndex]
             }
         }
-        let mapID = "2e1a03e6-3d9d-11ec-a64a-0237d8a5e2fd";
-        let url = `http://${host}:${port}/maps/${mapID}/features`;
+        let url = `http://${host}:${port}/maps/${props.mapID}/features`;
         const requestData = {
             method: 'POST',
             headers: {

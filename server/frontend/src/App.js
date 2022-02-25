@@ -5,13 +5,35 @@ import NewFeature from './NewFeature.js'
 import 'reactjs-popup/dist/index.css';
 import React, {useState, useEffect} from 'react';
 import moment from 'moment';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { solid, regular, brands } from '@fortawesome/fontawesome-svg-core/import.macro'
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
+import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro'
+
+import fontawesome from '@fortawesome/fontawesome'
+import {faCheckSquare, faCoffee, faFire} from '@fortawesome/fontawesome-free-solid'
+import {
+    faBandage,
+    faDoorClosed,
+    faExclamationTriangle,
+    faHeadset,
+    faTruckMedical
+} from "@fortawesome/free-solid-svg-icons";
+
+fontawesome.library.add(faCheckSquare, faCoffee, faFire, faTruckMedical, faExclamationTriangle, faBandage, faDoorClosed, faHeadset);
 
 export const port = '5000'
 
+
 function App() {
-  const host = window.location.hostname;
+    const host = window.location.hostname;
+
+    const icons = ['fire', 'truck-medical', 'triangle-exclamation', 'bandage', 'door-closed', 'headset'];
+    const iconPaths = [];
+    iconPaths.push(solid('fire'));
+    iconPaths.push(solid('truck-medical'));
+    iconPaths.push(solid('triangle-exclamation'));
+    iconPaths.push(solid('bandage'));
+    iconPaths.push(solid('door-closed'));
+    iconPaths.push(solid('headset'));
 
     const buttonStyle = {
         marginBottom: "20px"
@@ -45,43 +67,44 @@ function App() {
     }, []);
 
     useEffect(() => {
-        console.log('Changes in features!!!');
     }, [features, setFeatures])
 
     useEffect(() => {
-      getHeadsets()
+        getHeadsets();
     }, []);
+
+    useEffect(() => {
+        setSelectedImage(getMapImage(selectedMap));
+    }, [selectedMap, setSelectedMap]);
 
 
     // time goes off every 10 seconds to refresh headset data
     useEffect(() => {
-      const timer = setTimeout(() => getHeadsets(), 1e4)
-      return () => clearTimeout(timer)
+        const timer = setTimeout(() => getHeadsets(), 1e4)
+        return () => clearTimeout(timer)
     })
 
 
     // function that sends request to server to get headset data
-    function getHeadsets(){
-      console.log('Headsets updated')
-      fetch(`http://${host}:${port}/headsets`)
-        .then(response => {
-            return response.json()
-        }).then(data => {
-        console.log(data);
-        var fetchedHeadsets = []
-        var headsetNamesList = []
-        for (var k in data) {
-          var v = data[k];
-          fetchedHeadsets.push({
-            'id': v.id, 'lastUpdate': v.lastUpdate, 'mapId': v.mapId, 'name': v.name,
-            'orientationX': v.orientation.x, 'orientationY': v.orientation.y, 'orientationZ': v.orientation.z,
-            'positionX': v.position.x, 'positionY': v.position.y, 'positionZ': v.position.z
-          });
-          headsetNamesList.push(v.name);
-        }
-        setHeadsets(fetchedHeadsets);
-        setHeadsetNames(headsetNamesList);
-      });
+    function getHeadsets() {
+        fetch(`http://${host}:${port}/headsets`)
+            .then(response => {
+                return response.json()
+            }).then(data => {
+            var fetchedHeadsets = []
+            var headsetNamesList = []
+            for (var k in data) {
+                var v = data[k];
+                fetchedHeadsets.push({
+                    'id': v.id, 'lastUpdate': v.lastUpdate, 'mapId': v.mapId, 'name': v.name,
+                    'orientationX': v.orientation.x, 'orientationY': v.orientation.y, 'orientationZ': v.orientation.z,
+                    'positionX': v.position.x, 'positionY': v.position.y, 'positionZ': v.position.z
+                });
+                headsetNamesList.push(v.name);
+            }
+            setHeadsets(fetchedHeadsets);
+            setHeadsetNames(headsetNamesList);
+        });
     }
 
 
@@ -106,6 +129,8 @@ function App() {
     }
 
     const onMapLoad = () => {
+        if (selectedMap == 'NULL')
+            return;
         var scaledWidth = document.getElementById('map-image').offsetWidth;
         var scaledHeight = document.getElementById('map-image').offsetHeight;
         var origWidth = document.getElementById('map-image').naturalWidth;
@@ -114,15 +139,16 @@ function App() {
         var widthScaling = 1
         var heightScaling = 1;
 
-        console.log(`scaledWidth=${scaledWidth}, scaledHeight=${scaledHeight}, origWidth=${origWidth}, origHeight=${origHeight}, widthScaling=${widthScaling}, heightScaling=${heightScaling}`);
-        console.log(`Fire: x=483=${(widthScaling * 483)}, y=836=${(heightScaling * 836)}`)
-        console.log(`Office: x=1406=${(widthScaling * 1406)}, y=133=${(heightScaling * 133)}`)
+        // console.log(`scaledWidth=${scaledWidth}, scaledHeight=${scaledHeight}, origWidth=${origWidth}, origHeight=${origHeight}, widthScaling=${widthScaling}, heightScaling=${heightScaling}`);
+        // console.log(`Fire: x=483=${(widthScaling * 483)}, y=836=${(heightScaling * 836)}`)
+        // console.log(`Office: x=1406=${(widthScaling * 1406)}, y=133=${(heightScaling * 133)}`)
 
-        console.log("onMapLoad");
         for (var i = 0; i < features.length; i++) {
             features[i]['scaledX'] = features[i]['positionX'] * widthScaling;
             features[i]['scaledZ'] = features[i]['positionZ'] * heightScaling;
             var element = document.getElementById(features[i]['id'])
+            if (element == null)
+                continue;
             element.style.left = features[i]['scaledX'];
             element.style.top = features[i]['scaledZ'];
         }
@@ -133,25 +159,25 @@ function App() {
                     return response.json();
                 }
             }).then(data => {
+
+            let fetchedFeatures = []
             if (data == undefined || data == null || data[0] === undefined) {
                 console.log("NO DATA FOR MAP")
-                return;
-            }
-            let fetchedFeatures = []
-            for (let i in data) {
-                let v = data[i];
+            } else {
+                for (let i in data) {
+                    let v = data[i];
 
-                fetchedFeatures.push({
-                    'id': v.id,
-                    'name': v.name,
-                    'positionX': v.position.x,
-                    'positionY': v.position.y,
-                    'positionZ': v.position.z,
-                    'icon': v.style.icon,
-                    'scaledX': convertVector2Scaled(v.position.x, v.position.x)[0],
-                    'scaledY': convertVector2Scaled(v.position.x, v.position.z)[1]
-                });
-                console.log(`Headset: ${v.position.x * widthScaling}, ${v.position.x * widthScaling}`);
+                    fetchedFeatures.push({
+                        'id': v.id,
+                        'name': v.name,
+                        'positionX': v.position.x,
+                        'positionY': v.position.y,
+                        'positionZ': v.position.z,
+                        'scaledX': convertVector2Scaled(v.position.x, v.position.x)[0],
+                        'scaledY': convertVector2Scaled(v.position.x, v.position.z)[1],
+                        'iconValue': v.style.icon
+                    });
+                }
             }
             // setFeatures(fetchedFeatures);
 
@@ -177,7 +203,7 @@ function App() {
                             'positionZ': v.position.z,
                             'scaledX': convertVector2Scaled(v.position.x, v.position.z)[0],
                             'scaledY': convertVector2Scaled(v.position.x, v.position.z)[1],
-                            'icon': '/icons/headset24.png'
+                            'iconValue': 'headset'
                         });
                     }
                     headsetNamesList.push(v.name);
@@ -193,31 +219,34 @@ function App() {
     }
 
     const getMapImage = (mapId) => {
-        return "http://pages.cs.wisc.edu/~hartung/easyvizar/seventhfloor.png";
-        if ("2e1a03e6-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
-            return `http://${host}:${port}/uploads/seventhfloor.png`;
-        } else if ("0a820028-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
-            return "https://media.istockphoto.com/photos/dramatic-sunset-over-a-quiet-lake-picture-id1192051826?k=20&m=1192051826&s=612x612&w=0&h=9HyN74dQTBcTZXB7g-BZp6mXV3upTgSvIav0x7hLm-I=";
-        } else {
-            return "http://pages.cs.wisc.edu/~hartung/easyvizar/seventhfloor.png";
+        var map = null;
+        for (var i = 0; i < maps.length; i++) {
+            if (maps[i].id == mapId) {
+                map = maps[i];
+                break;
+            }
         }
+        if (map == null)
+            return '';
+
+        return `http://${host}:${port}/${map['image']}`;
+        // return "http://pages.cs.wisc.edu/~hartung/easyvizar/seventhfloor.png";
+        // if ("2e1a03e6-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
+        //     return `http://${host}:${port}/uploads/seventhfloor.png`;
+        // } else if ("0a820028-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
+        //     return "https://media.istockphoto.com/photos/dramatic-sunset-over-a-quiet-lake-picture-id1192051826?k=20&m=1192051826&s=612x612&w=0&h=9HyN74dQTBcTZXB7g-BZp6mXV3upTgSvIav0x7hLm-I=";
+        // } else {
+        //     return "http://pages.cs.wisc.edu/~hartung/easyvizar/seventhfloor.png";
+        // }
     }
 
     const handleMapSelection = (e, o) => {
-        console.log('e: ' + e);
         setSelectedMap(e);
-        setSelectedImage(getMapImage(e));
-        fetch(`http://${host}:${port}/maps`)
-            .then(response => response.json())
-            .then(data => {
-                onMapLoad();
-                console.log(data);
-            })
     }
 
     const getDefaultMapSelection = () => {
         if (maps.length == 0)
-            return 'cs-5';
+            return 'NULL';
         return maps[0]['id'];
     }
 
@@ -260,14 +289,6 @@ function App() {
             return;
 
         // update icons here
-        const iconPaths = [];
-        iconPaths.push(solid('fire'));
-        iconPaths.push(solid('truck-medical'));
-        iconPaths.push(solid('triangle-exclamation'));
-        iconPaths.push(solid('bandage'));
-        iconPaths.push(solid('door-closed'));
-        iconPaths.push(solid('headset'));
-
         console.log(`x=${e.clientX - e.target.x}, y=${e.clientY - e.target.y}`);
         let scaledWidth = document.getElementById('map-image').offsetWidth;
         let scaledHeight = document.getElementById('map-image').offsetHeight;
@@ -325,7 +346,6 @@ function App() {
         //         "icon": "/icons/fire32.png"
         //     }
         // };
-
 
 
         // const requestData = {
@@ -546,33 +566,33 @@ function App() {
 
     // checks if an image associated with a map already exists
     function checkMapImage(image, id) {
-      for (var x in maps) {
-        if (maps[x]['image'] === image && maps[x]['id'] != id) {
-          return true;
+        for (var x in maps) {
+            if (maps[x]['image'] === image && maps[x]['id'] != id) {
+                return true;
+            }
         }
-      }
-      return false;
+        return false;
     }
 
     // checks if a map name already exists
     function checkMapName(name, id) {
-      for (var x in maps) {
-        if (maps[x]['name'] === name && maps[x]['id'] != id) {
-          console.log(maps[x]['name'] + '.............' + maps[x]['id'])
-          return true;
+        for (var x in maps) {
+            if (maps[x]['name'] === name && maps[x]['id'] != id) {
+                console.log(maps[x]['name'] + '.............' + maps[x]['id'])
+                return true;
+            }
         }
-      }
-      return false;
+        return false;
     }
 
     // check if a headset name already exists
     function checkHeadsetName(name, id) {
-      for (var x in headsets) {
-        if (headsets[x]['name'] == name && headsets[x]['id'] != id) {
-          return true;
+        for (var x in headsets) {
+            if (headsets[x]['name'] == name && headsets[x]['id'] != id) {
+                return true;
+            }
         }
-      }
-      return false;
+        return false;
     }
 
     const toggleCursor = (e) => {
@@ -649,38 +669,42 @@ function App() {
     }
 
     // code that creates the trash icons
-   function TrashIcon(props) {
-      const item = props.item;
-      const itemId = props.id;
-      const itemName = props.name;
+    function TrashIcon(props) {
+        const item = props.item;
+        const itemId = props.id;
+        const itemName = props.name;
 
-      if (item == 'headset'){
-        return (
-          <button style={{width: "30px", height: "30px"}} className='btn-danger' onClick={(e) => deleteHeadset(itemId, itemName)} title="Delete Headset">
-            <FontAwesomeIcon icon={solid('trash-can')} size="lg" style={{position: 'relative', right: '1.5px', top: '-1px'}}/>
-          </button>
-        );
-      }else{
-        return (
-          <button style={{width: "30px", height: "30px"}} className='btn-danger' onClick={(e) => deleteMap(itemId, itemName)} title="Delete Map">
-            <FontAwesomeIcon icon={solid('trash-can')} size="lg" style={{position: 'relative', right: '1.5px', top: '-1px'}}/>
-          </button>
-        );
-      }
+        if (item == 'headset') {
+            return (
+                <button style={{width: "30px", height: "30px"}} className='btn-danger'
+                        onClick={(e) => deleteHeadset(itemId, itemName)} title="Delete Headset">
+                    <FontAwesomeIcon icon={solid('trash-can')} size="lg"
+                                     style={{position: 'relative', right: '1.5px', top: '-1px'}}/>
+                </button>
+            );
+        } else {
+            return (
+                <button style={{width: "30px", height: "30px"}} className='btn-danger'
+                        onClick={(e) => deleteMap(itemId, itemName)} title="Delete Map">
+                    <FontAwesomeIcon icon={solid('trash-can')} size="lg"
+                                     style={{position: 'relative', right: '1.5px', top: '-1px'}}/>
+                </button>
+            );
+        }
     }
 
-    function createNewIncident(){
-      const requestData = {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      };
-      const url = `http://${host}:${port}/incidents/create`;
-      fetch(url.toString(), requestData).then(response => {
-        console.log("Incident created");
-        alert('Starting new incident');
-      });
+    function createNewIncident() {
+        const requestData = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        };
+        const url = `http://${host}:${port}/incidents/create`;
+        fetch(url.toString(), requestData).then(response => {
+            console.log("Incident created");
+            alert('Starting new incident');
+        });
     }
 
     return (
@@ -712,10 +736,11 @@ function App() {
                                 onClick={(e) => showFeature(e)}>Add Feature</Button>
                     </div>
 
-                    <div className="header-button new-incident-btn" style={{position: "absolute", right: "0", paddingRight: "20px"}}>
-                      <Button variant="primary" onClick={createNewIncident}>
+                    <div className="header-button new-incident-btn"
+                         style={{position: "absolute", right: "0", paddingRight: "20px"}}>
+                        <Button variant="primary" onClick={createNewIncident}>
                             New Incident
-                      </Button>
+                        </Button>
                     </div>
                 </div>
                 <hr/>
@@ -727,8 +752,8 @@ function App() {
                     <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
                          onClick={onMouseClick} style={{cursor: cursor}}/>
                     {features.map((f, index) => {
-                        return <FontAwesomeIcon icon={f.iconValue} className="features" id={f.id}  alt={f.name}
-                                    style={{left: features[index].scaledX, top: features[index].scaledY}}/>
+                        return <FontAwesomeIcon icon={f.iconValue} className="features" id={f.id} alt={f.name}
+                                                style={{left: features[index].scaledX, top: features[index].scaledY}}/>
                     })}
                 </div>
                 <div>
