@@ -126,7 +126,8 @@ class Repository:
 
         feature = Feature(name, mapId, style, id=id)
 
-        if position is not None:
+        # add position if the placement of the feature is point
+        if style.get('placement') == 'point':
             feature.position['x'] = position['x']
             feature.position['y'] = position['y']
             feature.position['z'] = position['z']

@@ -48,7 +48,8 @@ function NewFeature(props) {
     const [x_pos, setX] = useState(null);
     const [y_pos, setY] = useState(null);
     const [z_pos, setZ] = useState(null);
-    const [offset_percent, setOffPer] = useState("0");
+    const [top_offset_percent, setTopOffPer] = useState("0");
+    const [left_offset_percent, setLeftOffPer] = useState("0");
     const [placement_location, setPlacementLoc] = useState(null);
     const [coord_location, setCoordLocation] = useState(null);
     const [posStyle, setPosStyle] = useState(hideDisplay);
@@ -74,7 +75,8 @@ function NewFeature(props) {
             x: x_pos,
             y: y_pos,
             z: z_pos,
-            offset: offset_percent,
+            top_offset: top_offset_percent,
+            left_offset: left_offset_percent,
             placement_location: placement_location,
             coord_location: coord_location,
             icon: iconIndex
@@ -109,43 +111,45 @@ function NewFeature(props) {
 
         let val = e.target.value;
         switch (type) {
-            case "feature-name":
-                setName(val);
-                //console.log("feature-name: " + feature_name);
-                break;
-            case "placement-type":
-                setPlacement(val);
-                hideAllSections();
-                if (val === "point") {
-                    console.log("point");
-                    setPosStyle(displayflex);
-                    setCoordStyle(showDisplay);
-                } else if (val == "floating" || val == "surface") {
-                    console.log("not point");
-                    setOffsetPerStyle(showDisplay);
-                }
-                break;
-            case "offset-percent":
-                setOffPer(val);
-                break;
-            case "point-x":
-                setX(val);
-                break;
-            case "point-y":
-                setY(val);
-                break;
-            case "point-z":
-                setZ(val);
-                break;
-            case "placement-location":
-                setPlacementLoc(val);
-                break;
-            case "coord-location":
-                setCoordLocation(val);
-                break;
-            default:
-                console.warn('Bad type');
-                return null;
+          case "feature-name":
+            setName(val);
+            break;
+          case "placement-type":
+            setPlacement(val);
+            hideAllSections();
+            if (val === "point") {
+                console.log("point");
+                setPosStyle(displayflex);
+                setCoordStyle(showDisplay);
+            } else if (val == "floating" || val == "surface") {
+                console.log("not point");
+                setOffsetPerStyle(showDisplay);
+            }
+            break;
+          case "left-offset-percent":
+            setLeftOffPer(val);
+            break;
+          case "top-offset-percent":
+            setTopOffPer(val);
+            break;
+          case "point-x":
+            setX(val);
+            break;
+          case "point-y":
+            setY(val);
+            break;
+          case "point-z":
+            setZ(val);
+            break;
+          case "placement-location":
+            setPlacementLoc(val);
+            break;
+          case "coord-location":
+            setCoordLocation(val);
+            break;
+          default:
+            console.warn('Bad type');
+            return null;
         }
         updateForm({
             feature_name: feature_name,
@@ -153,7 +157,8 @@ function NewFeature(props) {
             x: x_pos,
             y: y_pos,
             z: z_pos,
-            offset: offset_percent,
+            top_offset: top_offset_percent,
+            left_offset: left_offset_percent,
             placement_location: placement_location,
             coord_location: coord_location,
             icon: iconIndex
@@ -184,12 +189,13 @@ function NewFeature(props) {
             },
             "mapID": props.mapID,
             "style": {
-                "placement": "floating|surface|point",
-                "topOffset": "10%",
-                "leftOffset": "10%",
+                "placement": placement_type,
+                "topOffset": top_offset_percent,
+                "leftOffset": left_offset_percent,
                 "icon": icons[iconIndex]
             }
         }
+        console.log(new_feature)
         let url = `http://${host}:${port}/maps/${props.mapID}/features`;
         const requestData = {
             method: 'POST',
@@ -241,12 +247,24 @@ function NewFeature(props) {
                             </FloatingLabel>
                         </Form.Group>
 
-                        <Form.Group className="mb-3" controlId="offset-percent" style={offsetPerStyle}>
-                            <FloatingLabel controlId="offset-percent" label="Offset (%)">
-                                <Form.Control type="number" max="100" min="0" defaultValue="0" placeholder="Offset (%)"
-                                              name="offset-percent" onChange={(e) => updateState(e, "offset-percent")}/>
-                            </FloatingLabel>
-                        </Form.Group>
+                        <Row className="mb-3" style={offsetPerStyle}>
+                          <Col>
+                            <Form.Group className="mb-3" controlId="top-offset-percent" style={offsetPerStyle}>
+                              <FloatingLabel controlId="top-offset-percent" label="Top Offset (%)">
+                                <Form.Control type="number" max="100" min="0" defaultValue="0" placeholder="Top Offset (%)"
+                                              name="top-offset-percent" onChange={(e) => updateState(e, "top-offset-percent")}/>
+                              </FloatingLabel>
+                            </Form.Group>
+                          </Col>
+                          <Col>
+                            <Form.Group className="mb-3" controlId="left-offset-percent" style={offsetPerStyle}>
+                              <FloatingLabel controlId="left-offset-percent" label="Left Offset (%)">
+                                <Form.Control type="number" max="100" min="0" defaultValue="0" placeholder="Left Offset (%)"
+                                              name="left-offset-percent" onChange={(e) => updateState(e, "left-offset-percent")}/>
+                              </FloatingLabel>
+                            </Form.Group>
+                          </Col>
+                        </Row>
 
                         <Form.Group className="mb-3" controlId="coord-location" style={coordStyle}>
                             <FloatingLabel controlId="coord-location" label="Placement Location">
