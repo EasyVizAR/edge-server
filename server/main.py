@@ -10,7 +10,9 @@ from server.work_items.routes import work_items
 from server.routes import routes
 from server.utils.utils import GenericJsonEncoder
 
-app = Quart(__name__, static_folder='./frontend/build/', static_url_path='/')
+static_folder = os.environ.get("VIZAR_STATIC_FOLDER", "./frontend/build/")
+
+app = Quart(__name__, static_folder=static_folder, static_url_path='/')
 app = cors(app)
 
 app.json_encoder = GenericJsonEncoder

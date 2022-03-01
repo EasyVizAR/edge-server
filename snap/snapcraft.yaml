@@ -1,0 +1,44 @@
+name: easyvizar-edge
+base: core20
+version: "0.1"
+summary: Central point for coordinating EasyVizAR headsets
+description: |
+  This module coordinates interactions between multiple AR headsets, collects
+  map and position changes from them, and disseminates important updates to all
+  of the headsets. The primary functionality is exposed through an HTTP-based
+  API and web interface.
+
+grade: stable
+confinement: strict
+
+apps:
+  server:
+    command: bin/server
+    daemon: simple
+    environment:
+      VIZAR_DATA_DIR: $SNAP_DATA
+      VIZAR_STATIC_FOLDER: $SNAP/frontend/build
+      VIZAR_HOST: 0.0.0.0
+    plugs:
+      - network
+      - network-bind
+
+parts:
+  frontend:
+    plugin: nil
+    source: server/frontend
+    build-packages:
+      - npm
+    override-build: |
+      npm install
+      npm run build
+      mkdir -p $SNAPCRAFT_PART_INSTALL/frontend
+      cp -rv build $SNAPCRAFT_PART_INSTALL/frontend/
+
+  server:
+    plugin: python
+    source: .
+    stage-packages:
+      - python3
+    requirements:
+      - requirements.txt
