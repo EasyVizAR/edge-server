@@ -9,16 +9,24 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro'
 
 import fontawesome from '@fortawesome/fontawesome'
-import {faCheckSquare, faCoffee, faFire} from '@fortawesome/fontawesome-free-solid'
 import {
     faBandage,
     faDoorClosed,
+    faElevator,
     faExclamationTriangle,
+    faFire,
+    faFireExtinguisher,
     faHeadset,
-    faTruckMedical
+    faMessage,
+    faSquare,
+    faStairs,
+    faTruckMedical,
+    faUser,
 } from "@fortawesome/free-solid-svg-icons";
 
-fontawesome.library.add(faCheckSquare, faCoffee, faFire, faTruckMedical, faExclamationTriangle, faBandage, faDoorClosed, faHeadset);
+fontawesome.library.add(faBandage, faDoorClosed, faElevator,
+    faExclamationTriangle, faFire, faFireExtinguisher, faHeadset, faMessage,
+    faSquare, faStairs, faTruckMedical, faUser);
 
 export const port = '5000'
 
@@ -26,14 +34,19 @@ export const port = '5000'
 function App() {
     const host = window.location.hostname;
 
-    const icons = ['fire', 'truck-medical', 'triangle-exclamation', 'bandage', 'door-closed', 'headset'];
-    const iconPaths = [];
-    iconPaths.push(solid('fire'));
-    iconPaths.push(solid('truck-medical'));
-    iconPaths.push(solid('triangle-exclamation'));
-    iconPaths.push(solid('bandage'));
-    iconPaths.push(solid('door-closed'));
-    iconPaths.push(solid('headset'));
+    // Map feature type -> FA icon
+    const icons = {
+        fire: solid('fire'),
+        warning: solid('triangle-exclamation'),
+        injury: solid('bandage'),
+        door: solid('door-closed'),
+        elevator: solid('elevator'),
+        stairs: solid('stairs'),
+        user: solid('user'),
+        object: solid('square'),
+        extinguisher: solid('fire-extinguisher'),
+        message: solid('message'),
+    }
 
     const buttonStyle = {
         marginBottom: "20px"
@@ -60,7 +73,7 @@ function App() {
     const [headsetNames, setHeadsetNames] = useState([]);
     const [mapNames, setMapNames] = useState([]);
     const [clickCount, setClickCount] = useState(0);
-    const [iconIndex, setIconIndex] = useState(-1);
+    const [iconIndex, setIconIndex] = useState(null);
 
     useEffect(() => {
         get_maps();
@@ -177,7 +190,7 @@ function App() {
                         'positionZ': v.position.z,
                         'scaledX': convertVector2Scaled(v.position.x, v.position.x)[0],
                         'scaledY': convertVector2Scaled(v.position.x, v.position.z)[1],
-                        'iconValue': v.style.icon
+                        'iconValue': v.type
                     });
                 }
             }
@@ -205,7 +218,7 @@ function App() {
                             'positionZ': v.position.z,
                             'scaledX': convertVector2Scaled(v.position.x, v.position.z)[0],
                             'scaledY': convertVector2Scaled(v.position.x, v.position.z)[1],
-                            'iconValue': 'headset'
+                            'iconValue': 'user'
                         });
                     }
                     headsetNamesList.push(v.name);
@@ -328,7 +341,7 @@ function App() {
             scaledX: e.clientX - e.target.getBoundingClientRect().left,
             scaledY: e.clientY - e.target.getBoundingClientRect().top,
             icon: crossHairIcon,
-            iconValue: iconPaths[iconIndex]
+            iconValue: icons[iconIndex]
         });
 
         setFeatures(f);

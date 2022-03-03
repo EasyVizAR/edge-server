@@ -49,12 +49,12 @@ class MapFeatureStyleSchema(Schema):
     placement = fields.Str()
     topOffset = fields.Float()
     leftOffset = fields.Float()
-    icon = fields.Str()
 
 
 class MapFeatureSchema(Schema):
     id = fields.Str()
     name = fields.Str()
+    type = fields.Str()
     position = fields.Nested(VectorSchema())
     mapID = fields.Str()
     style = fields.Nested(MapFeatureStyleSchema())

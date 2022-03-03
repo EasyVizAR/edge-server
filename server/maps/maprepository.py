@@ -37,12 +37,13 @@ class Map:
 
 
 class Feature:
-    def __init__(self, name, mapId, style, id=None, position=None):
+    def __init__(self, name, ftype, mapId, style, id=None, position=None):
         if id is None:
             self.id = str(uuid.uuid4())
         else:
             self.id = id
         self.name = name
+        self.type = ftype
         if position is not None:
             self.position = {
                 'x': position['x'],
@@ -59,8 +60,7 @@ class Feature:
         self.style = {
             "placement": style['placement'],
             "topOffset": style['topOffset'],
-            "leftOffset": style['leftOffset'],
-            "icon": style['icon']
+            "leftOffset": style['leftOffset']
         }
 
 
@@ -103,7 +103,7 @@ class Repository:
                 if len(features) > 0:
                     for feature in features:
                         print(feature.keys())
-                        feature_obj = Feature(feature['name'], feature['mapId'], feature['style'],
+                        feature_obj = Feature(feature['name'], feature['type'], feature['mapId'], feature['style'],
                                               id=feature['id'], position=feature['position'])
                         feature_list.append(feature_obj)
                 self.features[map['id']] = feature_list
@@ -120,11 +120,11 @@ class Repository:
 
         return {'id': intentId, 'url': url, 'intent': intent, 'data': data, 'type': type, 'viewBox': viewBox}
 
-    def add_feature(self, id, name, mapId, style, position=None):
+    def add_feature(self, id, name, ftype, mapId, style, position=None):
         if mapId not in self.maps.keys():
             return None
 
-        feature = Feature(name, mapId, style, id=id)
+        feature = Feature(name, ftype, mapId, style, id=id)
 
         # add position if the placement of the feature is point
         if style.get('placement') == 'point':

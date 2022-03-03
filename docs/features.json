@@ -58,5 +58,17 @@
     "fa-icon": "fa-message",
     "unicode": "\ud83d\udcac",
     "description": "text message"
+  },
+  {
+    "name": "headset",
+    "fa-icon": "fa-headset",
+    "unicode": "H",
+    "description": "headset"
+  },
+  {
+    "name": "ambulance",
+    "fa-icon": "fa-truck-medical",
+    "unicode": "\ud83e\uddc0",
+    "description": "ambulance"
   }
 ]
