@@ -40,19 +40,9 @@ def initialize_maps(app):
     does not exist. This may make starting up a new system easier.
     """
 
-    # init incidents handler if it is not already
-    incident_handler = init_incidents_handler(app=app)
-    curr_incident = incident_handler.current_incident
-
     maps_repo = get_map_repository()
     maps_dir = maps_repo.get_base_dir()
     os.makedirs(maps_dir, exist_ok=True)
-
-    if not os.path.exists(os.path.join(maps_dir, 'current')):
-        map_id = str(generate_new_id())
-        maps_repo.add_map(map_id, 'New Map', example_image_url, viewBox=example_view_box)
-
-        os.symlink(map_id, os.path.join(maps_dir, 'current'), target_is_directory=True)
 
 
 def open_maps_dir():
