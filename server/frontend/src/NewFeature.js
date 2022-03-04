@@ -7,14 +7,21 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { solid, regular, brands } from '@fortawesome/fontawesome-svg-core/import.macro'
 
 function NewFeature(props) {
-    const icons = ['fire', 'truck-medical', 'triangle-exclamation', 'bandage', 'door-closed', 'headset'];
-    const iconPaths = [];
-    iconPaths.push(solid('fire'));
-    iconPaths.push(solid('truck-medical'));
-    iconPaths.push(solid('triangle-exclamation'));
-    iconPaths.push(solid('bandage'));
-    iconPaths.push(solid('door-closed'));
-    iconPaths.push(solid('headset'));
+    // Map feature type -> FA icon
+    const icons = {
+        fire: solid('fire'),
+        warning: solid('triangle-exclamation'),
+        injury: solid('bandage'),
+        door: solid('door-closed'),
+        elevator: solid('elevator'),
+        stairs: solid('stairs'),
+        user: solid('user'),
+        object: solid('square'),
+        extinguisher: solid('fire-extinguisher'),
+        message: solid('message'),
+        headset: solid('headset'),
+        ambulance: solid('truck-medical'),
+    }
 
     const state = {
         feature_name: "",
@@ -25,7 +32,7 @@ function NewFeature(props) {
         offset: null,
         placement_location: null,
         coord_location: null,
-        icon: -1,
+        icon: null,
     }
 
     const hideDisplay = {
@@ -55,7 +62,7 @@ function NewFeature(props) {
     const [posStyle, setPosStyle] = useState(hideDisplay);
     const [coordStyle, setCoordStyle] = useState(hideDisplay);
     const [offsetPerStyle, setOffsetPerStyle] = useState(hideDisplay);
-    const [iconIndex, changeIcon] = useState(-1);
+    const [feature_type, changeIcon] = useState(null);
 
     const [placementType, setPlacementType] = useState('');
     const [mapMode, setMapMode] = useState(false);
@@ -79,7 +86,7 @@ function NewFeature(props) {
             left_offset: left_offset_percent,
             placement_location: placement_location,
             coord_location: coord_location,
-            icon: iconIndex
+            icon: feature_type
         });
     }
 
@@ -92,10 +99,10 @@ function NewFeature(props) {
             marginLeft: "10px"
         }
 
-        const listItems = iconPaths.map((local_icon, index) =>
+        const listItems = Object.keys(icons).map((name, index) =>
             <Col style={{display:"flex", flexDirection:"row"}}>
-                <input checked={iconIndex==index} onClick={(e) => setIcon(index)} type='radio' name='feature-icon' style={{marginRight: '5px'}}/>
-                <FontAwesomeIcon icon={local_icon} size="lg"/>
+                <input checked={feature_type==name} onClick={(e) => setIcon(name)} type='radio' name='feature-icon' style={{marginRight: '5px'}}/>
+                <FontAwesomeIcon icon={icons[name]} size="lg"/>
             </Col>
         );
         return (
@@ -161,7 +168,7 @@ function NewFeature(props) {
             left_offset: left_offset_percent,
             placement_location: placement_location,
             coord_location: coord_location,
-            icon: iconIndex
+            icon: feature_type
         });
         console.log(formVal);
     }
@@ -182,6 +189,7 @@ function NewFeature(props) {
         let formData = formVal;
         const new_feature = {
             "name": feature_name,
+            "type": feature_type,
             "position": {
                 "x": props.pointCoordinates[0],
                 "y": props.pointCoordinates[1],
@@ -191,8 +199,7 @@ function NewFeature(props) {
             "style": {
                 "placement": placement_type,
                 "topOffset": top_offset_percent,
-                "leftOffset": left_offset_percent,
-                "icon": icons[iconIndex]
+                "leftOffset": left_offset_percent
             }
         }
         console.log(new_feature)
