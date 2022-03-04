@@ -20,11 +20,11 @@ import {
 
 fontawesome.library.add(faCheckSquare, faCoffee, faFire, faTruckMedical, faExclamationTriangle, faBandage, faDoorClosed, faHeadset);
 
-export const port = '5000'
+export const port = '5003'
 
 
 function App() {
-    const host = window.location.hostname;
+    const host = 'localhost';
 
     const icons = ['fire', 'truck-medical', 'triangle-exclamation', 'bandage', 'door-closed', 'headset'];
     const iconPaths = [];
@@ -43,9 +43,11 @@ function App() {
     const [features, setFeatures] = useState([]);
     const [selectedImage, setSelectedImage] = useState('');
     const [headsets, setHeadsets] = useState([]);
+    const [combinedMapObjects, setCombinedMapObjects] = useState([]);
     const [maps, setMaps] = useState([]);
     const [popUpClass, displayModal] = useState(false);
     const [showNewMap, showMap] = useState(false);
+    const [mapLoaded, setMapLoaded] = useState(false);
     const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
     const [inEditModeMap, setInEditModeMap] = useState({
         status: false,
@@ -61,13 +63,23 @@ function App() {
     const [mapNames, setMapNames] = useState([]);
     const [clickCount, setClickCount] = useState(0);
     const [iconIndex, setIconIndex] = useState(-1);
+    const [headsetsChecked, setHeadsetsChecked] = useState(false);
+    const [featuresChecked, setFeaturesChecked] = useState(false);
 
     useEffect(() => {
         get_maps();
     }, []);
 
     useEffect(() => {
-    }, [features, setFeatures])
+        combineMapObjects();
+    }, [features, setFeatures]);
+
+    useEffect(() => {
+    }, [combinedMapObjects, setCombinedMapObjects]);
+
+    useEffect(() => {
+        combineMapObjects();
+    }, [headsets, setHeadsets])
 
     useEffect(() => {
         getHeadsets();
@@ -82,8 +94,63 @@ function App() {
     useEffect(() => {
         const timer = setTimeout(() => getHeadsets(), 1e4)
         return () => clearTimeout(timer)
-    })
+    });
 
+    useEffect(() => {
+        combineMapObjects();
+    }, [featuresChecked, setFeaturesChecked]);
+
+    useEffect(() => {
+        combineMapObjects();
+    }, [headsetsChecked, setHeadsetsChecked]);
+
+    const changeMapObjects = (e, v) => {
+
+    };
+
+    const changeMapObjectsContainer  = (e) => {
+        if (e.target.id == 'features-switch') {
+            setFeaturesChecked(e.target.checked);
+        }
+        if (e.target.id == 'headsets-switch') {
+            setHeadsetsChecked(e.target.checked);
+        }
+        console.log(e);
+    };
+
+    const combineMapObjects = () => {
+        if (!mapLoaded)
+            return;
+        var combinedMapObjectList = [];
+
+        if (featuresChecked)
+            for (const i in features) {
+                const v = features[i];
+                combinedMapObjectList.push({
+                    'id': v.id,
+                    'mapId': v.mapId,
+                    'name': v.name,
+                    'scaledX': convertVector2Scaled(v.positionX, v.positionZ)[0],
+                    'scaledY': convertVector2Scaled(v.positionX, v.positionZ)[1],
+                    'iconValue': v.iconValue
+                });
+            }
+
+        if (headsetsChecked)
+            for (const i in headsets) {
+                const v = headsets[i];
+                combinedMapObjectList.push({
+                    'id': v.id,
+                    'mapId': v.mapId,
+                    'name': v.name,
+                    'scaledX': convertVector2Scaled(v.positionX, v.positionZ)[0],
+                    'scaledY': convertVector2Scaled(v.positionY, v.positionZ)[1],
+                    'iconValue': 'headset'
+                });
+            }
+
+        setCombinedMapObjects(combinedMapObjectList);
+    }
 
     // function that sends request to server to get headset data
     function getHeadsets() {
@@ -96,14 +163,21 @@ function App() {
             for (var k in data) {
                 var v = data[k];
                 fetchedHeadsets.push({
-                    'id': v.id, 'lastUpdate': v.lastUpdate, 'mapId': v.mapId, 'name': v.name,
-                    'orientationX': v.orientation.x, 'orientationY': v.orientation.y, 'orientationZ': v.orientation.z,
-                    'positionX': v.position.x, 'positionY': v.position.y, 'positionZ': v.position.z
+                    'id': v.id,
+                    'lastUpdate': v.lastUpdate,
+                    'mapId': v.mapId,
+                    'name': v.name,
+                    'orientationX': v.orientation.x,
+                    'orientationY': v.orientation.y,
+                    'orientationZ': v.orientation.z,
+                    'positionX': v.position.x,
+                    'positionY': v.position.y,
+                    'positionZ': v.position.z
                 });
-                headsetNamesList.push(v.name);
+                headsetNamesList.push(v.name); // TODO: Question: why do we need this names list?
             }
             setHeadsets(fetchedHeadsets);
-            setHeadsetNames(headsetNamesList);
+            setHeadsetNames(headsetNamesList); // TODO: Question: why do we need this names list?
         });
     }
 
@@ -114,17 +188,28 @@ function App() {
             .then(response => response.json())
             .then(data => {
                 var map_names = []
+                // var fetchedMaps = [];
                 for (var key in data) {
-                    maps.push({'id': data[key]['id'], 'name': data[key]['name'], 'image': data[key]['image'], 'viewBox': data[key]['viewBox']});
+                    // fetchedMaps.push({'id': data[key]['id'], 'name': data[key]['name'], 'image': data[key]['image'], 'viewBox': data[key]['viewBox']});
+                    maps.push({
+                        'id': data[key]['id'],
+                        'name': data[key]['name'],
+                        'image': data[key]['image'],
+                        'viewBox': data[key]['viewBox']
+                    });
                     var temp = {
                         'id': data[key]['id'],
                         'name': data[key]['name'],
                         'image': data[key]['image'],
                         'viewBox': data[key]['viewBox']
                     }
-                    map_names.push(temp)
+                    map_names.push(temp) // TODO: Question: why do we need this names list?
                 }
-                setMapNames(map_names)
+                // setMaps(fetchedMaps); // TODO: Question: this is causing issues in  mapNames[index]['name'] in maps.map
+                //  TODO: Question: because maps are refreshed but mapNames takes time. We should use the same state object in if-else in the HTML
+                setMapNames(map_names) // TODO: Question: why do we need this names list?
+                setSelectedMap(getDefaultMapSelection());
+                setSelectedImage(getDefaultMapImage());
             });
         setSelectedMap(getDefaultMapSelection());
         setSelectedImage(getDefaultMapImage());
@@ -133,27 +218,8 @@ function App() {
     const onMapLoad = () => {
         if (selectedMap == 'NULL')
             return;
-        var scaledWidth = document.getElementById('map-image').offsetWidth;
-        var scaledHeight = document.getElementById('map-image').offsetHeight;
-        var origWidth = document.getElementById('map-image').naturalWidth;
-        var origHeight = document.getElementById('map-image').naturalHeight;
 
-        var widthScaling = 1
-        var heightScaling = 1;
-
-        // console.log(`scaledWidth=${scaledWidth}, scaledHeight=${scaledHeight}, origWidth=${origWidth}, origHeight=${origHeight}, widthScaling=${widthScaling}, heightScaling=${heightScaling}`);
-        // console.log(`Fire: x=483=${(widthScaling * 483)}, y=836=${(heightScaling * 836)}`)
-        // console.log(`Office: x=1406=${(widthScaling * 1406)}, y=133=${(heightScaling * 133)}`)
-
-        for (var i = 0; i < features.length; i++) {
-            features[i]['scaledX'] = features[i]['positionX'] * widthScaling;
-            features[i]['scaledZ'] = features[i]['positionZ'] * heightScaling;
-            var element = document.getElementById(features[i]['id'])
-            if (element == null)
-                continue;
-            element.style.left = features[i]['scaledX'];
-            element.style.top = features[i]['scaledZ'];
-        }
+        setMapLoaded(true);
 
         fetch(`http://${host}:${port}/maps/${selectedMap}/features`)
             .then(response => {
@@ -171,23 +237,22 @@ function App() {
 
                     fetchedFeatures.push({
                         'id': v.id,
+                        'mapId': v.mapId,
                         'name': v.name,
                         'positionX': v.position.x,
                         'positionY': v.position.y,
                         'positionZ': v.position.z,
-                        'scaledX': convertVector2Scaled(v.position.x, v.position.x)[0],
-                        'scaledY': convertVector2Scaled(v.position.x, v.position.z)[1],
                         'iconValue': v.style.icon
                     });
                 }
             }
-            // setFeatures(fetchedFeatures);
+            setFeatures(fetchedFeatures);
 
             fetch(`http://${host}:${port}/headsets`)
                 .then(response => {
                     return response.json()
                 }).then(data => {
-                let fetchedHeadsets = []
+                let fetchedHeadsets = [] // TODO: Question: why do we need this names list?
                 var headsetNamesList = []
                 for (let k in data) {
                     let v = data[k];
@@ -208,13 +273,11 @@ function App() {
                             'iconValue': 'headset'
                         });
                     }
-                    headsetNamesList.push(v.name);
+                    headsetNamesList.push(v.name); // TODO: Question: why do we need this names list?
                 }
-                fetchedHeadsets = fetchedHeadsets.concat(fetchedFeatures);
-                setFeatures(fetchedHeadsets);
-                setHeadsetNames(headsetNamesList);
+                setHeadsets(fetchedHeadsets);
+                setHeadsetNames(headsetNamesList); // TODO: Question: why do we need this names list?
             });
-
 
         });
 
@@ -244,6 +307,8 @@ function App() {
 
     const handleMapSelection = (e, o) => {
         setSelectedMap(e);
+        setFeaturesChecked(false);
+        setHeadsetsChecked(false);
     }
 
     const getDefaultMapSelection = () => {
@@ -263,6 +328,8 @@ function App() {
             if (maps[i]['id'] == selectedMap)
                 map = maps[i];
         }
+        if (Object.keys(map).length === 0 || !mapLoaded)
+            return [0, 0];
         const xmin = map['viewBox'][0];
         const ymin = map['viewBox'][1];
         const width = map['viewBox'][2];
@@ -280,6 +347,9 @@ function App() {
             if (maps[i]['id'] == selectedMap)
                 map = maps[i];
         }
+        if (Object.keys(map).length === 0 || !mapLoaded)
+            return [0, 0];
+
         const xmin = map['viewBox'][0];
         const ymin = map['viewBox'][1];
         const width = map['viewBox'][2];
@@ -300,31 +370,19 @@ function App() {
         if (cursor != 'crosshair')
             return;
 
-        // update icons here
-        console.log(`x=${e.clientX - e.target.x}, y=${e.clientY - e.target.y}`);
-        let scaledWidth = document.getElementById('map-image').offsetWidth;
-        let scaledHeight = document.getElementById('map-image').offsetHeight;
-        let origWidth = document.getElementById('map-image').naturalWidth;
-        let origHeight = document.getElementById('map-image').naturalHeight;
-
-        let widthScaling = scaledWidth / origWidth;
-        let heightScaling = scaledHeight / origHeight;
-
         let f = []
         for (let i in features) {
             f.push(features[i]);
         }
         if (clickCount > 0)
             f.pop();
-        console.log("cross hair icons: " + crossHairIcon);
         f.push({
             id: 'fire-1',
+            mapId: selectedMap,
             name: 'Fire',
-            position: {
-                x: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[0],
-                y: 0,
-                z: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[1]
-            },
+            positionX: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[0],
+            positionY: 0,
+            positionZ: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[1],
             scaledX: e.clientX - e.target.getBoundingClientRect().left,
             scaledY: e.clientY - e.target.getBoundingClientRect().top,
             icon: crossHairIcon,
@@ -337,41 +395,8 @@ function App() {
             0,
             convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left,
                 e.clientY - e.target.getBoundingClientRect().top)[1]]);
-        // setPointCoordinates([convertScaled2Vector(e.clientX - e.target.x, e.clientY - e.target.y)[0], 0,
-        //     convertScaled2Vector(e.clientX - e.target.x, e.clientY - e.target.y)[1]]);
-        console.log('pointCoordinates: ' + pointCoordinates);
 
         setClickCount(clickCount + 1);
-
-        // const newFeature = {
-        //     "name": "Fire22",
-        //     "position": {
-        //         "x": convertScaled2Pixel(e.clientX - e.target.x, e.clientY - e.target.y)[0],
-        //         "y": 0,
-        //         "z": convertScaled2Pixel(e.clientX - e.target.x, e.clientY - e.target.y)[1]
-        //     },
-        //     "mapID": selectedMap,
-        //     "style": {
-        //         "placement": "floating|surface|point",
-        //         "topOffset": "10%",
-        //         "leftOffset": "10%",
-        //         "icon": "/icons/fire32.png"
-        //     }
-        // };
-
-
-        // const requestData = {
-        //     method: 'POST',
-        //     headers: {
-        //         'Content-Type': 'application/json'
-        //     },
-        //     body: JSON.stringify(newFeature)
-        // };
-        // fetch(`http://${host}:${port}/maps/${selectedMap}/features`, requestData)
-        //     .then(response => response.json())
-        //     .then(data => {
-        //         console.log(data);
-        //     });
     }
 
     // shows the new feature popup
@@ -763,10 +788,31 @@ function App() {
                 <div className="map-image-container">
                     <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
                          onClick={onMouseClick} style={{cursor: cursor}}/>
-                    {features.map((f, index) => {
+                    {combinedMapObjects.map((f, index) => {
                         return <FontAwesomeIcon icon={f.iconValue} className="features" id={f.id} alt={f.name}
-                                                style={{left: features[index].scaledX, top: features[index].scaledY}}/>
+                                                style={{
+                                                    left: combinedMapObjects[index].scaledX,
+                                                    top: combinedMapObjects[index].scaledY
+                                                }}/>
                     })}
+                </div>
+                <div style={{width: 'max-content'}}>
+                    <Form onChange={changeMapObjectsContainer}>
+                        <Form.Check
+                            onClick={changeMapObjects(this, 'headsets')}
+                            type="switch"
+                            id="headsets-switch"
+                            label="Headsets"
+                            checked={headsetsChecked}
+                        />
+                        <Form.Check
+                            onChange={changeMapObjects(this, 'features')}
+                            type="switch"
+                            id="features-switch"
+                            label="Features"
+                            checked={featuresChecked}
+                        />
+                    </Form>
                 </div>
                 <div>
                     <Table striped bordered hover>
