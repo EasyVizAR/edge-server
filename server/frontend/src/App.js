@@ -9,7 +9,6 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro'
 
 import fontawesome from '@fortawesome/fontawesome'
-import {faCheckSquare, faCoffee, faFire} from '@fortawesome/fontawesome-free-solid'
 import {
     faBandage,
     faDoorClosed,

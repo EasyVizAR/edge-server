@@ -65,7 +65,7 @@ class WorkItem:
         next_id = cls.next_id
 
         if next_id == 0:
-            items = cls.get_all()
+            items = cls.find()
             if len(items) > 0:
                 next_id = max(item.id for item in items) + 1
             else:
