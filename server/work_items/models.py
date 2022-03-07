@@ -78,7 +78,7 @@ class WorkItem:
         return "{:08x}".format(self.id)
 
     def file_name(self):
-        return "{}.json".format(self.file_basename)
+        return "{}.json".format(self.file_basename())
 
     def matches(self, query):
         return self.id > int(query.get('after', 0)) and \
