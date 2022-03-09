@@ -779,13 +779,17 @@ function App() {
                             }
                         </DropdownButton>
                     </div>
-                    <div className="new-map-button header-button">
-                        <Button variant="secondary" style={buttonStyle} onClick={(e) => showMapPopup(e)}>New
+                    <div className="header-button">
+                        <Button variant="secondary" title="New Map" style={buttonStyle} onClick={(e) => showMapPopup(e)}>New
                             Map</Button>
                     </div>
-                    <div className="add-feature-button header-button">
+                    <div className="header-button">
                         <Button variant="secondary" title="Add Feature" value="Add Feature"
                                 onClick={(e) => showFeature(e)}>Add Feature</Button>
+                    </div>
+
+                    <div className="QR-code-btn header-button">
+                      <Button title="Map QR Code" variant="secondary" href={"/" + selectedMap + "/qrcode"} target="_blank">Map QR Code</Button>
                     </div>
 
                     <div className="header-button new-incident-btn"
