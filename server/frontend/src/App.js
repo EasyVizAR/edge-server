@@ -72,8 +72,8 @@ function App() {
         rowKey: null
     });
     const [cursor, setCursor] = useState('auto');
-    const [headsetNames, setHeadsetNames] = useState([]);
-    const [mapNames, setMapNames] = useState([]);
+    const [changedHeadsetName, setChangedHeadsetName] = useState(null);
+    const [changedMap, setChangedMap] = useState(null);
     const [clickCount, setClickCount] = useState(0);
     const [iconIndex, setIconIndex] = useState(null);
     const [headsetsChecked, setHeadsetsChecked] = useState(false);
@@ -172,7 +172,6 @@ function App() {
                 return response.json()
             }).then(data => {
             var fetchedHeadsets = []
-            var headsetNamesList = []
             for (var k in data) {
                 var v = data[k];
                 fetchedHeadsets.push({
@@ -187,10 +186,8 @@ function App() {
                     'positionY': v.position.y,
                     'positionZ': v.position.z
                 });
-                headsetNamesList.push(v.name); // TODO: Question: why do we need this names list?
             }
             setHeadsets(fetchedHeadsets);
-            setHeadsetNames(headsetNamesList); // TODO: Question: why do we need this names list?
         });
     }
 
@@ -200,27 +197,19 @@ function App() {
         fetch(`http://${host}:${port}/maps`)
             .then(response => response.json())
             .then(data => {
-                var map_names = []
+                var maps_list = [];
+
                 // var fetchedMaps = [];
                 for (var key in data) {
                     // fetchedMaps.push({'id': data[key]['id'], 'name': data[key]['name'], 'image': data[key]['image'], 'viewBox': data[key]['viewBox']});
-                    maps.push({
+                    maps_list.push({
                         'id': data[key]['id'],
                         'name': data[key]['name'],
                         'image': data[key]['image'],
                         'viewBox': data[key]['viewBox']
                     });
-                    var temp = {
-                        'id': data[key]['id'],
-                        'name': data[key]['name'],
-                        'image': data[key]['image'],
-                        'viewBox': data[key]['viewBox']
-                    }
-                    map_names.push(temp) // TODO: Question: why do we need this names list?
                 }
-                // setMaps(fetchedMaps); // TODO: Question: this is causing issues in  mapNames[index]['name'] in maps.map
-                //  TODO: Question: because maps are refreshed but mapNames takes time. We should use the same state object in if-else in the HTML
-                setMapNames(map_names) // TODO: Question: why do we need this names list?
+                setMaps(maps_list);
                 setSelectedMap(getDefaultMapSelection());
                 setSelectedImage(getDefaultMapImage());
             });
@@ -265,8 +254,7 @@ function App() {
                 .then(response => {
                     return response.json()
                 }).then(data => {
-                let fetchedHeadsets = [] // TODO: Question: why do we need this names list?
-                var headsetNamesList = []
+                let fetchedHeadsets = []
                 for (let k in data) {
                     let v = data[k];
                     if (selectedMap === v.mapId) {
@@ -286,10 +274,8 @@ function App() {
                             'iconValue': 'user'
                         });
                     }
-                    headsetNamesList.push(v.name); // TODO: Question: why do we need this names list?
                 }
                 setHeadsets(fetchedHeadsets);
-                setHeadsetNames(headsetNamesList); // TODO: Question: why do we need this names list?
             });
 
         });
@@ -433,11 +419,15 @@ function App() {
             return;
         }
 
+        var map = {
+          'name': maps[id]['name'],
+          'image': maps[id]['image']
+        }
+        setChangedMap(map);
+
         setInEditModeMap({
             status: true,
-            rowKey: id,
-            map_name: maps[id]['name'],
-            map_image: maps[id]['image']
+            rowKey: id
         });
     }
 
@@ -448,21 +438,12 @@ function App() {
             return;
         }
 
+        setChangedHeadsetName(headsets[id]['name']);
+
         setInEditModeHeadset({
             status: true,
             rowKey: id,
             headset_name: headsets[id]['name']
-        });
-    }
-
-    // sends request to url, usually used for saving headset and map data. Reloads window on response
-    const saveData = (url, requestData) => {
-        console.log("Sending request to " + url);
-        fetch(url, requestData)
-            .then(response => {
-                //window.location.reload(false);
-            }).then(data => {
-            console.log("data: " + data);
         });
     }
 
@@ -489,12 +470,15 @@ function App() {
                     },
                     body: JSON.stringify(headsets[x])
                 };
-                saveData(url, requestData);
-                headsetNames[x] = headsets[x]['name']
+
+                fetch(url, requestData).then(response => {
+                  setChangedHeadsetName(headsets[x]['name']);
+                  onCancelHeadset(null, index);
+                  getHeadsets();
+                });
                 break;
             }
         }
-        onCancelHeadset(null, index);
         console.log("headset updated");
     }
 
@@ -503,11 +487,12 @@ function App() {
         console.log(e.target);
         const id = e.target.id.substring(7, e.target.id.length);
         const url = `http://${host}:${port}/maps/${id}`;
+        console.log('updating map: ' + id)
         var i = 0;
         for (var x in maps) {
             if (maps[x]['id'] == id) {
 
-                var dup_name = checkMapName(mapNames[i]['name'], maps[x]['id']);
+                var dup_name = checkMapName(maps[i]['name'], maps[x]['id']);
                 if (dup_name) {
                     var conf = window.confirm('There is another map with the same name. Are you sure you want to continue?');
                     if (!conf) {
@@ -515,7 +500,7 @@ function App() {
                     }
                 }
 
-                var dup_image = checkMapImage(mapNames[i]['image'], maps[x]['id']);
+                var dup_image = checkMapImage(maps[i]['image'], maps[x]['id']);
                 if (dup_image) {
                     var conf = window.confirm('There is another map with the same image. Are you sure you want to continue?');
                     if (!conf) {
@@ -530,40 +515,58 @@ function App() {
                     },
                     body: JSON.stringify(maps[x])
                 };
-                saveData(url, requestData);
-                mapNames[x]['image'] = maps[x]['image']
-                mapNames[x]['name'] = maps[x]['name']
+                fetch(url, requestData).then(response => {
+
+                  var new_map = {
+                    'name': maps[x]['name'],
+                    'image': maps[x]['image']
+                  };
+                  setChangedMap(new_map);
+                  onCancelMap(index);
+                  get_maps();
+                });
                 break;
             }
             i = i + 1
         }
-        onCancelMap(index);
+
     }
 
     // cancels map editing
     const onCancelMap = (index) => {
 
-        maps[index]['name'] = mapNames[index]['name']
-        maps[index]['image'] = mapNames[index]['image']
+        for (var x in maps){
+          if (x == index){
+            maps[x]['name'] = changedMap['name'];
+            maps[x]['image'] = changedMap['image'];
+            break;
+          }
+        }
+
+        setChangedMap(null);
 
         // reset the inEditMode state value
         setInEditModeMap({
             status: false,
-            rowKey: null,
-            map_name: null,
-            map_image: null
+            rowKey: null
         });
     }
 
     // turns off headset editing
     const onCancelHeadset = (element, index) => {
 
-        headsets[index]['name'] = headsetNames[index];
+        for (var x in headsets){
+          if (x == index){
+            headsets[x]['name'] = changedHeadsetName;
+            break;
+          }
+        }
+
+        setChangedHeadsetName(null);
 
         setInEditModeHeadset({
             status: false,
-            rowKey: null,
-            headset_name: null
+            rowKey: null
         });
     }
 
@@ -576,7 +579,6 @@ function App() {
         for (var x in headsets) {
             if (headsets[x]['id'] == headset_id) {
                 headsets[x]['name'] = e.target.value;
-                inEditModeHeadset.headset_name = e.target.value;
             }
             newHeadsets.push(headsets[x]);
         }
@@ -689,7 +691,7 @@ function App() {
                         headsets.pop(headsets[x]);
                     }
                 }
-                window.location.reload(false);
+                getHeadsets();
             });
     }
 
@@ -714,7 +716,7 @@ function App() {
                         maps.pop(maps[x]);
                     }
                 }
-                window.location.reload(false);
+                get_maps();
             });
     }
 
@@ -859,14 +861,14 @@ function App() {
                                         {
                                             inEditModeHeadset.status && inEditModeHeadset.rowKey === index ? (
                                                 <input
-                                                    value={inEditModeHeadset.headset_name}
+                                                    value={headsets[index]['name']}
                                                     placeholder="Edit Headset Name"
                                                     onChange={updateHeadsetName}
                                                     name={"headsetinput" + e.id}
                                                     type="text"
                                                     id={'headsetName' + e.id}/>
                                             ) : (
-                                                headsetNames[index]
+                                                e.name
                                             )
                                         }
                                     </td>
@@ -942,9 +944,9 @@ function App() {
                                                     type="text"
                                                     id={'mapName' + e.id}
                                                     onChange={updateMapName}
-                                                    value={inEditModeMap.map_name}/>
+                                                    value={maps[index]['name']}/>
                                             ) : (
-                                                mapNames[index]['name']
+                                                e.name
                                             )
                                         }
                                     </td>
@@ -957,9 +959,9 @@ function App() {
                                                     type="text"
                                                     id={'mapImage' + e.id}
                                                     onChange={updateImage}
-                                                    value={inEditModeMap.map_image}/>
+                                                    value={maps[index]['image']}/>
                                             ) : (
-                                                mapNames[index]['image']
+                                                e.image
                                             )
                                         }
                                     </td>

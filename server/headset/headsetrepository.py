@@ -362,7 +362,7 @@ class Repository:
                                          current_app.config['VIZAR_HEADSET_DIR'],
                                          str(headset.id), 'headset.json')
 
-        temp_headset = self.headsets[id]
+        temp_headset = self.headsets[headset_id]
         headset_without_past_poses = {
             'id': temp_headset.id,
             'name': temp_headset.name,
