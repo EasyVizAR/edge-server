@@ -3,13 +3,6 @@ import math
 import numpy as np
 
 
-# Showing density of points in a specific axis
-def histogram(pcd):
-    pcdnp = np.asarray(pcd.points)
-    # print(pcdnp[:, 1])
-    plt.hist(pcdnp[:, 2], density=True, bins=30)
-    plt.show()
-
 def flattenpoints(points, verticalz = True):
     if verticalz:
         vert = 2
@@ -112,13 +105,3 @@ def splitpoints(p0, p1, pcord, pnorm):
     v0 = np.dot(p0, pnorm) - np.dot(pcord, pnorm)
     v1 = np.dot(p1, pnorm) - np.dot(pcord, pnorm)
     return True if v0*v1 <= 0 else False
-
-def plotplanecoords(points, verticalz=True):
-    if verticalz:
-        planey = 1
-    else:
-        planey = 2
-    px = [x[0] for x in points]
-    py = [-1*x[planey] for x in points]
-    plt.scatter(px, py)
-    plt.show()
