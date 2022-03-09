@@ -51,7 +51,8 @@ class WorkItem:
 
     @classmethod
     def find_by_id(cls, i):
-        path = os.path.join(cls.base_dir(), self.file_name())
+        filename = "{:08x}.json".format(i)
+        path = os.path.join(cls.base_dir(), filename)
 
         try:
             with open(path, 'r') as source:
