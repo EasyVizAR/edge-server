@@ -19,7 +19,13 @@ class Map:
         else:
             self.id = id
         self.name = name
-        self.image = image
+
+        # set default image if there is not a url
+        if image is None or image == '':
+            self.image = '/maps/' + str(self.id) + '/floor-plan.svg'
+        else:
+            self.image = image
+
         self.incident = incident
 
         if viewBox is None:

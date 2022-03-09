@@ -593,7 +593,7 @@ async def create_map():
                      "severity": "Warning"}),
             HTTPStatus.BAD_REQUEST)
 
-    if 'name' not in body or 'image' not in body:
+    if 'name' not in body:
         return await make_response(
             jsonify({"message": "Missing parameter in body",
                      "severity": "Warning"}),
@@ -603,7 +603,7 @@ async def create_map():
     if 'id' in body and str(body['id']).strip() != '':
         id = body['id']
 
-    created_id = get_map_repository().add_map(id, body['name'], body['image'])
+    created_id = get_map_repository().add_map(id, body['name'], body.get('image'))
 
     return await make_response(
         jsonify({"message": "Map created",
