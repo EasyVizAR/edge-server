@@ -147,6 +147,10 @@ async def add_routes_to_spec():
         spec.path(view=maps_routes.get_map_floor_plan)
 
         spec.path(view=work_items.list_work_items)
+        spec.path(view=work_items.create_work_item)
+        spec.path(view=work_items.get_work_item)
+        spec.path(view=work_items.get_work_item_file)
+        spec.path(view=work_items.upload_work_item_file)
 
 
 loop = asyncio.get_event_loop()

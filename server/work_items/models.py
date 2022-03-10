@@ -51,7 +51,7 @@ class WorkItem:
 
     @classmethod
     def find_by_id(cls, i):
-        filename = "{:08x}.json".format(i)
+        filename = "{:08x}.json".format(int(i))
         path = os.path.join(cls.base_dir(), filename)
 
         try:
@@ -94,6 +94,8 @@ class WorkItem:
 
         # Check if this is a new object.
         created = not os.path.exists(path)
+
+        self.updated = time.time()
 
         with open(path, 'w') as output:
             json_out = self.Schema().dumps(self)

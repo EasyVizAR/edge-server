@@ -3,7 +3,7 @@ import os
 
 from http import HTTPStatus
 
-from quart import Blueprint, current_app, request, make_response, jsonify
+from quart import Blueprint, current_app, request, make_response, jsonify, send_from_directory
 from werkzeug import exceptions
 
 from .models import WorkItem
@@ -139,10 +139,10 @@ async def create_work_item():
             raise exceptions.BadRequest(description=error)
 
         upload_file_name = "{}.{}".format(new_item.file_basename(), extension)
-        new_item.filePath = os.path.join(WorkItem.base_dir(), upload_file_name)
+        new_item.filePath = os.path.join(WorkItem.base_dir(), "data", upload_file_name)
 
         # Inform the caller where to upload the file.
-        new_item.fileUrl = "/work-items/{}".format(upload_file_name)
+        new_item.fileUrl = "/work-items/data/{}".format(upload_file_name)
 
     else:
         new_item.status = "ready"
@@ -152,7 +152,56 @@ async def create_work_item():
     return jsonify(new_item), HTTPStatus.CREATED
 
 
-@work_items.route('/work-items/<filename>', methods=['PUT'])
+@work_items.route('/work-items/<work_item_id>', methods=['GET'])
+async def get_work_item(work_item_id):
+    """
+    Get a WorkItem by ID
+    ---
+    get:
+        summary: Get a WorkItem by ID
+        tags:
+          - work-items
+        responses:
+            200:
+                description: A WorkItem object
+                content:
+                    application/json:
+                        schema: WorkItem
+    """
+    item = WorkItem.find_by_id(work_item_id)
+
+    if item is None:
+        raise exceptions.NotFound(description="Work item was not found")
+
+    return jsonify(item), HTTPStatus.OK
+
+
+@work_items.route('/work-items/data/<filename>', methods=['GET'])
+async def get_work_item_file(filename):
+    """
+    Get a WorkItem data file
+    ---
+    get:
+        summary: Get a WorkItem data file
+        description: >-
+            Use this method to fetch a data file such as an image associated
+            with a work item. This method will only succeed if the the data
+            file is stored on the same host (fileUrl is a relative path in the
+            work item) and the work item status is "ready" or "done".
+        tags:
+          - work-items
+        responses:
+            200:
+                description: The image or other data file.
+                content:
+                    image/jpeg: {}
+                    image/png: {}
+    """
+    data_dir = os.path.join(WorkItem.base_dir(), "data")
+    return await send_from_directory(data_dir, filename)
+
+
+@work_items.route('/work-items/data/<filename>', methods=['PUT'])
 async def upload_work_item_file(filename):
     """
     Replace a WorkItem data file
@@ -180,16 +229,17 @@ async def upload_work_item_file(filename):
     """
     # TODO: Require authentication
 
+    data_dir = os.path.join(WorkItem.base_dir(), "data")
+    os.makedirs(data_dir, exist_ok=True)
+
     work_item = None
     for item in WorkItem.find():
-        if item.fileUrl == "/work-items/{}".format(filename):
+        if item.fileUrl == "/work-items/data/{}".format(filename):
             work_item = item
             break
 
     if work_item is None:
         raise exceptions.NotFound(description="No open work item found for file upload")
-    elif work_item.status != "created":
-        raise exceptions.BadRequest(description="Work item does not require a file upload")
 
     body = await request.get_data()
     with open(work_item.filePath, "wb") as output:
