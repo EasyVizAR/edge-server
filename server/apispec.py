@@ -9,7 +9,6 @@ from apispec_webframeworks.flask import FlaskPlugin
 
 from marshmallow import Schema, fields
 
-from .main import app
 from .maps import maps_routes
 from .headset import headsetroutes
 from .work_items import routes as work_items
@@ -82,19 +81,6 @@ class SurfaceFileInformationSchema(Schema):
     size = fields.Integer()
 
 
-spec = APISpec(
-    title="EasyVizAR Edge API",
-    version="0.1",
-    info=dict(
-        description="Edge API"
-    ),
-    openapi_version="3.0",
-    plugins=[
-        FlaskPlugin(),
-        MarshmallowPlugin(),
-    ]
-)
-
 headset_tag = {
     "name": "headsets",
     "description": "Operations on Headset objects"
@@ -110,20 +96,34 @@ work_item_tag = {
     "description": "Operations on WorkItem objects"
 }
 
-spec.components.schema("Headset", schema=HeadsetSchema)
-spec.components.schema("HeadsetUpdate", schema=HeadsetUpdateSchema)
-spec.components.schema("Map", schema=MapSchema)
-spec.components.schema("MapFeature", schema=MapFeatureSchema)
-spec.components.schema("MapFeatureType", schema=MapFeatureTypeSchema)
-spec.components.schema("ImageUpload", schema=ImageUploadSchema)
-spec.components.schema("SurfaceFileInformation", schema=SurfaceFileInformationSchema)
-spec.components.schema("WorkItem", schema=WorkItem.Schema())
 
-spec.tag(headset_tag)
-spec.tag(map_tag)
-spec.tag(work_item_tag)
+async def create_openapi_spec(app):
+    spec = APISpec(
+        title="EasyVizAR Edge API",
+        version="0.1",
+        info=dict(
+            description="Edge API"
+        ),
+        openapi_version="3.0",
+        plugins=[
+            FlaskPlugin(),
+            MarshmallowPlugin(),
+        ]
+    )
 
-async def add_routes_to_spec():
+    spec.components.schema("Headset", schema=HeadsetSchema)
+    spec.components.schema("HeadsetUpdate", schema=HeadsetUpdateSchema)
+    spec.components.schema("Map", schema=MapSchema)
+    spec.components.schema("MapFeature", schema=MapFeatureSchema)
+    spec.components.schema("MapFeatureType", schema=MapFeatureTypeSchema)
+    spec.components.schema("ImageUpload", schema=ImageUploadSchema)
+    spec.components.schema("SurfaceFileInformation", schema=SurfaceFileInformationSchema)
+    spec.components.schema("WorkItem", schema=WorkItem.Schema())
+
+    spec.tag(headset_tag)
+    spec.tag(map_tag)
+    spec.tag(work_item_tag)
+
     async with app.test_request_context("/"):
         spec.path(view=headsetroutes.get_all)
         spec.path(view=headsetroutes.register)
@@ -152,15 +152,16 @@ async def add_routes_to_spec():
         spec.path(view=work_items.get_work_item_file)
         spec.path(view=work_items.upload_work_item_file)
 
-
-loop = asyncio.get_event_loop()
-loop.run_until_complete(add_routes_to_spec())
+    return spec
 
 
 if __name__ == "__main__":
+    from .main import app
+
+    loop = asyncio.get_event_loop()
+    spec = loop.run_until_complete(create_openapi_spec(app))
+
     print(spec.to_yaml())
 
     with open("docs/openapi.json", "w") as output:
         output.write(json.dumps(spec.to_dict()))
-
-

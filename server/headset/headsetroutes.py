@@ -35,7 +35,7 @@ async def get_all():
                     application/json:
                         schema:
                             type: array
-                            items: HeadsetSchema
+                            items: Headset
     """
     headsets = get_headset_repository().get_all_headsets()
 
@@ -68,7 +68,7 @@ async def get(id):
                 description: A headset
                 content:
                     application/json:
-                        schema: HeadsetSchema
+                        schema: Headset
     """
     headset = get_headset_repository().get_headset(id)
 
@@ -134,13 +134,13 @@ async def register():
             required: true
             content:
                 application/json:
-                    schema: HeadsetSchema
+                    schema: Headset
         responses:
             200:
                 description: A headset
                 content:
                     application/json:
-                        schema: HeadsetSchema
+                        schema: Headset
     """
     body = await request.get_json()
 
@@ -234,7 +234,7 @@ async def get_updates(headsetId):
                     application/json:
                         schema:
                             type: array
-                            items: HeadsetUpdateSchema
+                            items: HeadsetUpdate
             204:
                 description: A waiting request timed out without any results.
     """
@@ -280,13 +280,13 @@ async def update_position(headsetId):
             required: true
             content:
                 application/json:
-                    schema: HeadsetUpdateSchema
+                    schema: HeadsetUpdate
         responses:
             200:
                 description: A headset update object
                 content:
                     application/json:
-                        schema: HeadsetUpdateSchema
+                        schema: HeadsetUpdate
     """
     body = await request.get_json()
 
@@ -369,13 +369,13 @@ async def update_headset(headsetId):
             required: true
             content:
                 application/json:
-                    schema: HeadsetSchema
+                    schema: Headset
         responses:
             200:
                 description: New headset object
                 content:
                     application/json:
-                        schema: HeadsetSchema
+                        schema: Headset
     """
 
     if not headsetId:

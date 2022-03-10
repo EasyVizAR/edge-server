@@ -135,7 +135,7 @@ async def get_all_maps():
                     application/json:
                         schema:
                             type: array
-                            items: MapSchema
+                            items: Map
     """
 
     # TODO: check authorization
@@ -170,7 +170,7 @@ async def show_map(map_id):
                 description: A Map object
                 content:
                     application/json:
-                        schema: HeadsetSchema
+                        schema: Headset
     """
 
     # TODO: check authorization
@@ -213,7 +213,7 @@ async def list_map_feature_types():
                     application/json:
                         schema:
                             type: array
-                            items: MapFeatureTypeSchema
+                            items: MapFeatureType
     """
 
     with open(map_features_file, "r") as source:
@@ -254,7 +254,7 @@ async def list_map_features(map_id):
                     application/json:
                         schema:
                             type: array
-                            items: MapFeatureSchema
+                            items: MapFeature
     """
 
     # TODO: check authorization
@@ -296,13 +296,13 @@ async def add_map_feature(map_id):
             required: true
             content:
                 application/json:
-                    schema: MapFeatureSchema
+                    schema: MapFeature
         responses:
             201:
                 description: MapFeature object
                 content:
                     application/json:
-                        schema: MapFeatureSchema
+                        schema: MapFeature
     """
 
     # TODO: check authorization
@@ -360,7 +360,7 @@ async def list_map_surfaces(map_id):
                     application/json:
                         schema:
                             type: array
-                            items: SurfaceFileInformationSchema
+                            items: SurfaceFileInformation
     """
 
     # TODO check authorization
@@ -407,7 +407,7 @@ async def replace_surface(map_id, surface_id):
                 description: A surface file information object
                 content:
                     application/json:
-                        schema: SurfaceFileInformationSchema
+                        schema: SurfaceFileInformation
     """
 
     # TODO check authorization
@@ -469,18 +469,18 @@ async def replace_map(map_id):
             required: true
             content:
                 application/json:
-                    schema: MapSchema
+                    schema: Map
         responses:
             200:
                 description: Map replaced
                 content:
                     application/json:
-                        schema: MapSchema
+                        schema: Map
             201:
                 description: Map created
                 content:
                     application/json:
-                        schema: MapSchema
+                        schema: Map
     """
 
     # TODO check authorization
@@ -574,13 +574,13 @@ async def create_map():
             required: true
             content:
                 application/json:
-                    schema: MapSchema
+                    schema: Map
         responses:
             201:
                 description: Map created
                 content:
                     application/json:
-                        schema: MapSchema
+                        schema: Map
     """
 
     # TODO check authorization
@@ -625,7 +625,7 @@ async def image_upload():
                 description: A file upload object
                 content:
                     application/json:
-                        schema: ImageUploadSchema
+                        schema: ImageUpload
     """
     body = await request.get_json()
 
