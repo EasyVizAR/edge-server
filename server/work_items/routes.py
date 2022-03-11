@@ -152,7 +152,7 @@ async def create_work_item():
     return jsonify(new_item), HTTPStatus.CREATED
 
 
-@work_items.route('/work-items/<work_item_id>', methods=['GET'])
+@work_items.route('/work-items/<int:work_item_id>', methods=['GET'])
 async def get_work_item(work_item_id):
     """
     Get a WorkItem by ID
@@ -172,6 +172,69 @@ async def get_work_item(work_item_id):
 
     if item is None:
         raise exceptions.NotFound(description="Work item was not found")
+
+    return jsonify(item), HTTPStatus.OK
+
+
+@work_items.route('/work-items/<int:work_item_id>', methods=['PUT'])
+async def replace_work_item(work_item_id):
+    """
+    Create or update a WorkItem by ID
+    ---
+    put:
+        summary: Create or update a WorkItem by ID
+        tags:
+          - work-items
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: WorkItem
+        responses:
+            200:
+                description: A WorkItem object
+                content:
+                    application/json:
+                        schema: WorkItem
+    """
+    # TODO: Require authentication
+
+    body = await request.get_json()
+
+    item = WorkItem.Schema().load(body)
+    if item.id != work_item_id:
+        desc = "WorkItem IDs do not match ({} != {})".format(item.id, work_item_id)
+        raise exceptions.BadRequest(description=desc)
+
+    created = item.save()
+    code = HTTPStatus.CREATED if created else HTTPStatus.OK
+
+    return jsonify(item), code
+
+
+@work_items.route('/work-items/<int:work_item_id>', methods=['DELETE'])
+async def delete_work_item(work_item_id):
+    """
+    Delete a WorkItem by ID
+    ---
+    delete:
+        summary: Delete a WorkItem by ID
+        tags:
+          - work-items
+        responses:
+            200:
+                description: A WorkItem object
+                content:
+                    application/json:
+                        schema: WorkItem
+    """
+    # TODO: Require authentication
+
+    item = WorkItem.find_by_id(work_item_id)
+    if item is None:
+        raise exceptions.NotFound(description="Work item was not found")
+
+    item.delete()
 
     return jsonify(item), HTTPStatus.OK
 

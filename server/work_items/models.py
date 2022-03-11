@@ -32,6 +32,16 @@ class WorkItem:
     def base_dir(cls):
         return os.path.join(current_app.config['VIZAR_DATA_DIR'], 'work_items')
 
+    def delete(self):
+        work_item_dir = WorkItem.base_dir()
+        item_path = os.path.join(work_item_dir, self.file_name())
+
+        if os.path.exists(item_path):
+            os.remove(item_path)
+
+        if self.filePath is not None and os.path.exists(self.filePath):
+            os.remove(self.filePath)
+
     @classmethod
     def find(cls, **kwargs):
         work_item_dir = cls.base_dir()
@@ -114,6 +124,8 @@ class WorkItem:
 
             self.on_create.clear()
             self.on_create.extend(remaining_listeners)
+
+        return created
 
     @classmethod
     async def wait_for_work_item(cls, **kwargs):
