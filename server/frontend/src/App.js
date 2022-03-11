@@ -78,6 +78,7 @@ function App() {
     const [iconIndex, setIconIndex] = useState(null);
     const [headsetsChecked, setHeadsetsChecked] = useState(false);
     const [featuresChecked, setFeaturesChecked] = useState(false);
+    const [currMapName, setCurrMapName] = useState('');
 
     useEffect(() => {
         get_maps();
@@ -306,6 +307,12 @@ function App() {
 
     const handleMapSelection = (e, o) => {
         setSelectedMap(e);
+
+        for (var x in maps){
+          if (maps[x]['id'] == e){
+            setCurrMapName(maps[x]['name']);
+          }
+        }
         setFeaturesChecked(false);
         setHeadsetsChecked(false);
     }
@@ -313,6 +320,7 @@ function App() {
     const getDefaultMapSelection = () => {
         if (maps.length == 0)
             return 'NULL';
+        setCurrMapName(maps[0]['name']);
         return maps[0]['id'];
     }
 
@@ -804,6 +812,7 @@ function App() {
                             pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedMap}
                             setIconIndex={setIconIndex}/>
                 <NewMap showNewMap={showNewMap}/>
+                <h4 style={{textAlign: 'left'}}>{currMapName}</h4>
                 <div className="map-image-container">
                     <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
                          onClick={onMouseClick} style={{cursor: cursor}}/>
