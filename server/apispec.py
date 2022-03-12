@@ -31,6 +31,13 @@ class HeadsetSchema(Schema):
     lastUpdate = fields.DateTime()
 
 
+class HeadsetPoseSchema(Schema):
+    headsetID = fields.Str()
+    position = fields.Nested(VectorSchema())
+    orientation = fields.Nested(VectorSchema())
+    mapID = fields.Str()
+
+
 class HeadsetUpdateSchema(Schema):
     headsetID = fields.Str()
     position = fields.Nested(VectorSchema())
@@ -112,6 +119,7 @@ async def create_openapi_spec(app):
     )
 
     spec.components.schema("Headset", schema=HeadsetSchema)
+    spec.components.schema("HeadsetPose", schema=HeadsetPoseSchema)
     spec.components.schema("HeadsetUpdate", schema=HeadsetUpdateSchema)
     spec.components.schema("Map", schema=MapSchema)
     spec.components.schema("MapFeature", schema=MapFeatureSchema)
@@ -128,6 +136,8 @@ async def create_openapi_spec(app):
         spec.path(view=headsetroutes.get_all)
         spec.path(view=headsetroutes.register)
         spec.path(view=headsetroutes.authenticate)
+        spec.path(view=headsetroutes.create_headset_pose)
+        spec.path(view=headsetroutes.get_headset_poses)
         spec.path(view=headsetroutes.get_updates)
         spec.path(view=headsetroutes.update_position)
         spec.path(view=headsetroutes.update_headset)

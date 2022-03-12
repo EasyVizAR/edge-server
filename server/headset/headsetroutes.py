@@ -81,30 +81,80 @@ async def get(id):
 
 
 @blueprint.route('/headsets/<headset_id>/poses', methods=['POST'])
-async def get_past_incident_poses(headset_id):
-
+async def create_headset_pose(headset_id):
+    """
+    Create headset pose
+    ---
+    post:
+        description: Create a new headset pose
+        tags:
+          - headsets
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: HeadsetPose
+        responses:
+            200:
+                description: A headset pose object
+                content:
+                    application/json:
+                        schema: HeadsetUpdate
+    """
     body = await request.get_json()
 
-    headset = get_headset_repository().get_headset(headset_id)
+    if 'position' not in body or 'orientation' not in body:
+        return await make_response(
+            jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
+            HTTPStatus.BAD_REQUEST)
 
-    if headset is None:
+    position = body['position']
+    orientation = body['orientation']
+
+    headset_update = get_headset_repository().update_pose(headset_id, position, orientation)
+
+    if headset_update is None:
         return await make_response(
             jsonify({"message": "The requested headset does not exist.", "severity": "Error"}),
             HTTPStatus.NOT_FOUND)
 
-    if not body or 'incident' not in body:
-        return await make_response(jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
-                                   HTTPStatus.BAD_REQUEST)
-
-    incident = body['incident']
-
-    headset_past_poses = headset.get_past_poses(headset_id, incident)
-
-    return jsonify(headset_past_poses), HTTPStatus.OK
+    else:
+        return jsonify(headset_update), HTTPStatus.OK
 
 
 @blueprint.route('/headsets/<headset_id>/poses', methods=['GET'])
 async def get_headset_poses(headset_id):
+    """
+    Get headset poses
+    ---
+    get:
+        summary: List headset poses
+        description: >-
+            List recorded headset poses (position and orientation).
+        tags:
+          - headsets
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Headset ID
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
+          - name: incident
+            in: query
+            required: false
+            description: Query poses from a specific incident ID.
+        responses:
+            200:
+                description: A list of headset poses.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: HeadsetPose
+    """
     headset = get_headset_repository().get_headset(headset_id)
 
     if headset is None:
@@ -112,13 +162,20 @@ async def get_headset_poses(headset_id):
             jsonify({"message": "The requested headset does not exist.", "severity": "Error"}),
             HTTPStatus.NOT_FOUND)
 
+    query = request.args
+
     # init incidents handler if it is not already
     incident_handler = init_incidents_handler(app=current_app)
-    incident = incident_handler.current_incident
 
+    incident = query.get("incident", incident_handler.current_incident)
     headset_past_poses = headset.get_past_poses(headset_id, incident)
 
-    return jsonify(headset_past_poses), HTTPStatus.OK
+    if "envelope" in query:
+        result = {query.get("envelope"): headset_past_poses}
+    else:
+        result = headset_past_poses
+
+    return jsonify(result), HTTPStatus.OK
 
 
 @blueprint.route('/headsets', methods=['POST'])

@@ -18,10 +18,10 @@ Run the server with default settings. By default, it will listen on localhost po
 python3 -m server
 ```
 
-Run all of the unit tests.
+Run all of the unit tests with coverage report.
 
 ```console
-python3 -m pytest
+python3 -m pytest --cov=server --cov-report term-missing:skip-covered
 ```
 
 Alternatively, build and run using Docker.
