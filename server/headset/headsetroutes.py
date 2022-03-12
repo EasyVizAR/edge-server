@@ -434,38 +434,27 @@ async def update_headset(headsetId):
                     application/json:
                         schema: Headset
     """
-
-    if not headsetId:
-        return await make_response(
-            jsonify({"message": "No headset id",
-                     "severity": "Warning"}),
-            HTTPStatus.BAD_REQUEST)
-
-    # get body of request
-    body = await request.get_json()
-
-    # check if the request has all the required information
-    if 'name' not in body:
-        return await make_response(
-            jsonify({"message": "Missing parameter in body",
-                     "severity": "Warning"}),
-            HTTPStatus.BAD_REQUEST)
-
-    # update the info in the repo
-    returned_id = get_headset_repository().update_headset_name(headsetId, body['name'])
-
-    # check if headset exists
-    if returned_id is None:
+    repo = get_headset_repository()
+    if repo.get_headset(headsetId) is None:
         return await make_response(
             jsonify({"message": "The requested headset does not exist",
                      "severity": "Warning"}),
             HTTPStatus.NOT_FOUND)
 
+    body = await request.get_json()
+
+    if 'name' in body:
+        repo.update_headset_name(headsetId, body['name'])
+
+    if 'position' in body and 'orientation' in body:
+        repo.update_pose(headsetId, body['position'], body['orientation'])
+    elif 'position' in body:
+        repo.update_position(headsetId, body['position'])
+
     # headset was updated
-    return await make_response(
-        jsonify({"message": "Headset updated",
-                 "headset_id": returned_id}),
-        HTTPStatus.CREATED)
+    headset = repo.get_headset(headsetId)
+    return jsonify(headset), HTTPStatus.OK
+
 
 # @blueprint.route('/map-image/<mapId>', methods=['GET'])
 # async def get_image(mapId):
