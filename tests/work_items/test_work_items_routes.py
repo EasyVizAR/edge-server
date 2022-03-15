@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from server.main import app
@@ -26,6 +28,44 @@ async def test_work_item_routes():
         assert response.is_json
         data = await response.get_json()
         assert isinstance(data['items'], list)
+
+
+@pytest.mark.asyncio
+async def test_work_item_with_upload():
+    """
+    Test a work item that requires an image upload.
+    """
+    async with app.test_client() as client:
+        response = await client.post('/work-items', json={})
+        assert response.status_code == 201 # Created
+        assert response.is_json
+        data = await response.get_json()
+        assert isinstance(data, dict)
+        assert data['status'] == "created"
+
+        item_url = '/work-items/{}'.format(data['id'])
+        upload_url = 'work-items/{}/uploads/input.jpeg'.format(data['id'])
+
+        response = await client.put(upload_url)
+        assert response.status_code == 201 # Created
+        assert response.is_json
+        data = await response.get_json()
+        assert isinstance(data, dict)
+        assert data['status'] == "ready"
+        assert os.path.exists(data['filePath'])
+
+        response = await client.delete(item_url)
+        assert response.status_code == 200 # OK
+        assert response.is_json
+        data = await response.get_json()
+        assert isinstance(data, dict)
+        assert data['status'] == "ready"
+
+        response = await client.delete(item_url)
+        assert response.status_code == 404 # Not Found
+
+        response = await client.get(item_url)
+        assert response.status_code == 404 # Not Found
 
 
 @pytest.mark.asyncio

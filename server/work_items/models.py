@@ -1,6 +1,7 @@
 import asyncio
 import glob
 import os
+import shutil
 import time
 
 from dataclasses import dataclass, field
@@ -33,14 +34,8 @@ class WorkItem:
         return os.path.join(current_app.config['VIZAR_DATA_DIR'], 'work_items')
 
     def delete(self):
-        work_item_dir = WorkItem.base_dir()
-        item_path = os.path.join(work_item_dir, self.file_name())
-
-        if os.path.exists(item_path):
-            os.remove(item_path)
-
-        if self.filePath is not None and os.path.exists(self.filePath):
-            os.remove(self.filePath)
+        item_path = WorkItem.item_dir(self.id)
+        shutil.rmtree(item_path, ignore_errors=True)
 
     @classmethod
     def find(cls, **kwargs):
@@ -51,7 +46,10 @@ class WorkItem:
         query.update(kwargs)
 
         work_items = []
-        for fname in glob.glob(os.path.join(work_item_dir, '*.json')):
+        for dname in os.listdir(work_item_dir):
+            if not os.path.isdir(dname) or dname == "data":
+                continue
+            fname = os.path.join(dname, "work-item.json")
             with open(fname, 'r') as source:
                 item = cls.Schema().loads(source.read())
                 if item.matches(query):
@@ -60,10 +58,8 @@ class WorkItem:
         return work_items
 
     @classmethod
-    def find_by_id(cls, i):
-        filename = "{:08x}.json".format(int(i))
-        path = os.path.join(cls.base_dir(), filename)
-
+    def find_by_id(cls, item_id):
+        path = os.path.join(cls.item_dir(item_id), "work-item.json")
         try:
             with open(path, 'r') as source:
                 item = cls.Schema().loads(source.read())
@@ -85,11 +81,9 @@ class WorkItem:
         cls.next_id = next_id + 1
         return next_id
 
-    def file_basename(self):
-        return "{:08x}".format(self.id)
-
-    def file_name(self):
-        return "{}.json".format(self.file_basename())
+    @classmethod
+    def item_dir(cls, item_id):
+        return os.path.join(cls.base_dir(), "{:08x}".format(item_id))
 
     def matches(self, query):
         return self.id > int(query.get('after', 0)) and \
@@ -98,9 +92,12 @@ class WorkItem:
                 query.get('status') in (None, self.status)
 
     def save(self):
-        work_item_dir = WorkItem.base_dir()
+        work_item_dir = WorkItem.item_dir(self.id)
         os.makedirs(work_item_dir, exist_ok=True)
-        path = os.path.join(work_item_dir, self.file_name())
+        path = os.path.join(work_item_dir, "work-item.json")
+
+        # Also create a directory for uploads.
+        os.makedirs(self.uploads_dir(), exist_ok=True)
 
         # Check if this is a new object.
         created = not os.path.exists(path)
@@ -126,6 +123,9 @@ class WorkItem:
             self.on_create.extend(remaining_listeners)
 
         return created
+
+    def uploads_dir(self):
+        return os.path.join(WorkItem.item_dir(self.id), "uploads")
 
     @classmethod
     async def wait_for_work_item(cls, **kwargs):

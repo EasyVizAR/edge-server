@@ -5,6 +5,7 @@ from http import HTTPStatus
 
 from quart import Blueprint, current_app, request, make_response, jsonify, send_from_directory
 from werkzeug import exceptions
+from werkzeug.utils import secure_filename
 
 from .models import WorkItem
 
@@ -138,11 +139,11 @@ async def create_work_item():
             error = "Unsupported content type ({})".format(new_item.contentType)
             raise exceptions.BadRequest(description=error)
 
-        upload_file_name = "{}.{}".format(new_item.file_basename(), extension)
-        new_item.filePath = os.path.join(WorkItem.base_dir(), "data", upload_file_name)
+        upload_file_name = "input.{}".format(extension)
+        new_item.filePath = os.path.join(new_item.uploads_dir(), upload_file_name)
 
         # Inform the caller where to upload the file.
-        new_item.fileUrl = "/work-items/data/{}".format(upload_file_name)
+        new_item.fileUrl = "/work-items/{}/uploads/{}".format(new_id, upload_file_name)
 
     else:
         new_item.status = "ready"
@@ -239,8 +240,8 @@ async def delete_work_item(work_item_id):
     return jsonify(item), HTTPStatus.OK
 
 
-@work_items.route('/work-items/data/<filename>', methods=['GET'])
-async def get_work_item_file(filename):
+@work_items.route('/work-items/<int:work_item_id>/uploads/<filename>', methods=['GET'])
+async def get_work_item_file(work_item_id, filename):
     """
     Get a WorkItem data file
     ---
@@ -260,12 +261,12 @@ async def get_work_item_file(filename):
                     image/jpeg: {}
                     image/png: {}
     """
-    data_dir = os.path.join(WorkItem.base_dir(), "data")
+    data_dir = WorkItem.uploads_dir(work_item_id)
     return await send_from_directory(data_dir, filename)
 
 
-@work_items.route('/work-items/data/<filename>', methods=['PUT'])
-async def upload_work_item_file(filename):
+@work_items.route('/work-items/<int:work_item_id>/uploads/<filename>', methods=['PUT'])
+async def upload_work_item_file(work_item_id, filename):
     """
     Replace a WorkItem data file
     ---
@@ -292,23 +293,20 @@ async def upload_work_item_file(filename):
     """
     # TODO: Require authentication
 
-    data_dir = os.path.join(WorkItem.base_dir(), "data")
-    os.makedirs(data_dir, exist_ok=True)
-
-    work_item = None
-    for item in WorkItem.find():
-        if item.fileUrl == "/work-items/data/{}".format(filename):
-            work_item = item
-            break
-
+    work_item = WorkItem.find_by_id(work_item_id)
     if work_item is None:
         raise exceptions.NotFound(description="No open work item found for file upload")
 
+    file_path = os.path.join(work_item.uploads_dir(), secure_filename(filename))
+
     body = await request.get_data()
-    with open(work_item.filePath, "wb") as output:
+    with open(file_path, "wb") as output:
         output.write(body)
 
-    work_item.status = "ready"
-    work_item.save()
+    # Mark item as ready if the file upload provides the data file needed by a
+    # worker process, e.g. "input.jpeg".
+    if file_path == work_item.filePath:
+        work_item.status = "ready"
+        work_item.save()
 
     return jsonify(work_item), HTTPStatus.CREATED
