@@ -5,6 +5,7 @@ import {useState, useEffect} from 'react';
 import App, {port} from "./App";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { solid, regular, brands } from '@fortawesome/fontawesome-svg-core/import.macro'
+import RangeSlider from 'react-bootstrap-range-slider';
 
 function NewFeature(props) {
     // Map feature type -> FA icon
@@ -253,26 +254,30 @@ function NewFeature(props) {
                                 </Form.Select>
                             </FloatingLabel>
                         </Form.Group>
-
-                        <Row className="mb-3" style={offsetPerStyle}>
-                          <Col>
-                            <Form.Group className="mb-3" controlId="top-offset-percent" style={offsetPerStyle}>
+                        <div style={{display: "flex", width: "100%"}}>
+                            <Form.Group className="mb-3" controlId="top-offset-percent" style={{width: "50%"}}>
                               <FloatingLabel controlId="top-offset-percent" label="Top Offset (%)">
                                 <Form.Control type="number" max="100" min="0" defaultValue="0" placeholder="Top Offset (%)"
                                               name="top-offset-percent" onChange={(e) => updateState(e, "top-offset-percent")}/>
                               </FloatingLabel>
                             </Form.Group>
-                          </Col>
-                          <Col>
-                            <Form.Group className="mb-3" controlId="left-offset-percent" style={offsetPerStyle}>
+                            <Form.Group className="mb-3" controlId="left-offset-percent" style={{width: "50%"}}>
                               <FloatingLabel controlId="left-offset-percent" label="Left Offset (%)">
                                 <Form.Control type="number" max="100" min="0" defaultValue="0" placeholder="Left Offset (%)"
                                               name="left-offset-percent" onChange={(e) => updateState(e, "left-offset-percent")}/>
                               </FloatingLabel>
                             </Form.Group>
-                          </Col>
-                        </Row>
-
+                        </div>
+                        <div style={{visibility:'hidden', height: 'contentMax'}}>
+                            <RangeSlider
+                                value={props.sliderValue}
+                                onChange={e => props.setSliderValue(e.target.value)}
+                                tooltipLabel={currentValue => `${currentValue}`}
+                                tooltip='on'
+                                min={1}
+                                max={10}
+                            />
+                        </div>
                         <Form.Group className="mb-3" controlId="coord-location" style={coordStyle}>
                             <FloatingLabel controlId="coord-location" label="Placement Location">
                                 <Form.Select aria-label="coord Location"

@@ -23,16 +23,18 @@ import {
     faTruckMedical,
     faUser,
 } from "@fortawesome/free-solid-svg-icons";
+import MapView from "./MapView";
 
 fontawesome.library.add(faBandage, faDoorClosed, faElevator,
     faExclamationTriangle, faFire, faFireExtinguisher, faHeadset, faMessage,
     faSquare, faStairs, faTruckMedical, faUser);
 
-export const port = '5000'
+export const port = '5003'
+export const host = 'localhost'
 
 
 function App() {
-    const host = window.location.hostname;
+    const host = 'localhost';
 
     // Map feature type -> FA icon
     const icons = {
@@ -46,6 +48,7 @@ function App() {
         object: solid('square'),
         extinguisher: solid('fire-extinguisher'),
         message: solid('message'),
+        headset: solid('headset'),
     }
 
     const buttonStyle = {
@@ -78,6 +81,7 @@ function App() {
     const [iconIndex, setIconIndex] = useState(null);
     const [headsetsChecked, setHeadsetsChecked] = useState(false);
     const [featuresChecked, setFeaturesChecked] = useState(false);
+    const [sliderValue, setSliderValue] = useState(0);
 
     useEffect(() => {
         get_maps();
@@ -99,15 +103,26 @@ function App() {
     }, []);
 
     useEffect(() => {
+        if (selectedMap == '' && maps.length > 0)
+            setSelectedMap(getDefaultMapSelection());
+    }, [maps, setMaps]);
+
+    useEffect(() => {
         setSelectedImage(getMapImage(selectedMap));
     }, [selectedMap, setSelectedMap]);
 
 
     // time goes off every 10 seconds to refresh headset data
-    useEffect(() => {
-        const timer = setTimeout(() => getHeadsets(), 1e4)
-        return () => clearTimeout(timer)
-    });
+    // useEffect(() => {
+    //     const timer = setTimeout(() => getHeadsets(), 1e4)
+    //     return () => clearTimeout(timer)
+    // });
+    //
+    // useEffect(() => {
+    //     const imgUrl = selectedImage.split("?")[0] + "?" + Math.floor(Math.random() * 100);
+    //     const timer = setTimeout(() => setSelectedImage(imgUrl), 1e3)
+    //     return () => clearTimeout(timer)
+    // });
 
     useEffect(() => {
         combineMapObjects();
@@ -121,7 +136,7 @@ function App() {
 
     };
 
-    const changeMapObjectsContainer  = (e) => {
+    const changeMapObjectsContainer = (e) => {
         if (e.target.id == 'features-switch') {
             setFeaturesChecked(e.target.checked);
         }
@@ -139,6 +154,8 @@ function App() {
         if (featuresChecked)
             for (const i in features) {
                 const v = features[i];
+                if (selectedMap != v.mapId)
+                    continue;
                 combinedMapObjectList.push({
                     'id': v.id,
                     'mapId': v.mapId,
@@ -152,6 +169,8 @@ function App() {
         if (headsetsChecked)
             for (const i in headsets) {
                 const v = headsets[i];
+                if (selectedMap != v.mapId)
+                    continue;
                 combinedMapObjectList.push({
                     'id': v.id,
                     'mapId': v.mapId,
@@ -210,77 +229,12 @@ function App() {
                     });
                 }
                 setMaps(maps_list);
-                setSelectedMap(getDefaultMapSelection());
-                setSelectedImage(getDefaultMapImage());
+                // setSelectedMap(getDefaultMapSelection());
             });
-        setSelectedMap(getDefaultMapSelection());
-        setSelectedImage(getDefaultMapImage());
+        // setSelectedMap(getDefaultMapSelection());
     }
 
-    const onMapLoad = () => {
-        if (selectedMap == 'NULL')
-            return;
 
-        setMapLoaded(true);
-
-        fetch(`http://${host}:${port}/maps/${selectedMap}/features`)
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                }
-            }).then(data => {
-
-            let fetchedFeatures = []
-            if (data == undefined || data == null || data[0] === undefined) {
-                console.log("NO DATA FOR MAP")
-            } else {
-                for (let i in data) {
-                    let v = data[i];
-
-                    fetchedFeatures.push({
-                        'id': v.id,
-                        'mapId': v.mapId,
-                        'name': v.name,
-                        'positionX': v.position.x,
-                        'positionY': v.position.y,
-                        'positionZ': v.position.z,
-                        'iconValue': v.style.icon
-                    });
-                }
-            }
-            setFeatures(fetchedFeatures);
-
-            fetch(`http://${host}:${port}/headsets`)
-                .then(response => {
-                    return response.json()
-                }).then(data => {
-                let fetchedHeadsets = []
-                for (let k in data) {
-                    let v = data[k];
-                    if (selectedMap === v.mapId) {
-                        fetchedHeadsets.push({
-                            'id': v.id,
-                            'lastUpdate': v.lastUpdate,
-                            'mapId': v.mapId,
-                            'name': v.name,
-                            'orientationX': v.orientation.x,
-                            'orientationY': v.orientation.y,
-                            'orientationZ': v.orientation.z,
-                            'positionX': v.position.x,
-                            'positionY': v.position.y,
-                            'positionZ': v.position.z,
-                            'scaledX': convertVector2Scaled(v.position.x, v.position.z)[0],
-                            'scaledY': convertVector2Scaled(v.position.x, v.position.z)[1],
-                            'iconValue': 'user'
-                        });
-                    }
-                }
-                setHeadsets(fetchedHeadsets);
-            });
-
-        });
-
-    }
 
     const getMapImage = (mapId) => {
         var map = null;
@@ -339,64 +293,13 @@ function App() {
         return list;
     }
 
-    const convertScaled2Vector = (px, py) => {
-        var list = [];
-        var map = {};
-        for (var i = 0; i < maps.length; i++) {
-            if (maps[i]['id'] == selectedMap)
-                map = maps[i];
-        }
-        if (Object.keys(map).length === 0 || !mapLoaded)
-            return [0, 0];
-
-        const xmin = map['viewBox'][0];
-        const ymin = map['viewBox'][1];
-        const width = map['viewBox'][2];
-        const height = map['viewBox'][3];
-        list.push((px * width / document.getElementById('map-image').offsetWidth + xmin));
-        list.push((py * height / document.getElementById('map-image').offsetHeight + ymin));
-
-        return list;
-    }
-
     const changePointValue = (value, idx) => {
         var coordinates = pointCoordinates;
         coordinates[idx] = value;
         setPointCoordinates(coordinates);
     }
 
-    const onMouseClick = (e) => {
-        if (cursor != 'crosshair')
-            return;
 
-        let f = []
-        for (let i in features) {
-            f.push(features[i]);
-        }
-        if (clickCount > 0)
-            f.pop();
-        f.push({
-            id: 'fire-1',
-            mapId: selectedMap,
-            name: 'Fire',
-            positionX: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[0],
-            positionY: 0,
-            positionZ: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[1],
-            scaledX: e.clientX - e.target.getBoundingClientRect().left,
-            scaledY: e.clientY - e.target.getBoundingClientRect().top,
-            icon: crossHairIcon,
-            iconValue: icons[iconIndex]
-        });
-
-        setFeatures(f);
-        setPointCoordinates([convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left,
-            e.clientY - e.target.getBoundingClientRect().top)[0],
-            0,
-            convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left,
-                e.clientY - e.target.getBoundingClientRect().top)[1]]);
-
-        setClickCount(clickCount + 1);
-    }
 
     // shows the new feature popup
     const showFeature = (e) => {
@@ -420,8 +323,8 @@ function App() {
         }
 
         var map = {
-          'name': maps[id]['name'],
-          'image': maps[id]['image']
+            'name': maps[id]['name'],
+            'image': maps[id]['image']
         }
         setChangedMap(map);
 
@@ -472,9 +375,9 @@ function App() {
                 };
 
                 fetch(url, requestData).then(response => {
-                  setChangedHeadsetName(headsets[x]['name']);
-                  onCancelHeadset(null, index);
-                  getHeadsets();
+                    setChangedHeadsetName(headsets[x]['name']);
+                    onCancelHeadset(null, index);
+                    getHeadsets();
                 });
                 break;
             }
@@ -517,13 +420,13 @@ function App() {
                 };
                 fetch(url, requestData).then(response => {
 
-                  var new_map = {
-                    'name': maps[x]['name'],
-                    'image': maps[x]['image']
-                  };
-                  setChangedMap(new_map);
-                  onCancelMap(index);
-                  get_maps();
+                    var new_map = {
+                        'name': maps[x]['name'],
+                        'image': maps[x]['image']
+                    };
+                    setChangedMap(new_map);
+                    onCancelMap(index);
+                    get_maps();
                 });
                 break;
             }
@@ -535,12 +438,12 @@ function App() {
     // cancels map editing
     const onCancelMap = (index) => {
 
-        for (var x in maps){
-          if (x == index){
-            maps[x]['name'] = changedMap['name'];
-            maps[x]['image'] = changedMap['image'];
-            break;
-          }
+        for (var x in maps) {
+            if (x == index) {
+                maps[x]['name'] = changedMap['name'];
+                maps[x]['image'] = changedMap['image'];
+                break;
+            }
         }
 
         setChangedMap(null);
@@ -555,11 +458,11 @@ function App() {
     // turns off headset editing
     const onCancelHeadset = (element, index) => {
 
-        for (var x in headsets){
-          if (x == index){
-            headsets[x]['name'] = changedHeadsetName;
-            break;
-          }
+        for (var x in headsets) {
+            if (x == index) {
+                headsets[x]['name'] = changedHeadsetName;
+                break;
+            }
         }
 
         setChangedHeadsetName(null);
@@ -780,7 +683,8 @@ function App() {
                         </DropdownButton>
                     </div>
                     <div className="header-button">
-                        <Button variant="secondary" title="New Map" style={buttonStyle} onClick={(e) => showMapPopup(e)}>New
+                        <Button variant="secondary" title="New Map" style={buttonStyle}
+                                onClick={(e) => showMapPopup(e)}>New
                             Map</Button>
                     </div>
                     <div className="header-button">
@@ -789,7 +693,8 @@ function App() {
                     </div>
 
                     <div className="QR-code-btn header-button">
-                      <Button title="Map QR Code" variant="secondary" href={"/" + selectedMap + "/qrcode"} target="_blank">Map QR Code</Button>
+                        <Button title="Map QR Code" variant="secondary" href={"/" + selectedMap + "/qrcode"}
+                                target="_blank">Map QR Code</Button>
                     </div>
 
                     <div className="header-button new-incident-btn"
@@ -802,19 +707,18 @@ function App() {
                 <hr/>
                 <NewFeature popUpClass={popUpClass} changeCursor={toggleCursor} changeIcon={changeIcon}
                             pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedMap}
-                            setIconIndex={setIconIndex}/>
+                            setIconIndex={setIconIndex} sliderValue={sliderValue} setSliderValue={setSliderValue}/>
                 <NewMap showNewMap={showNewMap}/>
-                <div className="map-image-container">
-                    <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
-                         onClick={onMouseClick} style={{cursor: cursor}}/>
-                    {combinedMapObjects.map((f, index) => {
-                        return <FontAwesomeIcon icon={f.iconValue} className="features" id={f.id} alt={f.name}
-                                                style={{
-                                                    left: combinedMapObjects[index].scaledX,
-                                                    top: combinedMapObjects[index].scaledY
-                                                }}/>
-                    })}
-                </div>
+                <MapView selectedImage={selectedImage} selectedMap={selectedMap} setFeatures={setFeatures}
+                         setHeadsets={setHeadsets}
+                         setPointCoordinates={setPointCoordinates} setClickCount={setClickCount}
+                         clickCount={clickCount} cursor={cursor} setCursor={setCursor}
+                         combinedMapObjects={combinedMapObjects}
+                         mapLoaded={mapLoaded} setMapLoaded={setMapLoaded}
+                         maps={maps} crossHairIcon={crossHairIcon} iconIndex={iconIndex}
+                         convertVector2Scaled={convertVector2Scaled}
+                         icons={icons}
+                />
                 <div style={{width: 'max-content'}}>
                     <Form onChange={changeMapObjectsContainer}>
                         <Form.Check
