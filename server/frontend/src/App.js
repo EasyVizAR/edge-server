@@ -1,7 +1,8 @@
 import './App.css';
 import {Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button} from 'react-bootstrap';
 import NewMap from './NewMap.js';
-import NewFeature from './NewFeature.js'
+import NewFeature from './NewFeature.js';
+import NewIncidentModal from './NewIncidentModal.js';
 import 'reactjs-popup/dist/index.css';
 import React, {useState, useEffect} from 'react';
 import moment from 'moment';
@@ -80,6 +81,7 @@ function App() {
     const [featuresChecked, setFeaturesChecked] = useState(false);
     const [currMapName, setCurrMapName] = useState('');
     const [incidentNum, setIncident] = useState(-1);
+    const [showIncidentModal, toggleIncidentModal] = useState(false);
 
     useEffect(() => {
         get_maps();
@@ -410,14 +412,14 @@ function App() {
 
     // shows the new feature popup
     const showFeature = (e) => {
-        if (showNewMap == false) {
+        if (showNewMap == false && showIncidentModal == false) {
             displayModal(popUpClass ? false : true)
         }
     }
 
     // shows the new map popup
     const showMapPopup = (e) => {
-        if (popUpClass == false) {
+        if (popUpClass == false && showIncidentModal == false) {
             showMap(showNewMap ? false : true)
         }
     }
@@ -777,21 +779,16 @@ function App() {
         });
     }
 
-    function createNewIncident() {
-        const requestData = {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({'incident_name': 'name1'})
-        };
-
-        fetch(`http://${host}:${port}/incidents/create`, requestData).then(async response => {
-          await console.log('here');
-        }).then(async data => {
-          await alert('starting new incident');
-          getCurrentIncident();
-        });
+    function showNewIncidentModal(){
+      if (showIncidentModal == false){
+        if (showNewMap == false && popUpClass == false){
+          toggleIncidentModal(true);
+        }else{
+          toggleIncidentModal(false);
+        }
+      }else{
+        toggleIncidentModal(false);
+      }
     }
 
     return (
@@ -829,7 +826,7 @@ function App() {
 
                     <div className="header-button new-incident-btn"
                          style={{position: "absolute", right: "0", paddingRight: "20px"}}>
-                        <Button variant="primary" onClick={createNewIncident}>
+                        <Button variant="primary" onClick={e => {showNewIncidentModal();}}>
                             New Incident
                         </Button>
                     </div>
@@ -839,13 +836,14 @@ function App() {
                             pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedMap}
                             setIconIndex={setIconIndex}/>
                 <NewMap showNewMap={showNewMap}/>
+                <NewIncidentModal show={showIncidentModal} getCurrentIncident={getCurrentIncident}/>
                 <div style={{textAlign: 'left', marginBottom: '15px'}}>
                   <div style={{display: 'inline-block'}}>
                     <p class="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Map Name</p>
                     <h4 style={{marginTop: '0px'}}>{currMapName != '' ? (currMapName) : ('No Map Selected')}</h4>
                   </div>
                   <div style={{marginLeft: '15px', display: 'inline-block'}}>
-                    <p class="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Incident</p>
+                    <p class="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Incident Name</p>
                     <h4 style={{marginTop: '0px'}}>{incidentNum != -1 ? (incidentNum) : ('Error getting incident')}</h4>
                   </div>
                 </div>

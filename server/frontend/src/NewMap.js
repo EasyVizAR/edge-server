@@ -52,8 +52,7 @@ function NewMap(props){
         <div>
           <h2>Create A Map</h2>
           <Form onSubmit={handleSubmit}>
-
-            <Form.Group className="mb-3" controlId="map-name">
+            <Form.Group style={{width: '50%', margin: 'auto'}} className="mb-3" controlId="map-name">
               <FloatingLabel controlId="floating-name" label="Map Name">
                 <Form.Control type="text" placeholder="Map Name" name="mapName" onChange={(e) => updateState(e, "map-name")}/>
               </FloatingLabel>
