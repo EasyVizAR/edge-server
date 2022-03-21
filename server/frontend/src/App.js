@@ -768,7 +768,12 @@ function App() {
             return response.json();
           }
         }).then(data => {
-          setIncident(data['incident'])
+
+          if (data['incident_name'] === '' || data['incident_name'] === null){
+            setIncident(data['incident_number'])
+          }else{
+            setIncident(data['incident_name'])
+          }
         });
     }
 
@@ -777,13 +782,15 @@ function App() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({'incident_name': 'name1'})
         };
-        const url = `http://${host}:${port}/incidents/create`;
-        fetch(url.toString(), requestData).then(response => {
-            console.log("Incident created");
-            alert('Starting new incident');
-            getCurrentIncident();
+
+        fetch(`http://${host}:${port}/incidents/create`, requestData).then(async response => {
+          await console.log('here');
+        }).then(async data => {
+          await alert('starting new incident');
+          getCurrentIncident();
         });
     }
 

@@ -13,6 +13,7 @@ incidents_handler = None
 class IncidentHandler:
     def __init__(self, app):
         self.current_incident = 0
+        self.curr_incident_name = ''
         self.app = app
         self.set_current_incident()
 
@@ -33,9 +34,19 @@ class IncidentHandler:
         if incident_num == -1:
             self.create_new_incident()
 
+        # get current incident name
+        info_path = os.path.join(filepath, str(incident_num), 'incident_info.json')
+        info = open(info_path)
+
+        data = json.load(info)
+
+        self.curr_incident_name = data.get('name') if data.get("name") is not None else ''
+
+        info.close()
+
         print("Current incident: {}".format(self.current_incident))
 
-    def create_new_incident(self):
+    def create_new_incident(self, incident_name=None):
         self.current_incident += 1
 
         # create filepaths
@@ -48,31 +59,17 @@ class IncidentHandler:
         os.makedirs(new_headset_filepath, exist_ok=True)
         os.makedirs(new_map_filepath, exist_ok=True)
 
-        # create incident info file
-        filepath = os.path.join(filepath, 'incident_info.json')
-        incident_info = {
-            'created': str(date.today())
-        }
-
-        write_to_file(json.dumps(incident_info, cls=GenericJsonEncoder), filepath)
-
-    def create_first_incident(self):
-
-        # create filepaths
-        filepath = os.path.join(self.app.config['VIZAR_DATA_DIR'], 'incidents', str(self.current_incident))
-        new_headset_filepath = os.path.join(filepath, 'headsets')
-        new_map_filepath = os.path.join(filepath, 'maps')
-
-        # create the directories
-        os.makedirs(filepath, exist_ok=True)
-        os.makedirs(new_headset_filepath, exist_ok=True)
-        os.makedirs(new_map_filepath, exist_ok=True)
+        if not incident_name:
+            incident_name = ''
 
         # create incident info file
         filepath = os.path.join(filepath, 'incident_info.json')
         incident_info = {
+            'name': incident_name,
             'created': str(date.today())
         }
+
+        self.curr_incident_name = incident_name
 
         write_to_file(json.dumps(incident_info, cls=GenericJsonEncoder), filepath)
 
