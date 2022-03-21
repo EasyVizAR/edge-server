@@ -6,6 +6,7 @@ import { useState } from 'react';
 
 function NewMap(props){
     const host = window.location.hostname;
+    const port = '5000';
     const[mapName, setMapName] = useState(null);
 
     if (!props.showNewMap){
@@ -26,7 +27,7 @@ function NewMap(props){
         body: JSON.stringify(new_map)
       };
 
-      let url = `http://${host}:${App.port}/maps`;
+      let url = `http://${host}:${port}/maps`;
       fetch(url, requestData)
       .then(response => response.json())
       .then(data => {
