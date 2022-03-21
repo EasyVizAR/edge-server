@@ -79,9 +79,11 @@ function App() {
     const [headsetsChecked, setHeadsetsChecked] = useState(false);
     const [featuresChecked, setFeaturesChecked] = useState(false);
     const [currMapName, setCurrMapName] = useState('');
+    const [incidentNum, setIncident] = useState(-1);
 
     useEffect(() => {
         get_maps();
+        getCurrentIncident();
     }, []);
 
     useEffect(() => {
@@ -753,6 +755,23 @@ function App() {
         }
     }
 
+    function getCurrentIncident(){
+      const requestData = {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+      };
+      fetch(`http://${host}:${port}/incidents/`, requestData)
+        .then(response => {
+          if (response.ok) {
+            return response.json();
+          }
+        }).then(data => {
+          setIncident(data['incident'])
+        });
+    }
+
     function createNewIncident() {
         const requestData = {
             method: 'POST',
@@ -764,6 +783,7 @@ function App() {
         fetch(url.toString(), requestData).then(response => {
             console.log("Incident created");
             alert('Starting new incident');
+            getCurrentIncident();
         });
     }
 
@@ -812,7 +832,16 @@ function App() {
                             pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedMap}
                             setIconIndex={setIconIndex}/>
                 <NewMap showNewMap={showNewMap}/>
-                <h4 style={{textAlign: 'left'}}>{currMapName}</h4>
+                <div style={{textAlign: 'left', marginBottom: '15px'}}>
+                  <div style={{display: 'inline-block'}}>
+                    <p class="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Map Name</p>
+                    <h4 style={{marginTop: '0px'}}>{currMapName != '' ? (currMapName) : ('No Map Selected')}</h4>
+                  </div>
+                  <div style={{marginLeft: '15px', display: 'inline-block'}}>
+                    <p class="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Incident</p>
+                    <h4 style={{marginTop: '0px'}}>{incidentNum != -1 ? (incidentNum) : ('Error getting incident')}</h4>
+                  </div>
+                </div>
                 <div className="map-image-container">
                     <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
                          onClick={onMouseClick} style={{cursor: cursor}}/>

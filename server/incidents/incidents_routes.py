@@ -16,3 +16,14 @@ async def create_incident():
 
     return await make_response(
         jsonify({"message": "Incident Created"}), HTTPStatus.CREATED)
+
+
+@incidents.route('/incidents', methods=['GET'])
+async def get_incident():
+
+    # init incidents handler if it is not already
+    incident_handler = init_incidents_handler(app=current_app)
+    print('incident found: ' + str(incident_handler.current_incident))
+    return await make_response(
+        jsonify({"incident": str(incident_handler.current_incident)}),
+        HTTPStatus.OK)
