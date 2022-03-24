@@ -197,6 +197,18 @@ class Repository:
     def get_all_maps(self):
         return list(self.maps.values())
 
+    def get_map_filepath(self, map_id):
+
+        # check if map exists
+        if map_id not in self.maps.keys():
+            return None
+
+        # get current incident number
+        current_incident = self.incident_handler.current_incident
+
+        # create path and return
+        return os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents', str(current_incident), 'maps', map_id)
+
 
 def get_map_repository():
     global map_repository

@@ -665,11 +665,10 @@ async def get_map_qrcode(map_id):
 
     # TODO check authorization
 
-    data_dir = current_app.config['VIZAR_DATA_DIR']
-    map_dir = os.path.join(data_dir, 'maps', map_id)
-    image_path = os.path.join(map_dir, 'qrcode.svg')
+    map_path = get_map_repository().get_map_filepath(map_id)
+    image_path = os.path.join(map_path, 'qrcode.svg')
 
-    if not os.path.isdir(map_dir):
+    if not os.path.isdir(map_path):
         return {"error": "Map does not exist."}, HTTPStatus.NOT_FOUND
 
     if not os.path.exists(image_path):
@@ -678,7 +677,7 @@ async def get_map_qrcode(map_id):
         code = pyqrcode.create(url, error='L')
         code.svg(image_path, title=url)
 
-    return await send_from_directory(map_dir, 'qrcode.svg')
+    return await send_from_directory(map_path, 'qrcode.svg')
 
 
 @maps.route('/maps/<map_id>/top-down.svg', methods=['GET'])
