@@ -124,7 +124,10 @@ function App() {
 
     useEffect(() => {
         const imgUrl = selectedImage.split("?")[0] + "?" + Math.floor(Math.random() * 100);
-        const timer = setTimeout(() => setSelectedImage(imgUrl), 1e3)
+        const timer = setTimeout(() => {
+            if (cursor != 'crosshair') // trigger only if not in on map edit mode
+                setSelectedImage(imgUrl)
+        }, 6e4) // 60 secs
         return () => clearTimeout(timer)
     });
 
