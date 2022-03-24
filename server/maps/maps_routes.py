@@ -675,7 +675,7 @@ async def get_map_qrcode(map_id):
         url = 'vizar://{}/maps/{}'.format(current_app.config['VIZAR_EDGE_HOST'], map_id)
 
         code = pyqrcode.create(url, error='L')
-        code.svg(image_path, title=url)
+        code.svg(image_path, title=url, scale=16)
 
     return await send_from_directory(map_path, 'qrcode.svg')
 
