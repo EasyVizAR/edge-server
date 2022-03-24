@@ -66,7 +66,8 @@ class Feature:
         self.style = {
             "placement": style['placement'],
             "topOffset": style['topOffset'],
-            "leftOffset": style['leftOffset']
+            "leftOffset": style['leftOffset'],
+            "radius": 10 if style.get('radius') is None else style.get('radius') # TODO: change default value 10 to exception later
         }
 
 
@@ -133,10 +134,13 @@ class Repository:
         feature = Feature(name, ftype, mapId, style, id=id)
 
         # add position if the placement of the feature is point
-        if style.get('placement') == 'point':
+        if style.get('placement') == 'point' or style.get('placement') == 'floating':
             feature.position['x'] = position['x']
             feature.position['y'] = position['y']
             feature.position['z'] = position['z']
+
+        if style.get('placement') == 'floating':
+            feature.style['radius'] = 10 if style.get('radius') is None else style.get('radius')
 
         map_features = []
         if mapId in self.features:

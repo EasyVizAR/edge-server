@@ -5,6 +5,7 @@ import {useState, useEffect} from 'react';
 import App, {port} from "./App";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { solid, regular, brands } from '@fortawesome/fontawesome-svg-core/import.macro'
+import RangeSlider from 'react-bootstrap-range-slider';
 
 function NewFeature(props) {
     // Map feature type -> FA icon
@@ -51,7 +52,6 @@ function NewFeature(props) {
 
     const [formVal, updateForm] = useState(state);
     const [feature_name, setName] = useState('');
-    const [placement_type, setPlacement] = useState('');
     const [x_pos, setX] = useState(null);
     const [y_pos, setY] = useState(null);
     const [z_pos, setZ] = useState(null);
@@ -63,8 +63,8 @@ function NewFeature(props) {
     const [coordStyle, setCoordStyle] = useState(hideDisplay);
     const [offsetPerStyle, setOffsetPerStyle] = useState(hideDisplay);
     const [feature_type, changeIcon] = useState(null);
+    const [rangeSliderVisibility, setRangeSliderVisibility] = useState("none")
 
-    const [placementType, setPlacementType] = useState('');
     const [mapMode, setMapMode] = useState(false);
 
     if (!props.popUpClass) {
@@ -78,7 +78,7 @@ function NewFeature(props) {
 
         updateForm({
             feature_name: feature_name,
-            placement_type: placement_type,
+            placement_type: props.placementType,
             x: x_pos,
             y: y_pos,
             z: z_pos,
@@ -114,7 +114,7 @@ function NewFeature(props) {
     function updateState(e, type) {
 
         // TODO: bug here. lags when updating variables
-        setPlacementType(type);
+
 
         let val = e.target.value;
         switch (type) {
@@ -122,7 +122,7 @@ function NewFeature(props) {
             setName(val);
             break;
           case "placement-type":
-            setPlacement(val);
+              props.setPlacementType(val);
             hideAllSections();
             if (val === "point") {
                 console.log("point");
@@ -131,6 +131,14 @@ function NewFeature(props) {
             } else if (val == "floating" || val == "surface") {
                 console.log("not point");
                 setOffsetPerStyle(showDisplay);
+                if (val == "floating") {
+                    setPosStyle(displayflex);
+                    setRangeSliderVisibility("flex");
+                } else {
+                    setRangeSliderVisibility("none");
+                }
+            } else {
+                setRangeSliderVisibility("none");
             }
             break;
           case "left-offset-percent":
@@ -160,7 +168,7 @@ function NewFeature(props) {
         }
         updateForm({
             feature_name: feature_name,
-            placement_type: placement_type,
+            placement_type: props.placementType,
             x: x_pos,
             y: y_pos,
             z: z_pos,
@@ -197,11 +205,16 @@ function NewFeature(props) {
             },
             "mapID": props.mapID,
             "style": {
-                "placement": placement_type,
+                "placement": props.placementType,
                 "topOffset": top_offset_percent,
                 "leftOffset": left_offset_percent
             }
         }
+
+        if (props.placementType == 'floating') {
+            new_feature.style.radius = props.sliderValue;
+        }
+
         console.log(new_feature)
         let url = `http://${host}:${port}/maps/${props.mapID}/features`;
         const requestData = {
@@ -253,26 +266,30 @@ function NewFeature(props) {
                                 </Form.Select>
                             </FloatingLabel>
                         </Form.Group>
-
-                        <Row className="mb-3" style={offsetPerStyle}>
-                          <Col>
-                            <Form.Group className="mb-3" controlId="top-offset-percent" style={offsetPerStyle}>
+                        <div style={{display: "flex", width: "100%"}}>
+                            <Form.Group className="mb-3" controlId="top-offset-percent" style={{width: "50%"}}>
                               <FloatingLabel controlId="top-offset-percent" label="Top Offset (%)">
                                 <Form.Control type="number" max="100" min="0" defaultValue="0" placeholder="Top Offset (%)"
                                               name="top-offset-percent" onChange={(e) => updateState(e, "top-offset-percent")}/>
                               </FloatingLabel>
                             </Form.Group>
-                          </Col>
-                          <Col>
-                            <Form.Group className="mb-3" controlId="left-offset-percent" style={offsetPerStyle}>
+                            <Form.Group className="mb-3" controlId="left-offset-percent" style={{width: "50%"}}>
                               <FloatingLabel controlId="left-offset-percent" label="Left Offset (%)">
                                 <Form.Control type="number" max="100" min="0" defaultValue="0" placeholder="Left Offset (%)"
                                               name="left-offset-percent" onChange={(e) => updateState(e, "left-offset-percent")}/>
                               </FloatingLabel>
                             </Form.Group>
-                          </Col>
-                        </Row>
-
+                        </div>
+                        <div style={{display: rangeSliderVisibility, height: 'contentMax'}}>
+                            <RangeSlider
+                                value={props.sliderValue}
+                                onChange={e => props.setSliderValue(e.target.value)}
+                                tooltipLabel={currentValue => `${currentValue}`}
+                                tooltip='on'
+                                min={1}
+                                max={15}
+                            />
+                        </div>
                         <Form.Group className="mb-3" controlId="coord-location" style={coordStyle}>
                             <FloatingLabel controlId="coord-location" label="Placement Location">
                                 <Form.Select aria-label="coord Location"
@@ -320,7 +337,7 @@ function NewFeature(props) {
                         <label htmlFor="onmap" style={posStyle}>Select on Map</label>
 
                         <p className="icon-select-label">Select an icon:</p>
-                        <div className="icon-select" style={displayflex}>
+                        <div className="icon-select" style={posStyle}>
                             <Icons/>
                         </div>
                         <br/>

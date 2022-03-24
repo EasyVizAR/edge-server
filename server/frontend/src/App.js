@@ -47,6 +47,7 @@ function App() {
         object: solid('square'),
         extinguisher: solid('fire-extinguisher'),
         message: solid('message'),
+        headset: solid('headset'),
     }
 
     const buttonStyle = {
@@ -79,9 +80,11 @@ function App() {
     const [iconIndex, setIconIndex] = useState(null);
     const [headsetsChecked, setHeadsetsChecked] = useState(false);
     const [featuresChecked, setFeaturesChecked] = useState(false);
+    const [sliderValue, setSliderValue] = useState(0);
     const [currMapName, setCurrMapName] = useState('');
     const [incidentNum, setIncident] = useState(-1);
     const [showIncidentModal, toggleIncidentModal] = useState(false);
+    const [placementType, setPlacementType] = useState('');
 
     useEffect(() => {
         get_maps();
@@ -104,6 +107,11 @@ function App() {
     }, []);
 
     useEffect(() => {
+        if (selectedMap == '' && maps.length > 0)
+            setSelectedMap(getDefaultMapSelection());
+    }, [maps, setMaps]);
+
+    useEffect(() => {
         setSelectedImage(getMapImage(selectedMap));
     }, [selectedMap, setSelectedMap]);
 
@@ -111,6 +119,12 @@ function App() {
     // time goes off every 10 seconds to refresh headset data
     useEffect(() => {
         const timer = setTimeout(() => getHeadsets(), 1e4)
+        return () => clearTimeout(timer)
+    });
+
+    useEffect(() => {
+        const imgUrl = selectedImage.split("?")[0] + "?" + Math.floor(Math.random() * 100);
+        const timer = setTimeout(() => setSelectedImage(imgUrl), 1e3)
         return () => clearTimeout(timer)
     });
 
@@ -144,26 +158,34 @@ function App() {
         if (featuresChecked)
             for (const i in features) {
                 const v = features[i];
+                if (selectedMap != v.mapId)
+                    continue;
                 combinedMapObjectList.push({
                     'id': v.id,
                     'mapId': v.mapId,
                     'name': v.name,
                     'scaledX': convertVector2Scaled(v.positionX, v.positionZ)[0],
                     'scaledY': convertVector2Scaled(v.positionX, v.positionZ)[1],
-                    'iconValue': v.iconValue
+                    'iconValue': v.iconValue,
+                    'radius': v.radius,
+                    'placement': v.placement,
+                    'editing': v.editing
                 });
             }
 
         if (headsetsChecked)
             for (const i in headsets) {
                 const v = headsets[i];
+                if (selectedMap != v.mapId)
+                    continue;
                 combinedMapObjectList.push({
                     'id': v.id,
                     'mapId': v.mapId,
                     'name': v.name,
                     'scaledX': convertVector2Scaled(v.positionX, v.positionZ)[0],
                     'scaledY': convertVector2Scaled(v.positionY, v.positionZ)[1],
-                    'iconValue': 'headset'
+                    'iconValue': 'headset',
+                    'placement': 'headset'
                 });
             }
 
@@ -215,11 +237,9 @@ function App() {
                     });
                 }
                 setMaps(maps_list);
-                setSelectedMap(getDefaultMapSelection());
-                setSelectedImage(getDefaultMapImage());
+                // setSelectedMap(getDefaultMapSelection());
             });
-        setSelectedMap(getDefaultMapSelection());
-        setSelectedImage(getDefaultMapImage());
+        // setSelectedMap(getDefaultMapSelection());
     }
 
     const onMapLoad = () => {
@@ -249,7 +269,9 @@ function App() {
                         'positionX': v.position.x,
                         'positionY': v.position.y,
                         'positionZ': v.position.z,
-                        'iconValue': v.style.icon
+                        'iconValue': v.type,
+                        'radius': v.style.radius,
+                        'placement': v.style.placement
                     });
                 }
             }
@@ -397,7 +419,9 @@ function App() {
             scaledX: e.clientX - e.target.getBoundingClientRect().left,
             scaledY: e.clientY - e.target.getBoundingClientRect().top,
             icon: crossHairIcon,
-            iconValue: icons[iconIndex]
+            iconValue: icons[iconIndex].iconName,
+            editing: 'true',
+            placement: placementType
         });
 
         setFeatures(f);
@@ -834,7 +858,8 @@ function App() {
                 <hr/>
                 <NewFeature popUpClass={popUpClass} changeCursor={toggleCursor} changeIcon={changeIcon}
                             pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedMap}
-                            setIconIndex={setIconIndex}/>
+                            setIconIndex={setIconIndex} sliderValue={sliderValue} setSliderValue={setSliderValue}
+                            setPlacementType={setPlacementType} placementType={placementType}/>
                 <NewMap showNewMap={showNewMap}/>
                 <NewIncidentModal show={showIncidentModal} getCurrentIncident={getCurrentIncident}/>
                 <div style={{textAlign: 'left', marginBottom: '15px'}}>
@@ -851,10 +876,54 @@ function App() {
                     <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
                          onClick={onMouseClick} style={{cursor: cursor}}/>
                     {combinedMapObjects.map((f, index) => {
-                        return <FontAwesomeIcon icon={f.iconValue} className="features" id={f.id} alt={f.name}
+                        return f.placement == 'floating' && f.editing == 'true'?
+                            <div>
+                                <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
+                                                 alt={f.name} style={{
+                                    left: combinedMapObjects[index].scaledX,
+                                    top: combinedMapObjects[index].scaledY,
+                                    height: "7%",
+                                }}/>
+                                <svg className="features"
+                                     width={document.getElementById('map-image').offsetHeight/100.0*11}
+                                     height={document.getElementById('map-image').offsetHeight/100.0*11}
+                                     style={{
+                                         left: combinedMapObjects[index].scaledX - document.getElementById('map-image').offsetHeight/100.0*2,
+                                         top: combinedMapObjects[index].scaledY - document.getElementById('map-image').offsetHeight/100.0*2
+                                     }}>
+                                    <circle cx={document.getElementById('map-image').offsetHeight/100.0*7}
+                                            cy={document.getElementById('map-image').offsetHeight/100.0*7}
+                                            r={sliderValue} fill-opacity="0.3" fill="#0000FF"
+                                            transform={`translate(-${document.getElementById('map-image').offsetHeight/100.0*2} -${document.getElementById('map-image').offsetHeight/100.0*2})`}/>
+                                </svg>
+                            </div>
+                            : f.placement == 'floating' ?
+                                <div>
+                                    <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
+                                                     alt={f.name} style={{
+                                        left: combinedMapObjects[index].scaledX,
+                                        top: combinedMapObjects[index].scaledY,
+                                        height: "7%",
+                                    }}/>
+                                    <svg className="features"
+                                         width={document.getElementById('map-image').offsetHeight/100.0*11}
+                                         height={document.getElementById('map-image').offsetHeight/100.0*11}
+                                         style={{
+                                             left: combinedMapObjects[index].scaledX - document.getElementById('map-image').offsetHeight/100.0*2,
+                                             top: combinedMapObjects[index].scaledY - document.getElementById('map-image').offsetHeight/100.0*2
+                                         }}>
+                                        <circle cx={document.getElementById('map-image').offsetHeight/100.0*7}
+                                                cy={document.getElementById('map-image').offsetHeight/100.0*7}
+                                                r={f.radius} fill-opacity="0.3" fill="#0000FF"
+                                                transform={`translate(-${document.getElementById('map-image').offsetHeight/100.0*2} -${document.getElementById('map-image').offsetHeight/100.0*2})`}/>
+                                    </svg>
+                                </div>
+                                : <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
+                                             alt={f.name}
                                                 style={{
                                                     left: combinedMapObjects[index].scaledX,
-                                                    top: combinedMapObjects[index].scaledY
+                                                    top: combinedMapObjects[index].scaledY,
+                                                    height: "7%"
                                                 }}/>
                     })}
                 </div>
