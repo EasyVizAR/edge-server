@@ -642,7 +642,7 @@ async def image_upload():
                                HTTPStatus.CREATED)
 
 
-@maps.route('/maps/<map_id>/qrcode', methods=['GET'])
+@maps.route('/maps/<map_id>/qrcode.svg', methods=['GET'])
 async def get_map_qrcode(map_id):
     """
     Get a QR code for the map.

@@ -821,7 +821,7 @@ function App() {
                     </div>
 
                     <div className="QR-code-btn header-button">
-                      <Button title="Map QR Code" variant="secondary" href={`http://${host}:${port}/maps/` + selectedMap + `/qrcode`} target="_blank">Map QR Code</Button>
+                      <Button title="Map QR Code" variant="secondary" href={`http://${host}:${port}/maps/` + selectedMap + `/qrcode.svg`} target="_blank">Map QR Code</Button>
                     </div>
 
                     <div className="header-button new-incident-btn"
