@@ -36,13 +36,16 @@ class IncidentHandler:
 
         # get current incident name
         info_path = os.path.join(filepath, str(incident_num), 'incident_info.json')
-        info = open(info_path)
 
-        data = json.load(info)
+        try:
+            info = open(info_path)
+            data = json.load(info)
+            info.close()
+        except FileNotFoundError:
+            # At least for now, it should not be a problem if the file does not exist.
+            data = {}
 
-        self.curr_incident_name = data.get('name') if data.get("name") is not None else ''
-
-        info.close()
+        self.curr_incident_name = data.get('name', '')
 
         print("Current incident: {}".format(self.current_incident))
 
