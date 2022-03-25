@@ -16,6 +16,10 @@ function NewIncidentModal(props){
     setIncidentName(e.target.value);
   }
 
+  function hideModal(){
+    props.setShow(false);
+  }
+
   function createNewIncident() {
       const requestData = {
           method: 'POST',
@@ -26,7 +30,6 @@ function NewIncidentModal(props){
       };
 
       fetch(`http://${host}:${port}/incidents/create`, requestData).then(async response => {
-        await console.log('here');
       }).then(async data => {
         window.location.reload();
       });
@@ -36,6 +39,7 @@ function NewIncidentModal(props){
     <div className="newIncidentForm">
       <div>
         <h2>Create New Incident</h2>
+        <Button variant="danger" onClick={hideModal} style={{float: 'right', position: 'relative', top: '-45px', right: '30px'}}>X</Button>
         <Form onSubmit={createNewIncident}>
           <Form.Group style={{width: '50%', margin: 'auto'}} className="mb-3" controlId="incident-name">
             <FloatingLabel controlId="incident-floating-name" label="Incident Name">

@@ -70,3 +70,12 @@
 .new-map-button{
   margin-right: 10px;
 }
+
+.incident-dropdown-option{
+  width: 100%;
+  text-align: center;
+}
+
+.incident-dropdown-option:hover{
+  background-color: #ccc;
+}

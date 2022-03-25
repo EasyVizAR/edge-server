@@ -3,6 +3,7 @@ import {Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button} f
 import NewMap from './NewMap.js';
 import NewFeature from './NewFeature.js';
 import NewIncidentModal from './NewIncidentModal.js';
+import IncidentHistory from './IncidentHistory.js';
 import 'reactjs-popup/dist/index.css';
 import React, {useState, useEffect} from 'react';
 import moment from 'moment';
@@ -85,6 +86,7 @@ function App() {
     const [incidentNum, setIncident] = useState(-1);
     const [showIncidentModal, toggleIncidentModal] = useState(false);
     const [placementType, setPlacementType] = useState('');
+    const [showIncidentHistory, toggleIncidentHistory] = useState(false);
 
     useEffect(() => {
         get_maps();
@@ -439,14 +441,14 @@ function App() {
 
     // shows the new feature popup
     const showFeature = (e) => {
-        if (showNewMap == false && showIncidentModal == false) {
+        if (showIncidentHistory == false && showNewMap == false && showIncidentModal == false) {
             displayModal(popUpClass ? false : true)
         }
     }
 
     // shows the new map popup
     const showMapPopup = (e) => {
-        if (popUpClass == false && showIncidentModal == false) {
+        if (showIncidentHistory == false && popUpClass == false && showIncidentModal == false) {
             showMap(showNewMap ? false : true)
         }
     }
@@ -801,20 +803,25 @@ function App() {
           if (data['incident_name'] === '' || data['incident_name'] === null){
             setIncident(data['incident_number'])
           }else{
+            console.log('incident name: ' + data['incident_name'])
             setIncident(data['incident_name'])
           }
         });
     }
 
     function showNewIncidentModal(){
-      if (showIncidentModal == false){
-        if (showNewMap == false && popUpClass == false){
-          toggleIncidentModal(true);
-        }else{
-          toggleIncidentModal(false);
-        }
+      if (showIncidentHistory == false && showIncidentModal == false && showNewMap == false && popUpClass == false){
+        toggleIncidentModal(true);
       }else{
         toggleIncidentModal(false);
+      }
+    }
+
+    function showIncidentHistoryModal(){
+      if (showIncidentHistory == false && showIncidentModal == false && showNewMap == false && popUpClass == false){
+        toggleIncidentHistory(true);
+      }else{
+        toggleIncidentHistory(false);
       }
     }
 
@@ -853,9 +860,14 @@ function App() {
 
                     <div className="header-button new-incident-btn"
                          style={{position: "absolute", right: "0", paddingRight: "20px"}}>
-                        <Button variant="primary" onClick={e => {showNewIncidentModal();}}>
-                            New Incident
-                        </Button>
+                         <DropdownButton variant="primary" id="incident-dropdown" title="Incident Info" style={{position: 'relative', top: '-10px'}}>
+                          <Dropdown.Item variant="Default" eventKey="1"
+                                         onClick={e => {showNewIncidentModal();}}
+                                         className="incident-dropdown-option">Create Incident</Dropdown.Item>
+                          <Dropdown.Item variant="Default" eventKey="2"
+                                         onClick={e => {showIncidentHistoryModal();}}
+                                         className="incident-dropdown-option">Incident History</Dropdown.Item>
+                        </DropdownButton>
                     </div>
                 </div>
                 <hr/>
@@ -864,14 +876,15 @@ function App() {
                             setIconIndex={setIconIndex} sliderValue={sliderValue} setSliderValue={setSliderValue}
                             setPlacementType={setPlacementType} placementType={placementType}/>
                 <NewMap showNewMap={showNewMap}/>
-                <NewIncidentModal show={showIncidentModal} getCurrentIncident={getCurrentIncident}/>
+                <NewIncidentModal show={showIncidentModal} setShow={toggleIncidentModal} getCurrentIncident={getCurrentIncident}/>
+                <IncidentHistory updateCurrentIncident={setIncident} show={showIncidentHistory} setShow={toggleIncidentHistory}/>
                 <div style={{textAlign: 'left', marginBottom: '15px'}}>
                   <div style={{display: 'inline-block'}}>
-                    <p class="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Map Name</p>
+                    <p className="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Map Name</p>
                     <h4 style={{marginTop: '0px'}}>{currMapName != '' ? (currMapName) : ('No Map Selected')}</h4>
                   </div>
                   <div style={{marginLeft: '15px', display: 'inline-block'}}>
-                    <p class="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Incident Name</p>
+                    <p className="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Incident Name</p>
                     <h4 style={{marginTop: '0px'}}>{incidentNum != -1 ? (incidentNum) : ('Error getting incident')}</h4>
                   </div>
                 </div>

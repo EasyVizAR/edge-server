@@ -13,7 +13,6 @@ incidents_handler = None
 class IncidentHandler:
     def __init__(self, app):
         self.current_incident = 0
-        self.curr_incident_name = ''
         self.app = app
         self.set_current_incident()
 
@@ -33,19 +32,6 @@ class IncidentHandler:
         # Only create a new incident if none exist.
         if incident_num == -1:
             self.create_new_incident()
-
-        # get current incident name
-        info_path = os.path.join(filepath, str(incident_num), 'incident_info.json')
-
-        try:
-            info = open(info_path)
-            data = json.load(info)
-            info.close()
-        except FileNotFoundError:
-            # At least for now, it should not be a problem if the file does not exist.
-            data = {}
-
-        self.curr_incident_name = data.get('name', '')
 
         print("Current incident: {}".format(self.current_incident))
 
@@ -72,9 +58,72 @@ class IncidentHandler:
             'created': str(date.today())
         }
 
-        self.curr_incident_name = incident_name
-
         write_to_file(json.dumps(incident_info, cls=GenericJsonEncoder), filepath)
+
+    def get_all_incident_info(self):
+        past_incident_info = []
+        base_filepath = os.path.join(self.app.config['VIZAR_DATA_DIR'], 'incidents')
+
+        for folder in os.scandir(base_filepath):
+            if folder.is_dir():
+                incident_info_filepath = os.path.join(base_filepath, folder.name, 'incident_info.json')
+                try:
+                    info = open(incident_info_filepath)
+                    data = json.load(info)
+                    info.close()
+                except FileNotFoundError:
+                    # At least for now, it should not be a problem if the file does not exist.
+                    data = {}
+
+                past_incident_info.append(data)
+
+        return past_incident_info
+
+    def get_incident_name(self, incident_number):
+        if int(incident_number) > self.current_incident or int(incident_number) < 0:
+            return None
+
+        base_filepath = os.path.join(self.app.config['VIZAR_DATA_DIR'], 'incidents')
+
+        for folder in os.scandir(base_filepath):
+            if folder.is_dir() and folder.name == str(incident_number):
+                incident_info_filepath = os.path.join(base_filepath, folder.name, 'incident_info.json')
+                try:
+                    info = open(incident_info_filepath)
+                    data = json.load(info)
+                    info.close()
+
+                    return data.get('name')
+
+                except FileNotFoundError:
+                    # At least for now, it should not be a problem if the file does not exist.
+                    return None
+        return None
+
+    def update_inident_name(self, incident_number, new_name):
+        if int(incident_number) > self.current_incident or int(incident_number) < 0:
+            return False
+
+        if new_name is None:
+            new_name = ''
+
+        base_filepath = os.path.join(self.app.config['VIZAR_DATA_DIR'], 'incidents')
+
+        for folder in os.scandir(base_filepath):
+            if folder.is_dir() and folder.name == str(incident_number):
+                incident_info_filepath = os.path.join(base_filepath, folder.name, 'incident_info.json')
+                try:
+                    info = open(incident_info_filepath)
+                    data = json.load(info)
+                    info.close()
+
+                    data['name'] = new_name
+                    write_to_file(json.dumps(data, cls=GenericJsonEncoder), incident_info_filepath)
+
+                except FileNotFoundError:
+                    # At least for now, it should not be a problem if the file does not exist.
+                    return False
+        return True
 
 
 def init_incidents_handler(app=None):
