@@ -1,4 +1,3 @@
-import App from './App.js';
 import { Form, Button, FloatingLabel, Table } from 'react-bootstrap';
 import React from "react";
 import { useState, useEffect } from 'react';
@@ -121,11 +120,11 @@ function IncidentHistory(props){
       <Button variant="danger" onClick={hideModal} style={{float: 'right', position: 'relative', top: '-45px', right: '30px'}}>X</Button>
       <Table striped bordered hover>
         <thead>
-        <tr>
-            <th>Incident Number</th>
-            <th>Incident Name</th>
-            <th>Date Created</th>
-        </tr>
+          <tr>
+              <th>Incident Number</th>
+              <th>Incident Name</th>
+              <th>Date Created</th>
+          </tr>
         </thead>
         <tbody>
           {
