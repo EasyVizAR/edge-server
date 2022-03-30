@@ -1,0 +1,31 @@
+.header{
+  position: relative;
+  top: 6px;
+}
+.nav{
+  display: flex !important;
+  gap: 1rem;
+  grid-auto-flow: row;
+  flex-wrap: nowrap !important;
+  text-align: left;
+}
+
+.links{
+  overflow-wrap: normal;
+  width: max-content;
+  position: relative;
+  top: 9px;
+  text-decoration: none;
+  color: white;
+  white-space: nowrap;
+}
+
+.links:hover{
+  cursor: pointer;
+  color: #B8B8B8;
+}
+
+.vl{
+  border-left: 2px solid #6A6A6A;
+  height: 3em;
+}
