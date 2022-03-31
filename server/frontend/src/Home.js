@@ -7,8 +7,9 @@ import IncidentHistory from './IncidentHistory.js';
 import 'reactjs-popup/dist/index.css';
 import React, {useState, useEffect} from 'react';
 import moment from 'moment';
-import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
-import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro'
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
+import {Helmet} from 'react-helmet';
 
 import fontawesome from '@fortawesome/fontawesome'
 import {
@@ -827,6 +828,9 @@ function Home() {
 
     return (
         <div className="Home">
+            <Helmet>
+              <title>EasyViz AR</title>
+            </Helmet>
             <div className="home-body">
                 <div className="nav">
                     <div className="dropdown-container">
@@ -849,7 +853,7 @@ function Home() {
                     </div>
 
                     <div className="QR-code-btn header-button">
-                      <Button title="Map QR Code" variant="secondary" href={`http://${host}:${port}/maps/` + selectedMap + `/qrcode.svg`} target="_blank">Map QR Code</Button>
+                      <Button title="Map QR Code" variant="secondary" href={"/maps/" + selectedMap + "/qrcode.svg"} target="_blank">Map QR Code</Button>
                     </div>
 
                     <div className="header-button new-incident-btn"

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table } from 'react-bootstrap';
 import './WorkItems.css';
+import {Helmet} from 'react-helmet';
 
 function WorkItems(props){
   const host = window.location.hostname;
@@ -40,6 +41,9 @@ function WorkItems(props){
 
   return (
     <div className="WorkItems">
+      <Helmet>
+        <title>Work Items</title>
+      </Helmet>
       <h1 className="main-header">Work Items</h1>
       <Table className="work-items-table" striped bordered hover>
         <thead>

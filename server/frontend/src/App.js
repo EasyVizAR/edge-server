@@ -2,6 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import Home from './Home.js';
 import WorkItems from './WorkItems.js';
+import MapQrCodeWrapper from './MapQrCodeWrapper.js'
 import NavBar from './NavBar.js'
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/workitems" element={<WorkItems />} />
+              <Route path="/maps/:map_id/qrcode.svg" element={<MapQrCodeWrapper />} />
             </Routes>
           </div>
         </div>

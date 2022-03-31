@@ -677,7 +677,12 @@ async def get_map_qrcode(map_id):
         code = pyqrcode.create(url, error='L')
         code.svg(image_path, title=url, scale=16)
 
-    return await send_from_directory(map_path, 'qrcode.svg')
+    with open(image_path, 'r') as file:
+        data = file.read().replace('\n', '')
+
+    return jsonify({"image": data}), HTTPStatus.OK
+
+    #return await send_from_directory(map_path, 'qrcode.svg')
 
 
 @maps.route('/maps/<map_id>/top-down.svg', methods=['GET'])

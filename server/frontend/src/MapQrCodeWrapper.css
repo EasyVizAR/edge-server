@@ -1,0 +1,21 @@
+.data{
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+}
+.svg-image{
+  display: inline;
+  float: left;
+  width: max-content;
+  text-align: center;
+  margin: auto;
+}
+.map-info{
+  float: right;
+  position: relative;
+  text-align: center;
+  width: max-content;
+  margin: auto;
+  padding-bottom: 50px;
+}
