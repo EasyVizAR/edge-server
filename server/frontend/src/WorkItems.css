@@ -2,9 +2,9 @@
   margin: 20px;
   text-align: center;
 }
-
 .work-items-table{
   margin-left: 50%;
   transform: translate(-50%, 0%);
   width: 90% !important;
+  table-layout: auto;
 }
