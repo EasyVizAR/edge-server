@@ -32,6 +32,8 @@ function NewMap(props){
       .then(response => response.json())
       .then(data => {
         console.log(data);
+        alert('New Map Created!');
+        props.show(false);
       });
     }
 

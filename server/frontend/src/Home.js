@@ -576,7 +576,6 @@ function Home() {
 
     // cancels map editing
     const onCancelMap = (index) => {
-
         for (var x in maps){
           if (x == index){
             maps[x]['name'] = changedMap['name'];
@@ -873,7 +872,7 @@ function Home() {
                             pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedMap}
                             setIconIndex={setIconIndex} sliderValue={sliderValue} setSliderValue={setSliderValue}
                             setPlacementType={setPlacementType} placementType={placementType}/>
-                <NewMap showNewMap={showNewMap}/>
+                <NewMap showNewMap={showNewMap} show={showMap}/>
                 <NewIncidentModal show={showIncidentModal} setShow={toggleIncidentModal} getCurrentIncident={getCurrentIncident}/>
                 <IncidentHistory updateCurrentIncident={setIncident} show={showIncidentHistory} setShow={toggleIncidentHistory}/>
                 <div style={{textAlign: 'left', marginBottom: '15px'}}>
