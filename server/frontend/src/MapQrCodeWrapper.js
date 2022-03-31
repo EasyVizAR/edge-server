@@ -80,7 +80,7 @@ function MapQrCodeWrapper(props){
           {qr != null ? (
             <p dangerouslySetInnerHTML={{ __html: qr }} />
           ) : (
-            <p>Could not load map QR code</p>
+            <p>Could not load map QR code. Make sure there is a map selected on the home page.</p>
           )}
         </div>
         <div className="map-info">
