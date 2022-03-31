@@ -63,8 +63,8 @@ function MapQrCodeWrapper(props){
 
     return (
       <div>
-        <h1>{map['name']}</h1>
-        <h3>{map['id']}</h3>
+        <h1>{map['name'] != null ? map['name'] : ''}</h1>
+        <h3>{map['id'] != null ? map['id'] : ''}</h3>
       </div>
     );
   }
