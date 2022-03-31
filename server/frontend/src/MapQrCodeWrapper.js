@@ -77,7 +77,11 @@ function MapQrCodeWrapper(props){
 
       <div className="data">
         <div className="svg-image">
-          <p dangerouslySetInnerHTML={{ __html: qr }} />
+          {qr != null ? (
+            <p dangerouslySetInnerHTML={{ __html: qr }} />
+          ) : (
+            <p>Could not load map QR code</p>
+          )}
         </div>
         <div className="map-info">
           <MapInfo/>
