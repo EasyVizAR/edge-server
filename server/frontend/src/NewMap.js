@@ -31,7 +31,7 @@ function NewMap(props){
       fetch(url, requestData)
       .then(response => response.json())
       .then(data => {
-        console.log(data);
+        props.getMaps();
         alert('New Map Created!');
         props.show(false);
       });

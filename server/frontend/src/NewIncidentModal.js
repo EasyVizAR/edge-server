@@ -31,7 +31,9 @@ function NewIncidentModal(props){
 
       fetch(`http://${host}:${port}/incidents/create`, requestData).then(async response => {
       }).then(async data => {
-        window.location.reload();
+        props.setMaps([]);
+        props.setShow(false);
+        window.location.reload(false);
       });
   }
 

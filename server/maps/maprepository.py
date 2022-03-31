@@ -213,6 +213,9 @@ class Repository:
         # create path and return
         return os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents', str(current_incident), 'maps', map_id)
 
+    def reset_maps_for_new_incident(self):
+        self.maps = {}
+
 
 def get_map_repository():
     global map_repository

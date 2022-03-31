@@ -227,6 +227,7 @@ function Home() {
 
     // gets list of maps from server
     function get_maps() {
+        setMaps([]);
         fetch(`http://${host}:${port}/maps`)
             .then(response => response.json())
             .then(data => {
@@ -872,8 +873,9 @@ function Home() {
                             pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedMap}
                             setIconIndex={setIconIndex} sliderValue={sliderValue} setSliderValue={setSliderValue}
                             setPlacementType={setPlacementType} placementType={placementType}/>
-                <NewMap showNewMap={showNewMap} show={showMap}/>
-                <NewIncidentModal show={showIncidentModal} setShow={toggleIncidentModal} getCurrentIncident={getCurrentIncident}/>
+                <NewMap showNewMap={showNewMap} show={showMap} getMaps={get_maps}/>
+                <NewIncidentModal setMaps={setMaps} show={showIncidentModal} setShow={toggleIncidentModal}
+                                  getCurrentIncident={getCurrentIncident} />
                 <IncidentHistory updateCurrentIncident={setIncident} show={showIncidentHistory} setShow={toggleIncidentHistory}/>
                 <div style={{textAlign: 'left', marginBottom: '15px'}}>
                   <div style={{display: 'inline-block'}}>

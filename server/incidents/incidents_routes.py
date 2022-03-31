@@ -2,6 +2,7 @@ from http import HTTPStatus
 from quart import Blueprint, make_response, jsonify, current_app, request
 
 from server.incidents.incident_handler import init_incidents_handler
+from server.maps.maprepository import Repository, get_map_repository
 
 incidents = Blueprint('incidents', __name__)
 
@@ -19,6 +20,7 @@ async def create_incident():
         incident_name = None
 
     incident_handler.create_new_incident(incident_name=incident_name)
+    get_map_repository().reset_maps_for_new_incident()
 
     return await make_response(
         jsonify({"message": "Incident Created"}), HTTPStatus.CREATED)
