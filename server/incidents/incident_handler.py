@@ -125,6 +125,23 @@ class IncidentHandler:
                     return False
         return True
 
+    def delete_incident(self, incident_number):
+        if incident_number > self.current_incident or incident_number < 0:
+            return False
+
+        base_filepath = os.path.join(self.app.config['VIZAR_DATA_DIR'], 'incidents')
+
+        for folder in os.scandir(base_filepath):
+            if folder.is_dir() and folder.name == str(incident_number):
+                try:
+                    shutil.rmtree(os.path.join(base_filepath, folder.name))
+                    self.set_current_incident()
+
+                except FileNotFoundError:
+                    # At least for now, it should not be a problem if the file does not exist.
+                    return False
+        return True
+
 
 def init_incidents_handler(app=None):
     global incidents_handler

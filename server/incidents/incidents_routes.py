@@ -50,6 +50,18 @@ async def get_past_incident_info():
     return jsonify(past_incidents), HTTPStatus.OK
 
 
+@incidents.route('/incidents/<incident_number>', methods=['DELETE'])
+async def delete_incident(incident_number):
+    # init incidents handler if it is not already
+    incident_handler = init_incidents_handler(app=current_app)
+    deleted = incident_handler.delete_incident(incident_number)
+
+    if deleted:
+        return jsonify({'message': 'Incident Deleted'}), HTTPStatus.OK
+
+    return jsonify({'message': 'Incident could not be deleted'}), HTTPStatus.BAD_REQUEST
+
+
 @incidents.route('/incidents/<incident_number>', methods=['POST'])
 async def update_incident_name(incident_number):
     # init incidents handler if it is not already
