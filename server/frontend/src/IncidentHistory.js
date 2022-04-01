@@ -167,7 +167,7 @@ function IncidentHistory(props){
 
   return (
     <div className="incident-history">
-      <h3 style={{textAlign: 'center', marginBottom: '15px'}}>Past Incidents</h3>
+      <h3 style={{textAlign: 'center', marginBottom: '15px'}}>All Incidents</h3>
       <Button variant="danger" onClick={hideModal} style={{float: 'right', position: 'relative', top: '-45px', right: '30px'}}>X</Button>
       <Table striped bordered hover>
         <thead>

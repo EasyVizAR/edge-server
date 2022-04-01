@@ -419,9 +419,4 @@ def get_headset_repository():
     if headset_repository is None:
         headset_repository = Repository()
 
-    # Create a Test headset with ID 0 for use while the HoloLens app is in development.
-    # Remove this code after headset registration is working reliably.
-    if headset_repository.get_headset("0") is None:
-        headset_repository.add_headset("Test", {"x": 0.0, "y": 0.0, "z": 0.0}, "0", id="0")
-
     return headset_repository
