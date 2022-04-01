@@ -685,6 +685,15 @@ async def get_map_qrcode(map_id):
     #return await send_from_directory(map_path, 'qrcode.svg')
 
 
+@maps.route('/maps/dummyobjects', methods=['GET'])
+async def dummy_objects():
+    from server.utils.default_init import create_dummy_objects
+    create_dummy_objects()
+    return await make_response(
+        jsonify({"message": "CREATED"}),
+        HTTPStatus.CREATED)
+
+
 @maps.route('/maps/<map_id>/top-down.svg', methods=['GET'])
 async def get_map_topdown(map_id):
     """

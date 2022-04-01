@@ -118,53 +118,53 @@ function NewFeature(props) {
 
         let val = e.target.value;
         switch (type) {
-          case "feature-name":
-            setName(val);
-            break;
-          case "placement-type":
-              props.setPlacementType(val);
-            hideAllSections();
-            if (val === "point") {
-                console.log("point");
-                setPosStyle(displayflex);
-                setCoordStyle(showDisplay);
-            } else if (val == "floating" || val == "surface") {
-                console.log("not point");
-                setOffsetPerStyle(showDisplay);
-                if (val == "floating") {
+            case "feature-name":
+                setName(val);
+                break;
+            case "placement-type":
+                props.setPlacementType(val);
+                hideAllSections();
+                if (val === "point") {
+                    console.log("point");
                     setPosStyle(displayflex);
-                    setRangeSliderVisibility("flex");
+                    setCoordStyle(showDisplay);
+                } else if (val == "floating" || val == "surface") {
+                    console.log("not point");
+                    setOffsetPerStyle(showDisplay);
+                    if (val == "floating") {
+                        setPosStyle(displayflex);
+                        setRangeSliderVisibility("flex");
+                    } else {
+                        setRangeSliderVisibility("none");
+                    }
                 } else {
                     setRangeSliderVisibility("none");
                 }
-            } else {
-                setRangeSliderVisibility("none");
-            }
-            break;
-          case "left-offset-percent":
-            setLeftOffPer(val);
-            break;
-          case "top-offset-percent":
-            setTopOffPer(val);
-            break;
-          case "point-x":
-            setX(val);
-            break;
-          case "point-y":
-            setY(val);
-            break;
-          case "point-z":
-            setZ(val);
-            break;
-          case "placement-location":
-            setPlacementLoc(val);
-            break;
-          case "coord-location":
-            setCoordLocation(val);
-            break;
-          default:
-            console.warn('Bad type');
-            return null;
+                break;
+            case "left-offset-percent":
+                setLeftOffPer(val);
+                break;
+            case "top-offset-percent":
+                setTopOffPer(val);
+                break;
+            case "point-x":
+                setX(val);
+                break;
+            case "point-y":
+                setY(val);
+                break;
+            case "point-z":
+                setZ(val);
+                break;
+            case "placement-location":
+                setPlacementLoc(val);
+                break;
+            case "coord-location":
+                setCoordLocation(val);
+                break;
+            default:
+                console.warn('Bad type');
+                return null;
         }
         updateForm({
             feature_name: feature_name,
@@ -185,6 +185,7 @@ function NewFeature(props) {
         setCoordStyle(hideDisplay);
         setOffsetPerStyle(hideDisplay);
         setPosStyle(hideDisplay);
+        setRangeSliderVisibility("none")
         console.log("resetting sections " + coordStyle.display);
     }
 
@@ -268,16 +269,16 @@ function NewFeature(props) {
                         </Form.Group>
                         <div style={{display: "flex", width: "100%"}}>
                             <Form.Group className="mb-3" controlId="top-offset-percent" style={{width: "50%"}}>
-                              <FloatingLabel controlId="top-offset-percent" label="Top Offset (%)">
-                                <Form.Control type="number" max="100" min="0" defaultValue="0" placeholder="Top Offset (%)"
-                                              name="top-offset-percent" onChange={(e) => updateState(e, "top-offset-percent")}/>
-                              </FloatingLabel>
+                                <FloatingLabel controlId="top-offset-percent" label="Top Offset (%)">
+                                    <Form.Control type="number" max="100" min="0" defaultValue="0" placeholder="Top Offset (%)"
+                                                  name="top-offset-percent" onChange={(e) => updateState(e, "top-offset-percent")}/>
+                                </FloatingLabel>
                             </Form.Group>
                             <Form.Group className="mb-3" controlId="left-offset-percent" style={{width: "50%"}}>
-                              <FloatingLabel controlId="left-offset-percent" label="Left Offset (%)">
-                                <Form.Control type="number" max="100" min="0" defaultValue="0" placeholder="Left Offset (%)"
-                                              name="left-offset-percent" onChange={(e) => updateState(e, "left-offset-percent")}/>
-                              </FloatingLabel>
+                                <FloatingLabel controlId="left-offset-percent" label="Left Offset (%)">
+                                    <Form.Control type="number" max="100" min="0" defaultValue="0" placeholder="Left Offset (%)"
+                                                  name="left-offset-percent" onChange={(e) => updateState(e, "left-offset-percent")}/>
+                                </FloatingLabel>
                             </Form.Group>
                         </div>
                         <div style={{display: rangeSliderVisibility, height: 'contentMax'}}>
@@ -287,7 +288,8 @@ function NewFeature(props) {
                                 tooltipLabel={currentValue => `${currentValue}`}
                                 tooltip='on'
                                 min={1}
-                                max={15}
+                                max={5}
+                                step={0.1}
                             />
                         </div>
                         <Form.Group className="mb-3" controlId="coord-location" style={coordStyle}>

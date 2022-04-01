@@ -56,6 +56,9 @@ function Home() {
         marginBottom: "20px"
     }
 
+    const mapIconSize = 7;
+    const circleSvgIconSize = 11;
+
     const [selectedMap, setSelectedMap] = useState('');
     const [features, setFeatures] = useState([]);
     const [selectedImage, setSelectedImage] = useState('');
@@ -359,6 +362,18 @@ function Home() {
 
     const getDefaultMapImage = () => {
         return getMapImage(getDefaultMapSelection());
+    }
+
+    const convert2Pixel = (r) => {
+        var map = {};
+        for (var i = 0; i < maps.length; i++) {
+            if (maps[i]['id'] == selectedMap)
+                map = maps[i];
+        }
+        if (Object.keys(map).length === 0 || !mapLoaded)
+            return 0;
+        const width = map['viewBox'][2];
+        return document.getElementById('map-image').offsetWidth / width * r;
     }
 
     const convertVector2Scaled = (x, yy) => {
@@ -826,6 +841,15 @@ function Home() {
       }
     }
 
+    const getCircleSvgSize = (r) => {
+        return Math.max(convert2Pixel(r) * 2, document.getElementById('map-image').offsetHeight / 100.0 * circleSvgIconSize);
+    }
+
+    const getCircleSvgShift = (r) => {
+        return (Math.max(convert2Pixel(r) * 2, document.getElementById('map-image').offsetHeight / 100.0 * circleSvgIconSize)
+            - document.getElementById('map-image').offsetHeight / 100.0 * mapIconSize) / 2.0;
+    }
+
     return (
         <div className="Home">
             <Helmet>
@@ -897,19 +921,18 @@ function Home() {
                                                  alt={f.name} style={{
                                     left: combinedMapObjects[index].scaledX,
                                     top: combinedMapObjects[index].scaledY,
-                                    height: "7%",
+                                    height: mapIconSize + "%",
                                 }}/>
                                 <svg className="features"
-                                     width={document.getElementById('map-image').offsetHeight/100.0*11}
-                                     height={document.getElementById('map-image').offsetHeight/100.0*11}
+                                     width={getCircleSvgSize(sliderValue)}
+                                     height={getCircleSvgSize(sliderValue)}
                                      style={{
-                                         left: combinedMapObjects[index].scaledX - document.getElementById('map-image').offsetHeight/100.0*2,
-                                         top: combinedMapObjects[index].scaledY - document.getElementById('map-image').offsetHeight/100.0*2
+                                         left: combinedMapObjects[index].scaledX - getCircleSvgShift(sliderValue),
+                                         top: combinedMapObjects[index].scaledY - getCircleSvgShift(sliderValue)
                                      }}>
-                                    <circle cx={document.getElementById('map-image').offsetHeight/100.0*7}
-                                            cy={document.getElementById('map-image').offsetHeight/100.0*7}
-                                            r={sliderValue} fill-opacity="0.3" fill="#0000FF"
-                                            transform={`translate(-${document.getElementById('map-image').offsetHeight/100.0*2} -${document.getElementById('map-image').offsetHeight/100.0*2})`}/>
+                                    <circle cx={getCircleSvgSize(sliderValue) / 2}
+                                            cy={getCircleSvgSize(sliderValue) / 2}
+                                            r={convert2Pixel(sliderValue)} fill-opacity="0.3" fill="#0000FF"/>
                                 </svg>
                             </div>
                             : f.placement == 'floating' ?
@@ -918,19 +941,18 @@ function Home() {
                                                      alt={f.name} style={{
                                         left: combinedMapObjects[index].scaledX,
                                         top: combinedMapObjects[index].scaledY,
-                                        height: "7%",
+                                        height: mapIconSize + "%",
                                     }}/>
                                     <svg className="features"
-                                         width={document.getElementById('map-image').offsetHeight/100.0*11}
-                                         height={document.getElementById('map-image').offsetHeight/100.0*11}
+                                         width={getCircleSvgSize(f.radius)}
+                                         height={getCircleSvgSize(f.radius)}
                                          style={{
-                                             left: combinedMapObjects[index].scaledX - document.getElementById('map-image').offsetHeight/100.0*2,
-                                             top: combinedMapObjects[index].scaledY - document.getElementById('map-image').offsetHeight/100.0*2
+                                             left: combinedMapObjects[index].scaledX - getCircleSvgShift(f.radius),
+                                             top: combinedMapObjects[index].scaledY - getCircleSvgShift(f.radius)
                                          }}>
-                                        <circle cx={document.getElementById('map-image').offsetHeight/100.0*7}
-                                                cy={document.getElementById('map-image').offsetHeight/100.0*7}
-                                                r={f.radius} fill-opacity="0.3" fill="#0000FF"
-                                                transform={`translate(-${document.getElementById('map-image').offsetHeight/100.0*2} -${document.getElementById('map-image').offsetHeight/100.0*2})`}/>
+                                        <circle cx={getCircleSvgSize(f.radius) / 2}
+                                                cy={getCircleSvgSize(f.radius) / 2}
+                                                r={convert2Pixel(f.radius)} fill-opacity="0.3" fill="#0000FF"/>
                                     </svg>
                                 </div>
                                 : <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
@@ -938,7 +960,7 @@ function Home() {
                                                 style={{
                                                     left: combinedMapObjects[index].scaledX,
                                                     top: combinedMapObjects[index].scaledY,
-                                                    height: "7%"
+                                                    height: mapIconSize + "%"
                                                 }}/>
                     })}
                 </div>
