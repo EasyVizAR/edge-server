@@ -56,6 +56,8 @@ async def delete_incident(incident_number):
     incident_handler = init_incidents_handler(app=current_app)
     deleted = incident_handler.delete_incident(incident_number)
 
+    get_map_repository().reset_maps_for_previous_incident(incident_handler.current_incident)
+
     if deleted:
         return jsonify({'message': 'Incident Deleted'}), HTTPStatus.OK
 

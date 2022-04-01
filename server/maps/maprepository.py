@@ -67,7 +67,8 @@ class Feature:
             "placement": style['placement'],
             "topOffset": style['topOffset'],
             "leftOffset": style['leftOffset'],
-            "radius": 10 if style.get('radius') is None else style.get('radius') # TODO: change default value 10 to exception later
+            "radius": 10 if style.get('radius') is None else style.get('radius')
+            # TODO: change default value 10 to exception later
         }
 
 
@@ -121,7 +122,8 @@ class Repository:
         url = f"{current_app.config['IMAGE_UPLOADS']}{intentId}.{img_type}"
         if intent == 'maps' and viewBox is not None:
             self.maps[intentId].viewBox = viewBox
-            filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], f"incidents/{self.incident_handler.current_incident}/maps/",
+            filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'],
+                                    f"incidents/{self.incident_handler.current_incident}/maps/",
                                     str(intentId), "map.json")
             write_to_file(json.dumps(self.maps[intentId], cls=GenericJsonEncoder), filepath)
 
@@ -215,6 +217,28 @@ class Repository:
 
     def reset_maps_for_new_incident(self):
         self.maps = {}
+
+    def reset_maps_for_previous_incident(self, incident):
+        self.maps = {}
+        base_filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents', str(incident), 'maps')
+
+        for folder in os.scandir(base_filepath):
+            if folder.is_dir():
+                map_info_filepath = os.path.join(base_filepath, folder.name, 'map.json')
+                try:
+                    info = open(map_info_filepath)
+                    data = json.load(info)
+                    info.close()
+
+                    if data.get('id'):
+                        new_map = Map(data.get('name'), image=data.get('image'), incident=data.get('incident'),
+                                      id=data.get('id'), viewBox=data.get('viewBox'))
+                        self.maps[data.get('id')] = new_map
+
+                except FileNotFoundError as e:
+                    # At least for now, it should not be a problem if the file does not exist.
+                    return False
+        return True
 
 
 def get_map_repository():

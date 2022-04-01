@@ -32,6 +32,7 @@ function NewMap(props){
       .then(response => response.json())
       .then(data => {
         props.getMaps();
+        props.getHeadsets();
         alert('New Map Created!');
         props.show(false);
       });

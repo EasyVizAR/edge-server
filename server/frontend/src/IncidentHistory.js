@@ -1,6 +1,8 @@
 import { Form, Button, FloatingLabel, Table } from 'react-bootstrap';
 import React from "react";
 import { useState, useEffect } from 'react';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 
 function IncidentHistory(props){
   const host = window.location.hostname;
@@ -19,6 +21,18 @@ function IncidentHistory(props){
 
   if(!props.show){
     return null;
+  }
+
+  function sort_list(arr){
+     for(let i = 0; i < arr.length; i++){
+        for(let j = 0; j < arr.length - i - 1; j++){
+            if(parseInt(arr[j + 1]['number']) < parseInt(arr[j]['number'])){
+                [arr[j + 1],arr[j]] = [arr[j],arr[j + 1]]
+            }
+        }
+    };
+    console.log(arr);
+    return arr;
   }
 
   const onSave = (e, id) => {
@@ -101,17 +115,54 @@ function IncidentHistory(props){
       var temp_data = [];
       for (var x in data){
         temp_data.push({
-          'number': x,
+          'number': data[x]['incident_number'],
           'name': data[x]['name'],
           'date_created': data[x]['created']
         });
       }
+      temp_data = sort_list(temp_data);
       setHistoryData(temp_data);
     });
   }
 
   function hideModal(){
     props.setShow(false);
+  }
+
+  function deleteIncident(incidentNumber, incidentName) {
+      const del = window.confirm("Are you sure you want to delete incident '" + incidentName + "'?");
+      if (!del) {
+          return;
+      }
+
+      const url = `http://${host}:${port}/incidents/${incidentNumber}`;
+      const requestData = {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+      };
+
+      fetch(url, requestData)
+      .then(response => {
+        getIncidentHistory();
+        props.getMaps();
+        props.getHeadsets();
+      });
+  }
+
+  // code that creates the trash icons
+  function TrashIcon(props) {
+    const incidentNumber = props.incidentNumber;
+    const incidentName = props.incidentName;
+
+    return (
+      <button style={{width: "30px", height: "30px"}} className='btn-danger'
+              onClick={(e) => deleteIncident(incidentNumber, incidentName)} title="Delete Incident">
+          <FontAwesomeIcon icon={solid('trash-can')} size="lg"
+                           style={{position: 'relative', right: '1.5px', top: '-1px'}}/>
+      </button>
+    );
   }
 
   return (
@@ -124,6 +175,8 @@ function IncidentHistory(props){
               <th>Incident Number</th>
               <th>Incident Name</th>
               <th>Date Created</th>
+              <th></th>
+              <th></th>
           </tr>
         </thead>
         <tbody>
@@ -174,6 +227,11 @@ function IncidentHistory(props){
                     </button>
                   )
                 }
+                </td>
+                <td>
+                  <div>
+                    <TrashIcon item='incident' incidentNumber={e.number} incidentName={e.name}/>
+                  </div>
                 </td>
               </tr>
             })

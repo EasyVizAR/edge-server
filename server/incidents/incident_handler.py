@@ -75,6 +75,8 @@ class IncidentHandler:
                     # At least for now, it should not be a problem if the file does not exist.
                     data = {}
 
+                data['incident_number'] = folder.name
+
                 past_incident_info.append(data)
 
         return past_incident_info
@@ -126,7 +128,7 @@ class IncidentHandler:
         return True
 
     def delete_incident(self, incident_number):
-        if incident_number > self.current_incident or incident_number < 0:
+        if int(incident_number) > self.current_incident or int(incident_number) < 0:
             return False
 
         base_filepath = os.path.join(self.app.config['VIZAR_DATA_DIR'], 'incidents')

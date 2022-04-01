@@ -93,8 +93,10 @@ function Home() {
     const [showIncidentHistory, toggleIncidentHistory] = useState(false);
 
     useEffect(() => {
+        console.log('updateeeeeeeeee');
         get_maps();
         getCurrentIncident();
+        getHeadsets();
     }, []);
 
     useEffect(() => {
@@ -107,10 +109,6 @@ function Home() {
     useEffect(() => {
         combineMapObjects();
     }, [headsets, setHeadsets])
-
-    useEffect(() => {
-        getHeadsets();
-    }, []);
 
     useEffect(() => {
         if (selectedMap == '' && maps.length > 0)
@@ -207,24 +205,24 @@ function Home() {
             .then(response => {
                 return response.json()
             }).then(data => {
-            var fetchedHeadsets = []
-            for (var k in data) {
-                var v = data[k];
-                fetchedHeadsets.push({
-                    'id': v.id,
-                    'lastUpdate': v.lastUpdate,
-                    'mapId': v.mapId,
-                    'name': v.name,
-                    'orientationX': v.orientation.x,
-                    'orientationY': v.orientation.y,
-                    'orientationZ': v.orientation.z,
-                    'positionX': v.position.x,
-                    'positionY': v.position.y,
-                    'positionZ': v.position.z
-                });
-            }
-            setHeadsets(fetchedHeadsets);
-        });
+              var fetchedHeadsets = []
+              for (var k in data) {
+                  var v = data[k];
+                  fetchedHeadsets.push({
+                      'id': v.id,
+                      'lastUpdate': v.lastUpdate,
+                      'mapId': v.mapId,
+                      'name': v.name,
+                      'orientationX': v.orientation.x,
+                      'orientationY': v.orientation.y,
+                      'orientationZ': v.orientation.z,
+                      'positionX': v.position.x,
+                      'positionY': v.position.y,
+                      'positionZ': v.position.z
+                  });
+              }
+              setHeadsets(fetchedHeadsets);
+            });
     }
 
 
@@ -897,10 +895,12 @@ function Home() {
                             pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedMap}
                             setIconIndex={setIconIndex} sliderValue={sliderValue} setSliderValue={setSliderValue}
                             setPlacementType={setPlacementType} placementType={placementType}/>
-                <NewMap showNewMap={showNewMap} show={showMap} getMaps={get_maps}/>
-                <NewIncidentModal setMaps={setMaps} show={showIncidentModal} setShow={toggleIncidentModal}
+                <NewMap getHeadsets={getHeadsets} showNewMap={showNewMap} show={showMap} getMaps={get_maps}/>
+                <NewIncidentModal getHeadsets={getHeadsets} setMaps={setMaps}
+                                  show={showIncidentModal} setShow={toggleIncidentModal}
                                   getCurrentIncident={getCurrentIncident} />
-                <IncidentHistory updateCurrentIncident={setIncident} show={showIncidentHistory} setShow={toggleIncidentHistory}/>
+                <IncidentHistory getMaps={get_maps} getHeadsets={getHeadsets} updateCurrentIncident={setIncident}
+                                 show={showIncidentHistory} setShow={toggleIncidentHistory}/>
                 <div style={{textAlign: 'left', marginBottom: '15px'}}>
                   <div style={{display: 'inline-block'}}>
                     <p className="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Map Name</p>
