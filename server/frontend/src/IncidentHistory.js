@@ -141,6 +141,7 @@ function IncidentHistory(props){
         getIncidentHistory();
         props.getMaps();
         props.getHeadsets();
+        props.getCurrentIncident();
       });
   }
 

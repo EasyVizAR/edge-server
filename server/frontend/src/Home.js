@@ -1122,7 +1122,8 @@ function Home(props) {
                                       getCurrentIncident={getCurrentIncident} />
                   </Tab>
                   <Tab eventKey="incident-history" title="Incident History">
-                    <IncidentHistory port={port} getMaps={get_maps} getHeadsets={getHeadsets} updateCurrentIncident={setIncident} />
+                    <IncidentHistory port={port} getMaps={get_maps} getHeadsets={getHeadsets}
+                                     updateCurrentIncident={setIncident} getCurrentIncident={getCurrentIncident} />
                   </Tab>
                 </Tabs>
             </div>
