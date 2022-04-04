@@ -31,11 +31,9 @@ fontawesome.library.add(faBandage, faDoorClosed, faElevator,
     faExclamationTriangle, faFire, faFireExtinguisher, faHeadset, faMessage,
     faSquare, faStairs, faTruckMedical, faUser);
 
-export const port = '5000'
-
-
-function Home() {
+function Home(props) {
     const host = window.location.hostname;
+    const port = props.port;
 
     // Map feature type -> FA icon
     const icons = {
@@ -891,15 +889,15 @@ function Home() {
                     </div>
                 </div>
                 <hr/>
-                <NewFeature popUpClass={popUpClass} changeCursor={toggleCursor} changeIcon={changeIcon}
+                <NewFeature port={port} popUpClass={popUpClass} changeCursor={toggleCursor} changeIcon={changeIcon}
                             pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedMap}
                             setIconIndex={setIconIndex} sliderValue={sliderValue} setSliderValue={setSliderValue}
                             setPlacementType={setPlacementType} placementType={placementType}/>
-                <NewMap getHeadsets={getHeadsets} showNewMap={showNewMap} show={showMap} getMaps={get_maps}/>
-                <NewIncidentModal getHeadsets={getHeadsets} setMaps={setMaps}
+                <NewMap port={port} getHeadsets={getHeadsets} showNewMap={showNewMap} show={showMap} getMaps={get_maps}/>
+                <NewIncidentModal port={port} getHeadsets={getHeadsets} setMaps={setMaps}
                                   show={showIncidentModal} setShow={toggleIncidentModal}
                                   getCurrentIncident={getCurrentIncident} />
-                <IncidentHistory getMaps={get_maps} getHeadsets={getHeadsets} updateCurrentIncident={setIncident}
+                <IncidentHistory port={port} getMaps={get_maps} getHeadsets={getHeadsets} updateCurrentIncident={setIncident}
                                  show={showIncidentHistory} setShow={toggleIncidentHistory}/>
                 <div style={{textAlign: 'left', marginBottom: '15px'}}>
                   <div style={{display: 'inline-block'}}>

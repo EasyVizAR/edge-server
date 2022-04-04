@@ -5,7 +5,7 @@ import {Helmet} from 'react-helmet';
 
 function WorkItems(props){
   const host = window.location.hostname;
-  const port = '5000';
+  const port = props.port;
   const[workItems, setWorkItems] = useState([]);
 
   useEffect(() => {

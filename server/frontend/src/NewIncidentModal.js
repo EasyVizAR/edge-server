@@ -6,7 +6,7 @@ import { useState } from 'react';
 function NewIncidentModal(props){
   const[incidentName, setIncidentName] = useState('');
   const host = window.location.hostname;
-  const port = '5000';
+  const port = props.port;
 
   if(!props.show){
     return null;

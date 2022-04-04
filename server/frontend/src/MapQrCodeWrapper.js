@@ -6,7 +6,7 @@ import './MapQrCodeWrapper.css';
 function MapQrCodeWrapper(props){
   const {map_id} = useParams();
   const host = window.location.hostname;
-  const port = '5000';
+  const port = props.port;
   const [qr, setQrCode] = useState(null);
   const[map, setMap] = useState(null);
 

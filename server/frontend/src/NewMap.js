@@ -6,7 +6,7 @@ import { useState } from 'react';
 
 function NewMap(props){
     const host = window.location.hostname;
-    const port = '5000';
+    const port = props.port;
     const[mapName, setMapName] = useState(null);
 
     if (!props.showNewMap){

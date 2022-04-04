@@ -6,7 +6,7 @@ import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.m
 
 function IncidentHistory(props){
   const host = window.location.hostname;
-  const port = '5000';
+  const port = props.port;
 
   const [historyData, setHistoryData] = useState([]);
   const [inEditMode, setInEditMode] = useState({
