@@ -1,13 +1,6 @@
 .App {
   text-align: center;
 }
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
 .app-body {
   margin-left:10px;
   margin-right:10px;
@@ -15,7 +8,6 @@
   flex-direction: column;
   justify-content: center;
 }
-
 .dropdown {
   margin: 10px;
   display: flex;
@@ -24,7 +16,6 @@
   min-width: 50px;
   max-height: fit-content;
 }
-
 .nav-container {
   margin: 10px;
   display: flex;
@@ -34,13 +25,11 @@
   width: 50%;
   height: 50%;
 }
-
 .map-image-container {
   position: relative;
   top: 0;
   left: 0;
 }
-
 #map-image {
   position: relative;
   width: 25%;
@@ -48,34 +37,29 @@
   left: 0;
   border: 1px solid #000000;
 }
-
 .features {
   position: absolute;
   /* left: 924px;
   top: 66.5px; */
   border: 0px solid #000000;
 }
-
 #map-image {
   display: flex;
   justify-self: center;
   align-self: center;
 }
-
 .header-button{
   margin-top: 10px;
   margin-left: 10px;
 }
-
-.new-map-button{
-  margin-right: 10px;
+.map-nav{
+  display: flex;
+  padding-bottom: 20px;
 }
-
-.incident-dropdown-option{
-  width: 100%;
-  text-align: center;
+.home-content{
+  margin: 5px;
 }
-
-.incident-dropdown-option:hover{
-  background-color: #ccc;
+.tabs{
+  margin-top: 5px;
+  margin-left: 5px;
 }

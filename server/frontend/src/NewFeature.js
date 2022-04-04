@@ -67,7 +67,7 @@ function NewFeature(props) {
 
     const [mapMode, setMapMode] = useState(false);
 
-    if (!props.popUpClass) {
+    if (!props.showNewFeature) {
         return null;
     }
 
@@ -344,7 +344,7 @@ function NewFeature(props) {
                         </div>
                         <br/>
                         <Button variant="primary" onClick={handleSubmit}>
-                            Submit
+                            Create Feature
                         </Button>
                     </Form>
                 </div>

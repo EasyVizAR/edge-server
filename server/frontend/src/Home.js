@@ -1,5 +1,5 @@
 import './Home.css';
-import {Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button} from 'react-bootstrap';
+import {Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button, Tab, Tabs} from 'react-bootstrap';
 import NewMap from './NewMap.js';
 import NewFeature from './NewFeature.js';
 import NewIncidentModal from './NewIncidentModal.js';
@@ -63,8 +63,7 @@ function Home(props) {
     const [headsets, setHeadsets] = useState([]);
     const [combinedMapObjects, setCombinedMapObjects] = useState([]);
     const [maps, setMaps] = useState([]);
-    const [popUpClass, displayModal] = useState(false);
-    const [showNewMap, showMap] = useState(false);
+    const [showNewFeature, displayNewFeature] = useState(false);
     const [mapLoaded, setMapLoaded] = useState(false);
     const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
     const [inEditModeMap, setInEditModeMap] = useState({
@@ -86,9 +85,7 @@ function Home(props) {
     const [sliderValue, setSliderValue] = useState(0);
     const [currMapName, setCurrMapName] = useState('');
     const [incidentNum, setIncident] = useState(-1);
-    const [showIncidentModal, toggleIncidentModal] = useState(false);
     const [placementType, setPlacementType] = useState('');
-    const [showIncidentHistory, toggleIncidentHistory] = useState(false);
 
     useEffect(() => {
         console.log('updateeeeeeeeee');
@@ -454,16 +451,7 @@ function Home(props) {
 
     // shows the new feature popup
     const showFeature = (e) => {
-        if (showIncidentHistory == false && showNewMap == false && showIncidentModal == false) {
-            displayModal(popUpClass ? false : true)
-        }
-    }
-
-    // shows the new map popup
-    const showMapPopup = (e) => {
-        if (showIncidentHistory == false && popUpClass == false && showIncidentModal == false) {
-            showMap(showNewMap ? false : true)
-        }
+        displayNewFeature(showNewFeature ? false : true);
     }
 
     // turns on map editing
@@ -821,22 +809,6 @@ function Home(props) {
         });
     }
 
-    function showNewIncidentModal(){
-      if (showIncidentHistory == false && showIncidentModal == false && showNewMap == false && popUpClass == false){
-        toggleIncidentModal(true);
-      }else{
-        toggleIncidentModal(false);
-      }
-    }
-
-    function showIncidentHistoryModal(){
-      if (showIncidentHistory == false && showIncidentModal == false && showNewMap == false && popUpClass == false){
-        toggleIncidentHistory(true);
-      }else{
-        toggleIncidentHistory(false);
-      }
-    }
-
     const getCircleSvgSize = (r) => {
         return Math.max(convert2Pixel(r) * 2, document.getElementById('map-image').offsetHeight / 100.0 * circleSvgIconSize);
     }
@@ -852,311 +824,307 @@ function Home(props) {
               <title>EasyViz AR</title>
             </Helmet>
             <div className="home-body">
-                <div className="nav">
-                    <div className="dropdown-container">
-                        <DropdownButton id="map-dropdown" title="Select Map" onSelect={handleMapSelection}
-                                        defaultValue={getDefaultMapSelection}>
-                            {
-                                maps.map((e, index) => {
-                                    return <Dropdown.Item eventKey={e.id}>{e.name}</Dropdown.Item>
-                                })
-                            }
-                        </DropdownButton>
-                    </div>
-                    <div className="header-button">
-                        <Button variant="secondary" title="New Map" style={buttonStyle} onClick={(e) => showMapPopup(e)}>New
-                            Map</Button>
-                    </div>
-                    <div className="header-button">
-                        <Button variant="secondary" title="Add Feature" value="Add Feature"
-                                onClick={(e) => showFeature(e)}>Add Feature</Button>
+                <Tabs defaultActiveKey="map" className="mb-3 tabs">
+                  <Tab eventKey="map" title="Map View">
+                    <div className="map-nav">
+                      <div className="dropdown-container">
+                          <DropdownButton id="map-dropdown" title="Select Map" onSelect={handleMapSelection}
+                                          defaultValue={getDefaultMapSelection}>
+                              {
+                                  maps.map((e, index) => {
+                                      return <Dropdown.Item eventKey={e.id}>{e.name}</Dropdown.Item>
+                                  })
+                              }
+                          </DropdownButton>
+                      </div>
+
+                      <div className="header-button">
+                          <Button variant="secondary" title="Add Feature" value="Add Feature"
+                                  onClick={(e) => showFeature(e)}>Add Feature</Button>
+                      </div>
+
+                      <div className="QR-code-btn header-button">
+                        <Button title="Map QR Code" variant="secondary" href={"/maps/" + selectedMap + "/qrcode.svg"} target="_blank">Map QR Code</Button>
+                      </div>
                     </div>
 
-                    <div className="QR-code-btn header-button">
-                      <Button title="Map QR Code" variant="secondary" href={"/maps/" + selectedMap + "/qrcode.svg"} target="_blank">Map QR Code</Button>
+                    <div className='home-content'>
+                      <NewFeature port={port} showNewFeature={showNewFeature} changeCursor={toggleCursor} changeIcon={changeIcon}
+                                  pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedMap}
+                                  setIconIndex={setIconIndex} sliderValue={sliderValue} setSliderValue={setSliderValue}
+                                  setPlacementType={setPlacementType} placementType={placementType}/>
+
+                      <div style={{textAlign: 'left', marginBottom: '15px'}}>
+                        <div style={{display: 'inline-block'}}>
+                          <p className="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Map Name</p>
+                          <h4 style={{marginTop: '0px'}}>{currMapName != '' ? (currMapName) : ('No Map Selected')}</h4>
+                        </div>
+                        <div style={{marginLeft: '15px', display: 'inline-block'}}>
+                          <p className="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Incident Name</p>
+                          <h4 style={{marginTop: '0px'}}>{incidentNum != -1 ? (incidentNum) : ('Error getting incident')}</h4>
+                        </div>
+                      </div>
+                      <div className="map-image-container">
+                          <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
+                               onClick={onMouseClick} style={{cursor: cursor}}/>
+                          {combinedMapObjects.map((f, index) => {
+                              return f.placement == 'floating' && f.editing == 'true'?
+                                  <div>
+                                      <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
+                                                       alt={f.name} style={{
+                                          left: combinedMapObjects[index].scaledX,
+                                          top: combinedMapObjects[index].scaledY,
+                                          height: mapIconSize + "%",
+                                      }}/>
+                                      <svg className="features"
+                                           width={getCircleSvgSize(sliderValue)}
+                                           height={getCircleSvgSize(sliderValue)}
+                                           style={{
+                                               left: combinedMapObjects[index].scaledX - getCircleSvgShift(sliderValue),
+                                               top: combinedMapObjects[index].scaledY - getCircleSvgShift(sliderValue)
+                                           }}>
+                                          <circle cx={getCircleSvgSize(sliderValue) / 2}
+                                                  cy={getCircleSvgSize(sliderValue) / 2}
+                                                  r={convert2Pixel(sliderValue)} fill-opacity="0.3" fill="#0000FF"/>
+                                      </svg>
+                                  </div>
+                                  : f.placement == 'floating' ?
+                                      <div>
+                                          <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
+                                                           alt={f.name} style={{
+                                              left: combinedMapObjects[index].scaledX,
+                                              top: combinedMapObjects[index].scaledY,
+                                              height: mapIconSize + "%",
+                                          }}/>
+                                          <svg className="features"
+                                               width={getCircleSvgSize(f.radius)}
+                                               height={getCircleSvgSize(f.radius)}
+                                               style={{
+                                                   left: combinedMapObjects[index].scaledX - getCircleSvgShift(f.radius),
+                                                   top: combinedMapObjects[index].scaledY - getCircleSvgShift(f.radius)
+                                               }}>
+                                              <circle cx={getCircleSvgSize(f.radius) / 2}
+                                                      cy={getCircleSvgSize(f.radius) / 2}
+                                                      r={convert2Pixel(f.radius)} fill-opacity="0.3" fill="#0000FF"/>
+                                          </svg>
+                                      </div>
+                                      : <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
+                                                   alt={f.name}
+                                                      style={{
+                                                          left: combinedMapObjects[index].scaledX,
+                                                          top: combinedMapObjects[index].scaledY,
+                                                          height: mapIconSize + "%"
+                                                      }}/>
+                          })}
+                      </div>
+                      <div style={{width: 'max-content'}}>
+                          <Form onChange={changeMapObjectsContainer}>
+                              <Form.Check
+                                  onClick={changeMapObjects(this, 'headsets')}
+                                  type="switch"
+                                  id="headsets-switch"
+                                  label="Headsets"
+                                  checked={headsetsChecked}
+                              />
+                              <Form.Check
+                                  onChange={changeMapObjects(this, 'features')}
+                                  type="switch"
+                                  id="features-switch"
+                                  label="Features"
+                                  checked={featuresChecked}
+                              />
+                          </Form>
+                      </div>
+                      <div>
+                          <Table striped bordered hover>
+                              <thead>
+                              <tr>
+                                  <th rowSpan='2'>Headset ID</th>
+                                  <th rowSpan='2'>Name</th>
+                                  <th rowSpan='2'>Map ID</th>
+                                  <th rowSpan='2'>Last Update</th>
+                                  <th colSpan='3'>Position</th>
+
+                                  <th colSpan='3'>Orientation</th>
+                                  <th colSpan='1'></th>
+                              </tr>
+                              <tr>
+                                  <th>X</th>
+                                  <th>Y</th>
+                                  <th>Z</th>
+                                  <th>X</th>
+                                  <th>Y</th>
+                                  <th>Z</th>
+                                  <th></th>
+                              </tr>
+                              </thead>
+                              <tbody>
+                              {
+                                  headsets.map((e, index) => {
+                                      return <tr>
+                                          <td>{e.id}</td>
+                                          <td id={"headsetName" + index}>
+                                              {
+                                                  inEditModeHeadset.status && inEditModeHeadset.rowKey === index ? (
+                                                      <input
+                                                          value={headsets[index]['name']}
+                                                          placeholder="Edit Headset Name"
+                                                          onChange={updateHeadsetName}
+                                                          name={"headsetinput" + e.id}
+                                                          type="text"
+                                                          id={'headsetName' + e.id}/>
+                                                  ) : (
+                                                      e.name
+                                                  )
+                                              }
+                                          </td>
+                                          <td>{e.mapId}</td>
+                                          <td>{moment.unix(e.lastUpdate).fromNow()}</td>
+                                          <td>{e.positionX}</td>
+                                          <td>{e.positionY}</td>
+                                          <td>{e.positionZ}</td>
+                                          <td>{e.orientationX}</td>
+                                          <td>{e.orientationY}</td>
+                                          <td>{e.orientationZ}</td>
+                                          <td>
+                                              {
+                                                  (inEditModeHeadset.status && inEditModeHeadset.rowKey === index) ? (
+                                                      <React.Fragment>
+                                                          <button
+                                                              className={"btn-success"}
+                                                              id={'savebtn' + e.id}
+                                                              onClick={(e) => onSaveHeadsets(e, index)}
+                                                              title='Save'>
+                                                              Save
+                                                          </button>
+
+                                                          <button
+                                                              className={"btn-secondary"}
+                                                              style={{marginLeft: 8}}
+                                                              onClick={(event) => onCancelHeadset(event, index)}
+                                                              title='Cancel'>
+                                                              Cancel
+                                                          </button>
+                                                      </React.Fragment>
+                                                  ) : (
+                                                      <button
+                                                          className={"btn-primary"}
+                                                          onClick={(e) => onEditHeadset(e, index)}
+                                                          title='Edit'>
+                                                          Edit
+                                                      </button>
+                                                  )
+                                              }
+                                          </td>
+                                          <td>
+                                              <div>
+                                                  <TrashIcon item='headset' id={e.id} name={e.name}/>
+                                              </div>
+                                          </td>
+                                      </tr>
+                                  })
+                              }
+                              </tbody>
+                          </Table>
+                      </div>
+                      <div>
+                          <Table striped bordered hover>
+                              <thead>
+                              <tr>
+                                  <th rowSpan='2'>Map ID</th>
+                                  <th rowSpan='2'>Name</th>
+                                  <th rowSpan='2'>Image</th>
+                              </tr>
+                              </thead>
+                              <tbody>
+                              {
+                                  maps.map((e, index) => {
+                                      return <tr>
+                                          <td>{e.id}</td>
+                                          <td>
+                                              {
+                                                  inEditModeMap.status && inEditModeMap.rowKey === index ? (
+                                                      <input
+                                                          placeholder="Edit Map Name"
+                                                          name="input"
+                                                          type="text"
+                                                          id={'mapName' + e.id}
+                                                          onChange={updateMapName}
+                                                          value={maps[index]['name']}/>
+                                                  ) : (
+                                                      e.name
+                                                  )
+                                              }
+                                          </td>
+                                          <td>
+                                              {
+                                                  inEditModeMap.status && inEditModeMap.rowKey === index ? (
+                                                      <input
+                                                          placeholder="Edit Map Image"
+                                                          name="input"
+                                                          type="text"
+                                                          id={'mapImage' + e.id}
+                                                          onChange={updateImage}
+                                                          value={maps[index]['image']}/>
+                                                  ) : (
+                                                      e.image
+                                                  )
+                                              }
+                                          </td>
+                                          <td>
+                                              {
+                                                  (inEditModeMap.status && inEditModeMap.rowKey === index) ? (
+                                                      <React.Fragment>
+                                                          <button
+                                                              className={"btn-success"}
+                                                              id={'mapsbtn' + e.id}
+                                                              onClick={(e) => saveMap(e, index)}
+                                                              title='Save'>
+                                                              Save
+                                                          </button>
+
+                                                          <button
+                                                              className={"btn-secondary"}
+                                                              style={{marginLeft: 8}}
+                                                              onClick={() => onCancelMap(index)}
+                                                              title='Cancel'>
+                                                              Cancel
+                                                          </button>
+                                                      </React.Fragment>
+                                                  ) : (
+                                                      <button
+                                                          className={"btn-primary"}
+                                                          onClick={(e) => onEditMap(e, index)}
+                                                          title='Edit'>
+                                                          Edit
+                                                      </button>
+                                                  )
+                                              }
+                                          </td>
+                                          <td>
+                                              <div>
+                                                  <TrashIcon item='map' id={e.id} name={e.name}/>
+                                              </div>
+                                          </td>
+                                      </tr>
+                                  })
+                              }
+                              </tbody>
+                          </Table>
+                      </div>
                     </div>
-
-                    <div className="header-button new-incident-btn"
-                         style={{position: "absolute", right: "0", paddingRight: "20px"}}>
-                         <DropdownButton variant="primary" id="incident-dropdown" title="Incident Info" style={{position: 'relative', top: '-10px'}}>
-                          <Dropdown.Item variant="Default" eventKey="1"
-                                         onClick={e => {showNewIncidentModal();}}
-                                         className="incident-dropdown-option">Create Incident</Dropdown.Item>
-                          <Dropdown.Item variant="Default" eventKey="2"
-                                         onClick={e => {showIncidentHistoryModal();}}
-                                         className="incident-dropdown-option">Incident History</Dropdown.Item>
-                        </DropdownButton>
-                    </div>
-                </div>
-                <hr/>
-                <NewFeature port={port} popUpClass={popUpClass} changeCursor={toggleCursor} changeIcon={changeIcon}
-                            pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedMap}
-                            setIconIndex={setIconIndex} sliderValue={sliderValue} setSliderValue={setSliderValue}
-                            setPlacementType={setPlacementType} placementType={placementType}/>
-                <NewMap port={port} getHeadsets={getHeadsets} showNewMap={showNewMap} show={showMap} getMaps={get_maps}/>
-                <NewIncidentModal port={port} getHeadsets={getHeadsets} setMaps={setMaps}
-                                  show={showIncidentModal} setShow={toggleIncidentModal}
-                                  getCurrentIncident={getCurrentIncident} />
-                <IncidentHistory port={port} getMaps={get_maps} getHeadsets={getHeadsets} updateCurrentIncident={setIncident}
-                                 show={showIncidentHistory} setShow={toggleIncidentHistory}/>
-                <div style={{textAlign: 'left', marginBottom: '15px'}}>
-                  <div style={{display: 'inline-block'}}>
-                    <p className="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Map Name</p>
-                    <h4 style={{marginTop: '0px'}}>{currMapName != '' ? (currMapName) : ('No Map Selected')}</h4>
-                  </div>
-                  <div style={{marginLeft: '15px', display: 'inline-block'}}>
-                    <p className="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Incident Name</p>
-                    <h4 style={{marginTop: '0px'}}>{incidentNum != -1 ? (incidentNum) : ('Error getting incident')}</h4>
-                  </div>
-                </div>
-                <div className="map-image-container">
-                    <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
-                         onClick={onMouseClick} style={{cursor: cursor}}/>
-                    {combinedMapObjects.map((f, index) => {
-                        return f.placement == 'floating' && f.editing == 'true'?
-                            <div>
-                                <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
-                                                 alt={f.name} style={{
-                                    left: combinedMapObjects[index].scaledX,
-                                    top: combinedMapObjects[index].scaledY,
-                                    height: mapIconSize + "%",
-                                }}/>
-                                <svg className="features"
-                                     width={getCircleSvgSize(sliderValue)}
-                                     height={getCircleSvgSize(sliderValue)}
-                                     style={{
-                                         left: combinedMapObjects[index].scaledX - getCircleSvgShift(sliderValue),
-                                         top: combinedMapObjects[index].scaledY - getCircleSvgShift(sliderValue)
-                                     }}>
-                                    <circle cx={getCircleSvgSize(sliderValue) / 2}
-                                            cy={getCircleSvgSize(sliderValue) / 2}
-                                            r={convert2Pixel(sliderValue)} fill-opacity="0.3" fill="#0000FF"/>
-                                </svg>
-                            </div>
-                            : f.placement == 'floating' ?
-                                <div>
-                                    <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
-                                                     alt={f.name} style={{
-                                        left: combinedMapObjects[index].scaledX,
-                                        top: combinedMapObjects[index].scaledY,
-                                        height: mapIconSize + "%",
-                                    }}/>
-                                    <svg className="features"
-                                         width={getCircleSvgSize(f.radius)}
-                                         height={getCircleSvgSize(f.radius)}
-                                         style={{
-                                             left: combinedMapObjects[index].scaledX - getCircleSvgShift(f.radius),
-                                             top: combinedMapObjects[index].scaledY - getCircleSvgShift(f.radius)
-                                         }}>
-                                        <circle cx={getCircleSvgSize(f.radius) / 2}
-                                                cy={getCircleSvgSize(f.radius) / 2}
-                                                r={convert2Pixel(f.radius)} fill-opacity="0.3" fill="#0000FF"/>
-                                    </svg>
-                                </div>
-                                : <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
-                                             alt={f.name}
-                                                style={{
-                                                    left: combinedMapObjects[index].scaledX,
-                                                    top: combinedMapObjects[index].scaledY,
-                                                    height: mapIconSize + "%"
-                                                }}/>
-                    })}
-                </div>
-                <div style={{width: 'max-content'}}>
-                    <Form onChange={changeMapObjectsContainer}>
-                        <Form.Check
-                            onClick={changeMapObjects(this, 'headsets')}
-                            type="switch"
-                            id="headsets-switch"
-                            label="Headsets"
-                            checked={headsetsChecked}
-                        />
-                        <Form.Check
-                            onChange={changeMapObjects(this, 'features')}
-                            type="switch"
-                            id="features-switch"
-                            label="Features"
-                            checked={featuresChecked}
-                        />
-                    </Form>
-                </div>
-                <div>
-                    <Table striped bordered hover>
-                        <thead>
-                        <tr>
-                            <th rowSpan='2'>Headset ID</th>
-                            <th rowSpan='2'>Name</th>
-                            <th rowSpan='2'>Map ID</th>
-                            <th rowSpan='2'>Last Update</th>
-                            <th colSpan='3'>Position</th>
-
-                            <th colSpan='3'>Orientation</th>
-                            <th colSpan='1'></th>
-                        </tr>
-                        <tr>
-                            <th>X</th>
-                            <th>Y</th>
-                            <th>Z</th>
-                            <th>X</th>
-                            <th>Y</th>
-                            <th>Z</th>
-                            <th></th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {
-                            headsets.map((e, index) => {
-                                return <tr>
-                                    <td>{e.id}</td>
-                                    <td id={"headsetName" + index}>
-                                        {
-                                            inEditModeHeadset.status && inEditModeHeadset.rowKey === index ? (
-                                                <input
-                                                    value={headsets[index]['name']}
-                                                    placeholder="Edit Headset Name"
-                                                    onChange={updateHeadsetName}
-                                                    name={"headsetinput" + e.id}
-                                                    type="text"
-                                                    id={'headsetName' + e.id}/>
-                                            ) : (
-                                                e.name
-                                            )
-                                        }
-                                    </td>
-                                    <td>{e.mapId}</td>
-                                    <td>{moment.unix(e.lastUpdate).fromNow()}</td>
-                                    <td>{e.positionX}</td>
-                                    <td>{e.positionY}</td>
-                                    <td>{e.positionZ}</td>
-                                    <td>{e.orientationX}</td>
-                                    <td>{e.orientationY}</td>
-                                    <td>{e.orientationZ}</td>
-                                    <td>
-                                        {
-                                            (inEditModeHeadset.status && inEditModeHeadset.rowKey === index) ? (
-                                                <React.Fragment>
-                                                    <button
-                                                        className={"btn-success"}
-                                                        id={'savebtn' + e.id}
-                                                        onClick={(e) => onSaveHeadsets(e, index)}
-                                                        title='Save'>
-                                                        Save
-                                                    </button>
-
-                                                    <button
-                                                        className={"btn-secondary"}
-                                                        style={{marginLeft: 8}}
-                                                        onClick={(event) => onCancelHeadset(event, index)}
-                                                        title='Cancel'>
-                                                        Cancel
-                                                    </button>
-                                                </React.Fragment>
-                                            ) : (
-                                                <button
-                                                    className={"btn-primary"}
-                                                    onClick={(e) => onEditHeadset(e, index)}
-                                                    title='Edit'>
-                                                    Edit
-                                                </button>
-                                            )
-                                        }
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <TrashIcon item='headset' id={e.id} name={e.name}/>
-                                        </div>
-                                    </td>
-                                </tr>
-                            })
-                        }
-                        </tbody>
-                    </Table>
-                </div>
-                <div>
-                    <Table striped bordered hover>
-                        <thead>
-                        <tr>
-                            <th rowSpan='2'>Map ID</th>
-                            <th rowSpan='2'>Name</th>
-                            <th rowSpan='2'>Image</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {
-                            maps.map((e, index) => {
-                                return <tr>
-                                    <td>{e.id}</td>
-                                    <td>
-                                        {
-                                            inEditModeMap.status && inEditModeMap.rowKey === index ? (
-                                                <input
-                                                    placeholder="Edit Map Name"
-                                                    name="input"
-                                                    type="text"
-                                                    id={'mapName' + e.id}
-                                                    onChange={updateMapName}
-                                                    value={maps[index]['name']}/>
-                                            ) : (
-                                                e.name
-                                            )
-                                        }
-                                    </td>
-                                    <td>
-                                        {
-                                            inEditModeMap.status && inEditModeMap.rowKey === index ? (
-                                                <input
-                                                    placeholder="Edit Map Image"
-                                                    name="input"
-                                                    type="text"
-                                                    id={'mapImage' + e.id}
-                                                    onChange={updateImage}
-                                                    value={maps[index]['image']}/>
-                                            ) : (
-                                                e.image
-                                            )
-                                        }
-                                    </td>
-                                    <td>
-                                        {
-                                            (inEditModeMap.status && inEditModeMap.rowKey === index) ? (
-                                                <React.Fragment>
-                                                    <button
-                                                        className={"btn-success"}
-                                                        id={'mapsbtn' + e.id}
-                                                        onClick={(e) => saveMap(e, index)}
-                                                        title='Save'>
-                                                        Save
-                                                    </button>
-
-                                                    <button
-                                                        className={"btn-secondary"}
-                                                        style={{marginLeft: 8}}
-                                                        onClick={() => onCancelMap(index)}
-                                                        title='Cancel'>
-                                                        Cancel
-                                                    </button>
-                                                </React.Fragment>
-                                            ) : (
-                                                <button
-                                                    className={"btn-primary"}
-                                                    onClick={(e) => onEditMap(e, index)}
-                                                    title='Edit'>
-                                                    Edit
-                                                </button>
-                                            )
-                                        }
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <TrashIcon item='map' id={e.id} name={e.name}/>
-                                        </div>
-                                    </td>
-                                </tr>
-                            })
-                        }
-                        </tbody>
-                    </Table>
-                </div>
+                  </Tab>
+                  <Tab eventKey="create-map" title="Create Map">
+                    <NewMap port={port} getHeadsets={getHeadsets} getMaps={get_maps}/>
+                  </Tab>
+                  <Tab eventKey="create-incident" title="Create Incident">
+                    <NewIncidentModal port={port} getHeadsets={getHeadsets} setMaps={setMaps}
+                                      getCurrentIncident={getCurrentIncident} />
+                  </Tab>
+                  <Tab eventKey="incident-history" title="Incident History">
+                    <IncidentHistory port={port} getMaps={get_maps} getHeadsets={getHeadsets} updateCurrentIncident={setIncident} />
+                  </Tab>
+                </Tabs>
             </div>
         </div>
     );

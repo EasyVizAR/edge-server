@@ -8,11 +8,6 @@ function NewMap(props){
     const host = window.location.hostname;
     const port = props.port;
     const[mapName, setMapName] = useState(null);
-
-    if (!props.showNewMap){
-      return null;
-    }
-
     const handleSubmit = (event) => {
 
       const new_map = {
@@ -33,8 +28,7 @@ function NewMap(props){
       .then(data => {
         props.getMaps();
         props.getHeadsets();
-        alert('New Map Created!');
-        props.show(false);
+        window.location.reload(false);
       });
     }
 
@@ -51,10 +45,10 @@ function NewMap(props){
     }
 
     return (
-      <div className="NewMapForm">
-        <div>
+      <div className="new-map">
+        <div className='new-map-content'>
           <h2>Create A Map</h2>
-          <Form onSubmit={handleSubmit}>
+          <Form onSubmit={handleSubmit} className='new-map-form'>
             <Form.Group style={{width: '50%', margin: 'auto'}} className="mb-3" controlId="map-name">
               <FloatingLabel controlId="floating-name" label="Map Name">
                 <Form.Control type="text" placeholder="Map Name" name="mapName" onChange={(e) => updateState(e, "map-name")}/>
@@ -65,7 +59,6 @@ function NewMap(props){
             </Button>
           </Form>
         </div>
-        <hr/>
       </div>
     );
 }

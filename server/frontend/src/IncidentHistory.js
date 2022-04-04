@@ -3,6 +3,7 @@ import React from "react";
 import { useState, useEffect } from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
+import './IncidentHistory.css';
 
 function IncidentHistory(props){
   const host = window.location.hostname;
@@ -18,10 +19,6 @@ function IncidentHistory(props){
   useEffect(() => {
     getIncidentHistory();
   }, []);
-
-  if(!props.show){
-    return null;
-  }
 
   function sort_list(arr){
      for(let i = 0; i < arr.length; i++){
@@ -125,10 +122,6 @@ function IncidentHistory(props){
     });
   }
 
-  function hideModal(){
-    props.setShow(false);
-  }
-
   function deleteIncident(incidentNumber, incidentName) {
       const del = window.confirm("Are you sure you want to delete incident '" + incidentName + "'?");
       if (!del) {
@@ -168,7 +161,6 @@ function IncidentHistory(props){
   return (
     <div className="incident-history">
       <h3 style={{textAlign: 'center', marginBottom: '15px'}}>All Incidents</h3>
-      <Button variant="danger" onClick={hideModal} style={{float: 'right', position: 'relative', top: '-45px', right: '30px'}}>X</Button>
       <Table striped bordered hover>
         <thead>
           <tr>
@@ -238,7 +230,6 @@ function IncidentHistory(props){
           }
         </tbody>
       </Table>
-      <hr/>
     </div>
   );
 }
