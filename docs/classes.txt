@@ -70,6 +70,15 @@ class Headset {
     string name
     vector position
     vector orientation
+    PoseChange pose_changes[]
+}
+
+class PoseChange {
+    This is a timestamped record of a headset's position and orientation (pose).
+    __
+    datetime time
+    vector position
+    vector orientation
 }
 
 Incident *-- Location : 1..*
@@ -85,5 +94,7 @@ Location o-- Headset : 0..*
 Surface -- Headset
 Photo -- Headset
 Feature -- Headset
+
+Headset *-- PoseChange : 0..*
 
 @enduml
