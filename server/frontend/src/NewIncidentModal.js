@@ -22,7 +22,13 @@ function NewIncidentModal(props){
       };
 
       fetch(`http://${host}:${port}/incidents/create`, requestData).then(async response => {
+        if (response.ok) {
+          return response.json();
+        }
       }).then(async data => {
+        props.currentIncident.set(data['incident_number']);
+        props.incidentName.set(data['incident_name']);
+        props.updateIncidentInfo();
         props.setMaps([]);
         props.getHeadsets();
         window.location.reload(false);

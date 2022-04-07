@@ -23,7 +23,8 @@ async def create_incident():
     get_map_repository().reset_maps_for_new_incident()
 
     return await make_response(
-        jsonify({"message": "Incident Created"}), HTTPStatus.CREATED)
+        jsonify({"message": "Incident Created", 'current incident': incident_handler.current_incident,
+                 'incident name': incident_name}), HTTPStatus.CREATED)
 
 
 @incidents.route('/incidents', methods=['GET'])
@@ -88,3 +89,37 @@ async def update_incident_name(incident_number):
     return await make_response(
         jsonify({"message": "Name Updated"}),
         HTTPStatus.OK)
+
+
+@incidents.route('/incidents/restore', methods=['POST'])
+async def restore_incident():
+    # init incidents handler if it is not already
+    incident_handler = init_incidents_handler(app=current_app)
+
+    body = await request.get_json()
+
+    if not body:
+        return await make_response(
+            jsonify({"message": "Missing body",
+                     "severity": "Warning"}),
+            HTTPStatus.BAD_REQUEST)
+
+    if 'incident' not in body:
+        return await make_response(
+            jsonify({"message": "Missing parameter in body",
+                     "severity": "Warning"}),
+            HTTPStatus.BAD_REQUEST)
+
+    new_incident = body['incident']
+
+    incident_restored = incident_handler.restore_incident(new_incident)
+
+    map_repo = get_map_repository()
+    maps_restored = map_repo.reset_maps_for_previous_incident(new_incident)
+
+    if maps_restored and incident_restored:
+        return await make_response(
+            jsonify({"message": "Incident restored"}),
+            HTTPStatus.OK)
+
+    return jsonify({'message': 'Incident could not be restored'}), HTTPStatus.BAD_REQUEST

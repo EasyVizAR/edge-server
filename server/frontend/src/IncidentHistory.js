@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 import './IncidentHistory.css';
+import useStateSynchronous from './useStateSynchronous.js';
 
 function IncidentHistory(props){
   const host = window.location.hostname;
@@ -28,7 +29,6 @@ function IncidentHistory(props){
             }
         }
     };
-    console.log(arr);
     return arr;
   }
 
@@ -38,7 +38,8 @@ function IncidentHistory(props){
     inEditMode.originalValue = historyData[id]['name'];
 
     if (id == historyData.length - 1){
-      props.updateCurrentIncident(inEditMode.originalValue);
+      props.currentIncident.set(inEditMode.originalValue);
+      props.updateIncidentInfo();
     }
 
     const requestData = {
@@ -145,17 +146,40 @@ function IncidentHistory(props){
       });
   }
 
+  function restoreIncident(incidentNumber, incidentName){
+    const requestData = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({"incident": incidentNumber})
+    };
+
+    fetch(`http://${host}:${port}/incidents/restore`, requestData).then(response => {
+      if (response.ok) {
+        props.currentIncident.set(incidentNumber);
+        props.incidentName.set(incidentName);
+        props.getMaps();
+        props.getHeadsets();
+        props.getCurrentIncident();
+        props.updateIncidentInfo();
+        return response.json();
+      }
+    }).then(data => {
+    });
+  }
+
   // code that creates the trash icons
   function TrashIcon(props) {
     const incidentNumber = props.incidentNumber;
     const incidentName = props.incidentName;
 
     return (
-      <button style={{width: "30px", height: "30px"}} className='btn-danger'
+      <Button style={{width: "30px", height: "30px"}} className='btn-danger table-btns'
               onClick={(e) => deleteIncident(incidentNumber, incidentName)} title="Delete Incident">
           <FontAwesomeIcon icon={solid('trash-can')} size="lg"
-                           style={{position: 'relative', right: '1.5px', top: '-1px'}}/>
-      </button>
+                           style={{position: 'relative', right: '0px', top: '-1px'}}/>
+      </Button>
     );
   }
 
@@ -176,7 +200,7 @@ function IncidentHistory(props){
           {
             historyData.map((e, index) => {
               return <tr>
-                <td>{(index == historyData.length - 1) ? (e.number + ' (Current)') : (e.number)}</td>
+                <td>{(e.number == props.currentIncident.get()) ? (e.number + ' (Current)') : (e.number)}</td>
                 <td>{
                   inEditMode.status && inEditMode.rowKey === index ? (
                     <input
@@ -195,35 +219,43 @@ function IncidentHistory(props){
                 {
                   (inEditMode.status && inEditMode.rowKey === index) ? (
                     <React.Fragment>
-                      <button
-                        className={"btn-success"}
+                      <Button
+                        className={"btn-success table-btns"}
                         id={'savebtn' + e.id}
                         onClick={(e) => onSave(e, index)}
                         title='Save'>
                         Save
-                      </button>
+                      </Button>
 
-                      <button
-                        className={"btn-secondary"}
+                      <Button
+                        className={"btn-secondary table-btns"}
                         style={{marginLeft: 8}}
                         onClick={(event) => onCancel(event, index)}
                         title='Cancel'>
                         Cancel
-                      </button>
+                      </Button>
                     </React.Fragment>
                   ) : (
-                    <button
-                      className={"btn-primary"}
+                    <Button
+                      className={"btn-primary table-btns"}
                       onClick={(e) => onEdit(e, index)}
                       title='Edit'>
                       Edit
-                    </button>
+                    </Button>
                   )
                 }
                 </td>
                 <td>
                   <div>
                     <TrashIcon item='incident' incidentNumber={e.number} incidentName={e.name}/>
+                  </div>
+                </td>
+                <td>
+                  <div>
+                    {e.number != props.currentIncident.get() ? (
+                      <Button className={"btn-primary table-btns"} onClick={(event) => restoreIncident(e.number, e.name)}>Restore</Button>
+                    ) : ('')
+                    }
                   </div>
                 </td>
               </tr>

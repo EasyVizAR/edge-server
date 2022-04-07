@@ -10,6 +10,7 @@ import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 import {Helmet} from 'react-helmet';
+import useStateSynchronous from './useStateSynchronous.js';
 
 import fontawesome from '@fortawesome/fontawesome'
 import {
@@ -84,11 +85,13 @@ function Home(props) {
     const [featuresChecked, setFeaturesChecked] = useState(false);
     const [sliderValue, setSliderValue] = useState(0);
     const [currMapName, setCurrMapName] = useState('');
-    const [incidentNum, setIncident] = useState(-1);
     const [placementType, setPlacementType] = useState('');
 
+    const incidentInfo = useStateSynchronous(-1);
+    const incidentName = useStateSynchronous('');
+    const currentIncident = useStateSynchronous(-1);
+
     useEffect(() => {
-        console.log('updateeeeeeeeee');
         get_maps();
         getCurrentIncident();
         getHeadsets();
@@ -224,6 +227,7 @@ function Home(props) {
     // gets list of maps from server
     function get_maps() {
         setMaps([]);
+
         fetch(`http://${host}:${port}/maps`)
             .then(response => response.json())
             .then(data => {
@@ -243,6 +247,14 @@ function Home(props) {
                 // setSelectedMap(getDefaultMapSelection());
             });
         // setSelectedMap(getDefaultMapSelection());
+    }
+
+    function updateIncidentInfo(){
+      if (currentIncident.get() != -1 && (incidentName.get() == '' || incidentName.get() == null)){
+        incidentInfo.set(currentIncident.get())
+      }else{
+        incidentInfo.set(incidentName.get());
+      }
     }
 
     const onMapLoad = () => {
@@ -526,10 +538,8 @@ function Home(props) {
 
     // saves the map data
     const saveMap = (e, index) => {
-        console.log(e.target);
         const id = e.target.id.substring(7, e.target.id.length);
         const url = `http://${host}:${port}/maps/${id}`;
-        console.log('updating map: ' + id)
         var i = 0;
         for (var x in maps) {
             if (maps[x]['id'] == id) {
@@ -769,19 +779,19 @@ function Home(props) {
 
         if (item == 'headset') {
             return (
-                <button style={{width: "30px", height: "30px"}} className='btn-danger'
+                <Button style={{width: "30px", height: "30px"}} className='btn-danger table-btns'
                         onClick={(e) => deleteHeadset(itemId, itemName)} title="Delete Headset">
                     <FontAwesomeIcon icon={solid('trash-can')} size="lg"
-                                     style={{position: 'relative', right: '1.5px', top: '-1px'}}/>
-                </button>
+                                     style={{position: 'relative', right: '0px', top: '-1px'}}/>
+                </Button>
             );
         } else {
             return (
-                <button style={{width: "30px", height: "30px"}} className='btn-danger'
+                <Button style={{width: "30px", height: "30px"}} className='btn-danger table-btns'
                         onClick={(e) => deleteMap(itemId, itemName)} title="Delete Map">
                     <FontAwesomeIcon icon={solid('trash-can')} size="lg"
-                                     style={{position: 'relative', right: '1.5px', top: '-1px'}}/>
-                </button>
+                                     style={{position: 'relative', right: '0px', top: '-1px'}}/>
+                </Button>
             );
         }
     }
@@ -799,13 +809,13 @@ function Home(props) {
             return response.json();
           }
         }).then(data => {
-
-          if (data['incident_name'] === '' || data['incident_name'] === null){
-            setIncident(data['incident_number'])
-          }else{
-            console.log('incident name: ' + data['incident_name'])
-            setIncident(data['incident_name'])
+          if(data['incident_number'] != '' && data['incident_number'] != null){
+            currentIncident.set(data['incident_number']);
           }
+          if (data['incident_name'] != '' && data['incident_name'] != null){
+            incidentName.set(data['incident_name']);
+          }
+          updateIncidentInfo();
         });
     }
 
@@ -861,7 +871,7 @@ function Home(props) {
                         </div>
                         <div style={{marginLeft: '15px', display: 'inline-block'}}>
                           <p className="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Incident Name</p>
-                          <h4 style={{marginTop: '0px'}}>{incidentNum != -1 ? (incidentNum) : ('Error getting incident')}</h4>
+                          <h4 style={{marginTop: '0px'}}>{incidentInfo.get()}</h4>
                         </div>
                       </div>
                       <div className="map-image-container">
@@ -990,29 +1000,29 @@ function Home(props) {
                                               {
                                                   (inEditModeHeadset.status && inEditModeHeadset.rowKey === index) ? (
                                                       <React.Fragment>
-                                                          <button
-                                                              className={"btn-success"}
+                                                          <Button
+                                                              className={"btn-success table-btns"}
                                                               id={'savebtn' + e.id}
                                                               onClick={(e) => onSaveHeadsets(e, index)}
                                                               title='Save'>
                                                               Save
-                                                          </button>
+                                                          </Button>
 
-                                                          <button
-                                                              className={"btn-secondary"}
+                                                          <Button
+                                                              className={"btn-secondary table-btns"}
                                                               style={{marginLeft: 8}}
                                                               onClick={(event) => onCancelHeadset(event, index)}
                                                               title='Cancel'>
                                                               Cancel
-                                                          </button>
+                                                          </Button>
                                                       </React.Fragment>
                                                   ) : (
-                                                      <button
-                                                          className={"btn-primary"}
+                                                      <Button
+                                                          className={"btn-primary table-btns"}
                                                           onClick={(e) => onEditHeadset(e, index)}
                                                           title='Edit'>
                                                           Edit
-                                                      </button>
+                                                      </Button>
                                                   )
                                               }
                                           </td>
@@ -1075,29 +1085,29 @@ function Home(props) {
                                               {
                                                   (inEditModeMap.status && inEditModeMap.rowKey === index) ? (
                                                       <React.Fragment>
-                                                          <button
-                                                              className={"btn-success"}
+                                                          <Button
+                                                              className={"btn-success table-btns"}
                                                               id={'mapsbtn' + e.id}
                                                               onClick={(e) => saveMap(e, index)}
                                                               title='Save'>
                                                               Save
-                                                          </button>
+                                                          </Button>
 
-                                                          <button
-                                                              className={"btn-secondary"}
+                                                          <Button
+                                                              className={"btn-secondary table-btns"}
                                                               style={{marginLeft: 8}}
                                                               onClick={() => onCancelMap(index)}
                                                               title='Cancel'>
                                                               Cancel
-                                                          </button>
+                                                          </Button>
                                                       </React.Fragment>
                                                   ) : (
-                                                      <button
-                                                          className={"btn-primary"}
+                                                      <Button
+                                                          className={"btn-primary table-btns"}
                                                           onClick={(e) => onEditMap(e, index)}
                                                           title='Edit'>
                                                           Edit
-                                                      </button>
+                                                      </Button>
                                                   )
                                               }
                                           </td>
@@ -1119,11 +1129,12 @@ function Home(props) {
                   </Tab>
                   <Tab eventKey="create-incident" title="Create Incident">
                     <NewIncidentModal port={port} getHeadsets={getHeadsets} setMaps={setMaps}
-                                      getCurrentIncident={getCurrentIncident} />
+                                      getCurrentIncident={getCurrentIncident} currentIncident={currentIncident} incidentName={incidentName}
+                                      updateIncidentInfo={updateIncidentInfo}/>
                   </Tab>
                   <Tab eventKey="incident-history" title="Incident History">
-                    <IncidentHistory port={port} getMaps={get_maps} getHeadsets={getHeadsets}
-                                     updateCurrentIncident={setIncident} getCurrentIncident={getCurrentIncident} />
+                    <IncidentHistory port={port} currentIncident={currentIncident} incidentName={incidentName} updateIncidentInfo={updateIncidentInfo}
+                                     getMaps={get_maps} getHeadsets={getHeadsets} getCurrentIncident={getCurrentIncident}/>
                   </Tab>
                 </Tabs>
             </div>
