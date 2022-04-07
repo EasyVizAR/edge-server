@@ -1,0 +1,89 @@
+This is a rough UML sketch of the important data classes and their
+relationships. It can be rendered nicely with the PlantUML tool.
+
+plantuml docs/classes.txt
+plantuml -tsvg docs/classes.txt
+
+@startuml
+
+skinparam wrapWidth 200
+
+title Important Data Classes and Their Relationships
+caption Note: this is a conceptual diagram and may not exactly reflect the implementation.
+
+class Incident {
+    An incident represents a distinct event with a beginning and end time. It serves as a container for data generated during the response, e.g. photos, maps, and headset locations.
+    __
+    Location locations[]
+    Headset assigned_headsets[]
+    datetime start
+    datetime end
+}
+
+class Location {
+    A location represents a distinct geographical boundary such as a building.
+    __
+    Layer layers[]
+    Surface surfaces[]
+    Photo photos[]
+    Feature features[]
+    Headset present_headsets[]
+}
+
+class Layer {
+    A layer is any visual presentation such as a 2D layout of one floor. The image could be an uploaded map image or dynamically generated.
+    __
+    string file_url
+}
+
+class Surface {
+    A surface is a geometric object obtained through scanning the environment. It will typically be represented as a triangle mesh, and can be retained and tracked over time by a UUID.
+    __
+    Headset created_by
+    string file_url
+}
+
+class Photo {
+    A photo is any image captured by a camera at the scene of the incident. Photos may undergo additional processing to detect people and objects.
+    __
+    Headset created_by
+    string file_url
+}
+
+class Annotation {
+    A photo may have one or more annotations added through object detection or other image processing.
+    __
+    string label
+    float x, y, width, height
+}
+
+class Feature {
+    A feature is any digital information that can be attached to a physical location such as a note, point of interest, or warning about a hazard.
+    __
+    Headset created_by
+    vector position
+}
+
+class Headset {
+    A headset is the user device that interacts with the system. It may be assigned to one incident and present at one location at a time, and its position is defined relative to the location's reference point.
+    __
+    string name
+    vector position
+    vector orientation
+}
+
+Incident *-- Location : 1..*
+Location *-- Layer : 1..*
+Location *-- Surface : 0..*
+Location *-- Photo : 0..*
+Location *-- Feature : 0..*
+Photo *-- Annotation : 0..*
+
+Incident o-- Headset : 0..*
+Location o-- Headset : 0..*
+
+Surface -- Headset
+Photo -- Headset
+Feature -- Headset
+
+@enduml
