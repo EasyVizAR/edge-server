@@ -156,11 +156,8 @@ class IncidentHandler:
             return False
 
         base_filepath = os.path.join(self.app.config['VIZAR_DATA_DIR'], 'incidents')
-        print('new incident ' + str(new_incident))
         for folder in os.scandir(base_filepath):
-            print('looking at ' + folder.name)
             if folder.is_dir() and folder.name == str(new_incident):
-                print('returned')
                 self.current_incident = int(new_incident)
                 return True
 
