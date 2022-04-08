@@ -603,7 +603,7 @@ async def create_map():
     if 'id' in body and str(body['id']).strip() != '':
         id = body['id']
 
-    created_id = get_map_repository().add_map(id, body['name'], body.get('image'))
+    created_id = get_map_repository().add_map(id, body['name'], body.get('image'), body['dummyData'])
 
     return await make_response(
         jsonify({"message": "Map created",

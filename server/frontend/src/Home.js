@@ -885,15 +885,17 @@ function Home(props) {
                                           left: combinedMapObjects[index].scaledX,
                                           top: combinedMapObjects[index].scaledY,
                                           height: mapIconSize + "%",
+                                          pointerEvents: "none"
                                       }}/>
                                       <svg className="features"
                                            width={getCircleSvgSize(sliderValue)}
                                            height={getCircleSvgSize(sliderValue)}
                                            style={{
                                                left: combinedMapObjects[index].scaledX - getCircleSvgShift(sliderValue),
-                                               top: combinedMapObjects[index].scaledY - getCircleSvgShift(sliderValue)
+                                               top: combinedMapObjects[index].scaledY - getCircleSvgShift(sliderValue),
+                                               pointerEvents: "none"
                                            }}>
-                                          <circle cx={getCircleSvgSize(sliderValue) / 2}
+                                    <circle style={{pointerEvents: "none"}} cx={getCircleSvgSize(sliderValue) / 2}
                                                   cy={getCircleSvgSize(sliderValue) / 2}
                                                   r={convert2Pixel(sliderValue)} fill-opacity="0.3" fill="#0000FF"/>
                                       </svg>
@@ -905,15 +907,17 @@ function Home(props) {
                                               left: combinedMapObjects[index].scaledX,
                                               top: combinedMapObjects[index].scaledY,
                                               height: mapIconSize + "%",
+                                              pointerEvents: "none"
                                           }}/>
                                           <svg className="features"
                                                width={getCircleSvgSize(f.radius)}
                                                height={getCircleSvgSize(f.radius)}
                                                style={{
                                                    left: combinedMapObjects[index].scaledX - getCircleSvgShift(f.radius),
-                                                   top: combinedMapObjects[index].scaledY - getCircleSvgShift(f.radius)
+                                                   top: combinedMapObjects[index].scaledY - getCircleSvgShift(f.radius),
+                                                   pointerEvents: "none"
                                                }}>
-                                              <circle cx={getCircleSvgSize(f.radius) / 2}
+                                        <circle style={{pointerEvents: "none"}} cx={getCircleSvgSize(f.radius) / 2}
                                                       cy={getCircleSvgSize(f.radius) / 2}
                                                       r={convert2Pixel(f.radius)} fill-opacity="0.3" fill="#0000FF"/>
                                           </svg>
@@ -923,7 +927,8 @@ function Home(props) {
                                                       style={{
                                                           left: combinedMapObjects[index].scaledX,
                                                           top: combinedMapObjects[index].scaledY,
-                                                          height: mapIconSize + "%"
+                                                    height: mapIconSize + "%",
+                                                    pointerEvents: "none"
                                                       }}/>
                           })}
                       </div>
