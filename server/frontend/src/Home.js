@@ -4,6 +4,7 @@ import NewMap from './NewMap.js';
 import NewFeature from './NewFeature.js';
 import NewIncidentModal from './NewIncidentModal.js';
 import IncidentHistory from './IncidentHistory.js';
+import AllHeadsets from './AllHeadsets.js';
 import 'reactjs-popup/dist/index.css';
 import React, {useState, useEffect} from 'react';
 import moment from 'moment';
@@ -206,18 +207,20 @@ function Home(props) {
               var fetchedHeadsets = []
               for (var k in data) {
                   var v = data[k];
-                  fetchedHeadsets.push({
-                      'id': v.id,
-                      'lastUpdate': v.lastUpdate,
-                      'mapId': v.mapId,
-                      'name': v.name,
-                      'orientationX': v.orientation.x,
-                      'orientationY': v.orientation.y,
-                      'orientationZ': v.orientation.z,
-                      'positionX': v.position.x,
-                      'positionY': v.position.y,
-                      'positionZ': v.position.z
-                  });
+                  if (selectedMap === v.mapId) {
+                    fetchedHeadsets.push({
+                        'id': v.id,
+                        'lastUpdate': v.lastUpdate,
+                        'mapId': v.mapId,
+                        'name': v.name,
+                        'orientationX': v.orientation.x,
+                        'orientationY': v.orientation.y,
+                        'orientationZ': v.orientation.z,
+                        'positionX': v.position.x,
+                        'positionY': v.position.y,
+                        'positionZ': v.position.z
+                    });
+                  }
               }
               setHeadsets(fetchedHeadsets);
             });
@@ -975,8 +978,9 @@ function Home(props) {
                               </thead>
                               <tbody>
                               {
-                                  headsets.map((e, index) => {
-                                      return <tr>
+                                  headsets.length > 0 ? (
+                                    headsets.map((e, index) => {
+                                        <tr>
                                           <td>{e.id}</td>
                                           <td id={"headsetName" + index}>
                                               {
@@ -1038,6 +1042,9 @@ function Home(props) {
                                           </td>
                                       </tr>
                                   })
+                                ) : (
+                                  <tr><td colspan="100%">No Headsets</td></tr>
+                                )
                               }
                               </tbody>
                           </Table>
@@ -1141,6 +1148,10 @@ function Home(props) {
                     <IncidentHistory port={port} currentIncident={currentIncident} incidentName={incidentName} updateIncidentInfo={updateIncidentInfo}
                                      getMaps={get_maps} getHeadsets={getHeadsets} getCurrentIncident={getCurrentIncident}/>
                   </Tab>
+                  <Tab eventKey="all-headsets" title="All Headsets">
+                    <AllHeadsets port={port} />
+                  </Tab>
+
                 </Tabs>
             </div>
         </div>
