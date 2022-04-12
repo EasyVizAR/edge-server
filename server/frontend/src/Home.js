@@ -1060,76 +1060,80 @@ function Home(props) {
                               </thead>
                               <tbody>
                               {
-                                  maps.map((e, index) => {
-                                      return <tr>
-                                          <td>{e.id}</td>
-                                          <td>
-                                              {
-                                                  inEditModeMap.status && inEditModeMap.rowKey === index ? (
-                                                      <input
-                                                          placeholder="Edit Map Name"
-                                                          name="input"
-                                                          type="text"
-                                                          id={'mapName' + e.id}
-                                                          onChange={updateMapName}
-                                                          value={maps[index]['name']}/>
-                                                  ) : (
-                                                      e.name
-                                                  )
-                                              }
-                                          </td>
-                                          <td>
-                                              {
-                                                  inEditModeMap.status && inEditModeMap.rowKey === index ? (
-                                                      <input
-                                                          placeholder="Edit Map Image"
-                                                          name="input"
-                                                          type="text"
-                                                          id={'mapImage' + e.id}
-                                                          onChange={updateImage}
-                                                          value={maps[index]['image']}/>
-                                                  ) : (
-                                                      e.image
-                                                  )
-                                              }
-                                          </td>
-                                          <td>
-                                              {
-                                                  (inEditModeMap.status && inEditModeMap.rowKey === index) ? (
-                                                      <React.Fragment>
-                                                          <Button
-                                                              className={"btn-success table-btns"}
-                                                              id={'mapsbtn' + e.id}
-                                                              onClick={(e) => saveMap(e, index)}
-                                                              title='Save'>
-                                                              Save
-                                                          </Button>
+                                  maps.length > 0 ? (
+                                    maps.map((e, index) => {
+                                        return <tr>
+                                            <td>{e.id}</td>
+                                            <td>
+                                                {
+                                                    inEditModeMap.status && inEditModeMap.rowKey === index ? (
+                                                        <input
+                                                            placeholder="Edit Map Name"
+                                                            name="input"
+                                                            type="text"
+                                                            id={'mapName' + e.id}
+                                                            onChange={updateMapName}
+                                                            value={maps[index]['name']}/>
+                                                    ) : (
+                                                        e.name
+                                                    )
+                                                }
+                                            </td>
+                                            <td>
+                                                {
+                                                    inEditModeMap.status && inEditModeMap.rowKey === index ? (
+                                                        <input
+                                                            placeholder="Edit Map Image"
+                                                            name="input"
+                                                            type="text"
+                                                            id={'mapImage' + e.id}
+                                                            onChange={updateImage}
+                                                            value={maps[index]['image']}/>
+                                                    ) : (
+                                                        e.image
+                                                    )
+                                                }
+                                            </td>
+                                            <td>
+                                                {
+                                                    (inEditModeMap.status && inEditModeMap.rowKey === index) ? (
+                                                        <React.Fragment>
+                                                            <Button
+                                                                className={"btn-success table-btns"}
+                                                                id={'mapsbtn' + e.id}
+                                                                onClick={(e) => saveMap(e, index)}
+                                                                title='Save'>
+                                                                Save
+                                                            </Button>
 
-                                                          <Button
-                                                              className={"btn-secondary table-btns"}
-                                                              style={{marginLeft: 8}}
-                                                              onClick={() => onCancelMap(index)}
-                                                              title='Cancel'>
-                                                              Cancel
-                                                          </Button>
-                                                      </React.Fragment>
-                                                  ) : (
-                                                      <Button
-                                                          className={"btn-primary table-btns"}
-                                                          onClick={(e) => onEditMap(e, index)}
-                                                          title='Edit'>
-                                                          Edit
-                                                      </Button>
-                                                  )
-                                              }
-                                          </td>
-                                          <td>
-                                              <div>
-                                                  <TrashIcon item='map' id={e.id} name={e.name}/>
-                                              </div>
-                                          </td>
-                                      </tr>
-                                  })
+                                                            <Button
+                                                                className={"btn-secondary table-btns"}
+                                                                style={{marginLeft: 8}}
+                                                                onClick={() => onCancelMap(index)}
+                                                                title='Cancel'>
+                                                                Cancel
+                                                            </Button>
+                                                        </React.Fragment>
+                                                    ) : (
+                                                        <Button
+                                                            className={"btn-primary table-btns"}
+                                                            onClick={(e) => onEditMap(e, index)}
+                                                            title='Edit'>
+                                                            Edit
+                                                        </Button>
+                                                    )
+                                                }
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <TrashIcon item='map' id={e.id} name={e.name}/>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    })
+                                  ) : (
+                                    <tr><td colspan="100%">No Maps</td></tr>
+                                  )
                               }
                               </tbody>
                           </Table>
