@@ -9,8 +9,8 @@ import useStateSynchronous from './useStateSynchronous.js';
 function IncidentHistory(props){
   const host = window.location.hostname;
   const port = props.port;
+  var historyData = props.historyData;
 
-  const [historyData, setHistoryData] = useState([]);
   const [inEditMode, setInEditMode] = useState({
     status: false,
     rowKey: null,
@@ -18,19 +18,8 @@ function IncidentHistory(props){
   });
 
   useEffect(() => {
-    getIncidentHistory();
+    props.getIncidentHistory();
   }, []);
-
-  function sort_list(arr){
-     for(let i = 0; i < arr.length; i++){
-        for(let j = 0; j < arr.length - i - 1; j++){
-            if(parseInt(arr[j + 1]['number']) < parseInt(arr[j]['number'])){
-                [arr[j + 1],arr[j]] = [arr[j],arr[j + 1]]
-            }
-        }
-    };
-    return arr;
-  }
 
   const onSave = (e, id) => {
     // save changes to incidents
@@ -94,33 +83,7 @@ function IncidentHistory(props){
       }
       newHistory.push(historyData[x]);
     }
-    setHistoryData(newHistory);
-  }
-
-  function getIncidentHistory(){
-    const requestData = {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    };
-
-    fetch(`http://${host}:${port}/incidents/history`, requestData).then(response => {
-      if (response.ok) {
-        return response.json();
-      }
-    }).then(data => {
-      var temp_data = [];
-      for (var x in data){
-        temp_data.push({
-          'number': data[x]['incident_number'],
-          'name': data[x]['name'],
-          'date_created': data[x]['created']
-        });
-      }
-      temp_data = sort_list(temp_data);
-      setHistoryData(temp_data);
-    });
+    props.setHistoryData(newHistory);
   }
 
   function deleteIncident(incidentNumber, incidentName) {
@@ -139,7 +102,7 @@ function IncidentHistory(props){
 
       fetch(url, requestData)
       .then(response => {
-        getIncidentHistory();
+        props.getIncidentHistory();
         props.getMaps();
         props.getHeadsets();
         props.getCurrentIncident();

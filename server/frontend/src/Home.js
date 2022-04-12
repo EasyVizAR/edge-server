@@ -87,6 +87,8 @@ function Home(props) {
     const [sliderValue, setSliderValue] = useState(0);
     const [currMapName, setCurrMapName] = useState('');
     const [placementType, setPlacementType] = useState('');
+    const [tab, setTab] = useState('map-view');
+    const [historyData, setHistoryData] = useState([]);
 
     const incidentInfo = useStateSynchronous(-1);
     const incidentName = useStateSynchronous('');
@@ -469,6 +471,43 @@ function Home(props) {
         displayNewFeature(showNewFeature ? false : true);
     }
 
+    function sort_list(arr){
+       for(let i = 0; i < arr.length; i++){
+          for(let j = 0; j < arr.length - i - 1; j++){
+              if(parseInt(arr[j + 1]['number']) < parseInt(arr[j]['number'])){
+                  [arr[j + 1],arr[j]] = [arr[j],arr[j + 1]]
+              }
+          }
+      };
+      return arr;
+    }
+
+    function getIncidentHistory(){
+      const requestData = {
+          method: 'GET',
+          headers: {
+              'Content-Type': 'application/json'
+          }
+      };
+
+      fetch(`http://${host}:${port}/incidents/history`, requestData).then(response => {
+        if (response.ok) {
+          return response.json();
+        }
+      }).then(data => {
+        var temp_data = [];
+        for (var x in data){
+          temp_data.push({
+            'number': data[x]['incident_number'],
+            'name': data[x]['name'],
+            'date_created': data[x]['created']
+          });
+        }
+        temp_data = sort_list(temp_data);
+        setHistoryData(temp_data);
+      });
+    }
+
     // turns on map editing
     const onEditMap = (e, id) => {
         if (inEditModeMap.status == true && inEditModeMap.rowKey != null) {
@@ -837,8 +876,8 @@ function Home(props) {
               <title>EasyViz AR</title>
             </Helmet>
             <div className="home-body">
-                <Tabs defaultActiveKey="map" className="mb-3 tabs">
-                  <Tab eventKey="map" title="Map View">
+                <Tabs activeKey={tab} className="mb-3 tabs" onSelect={(t) => setTab(t)}>
+                  <Tab eventKey="map-view" title="Map View">
                     <div className="map-nav">
                       <div className="dropdown-container">
                           <DropdownButton id="map-dropdown" title="Select Map" onSelect={handleMapSelection}
@@ -1141,15 +1180,17 @@ function Home(props) {
                     </div>
                   </Tab>
                   <Tab eventKey="create-map" title="Create Map">
-                    <NewMap port={port} getHeadsets={getHeadsets} getMaps={get_maps}/>
+                    <NewMap port={port} getHeadsets={getHeadsets} getMaps={get_maps} setTab={setTab}/>
                   </Tab>
                   <Tab eventKey="create-incident" title="Create Incident">
                     <NewIncidentModal port={port} getHeadsets={getHeadsets} setMaps={setMaps}
                                       getCurrentIncident={getCurrentIncident} currentIncident={currentIncident} incidentName={incidentName}
-                                      updateIncidentInfo={updateIncidentInfo}/>
+                                      updateIncidentInfo={updateIncidentInfo} setTab={setTab} getIncidentHistory={getIncidentHistory} />
                   </Tab>
                   <Tab eventKey="incident-history" title="Incident History">
-                    <IncidentHistory port={port} currentIncident={currentIncident} incidentName={incidentName} updateIncidentInfo={updateIncidentInfo}
+                    <IncidentHistory port={port} currentIncident={currentIncident} incidentName={incidentName}
+                                     updateIncidentInfo={updateIncidentInfo} historyData={historyData}
+                                     setHistoryData={setHistoryData} getIncidentHistory={getIncidentHistory}
                                      getMaps={get_maps} getHeadsets={getHeadsets} getCurrentIncident={getCurrentIncident}/>
                   </Tab>
                   <Tab eventKey="all-headsets" title="All Headsets">

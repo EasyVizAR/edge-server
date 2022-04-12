@@ -26,12 +26,13 @@ function NewIncidentModal(props){
           return response.json();
         }
       }).then(async data => {
-        props.currentIncident.set(data['incident_number']);
-        props.incidentName.set(data['incident_name']);
+        props.currentIncident.set(data['current incident']);
+        props.incidentName.set(incidentName);
         props.updateIncidentInfo();
         props.setMaps([]);
         props.getHeadsets();
-        window.location.reload(false);
+        props.getIncidentHistory();
+        props.setTab('map-view');
       });
   }
 

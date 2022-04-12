@@ -31,7 +31,7 @@ function NewMap(props){
       .then(data => {
         props.getMaps();
         props.getHeadsets();
-        window.location.reload(false);
+        props.setTab('map-view');
       });
     }
 
