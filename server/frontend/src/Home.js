@@ -979,7 +979,7 @@ function Home(props) {
                               <tbody>
                               {
                                   headsets.length > 0 ? (
-                                    headsets.map((e, index) => {
+                                    headsets.map((e, index) => (
                                         <tr>
                                           <td>{e.id}</td>
                                           <td id={"headsetName" + index}>
@@ -1041,7 +1041,7 @@ function Home(props) {
                                               </div>
                                           </td>
                                       </tr>
-                                  })
+                                  ))
                                 ) : (
                                   <tr><td colspan="100%">No Headsets</td></tr>
                                 )
