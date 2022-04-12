@@ -12,7 +12,7 @@ function NewIncidentModal(props){
     setIncidentName(e.target.value);
   }
 
-  function createNewIncident() {
+  function createNewIncident(e) {
       const requestData = {
           method: 'POST',
           headers: {
@@ -32,6 +32,7 @@ function NewIncidentModal(props){
         props.setMaps([]);
         props.getHeadsets();
         props.getIncidentHistory();
+        e.target.form.elements.incidentName.value = ""
         props.setTab('map-view');
       });
   }

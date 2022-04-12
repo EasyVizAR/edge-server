@@ -10,7 +10,7 @@ function NewMap(props){
     const[mapName, setMapName] = useState(null);
     const[initDummy, setInitDummy] = useState(false);
 
-    const handleSubmit = (event) => {
+    function handleSubmit(e) {
 
       const new_map = {
         name: mapName,
@@ -31,6 +31,7 @@ function NewMap(props){
       .then(data => {
         props.getMaps();
         props.getHeadsets();
+        e.target.form.elements.formMapName.value = ""
         props.setTab('map-view');
       });
     }
@@ -54,7 +55,7 @@ function NewMap(props){
           <Form onSubmit={handleSubmit} className='new-map-form'>
             <Form.Group style={{width: '50%', margin: 'auto', display:'flex', flexFlow:'column'}} className="mb-3" controlId="map-name">
               <FloatingLabel controlId="floating-name" label="Map Name">
-                <Form.Control type="text" placeholder="Map Name" name="mapName" onChange={(e) => updateState(e, "map-name")}/>
+                <Form.Control type="text" placeholder="Map Name" name="formMapName" onChange={(e) => updateState(e, "map-name")}/>
               </FloatingLabel>
                 <label style={{display: 'flex'}}>Initialize with dummy data</label>
                 <input type='checkbox' id='dummy-data-checkbox' value={initDummy} onChange={(e) => setInitDummy(e.target.checked)}/>
