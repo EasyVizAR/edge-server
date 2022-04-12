@@ -63,6 +63,10 @@ def test_jsonresource():
     result = Dummy.find_by_id(1)
     assert result.name == "bar"
 
+    newest = Dummy.find_newest()
+    assert newest is not None
+    assert newest.id == res2.id
+
     res1.delete()
     assert not os.path.exists(res1.get_path())
 
@@ -88,6 +92,10 @@ def test_jsonresource_subcollection():
 
     results = parent.children.find()
     assert len(results) == 2
+
+    newest = parent.children.find_newest()
+    assert newest is not None
+    assert newest.name == "child2"
 
     assert child1.get_path() == "data/parents/00000001/children/00000001/child.json"
     assert child2.get_path() == "data/parents/00000001/children/00000002/child.json"
