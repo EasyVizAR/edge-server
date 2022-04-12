@@ -66,6 +66,7 @@ function AllHeadsets(props){
                   }
               }
               getAllHeadsets();
+              props.getMapHeadsets();
           });
   }
 
@@ -117,7 +118,6 @@ function AllHeadsets(props){
               break;
           }
       }
-      console.log("headset updated");
   }
 
   // code that creates the trash icons
@@ -156,8 +156,6 @@ function AllHeadsets(props){
     .then(response => {
       return response.json()
     }).then(data => {
-      console.log('getting headsets');
-      console.log(data);
       var fetchedHeadsets = []
       for (var k in data) {
         var v = data[k];
@@ -175,7 +173,6 @@ function AllHeadsets(props){
         });
       }
       headsets.set(fetchedHeadsets);
-      console.log(headsets.get()[0]['name'])
     });
   }
 

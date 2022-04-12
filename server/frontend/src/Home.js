@@ -1149,7 +1149,7 @@ function Home(props) {
                                      getMaps={get_maps} getHeadsets={getHeadsets} getCurrentIncident={getCurrentIncident}/>
                   </Tab>
                   <Tab eventKey="all-headsets" title="All Headsets">
-                    <AllHeadsets port={port} />
+                    <AllHeadsets port={port} getMapHeadsets={getHeadsets} />
                   </Tab>
 
                 </Tabs>
