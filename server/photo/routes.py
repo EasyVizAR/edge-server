@@ -15,8 +15,8 @@ from .models import PhotoModel
 photos = Blueprint("photos", __name__)
 
 
-@photos.route('/locations/<location_id>/photos', methods=['GET'])
-async def list_photos(location_id):
+@photos.route('/photos', methods=['GET'])
+async def list_photos():
     """
     List photos
     ---
@@ -25,11 +25,7 @@ async def list_photos(location_id):
         tags:
          - photos
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
-
-    photos = location.Photo.find()
+    photos = g.active_incident.Photo.find()
 
     # Wrap the list if the caller requested an envelope.
     query = request.args
@@ -41,8 +37,8 @@ async def list_photos(location_id):
     return jsonify(result), HTTPStatus.OK
 
 
-@photos.route('/locations/<location_id>/photos', methods=['POST'])
-async def create_photo(location_id):
+@photos.route('/photos', methods=['POST'])
+async def create_photo():
     """
     Create photo
     ---
@@ -53,11 +49,7 @@ async def create_photo(location_id):
     """
     body = await request.get_json()
 
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
-
-    photo = location.Photo.load(body, replace_id=True)
+    photo = g.active_incident.Photo.load(body, replace_id=True)
 
     # The photo object should either specify an external fileUrl, or the caller
     # will need to upload a file after creating this object.
@@ -72,7 +64,7 @@ async def create_photo(location_id):
 
         upload_file_name = "image.{}".format(extension)
         photo.filePath = os.path.join(photo.get_dir(), upload_file_name)
-        photo.fileUrl = "/locations/{}/photos/{}/{}".format(location_id, photo.id, upload_file_name)
+        photo.fileUrl = "/photos/{}/{}".format(photo.id, upload_file_name)
         photo.status = "created"
 
     else:
@@ -83,8 +75,8 @@ async def create_photo(location_id):
     return jsonify(photo), HTTPStatus.CREATED
 
 
-@photos.route('/locations/<location_id>/photos/<photo_id>', methods=['DELETE'])
-async def delete_photo(location_id, photo_id):
+@photos.route('/photos/<photo_id>', methods=['DELETE'])
+async def delete_photo(photo_id):
     """
     Delete photo
     ---
@@ -94,11 +86,7 @@ async def delete_photo(location_id, photo_id):
          - photos
     """
 
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
-
-    photo = location.Photo.find_by_id(photo_id)
+    photo = g.active_incident.Photo.find_by_id(photo_id)
     if photo is None:
         raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
@@ -107,8 +95,8 @@ async def delete_photo(location_id, photo_id):
     return jsonify(photo), HTTPStatus.OK
 
 
-@photos.route('/locations/<location_id>/photos/<photo_id>', methods=['GET'])
-async def get_photo(location_id, photo_id):
+@photos.route('/photos/<photo_id>', methods=['GET'])
+async def get_photo(photo_id):
     """
     Get photo
     ---
@@ -117,19 +105,15 @@ async def get_photo(location_id, photo_id):
         tags:
          - photos
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
-
-    photo = location.Photo.find_by_id(photo_id)
+    photo = g.active_incident.Photo.find_by_id(photo_id)
     if photo is None:
         raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
     return jsonify(photo), HTTPStatus.OK
 
 
-@photos.route('/locations/<location_id>/photos/<photo_id>', methods=['PUT'])
-async def replace_photo(location_id, photo_id):
+@photos.route('/photos/<photo_id>', methods=['PUT'])
+async def replace_photo(photo_id):
     """
     Replace photo
     ---
@@ -141,11 +125,7 @@ async def replace_photo(location_id, photo_id):
     body = await request.get_json()
     body['id'] = photo_id
 
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
-
-    photo = location.Photo.load(body)
+    photo = g.active_incident.Photo.load(body)
     created = photo.save()
 
     if created:
@@ -154,8 +134,8 @@ async def replace_photo(location_id, photo_id):
         return jsonify(photo), HTTPStatus.OK
 
 
-@photos.route('/locations/<location_id>/photos/<photo_id>', methods=['PATCH'])
-async def update_photo(location_id, photo_id):
+@photos.route('/photos/<photo_id>', methods=['PATCH'])
+async def update_photo(photo_id):
     """
     Update photo
     ---
@@ -165,11 +145,7 @@ async def update_photo(location_id, photo_id):
          - photos
     """
 
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
-
-    photo = location.Photo.find_by_id(photo_id)
+    photo = g.active_incident.Photo.find_by_id(photo_id)
     if photo is None:
         raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
@@ -185,8 +161,8 @@ async def update_photo(location_id, photo_id):
     return jsonify(photo), HTTPStatus.OK
 
 
-@photos.route('/locations/<location_id>/photos/<photo_id>/<filename>', methods=['GET'])
-async def get_photo_file(location_id, photo_id, filename):
+@photos.route('/photos/<photo_id>/<filename>', methods=['GET'])
+async def get_photo_file(photo_id, filename):
     """
     Get a photo data file
     ---
@@ -201,11 +177,7 @@ async def get_photo_file(location_id, photo_id, filename):
                     image/jpeg: {}
                     image/png: {}
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
-
-    photo = location.Photo.find_by_id(photo_id)
+    photo = g.active_incident.Photo.find_by_id(photo_id)
     if photo is None:
         raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
@@ -213,8 +185,8 @@ async def get_photo_file(location_id, photo_id, filename):
     return await send_from_directory(data_dir, filename)
 
 
-@photos.route('/locations/<location_id>/photos/<photo_id>/<filename>', methods=['PUT'])
-async def upload_photo_file(location_id, photo_id, filename):
+@photos.route('/photos/<photo_id>/<filename>', methods=['PUT'])
+async def upload_photo_file(photo_id, filename):
     """
     Upload a photo data file
     ---
@@ -228,11 +200,7 @@ async def upload_photo_file(location_id, photo_id, filename):
                 image/jpeg: {}
                 image/png: {}
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
-
-    photo = location.Photo.find_by_id(photo_id)
+    photo = g.active_incident.Photo.find_by_id(photo_id)
     if photo is None:
         raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
@@ -244,7 +212,7 @@ async def upload_photo_file(location_id, photo_id, filename):
         output.write(body)
 
     photo.filePath = file_path
-    photo.fileUrl = "/locations/{}/photos/{}/{}".format(location_id, photo_id, secure_filename(filename))
+    photo.fileUrl = "/photos/{}/{}".format(photo_id, secure_filename(filename))
     photo.status = "ready"
     photo.updated = time.time()
     photo.save()

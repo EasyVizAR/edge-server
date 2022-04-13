@@ -8,7 +8,7 @@ from server.resources.jsonresource import JsonCollection, JsonResource
 
 @dataclass
 class PhotoModel(JsonResource):
-    id:             int
+    id:             str
 
     contentType:    str = field(default="image/jpeg")
     filePath:       str = field(default=None)
@@ -19,7 +19,7 @@ class PhotoModel(JsonResource):
 
     retention:      str = field(default="auto")
     status:         str = field(default="created")
-    uploadedBy:     str = field(default=None)
+    createdBy:      str = field(default=None)
 
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)

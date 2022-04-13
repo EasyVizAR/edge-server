@@ -13,13 +13,7 @@ async def test_photo_routes():
     Test photo routes
     """
     async with app.test_client() as client:
-        # Create a test location
-        response = await client.post("/locations", json=dict(name="Test"))
-        assert response.status_code == HTTPStatus.CREATED
-        assert response.is_json
-        location = await response.get_json()
-
-        photos_url = "/locations/{}/photos".format(location['id'])
+        photos_url = "/photos"
 
         # Initial list of photos
         response = await client.get(photos_url)
@@ -103,13 +97,7 @@ async def test_photo_upload():
     Test photo upload
     """
     async with app.test_client() as client:
-        # Create a test location
-        response = await client.post("/locations", json=dict(name="Test"))
-        assert response.status_code == HTTPStatus.CREATED
-        assert response.is_json
-        location = await response.get_json()
-
-        photos_url = "/locations/{}/photos".format(location['id'])
+        photos_url = "/photos"
 
         # Create an object
         response = await client.post(photos_url, json=dict(contentType="image/jpeg"))
@@ -119,7 +107,7 @@ async def test_photo_upload():
         assert isinstance(photo, dict)
         assert photo['status'] == "created"
 
-        photo_url = "/locations/{}/photos/{}".format(location['id'], photo['id'])
+        photo_url = "/photos/{}".format(photo['id'])
 
         # Test upload process
         response = await client.put(photo['fileUrl'], data="test")
