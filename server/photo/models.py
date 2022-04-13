@@ -3,6 +3,7 @@ import time
 from dataclasses import field
 from marshmallow_dataclass import dataclass
 
+from server.annotation.models import AnnotationModel
 from server.resources.jsonresource import JsonCollection, JsonResource
 
 
@@ -23,3 +24,6 @@ class PhotoModel(JsonResource):
 
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)
+
+    def on_ready(self):
+        self.Annotation = JsonCollection(AnnotationModel, "feature", parent=self)
