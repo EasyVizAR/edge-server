@@ -16,4 +16,3 @@ class LocationModel(JsonResource):
     def on_ready(self):
         self.Feature = JsonCollection(FeatureModel, "feature", parent=self)
         self.Layer = JsonCollection(LayerModel, "layer", parent=self)
-#        self.Surface = JsonCollection(SurfaceModel, "surface", parent=self)

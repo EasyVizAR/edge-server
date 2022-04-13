@@ -1,21 +1,24 @@
 import asyncio
 import json
 import os
+import time
 
 from http import HTTPStatus
 
-from quart import request, jsonify, make_response, Blueprint, current_app, send_file
+from quart import request, jsonify, make_response, Blueprint, current_app, send_file, g
+from werkzeug import exceptions
 from werkzeug.utils import secure_filename
 
 from server.headset.headsetrepository import get_headset_repository
 from server.incidents.incident_handler import init_incidents_handler
+from server.incidents.models import Incident
 from server.utils.utils import GenericJsonEncoder, save_image
 
-blueprint = Blueprint('headsets', __name__)
+headsets = Blueprint('headsets', __name__)
 
 
-@blueprint.route('/headsets', methods=['GET'])
-async def get_all():
+@headsets.route('/headsets', methods=['GET'])
+async def list_headsets():
     """
     List headsets
     ---
@@ -37,7 +40,7 @@ async def get_all():
                             type: array
                             items: Headset
     """
-    headsets = get_headset_repository().get_all_headsets()
+    headsets = g.Headset.find()
 
     # Wrap the maps list if the caller requested an envelope.
     query = request.args
@@ -49,8 +52,81 @@ async def get_all():
     return jsonify(result), HTTPStatus.OK
 
 
-@blueprint.route('/headsets/<id>', methods=['GET'])
-async def get(id):
+@headsets.route('/headsets', methods=['POST'])
+async def create_headset():
+    """
+    Create a headset
+    ---
+    post:
+        description: Create a headset
+        tags:
+          - headsets
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Headset
+        responses:
+            200:
+                description: A headset
+                content:
+                    application/json:
+                        schema: Headset
+    """
+    body = await request.get_json()
+    if body is None:
+        body = {}
+
+    # TODO: Finalize authentication method
+
+    headset = g.Headset.load(body, replace_id=True)
+    headset.save()
+
+    folder = g.active_incident.Headset.add(headset.id)
+
+    if 'position' in body or 'orientation' in body:
+        change = folder.PoseChange.load(body)
+        folder.PoseChange.add(change)
+
+    return jsonify(headset), HTTPStatus.CREATED
+
+
+@headsets.route('/headsets/<headset_id>', methods=['DELETE'])
+async def delete_headset(headset_id):
+    """
+    Delete a headset
+    ---
+    delete:
+        description: Delete a headset
+        tags:
+          - headsets
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Headset ID
+        responses:
+            200:
+                description: Headset deleted
+    """
+
+    headset = g.Headset.find_by_id(headset_id)
+    if headset is None:
+        raise exceptions.NotFound(description="Headset {} was not found".format(headset_id))
+
+    # TODO check authorization
+
+    headset.delete()
+
+    folder = g.active_incident.Headset.find_by_id(headset_id)
+    if folder is not None:
+        folder.delete()
+
+    return jsonify(headset), HTTPStatus.OK
+
+
+@headsets.route('/headsets/<id>', methods=['GET'])
+async def get_headset(id):
     """
     Get headset
     ---
@@ -70,17 +146,114 @@ async def get(id):
                     application/json:
                         schema: Headset
     """
-    headset = get_headset_repository().get_headset(id)
-
+    headset = g.Headset.find_by_id(id)
     if headset is None:
-        return await make_response(
-            jsonify({"message": "The requested headset does not exist.", "severity": "Error"}),
-            HTTPStatus.NOT_FOUND)
+        raise exceptions.NotFound(description="Headset {} was not found".format(id))
+
+    return jsonify(headset), HTTPStatus.OK
+
+
+@headsets.route('/headsets/<headsetId>', methods=['PUT'])
+async def replace_headset(headsetId):
+    """
+    Replace a headset
+    ---
+    put:
+        description: Replace a headset
+        tags:
+          - headsets
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Headset ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Headset
+        responses:
+            200:
+                description: New headset object
+                content:
+                    application/json:
+                        schema: Headset
+    """
+    body = await request.get_json()
+    body['id'] = headsetId
+
+    headset = g.Headset.load(body)
+    headset.updated = time.time()
+    created = headset.save()
+
+    incident_folder = g.active_incident.Headset.find_by_id(headsetId)
+    if incident_folder is None:
+        incident_folder = g.active_incident.Headset.add(headset.id)
+
+    if 'position' in body or 'orientation' in body:
+        change = incident_folder.PoseChange.load(body)
+        incident_folder.PoseChange.add(change)
+
+    if created:
+        return jsonify(headset), HTTPStatus.CREATED
     else:
         return jsonify(headset), HTTPStatus.OK
 
 
-@blueprint.route('/headsets/<headset_id>/poses', methods=['POST'])
+@headsets.route('/headsets/<headset_id>', methods=['PATCH'])
+async def update_headset(headset_id):
+    """
+    Update a headset
+    ---
+    patch:
+        description: Update a headset
+        tags:
+          - headsets
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Headset ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Headset
+        responses:
+            200:
+                description: New headset object
+                content:
+                    application/json:
+                        schema: Headset
+    """
+    headset = g.Headset.find_by_id(headset_id)
+    if headset is None:
+        raise exceptions.NotFound(description="Headset {} was not found".format(id))
+
+    body = await request.get_json()
+
+    # Do not allow changing the object's ID
+    if 'id' in body:
+        del body['id']
+
+    headset.update(body)
+    headset.updated = time.time()
+    headset.save()
+
+    if 'position' in body or 'orientation' in body:
+        folder = g.active_incident.Headset.find_by_id(headset_id)
+        change = folder.PoseChange.load(body)
+        folder.PoseChange.add(change)
+
+    return jsonify(headset), HTTPStatus.OK
+
+
+#
+# The functions below are deprecated or in need of updating.
+#
+
+
+@headsets.route('/headsets/<headset_id>/poses', methods=['POST'])
 async def create_headset_pose(headset_id):
     """
     Create headset pose
@@ -122,7 +295,7 @@ async def create_headset_pose(headset_id):
         return jsonify(headset_update), HTTPStatus.OK
 
 
-@blueprint.route('/headsets/<headset_id>/poses', methods=['GET'])
+@headsets.route('/headsets/<headset_id>/poses', methods=['GET'])
 async def get_headset_poses(headset_id):
     """
     Get headset poses
@@ -178,47 +351,7 @@ async def get_headset_poses(headset_id):
     return jsonify(result), HTTPStatus.OK
 
 
-@blueprint.route('/headsets', methods=['POST'])
-async def register():
-    """
-    Register a headset
-    ---
-    post:
-        description: Register a headset
-        tags:
-          - headsets
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema: Headset
-        responses:
-            200:
-                description: A headset
-                content:
-                    application/json:
-                        schema: Headset
-    """
-    body = await request.get_json()
-
-    if 'name' not in body:
-        return await make_response(jsonify({"message": "Missing parameter in body", "severity": "Warning"}),
-                                   HTTPStatus.BAD_REQUEST)
-
-    # TODO: Finalize authentication method
-
-    headset = {
-        'name': body['name'],
-        'mapId': body.get('mapId', 'current'),
-        'position': body.get('position')
-    }
-
-    headset['id'] = get_headset_repository().add_headset(headset['name'], headset['position'], headset['mapId'])
-
-    return jsonify(headset), HTTPStatus.OK
-
-
-@blueprint.route('/headsets/authenticate/', methods=['POST'])
+@headsets.route('/headsets/authenticate/', methods=['POST'])
 async def authenticate():
     """
     Authenticate a headset
@@ -246,7 +379,7 @@ async def authenticate():
     return await make_response({"token": token}, HTTPStatus.OK)
 
 
-@blueprint.route('/headsets/<headsetId>/updates', methods=['GET'])
+@headsets.route('/headsets/<headsetId>/updates', methods=['GET'])
 async def get_updates(headsetId):
     """
     Get headset updates
@@ -324,7 +457,7 @@ async def get_updates(headsetId):
     return jsonify(result)
 
 
-@blueprint.route('/headsets/<headsetId>/updates', methods=['POST'])
+@headsets.route('/headsets/<headsetId>/updates', methods=['POST'])
 async def update_position(headsetId):
     """
     Update a headset
@@ -366,7 +499,7 @@ async def update_position(headsetId):
         return jsonify(headset_update), HTTPStatus.OK
 
 
-@blueprint.route('/image-upload/<imageId>', methods=['POST'])
+@headsets.route('/image-upload/<imageId>', methods=['POST'])
 async def upload(imageId):
     request_files = await request.files
     image = request_files['image']
@@ -374,91 +507,3 @@ async def upload(imageId):
     file_path = os.path.join(folder_path, str(secure_filename(image.filename)))
     await save_image(file_path, image)
     return await make_response({'success': 'true'})
-
-
-@blueprint.route('/headsets/<headset_id>', methods=['DELETE'])
-async def delete_headset(headset_id):
-    """
-    Delete a headset
-    ---
-    delete:
-        description: Delete a headset
-        tags:
-          - headsets
-        parameters:
-          - name: id
-            in: path
-            required: true
-            description: Headset ID
-        responses:
-            200:
-                description: Headset deleted
-    """
-
-    # TODO check authorization
-
-    if not headset_id:
-        return await make_response(jsonify({"message": "No map id", "severity": "Warning"}), HTTPStatus.BAD_REQUEST)
-
-    deleted = get_headset_repository().remove_headset(headset_id)
-
-    if deleted:
-        return await make_response(jsonify({"message": "Headset deleted"}), HTTPStatus.OK)
-    else:
-        return await make_response(jsonify({"message": "Headset could not be deleted"}), HTTPStatus.BAD_REQUEST)
-
-
-@blueprint.route('/headsets/<headsetId>', methods=['PUT'])
-async def update_headset(headsetId):
-    """
-    Update a headset
-    ---
-    put:
-        description: Update a headset
-        tags:
-          - headsets
-        parameters:
-          - name: id
-            in: path
-            required: true
-            description: Headset ID
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema: Headset
-        responses:
-            200:
-                description: New headset object
-                content:
-                    application/json:
-                        schema: Headset
-    """
-    repo = get_headset_repository()
-    if repo.get_headset(headsetId) is None:
-        return await make_response(
-            jsonify({"message": "The requested headset does not exist",
-                     "severity": "Warning"}),
-            HTTPStatus.NOT_FOUND)
-
-    body = await request.get_json()
-
-    if 'name' in body:
-        repo.update_headset_name(headsetId, body['name'])
-
-    if 'position' in body and 'orientation' in body:
-        repo.update_pose(headsetId, body['position'], body['orientation'])
-    elif 'position' in body:
-        repo.update_position(headsetId, body['position'])
-
-    # headset was updated
-    headset = repo.get_headset(headsetId)
-    return jsonify(headset), HTTPStatus.OK
-
-
-# @blueprint.route('/map-image/<mapId>', methods=['GET'])
-# async def get_image(mapId):
-#     folder_path = current_app.config['VIZAR_DATA_DIR'] + current_app.config['IMAGE_UPLOADS']
-#     file_path = os.path.join(folder_path, f"{mapId}.jpeg")
-#     print(f"Sending file {file_path}")
-#     return await send_file(file_path, as_attachment=True)
