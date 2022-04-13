@@ -6,6 +6,7 @@ from marshmallow_dataclass import dataclass
 from server.location.models import LocationModel
 from server.photo.models import PhotoModel
 from server.pose_changes.models import PoseChangeModel
+from server.surface.models import SurfaceModel
 
 from server.resources.csvresource import CsvCollection
 from server.resources.dictresource import DictResource, DictCollection
@@ -30,6 +31,7 @@ class IncidentModel(JsonResource):
         self.Headset = DictCollection(HeadsetContainer, "headsets", id_type="uuid", parent=self)
         self.Location = JsonCollection(LocationModel, "location", id_type="uuid", parent=self)
         self.Photo = JsonCollection(PhotoModel, "photo", id_type="uuid", parent=self)
+        self.Surface = JsonCollection(SurfaceModel, "photo", id_type="uuid", parent=self)
 
 
 Incident = JsonCollection(IncidentModel, "incident", id_type="uuid")
