@@ -35,7 +35,9 @@ import os
 import shutil
 import time
 
-from .jsonresource import JsonResource
+import marshmallow
+
+from .abstractresource import AbstractResource, AbstractCollection
 
 
 def repack(data):
@@ -60,7 +62,7 @@ def repack(data):
     return result
 
 
-class CsvResource:
+class CsvResource(AbstractResource):
     def matches(self, query):
         for k, v in query.items():
             if v is not None and getattr(self, k) != v:
@@ -125,9 +127,7 @@ class CsvResource:
         return (field_names, field_values)
 
 
-class CsvCollection:
-    data_directory = "data"
-
+class CsvCollection(AbstractCollection):
     on_create = []
     on_update = []
 
@@ -163,7 +163,7 @@ class CsvCollection:
 
         if parent is None:
             self.base_directory = os.path.join(CsvCollection.data_directory, self.collection_name)
-        elif isinstance(parent, JsonResource):
+        elif isinstance(parent, AbstractResource):
             self.base_directory = os.path.join(parent._storage_dir, self.collection_name)
         else:
             raise Exception("Parent of type {} is not supported".format(type(parent)))
@@ -171,7 +171,7 @@ class CsvCollection:
         self.collection_filename = "{}.csv".format(self.collection_name)
         self.storage_path = os.path.join(self.base_directory, self.collection_filename)
 
-        self.resource_schema = resource_class.Schema()
+        self.resource_schema = resource_class.Schema(unknown=marshmallow.EXCLUDE)
 
     def __call__(self, *args, **kwargs):
         """
@@ -180,8 +180,7 @@ class CsvCollection:
         This allows treating the collection object as if it were a class.
         """
         item = self.resource_class(*args, **kwargs)
-        item.on_ready()
-        return item
+        return self.prepare_item(item)
 
     def add(self, obj):
         """
@@ -228,3 +227,15 @@ class CsvCollection:
                     results.append(item)
 
         return results
+
+    def load(self, data):
+        """
+        Construct a new instance of the underlying resource class from a dict object.
+        """
+        item = self.resource_schema.load(data)
+        return self.prepare_item(item)
+
+    def prepare_item(self, item):
+        item._collection = self
+        item.on_ready()
+        return item

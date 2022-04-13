@@ -35,8 +35,12 @@ import shutil
 import time
 import uuid
 
+import marshmallow
 
-class JsonResource:
+from server.resources.abstractresource import AbstractResource, AbstractCollection
+
+
+class JsonResource(AbstractResource):
     def delete(self):
         shutil.rmtree(self._storage_dir, ignore_errors=True)
 
@@ -102,10 +106,12 @@ class JsonResource:
 
         return created
 
+    def update(self, other):
+        for key, value in other.items():
+            setattr(self, key, value)
 
-class JsonCollection:
-    data_directory = "data"
 
+class JsonCollection(AbstractCollection):
     on_create = []
     on_update = []
 
@@ -141,13 +147,13 @@ class JsonCollection:
 
         if parent is None:
             self.base_directory = os.path.join(JsonCollection.data_directory, self.collection_name)
-        elif isinstance(parent, JsonResource):
+        elif isinstance(parent, AbstractResource):
             self.base_directory = os.path.join(parent._storage_dir, self.collection_name)
         else:
             raise Exception("Parent of type {} is not supported".format(type(parent)))
 
         self.resource_filename = "{}.json".format(self.resource_name)
-        self.resource_schema = resource_class.Schema()
+        self.resource_schema = resource_class.Schema(unknown=marshmallow.EXCLUDE)
 
         # Used for auto-incrementing numeric IDs.
         self.next_id = 0
@@ -156,16 +162,27 @@ class JsonCollection:
         """
         Construct a new instance of the underlying resource class.
 
-        This allows treating the collection object as if it were a class.
+        This allows treating the collection object as if it were a class.  If
+        called like a constructor, the first argument will generally need to be
+        an ID, even if None.
+
+            Example: Headset("0", name="Test")
+
+        Alternatively, the constructor can be called with a dictionary representation
+        of the object as the sole argument, and the dictionary will be parsed and
+        used to populate the object.
+
+            Example: Headset({"name": "Test", "position": {"x": 0, "y": 0, "z": 0}})
+
         """
-        item = self.resource_class(*args, **kwargs)
-        if item.id is None:
-            item.id = self.get_next_id()
-        item._collection = self
-        item._storage_dir = os.path.join(self.base_directory, self.format_id(item.id))
-        item._storage_path = os.path.join(self.base_directory, self.format_id(item.id), self.resource_filename)
-        item.on_ready()
-        return item
+        if len(args) == 1 and isinstance(args[0], dict):
+            data = args[0]
+            data.update(kwargs)
+            item = self.resource_schema.load(data)
+        else:
+            item = self.resource_class(*args, **kwargs)
+
+        return self.prepare_item(item)
 
     def clear(self):
         """
@@ -188,6 +205,7 @@ class JsonCollection:
             fname = os.path.join(subdir, self.resource_filename)
             with open(fname, "r") as source:
                 item = self.resource_schema.loads(source.read())
+                self.prepare_item(item)
                 if item.matches(kwargs):
                     results.append(item)
 
@@ -202,16 +220,44 @@ class JsonCollection:
         path = os.path.join(self.base_directory, self.format_id(id), self.resource_filename)
         try:
             with open(path, "r") as source:
-                return self.resource_schema.loads(source.read())
+                item = self.resource_schema.loads(source.read())
+                item.id = id
+                return self.prepare_item(item)
         except:
             return None
+
+    def find_newest(self, **query):
+        """
+        Find the newest object based on file creation times.
+        """
+        if not os.path.isdir(self.base_directory):
+            return None
+
+        instance_files = []
+        for dname in os.listdir(self.base_directory):
+            subdir = os.path.join(self.base_directory, dname)
+            if not os.path.isdir(subdir):
+                continue
+            fname = os.path.join(subdir, self.resource_filename)
+            instance_files.append(fname)
+
+        instance_files.sort(key=os.path.getctime, reverse=True)
+
+        for path in instance_files:
+            with open(fname, "r") as source:
+                item = self.resource_schema.loads(source.read())
+                self.prepare_item(item)
+                if item.matches(query):
+                    return item
+
+        return None
 
     def format_id(self, id):
         if self.id_type == "uuid":
             return str(id)
 
         else:
-            return "{:08x}".format(id)
+            return "{:08x}".format(int(id))
 
     def get_next_id(self):
         if self.id_type == "uuid":
@@ -229,3 +275,26 @@ class JsonCollection:
 
             self.next_id = next_id + 1
             return next_id
+
+    def load(self, data, replace_id=False):
+        """
+        Construct a new instance of the underlying resource class from a dict object.
+
+        All objects are expected to have an ID field, so if data['id'] is
+        missing, one will be automatically generated for the object. The
+        caller can force ID generation by setting replace_id, such as
+        when a user-provided ID should not be trusted.
+        """
+        if replace_id or data.get("id") is None:
+            data['id'] = self.get_next_id()
+        item = self.resource_schema.load(data)
+        return self.prepare_item(item)
+
+    def prepare_item(self, item):
+        if item.id is None:
+            item.id = self.get_next_id()
+        item._collection = self
+        item._storage_dir = os.path.join(self.base_directory, self.format_id(item.id))
+        item._storage_path = os.path.join(self.base_directory, self.format_id(item.id), self.resource_filename)
+        item.on_ready()
+        return item
