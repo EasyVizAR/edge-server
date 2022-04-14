@@ -9,6 +9,8 @@ class GenericJsonEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, (list, tuple, set)):
             return super().default(o)
+        elif hasattr(o, "Schema"):
+            return o.Schema().dump(o)
         else:
             result = dict()
 
