@@ -34,7 +34,7 @@ def update_headset(headset):
 
 
 def create_pose_change(headset):
-    poses_url = stress_host + "/headsets/" + headset['id'] + "/poses"
+    poses_url = stress_host + "/headsets/" + headset['id'] + "/pose-changes"
 
     orientation = dict(x=1, y=0, z=0)
 
@@ -56,7 +56,7 @@ def get_headset(headset):
 
 
 def get_headset_poses(headset):
-    poses_url = stress_host + "/headsets/" + headset['id'] + "/poses"
+    poses_url = stress_host + "/headsets/" + headset['id'] + "/pose-changes"
 
     start = time.time()
     response = requests.get(poses_url)
