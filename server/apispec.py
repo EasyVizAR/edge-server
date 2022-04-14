@@ -9,99 +9,25 @@ from apispec_webframeworks.flask import FlaskPlugin
 
 from marshmallow import Schema, fields
 
-from .maps import maps_routes
-from .headset import headsetroutes
-from .work_items import routes as work_items
+from server.annotation import routes as annotations
+from server.feature import routes as features
+from server.headset import routes as headsets
+from server.incidents import routes as incidents
+from server.layer import routes as layers
+from server.location import routes as locations
+from server.photo import routes as photos
+from server.pose_changes import routes as pose_changes
+from server.surface import routes as surfaces
 
-from .work_items.models import WorkItem
-
-
-class VectorSchema(Schema):
-    x = fields.Float(required = True)
-    y = fields.Float(required = True)
-    z = fields.Float(required = True)
-
-
-class HeadsetSchema(Schema):
-    id = fields.Str()
-    name = fields.Str()
-    position = fields.Nested(VectorSchema())
-    orientation = fields.Nested(VectorSchema())
-    mapID = fields.Str()
-    lastUpdate = fields.DateTime()
-
-
-class HeadsetPoseSchema(Schema):
-    headsetID = fields.Str()
-    position = fields.Nested(VectorSchema())
-    orientation = fields.Nested(VectorSchema())
-    mapID = fields.Str()
-
-
-class HeadsetUpdateSchema(Schema):
-    headsetID = fields.Str()
-    position = fields.Nested(VectorSchema())
-    orientation = fields.Nested(VectorSchema())
-    mapID = fields.Str()
-
-
-class MapSchema(Schema):
-    id = fields.Str()
-    name = fields.Str()
-    image = fields.Str()
-
-
-class MapFeatureStyleSchema(Schema):
-    placement = fields.Str()
-    topOffset = fields.Float()
-    leftOffset = fields.Float()
-
-
-class MapFeatureSchema(Schema):
-    id = fields.Str()
-    name = fields.Str()
-    type = fields.Str()
-    position = fields.Nested(VectorSchema())
-    mapID = fields.Str()
-    style = fields.Nested(MapFeatureStyleSchema())
-
-
-class MapFeatureTypeSchema(Schema):
-    name = fields.Str()
-    fa_icon = fields.Str()
-    unicode = fields.Str()
-    description = fields.Str()
-
-
-class ImageUploadSchema(Schema):
-    id = fields.Str()
-    url = fields.Str()
-    intent = fields.Str()
-    data = fields.Dict()
-    type = fields.Str()
-
-
-class SurfaceFileInformationSchema(Schema):
-    id = fields.Str()
-    filename = fields.Str()
-    modified = fields.Float()
-    size = fields.Integer()
-
-
-headset_tag = {
-    "name": "headsets",
-    "description": "Operations on Headset objects"
-}
-
-map_tag = {
-    "name": "maps",
-    "description": "Operations on Map objects"
-}
-
-work_item_tag = {
-    "name": "work-items",
-    "description": "Operations on WorkItem objects"
-}
+from server.annotation.models import AnnotationModel
+from server.feature.models import FeatureModel
+from server.headset.models import HeadsetModel
+from server.incidents.models import IncidentModel
+from server.layer.models import LayerModel
+from server.location.models import LocationModel
+from server.photo.models import PhotoModel
+from server.pose_changes.models import PoseChangeModel
+from server.surface.models import SurfaceModel
 
 
 async def create_openapi_spec(app):
@@ -118,51 +44,93 @@ async def create_openapi_spec(app):
         ]
     )
 
-    spec.components.schema("Headset", schema=HeadsetSchema)
-    spec.components.schema("HeadsetPose", schema=HeadsetPoseSchema)
-    spec.components.schema("HeadsetUpdate", schema=HeadsetUpdateSchema)
-    spec.components.schema("Map", schema=MapSchema)
-    spec.components.schema("MapFeature", schema=MapFeatureSchema)
-    spec.components.schema("MapFeatureType", schema=MapFeatureTypeSchema)
-    spec.components.schema("ImageUpload", schema=ImageUploadSchema)
-    spec.components.schema("SurfaceFileInformation", schema=SurfaceFileInformationSchema)
-    spec.components.schema("WorkItem", schema=WorkItem.Schema())
+    spec.components.schema("Annotation", schema=AnnotationModel.Schema())
+    spec.components.schema("Feature", schema=FeatureModel.Schema())
+    spec.components.schema("Headset", schema=HeadsetModel.Schema())
+    spec.components.schema("Incident", schema=IncidentModel.Schema())
+    spec.components.schema("Layer", schema=LayerModel.Schema())
+    spec.components.schema("Location", schema=LocationModel.Schema())
+    spec.components.schema("Photo", schema=PhotoModel.Schema())
+    spec.components.schema("PoseChange", schema=PoseChangeModel.Schema())
+    spec.components.schema("Surface", schema=SurfaceModel.Schema())
 
-    spec.tag(headset_tag)
-    spec.tag(map_tag)
-    spec.tag(work_item_tag)
+    spec.tag(dict(name="annotations", description=AnnotationModel.__doc__))
+    spec.tag(dict(name="features", description=FeatureModel.__doc__))
+    spec.tag(dict(name="headsets", description=HeadsetModel.__doc__))
+    spec.tag(dict(name="incidents", description=IncidentModel.__doc__))
+    spec.tag(dict(name="layers", description=LayerModel.__doc__))
+    spec.tag(dict(name="locations", description=LocationModel.__doc__))
+    spec.tag(dict(name="photos", description=PhotoModel.__doc__))
+    spec.tag(dict(name="pose-changes", description=PoseChangeModel.__doc__))
+    spec.tag(dict(name="surfaces", description=SurfaceModel.__doc__))
 
     async with app.test_request_context("/"):
-        spec.path(view=headsetroutes.get_all)
-        spec.path(view=headsetroutes.register)
-        spec.path(view=headsetroutes.authenticate)
-        spec.path(view=headsetroutes.create_headset_pose)
-        spec.path(view=headsetroutes.get_headset_poses)
-        spec.path(view=headsetroutes.get_updates)
-        spec.path(view=headsetroutes.update_position)
-        spec.path(view=headsetroutes.update_headset)
-        spec.path(view=headsetroutes.delete_headset)
+        spec.path(view=annotations.list_annotations)
+        spec.path(view=annotations.create_annotation)
+        spec.path(view=annotations.delete_annotation)
+        spec.path(view=annotations.get_annotation)
+        spec.path(view=annotations.replace_annotation)
+        spec.path(view=annotations.update_annotation)
 
-        spec.path(view=maps_routes.get_all_maps)
-        spec.path(view=maps_routes.show_map)
-        spec.path(view=maps_routes.list_map_feature_types)
-        spec.path(view=maps_routes.list_map_features)
-        spec.path(view=maps_routes.add_map_feature)
-        spec.path(view=maps_routes.list_map_surfaces)
-        spec.path(view=maps_routes.replace_surface)
-        spec.path(view=maps_routes.replace_map)
-        spec.path(view=maps_routes.delete_map)
-        spec.path(view=maps_routes.create_map)
-        spec.path(view=maps_routes.get_map_qrcode)
-        spec.path(view=maps_routes.get_map_floor_plan)
+        spec.path(view=features.list_features)
+        spec.path(view=features.create_feature)
+        spec.path(view=features.delete_feature)
+        spec.path(view=features.get_feature)
+        spec.path(view=features.replace_feature)
+        spec.path(view=features.update_feature)
 
-        spec.path(view=work_items.list_work_items)
-        spec.path(view=work_items.create_work_item)
-        spec.path(view=work_items.get_work_item)
-        spec.path(view=work_items.replace_work_item)
-        spec.path(view=work_items.delete_work_item)
-        spec.path(view=work_items.get_work_item_file)
-        spec.path(view=work_items.upload_work_item_file)
+        spec.path(view=headsets.list_headsets)
+        spec.path(view=headsets.create_headset)
+        spec.path(view=headsets.delete_headset)
+        spec.path(view=headsets.get_headset)
+        spec.path(view=headsets.replace_headset)
+        spec.path(view=headsets.update_headset)
+
+        spec.path(view=incidents.list_incidents)
+        spec.path(view=incidents.create_incident)
+        spec.path(view=incidents.delete_incident)
+        spec.path(view=incidents.get_incident)
+        spec.path(view=incidents.replace_incident)
+        spec.path(view=incidents.update_incident)
+        spec.path(view=incidents.get_active_incident)
+        spec.path(view=incidents.change_active_incident)
+
+        spec.path(view=layers.list_layers)
+        spec.path(view=layers.create_layer)
+        spec.path(view=layers.delete_layer)
+        spec.path(view=layers.get_layer)
+        spec.path(view=layers.replace_layer)
+        spec.path(view=layers.update_layer)
+        spec.path(view=layers.get_layer_file)
+        spec.path(view=layers.upload_layer_image)
+
+        spec.path(view=locations.list_locations)
+        spec.path(view=locations.create_location)
+        spec.path(view=locations.delete_location)
+        spec.path(view=locations.get_location)
+        spec.path(view=locations.replace_location)
+        spec.path(view=locations.update_location)
+
+        spec.path(view=photos.list_photos)
+        spec.path(view=photos.create_photo)
+        spec.path(view=photos.delete_photo)
+        spec.path(view=photos.get_photo)
+        spec.path(view=photos.replace_photo)
+        spec.path(view=photos.update_photo)
+        spec.path(view=photos.get_photo_file)
+        spec.path(view=photos.upload_photo_file)
+
+        spec.path(view=pose_changes.list_pose_changes)
+        spec.path(view=pose_changes.create_pose_change)
+
+        spec.path(view=surfaces.list_surfaces)
+        spec.path(view=surfaces.create_surface)
+        spec.path(view=surfaces.delete_surface)
+        spec.path(view=surfaces.get_surface)
+        spec.path(view=surfaces.replace_surface)
+        spec.path(view=surfaces.update_surface)
+        spec.path(view=surfaces.get_surface_file)
+        spec.path(view=surfaces.upload_surface_file)
 
     return spec
 
