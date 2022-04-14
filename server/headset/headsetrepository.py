@@ -17,7 +17,7 @@ headset_repository = None
 
 
 class HeadSet:
-    def __init__(self, name, position, mapId, id=None, lastUpdate=None, pose=None):
+    def __init__(self, name, position, mapId, id=None, updated=None, pose=None):
 
         if id is None:
             self.id = str(uuid.uuid4())
@@ -39,10 +39,10 @@ class HeadSet:
             'z': 0.0
         }
 
-        if lastUpdate is None:
-            self.lastUpdate = time.time()
+        if updated is None:
+            self.updated = time.time()
         else:
-            self.lastUpdate = lastUpdate
+            self.updated = updated
 
         if pose is None:
 
@@ -50,7 +50,7 @@ class HeadSet:
             past_pos = {
                 'position': self.position,
                 'orientation': self.orientation,
-                'time_stamp': self.lastUpdate
+                'time_stamp': self.updated
             }
             self.past_poses.append(past_pos)
         else:
@@ -105,6 +105,9 @@ class HeadSet:
         poses_filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents',
                                       str(incident),
                                       current_app.config['VIZAR_HEADSET_DIR'], headset_id, "poses.csv")
+
+        if not os.path.exists(poses_filepath):
+            return []
 
         poses_file = open(poses_filepath, 'r')
         reader = csv.reader(poses_file)
@@ -188,12 +191,12 @@ class Repository:
 
                     poses_file.close()
                     self.headsets[headset['id']] = HeadSet(headset['name'], headset['position'], headset['mapId'],
-                                                           id=headset['id'], lastUpdate=headset['lastUpdate'],
+                                                           id=headset['id'], updated=headset['updated'],
                                                            pose=temp_history)
                 except Exception as e:
                     # there is no past poses
                     self.headsets[headset['id']] = HeadSet(headset['name'], headset['position'], headset['mapId'],
-                                                           id=headset['id'], lastUpdate=headset['lastUpdate'])
+                                                           id=headset['id'], updated=headset['updated'])
 
     def add_headset(self, name, position, mapId, id=None):
         headset = HeadSet(name, position, mapId, id=id)
@@ -209,7 +212,7 @@ class Repository:
             'mapId': headset.mapId,
             'position': headset.position,
             'orientation': headset.orientation,
-            'lastUpdate': headset.lastUpdate
+            'updated': headset.updated
         }
 
         write_to_file(json.dumps(headset_without_past_poses, cls=GenericJsonEncoder), filepath)
@@ -222,7 +225,7 @@ class Repository:
                                          current_app.config['VIZAR_HEADSET_DIR'], str(headset.id), "updates.csv")
         update_line = get_csv_line(
             [headset.id, headset.name, headset.mapId, position['x'], position['y'], position['z'],
-             headset.lastUpdate])
+             headset.updated])
 
         append_to_file(update_line, filepath)
         append_to_file(update_line, incident_filepath)
@@ -284,7 +287,7 @@ class Repository:
         headset.orientation['x'] = orientation['x']
         headset.orientation['y'] = orientation['y']
         headset.orientation['z'] = orientation['z']
-        headset.lastUpdate = update_time
+        headset.updated = update_time
 
         filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'], current_app.config['VIZAR_HEADSET_DIR'],
                                 str(headset.id), 'headset.json')
@@ -299,7 +302,7 @@ class Repository:
             'mapId': headset.mapId,
             'position': headset.position,
             'orientation': headset.orientation,
-            'lastUpdate': headset.lastUpdate
+            'updated': headset.updated
         }
 
         write_to_file(json.dumps(headset_without_past_poses, cls=GenericJsonEncoder), filepath)
@@ -313,7 +316,7 @@ class Repository:
                                          str(headset.id), 'updates.csv')
 
         update_line = get_csv_line([id, headset.name, headset.mapId, position['x'], position['y'], position['z'],
-                                    orientation['x'], orientation['y'], orientation['z'], headset.lastUpdate])
+                                    orientation['x'], orientation['y'], orientation['z'], headset.updated])
 
         append_to_file(update_line, filepath)
         append_to_file(update_line, incident_filepath)
@@ -369,7 +372,7 @@ class Repository:
             'mapId': temp_headset.mapId,
             'position': temp_headset.position,
             'orientation': temp_headset.orientation,
-            'lastUpdate': temp_headset.lastUpdate
+            'updated': temp_headset.updated
         }
 
         write_to_file(json.dumps(headset_without_past_poses, cls=GenericJsonEncoder), filepath)
@@ -385,7 +388,7 @@ class Repository:
         update_line = get_csv_line(
             [headset_id, headset.name, headset.mapId, headset.position['x'], headset.position['y'],
              headset.position['z'],
-             headset.orientation['x'], headset.orientation['y'], headset.orientation['z'], headset.lastUpdate])
+             headset.orientation['x'], headset.orientation['y'], headset.orientation['z'], headset.updated])
 
         append_to_file(update_line, filepath)
         append_to_file(update_line, incident_filepath)

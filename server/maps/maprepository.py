@@ -4,10 +4,9 @@ import uuid
 import shutil
 
 import numpy as np
-from quart import current_app
+from quart import current_app, g
 
 from server.utils.utils import GenericJsonEncoder, write_to_file, get_pixels, get_vector
-from server.incidents.incident_handler import init_incidents_handler
 
 map_repository = None
 
@@ -79,9 +78,6 @@ class Repository:
     def __init__(self, app=current_app):
         self.app_config = app.config
 
-        # init incidents handler if it is not already
-        self.incident_handler = init_incidents_handler(app=app)
-
         map_dir = self.get_base_dir()
         os.makedirs(map_dir, exist_ok=True)
 
@@ -123,7 +119,7 @@ class Repository:
         if intent == 'maps' and viewBox is not None:
             self.maps[intentId].viewBox = viewBox
             filepath = os.path.join(current_app.config['VIZAR_DATA_DIR'],
-                                    f"incidents/{self.incident_handler.current_incident}/maps/",
+                                    f"incidents/{g.active_incident.id}/maps/",
                                     str(intentId), "map.json")
             write_to_file(json.dumps(self.maps[intentId], cls=GenericJsonEncoder), filepath)
 
@@ -160,7 +156,7 @@ class Repository:
         return self.features[mapId]
 
     def add_map(self, id, name, image, dummyData, viewBox=None):
-        map = Map(name, image, incident=self.incident_handler.current_incident, id=id, viewBox=viewBox)
+        map = Map(name, image, incident=g.active_incident.id, id=id, viewBox=viewBox)
         if dummyData:
             image = '/uploads/' + map.id + '.svg'
             map.image = image
@@ -258,7 +254,7 @@ class Repository:
     def get_base_dir(self):
         return os.path.join(self.app_config['VIZAR_DATA_DIR'],
                             'incidents',
-                            str(self.incident_handler.current_incident),
+                            g.active_incident.id,
                             'maps')
 
     def get_map(self, id):
@@ -276,7 +272,7 @@ class Repository:
             return None
 
         # get current incident number
-        current_incident = self.incident_handler.current_incident
+        current_incident = g.active_incident.id
 
         # create path and return
         return os.path.join(current_app.config['VIZAR_DATA_DIR'], 'incidents', str(current_incident), 'maps', map_id)
