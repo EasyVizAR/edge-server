@@ -78,7 +78,7 @@ function IncidentHistory(props){
     var incidentId = e.target.id.substring(prefix.length, e.target.id.length);
 
     for (var x in historyData) {
-      if (historyData[x]['number'] == incidentId) {
+      if (historyData[x]['id'] == incidentId) {
         historyData[x]['name'] = e.target.value;
       }
       newHistory.push(historyData[x]);
