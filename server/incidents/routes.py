@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from quart import Blueprint, g, make_response, jsonify, current_app, request
+from quart import Blueprint, g, make_response, jsonify, current_app, redirect, request
 from werkzeug import exceptions
 
 from server.incidents.models import Incident
