@@ -155,7 +155,7 @@ class Repository:
             return None
         return self.features[mapId]
 
-    def add_map(self, id, name, image, dummyData, viewBox=None):
+    def add_map(self, id, name, image, dummyData=False, viewBox=None):
         map = Map(name, image, incident=g.active_incident.id, id=id, viewBox=viewBox)
         if dummyData:
             image = '/uploads/' + map.id + '.svg'
@@ -177,7 +177,7 @@ class Repository:
 
         self.create_image("maps", data={"mapID": map.id}, type="image/svg+xml",
                              viewBox=[-35.44230853629791, -1.7768587228105028, 39.10819374001562, 52.83971533602437])
-        urllib.request.urlretrieve(URL, f'server/frontend/build/uploads/{map.image}')
+        urllib.request.urlretrieve(URL, f'server/frontend/build{map.image}')
 
         self.add_feature(None, "Fire-1", "fire", map.id, style={
             "leftOffset": "0",
