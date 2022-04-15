@@ -233,18 +233,12 @@ class JsonCollection(AbstractCollection):
         if not os.path.isdir(self.base_directory):
             return None
 
-        instance_files = []
-        for dname in os.listdir(self.base_directory):
-            subdir = os.path.join(self.base_directory, dname)
-            if not os.path.isdir(subdir):
+        for entry in sorted(os.scandir(self.base_directory), key=lambda x: x.stat().st_mtime, reverse=True):
+            if not entry.is_dir():
                 continue
-            fname = os.path.join(subdir, self.resource_filename)
-            instance_files.append(fname)
 
-        instance_files.sort(key=os.path.getctime, reverse=True)
-
-        for path in instance_files:
-            with open(fname, "r") as source:
+            file_path = os.path.join(entry.path, self.resource_filename)
+            with open(file_path, "r") as source:
                 item = self.resource_schema.loads(source.read())
                 self.prepare_item(item)
                 if item.matches(query):

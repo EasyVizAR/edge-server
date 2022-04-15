@@ -1,8 +1,7 @@
 import os
+import time
 
 from dataclasses import field
-from unittest.mock import patch
-
 from marshmallow_dataclass import dataclass
 
 import pytest
@@ -26,8 +25,7 @@ class ParentModel(JsonResource):
         self.children = JsonCollection(ChildModel, "child", collection_name="children", parent=self)
 
 
-@patch("os.path.getctime")
-def test_jsonresource(getctime):
+def test_jsonresource():
     Dummy = JsonCollection(ChildModel, "dummy", collection_name="dummies")
     Dummy.clear()
 
@@ -40,6 +38,7 @@ def test_jsonresource(getctime):
     assert res1.get_path() == "data/dummies/00000000/dummy.json"
     assert os.path.exists(res1.get_path())
 
+    time.sleep(1) # make sure this item has a later modified time
     res2 = Dummy(name="foo")
     created = res2.save()
     assert created is True
@@ -66,9 +65,6 @@ def test_jsonresource(getctime):
     result = Dummy.find_by_id(1)
     assert result.name == "bar"
 
-    # Patch os.path.getctime to return fake times because it may not be
-    # reliable on test infrastructure.
-    getctime.return_value = [1, 2]
     newest = Dummy.find_newest()
     assert newest is not None
     assert newest.id == res2.id
@@ -83,8 +79,7 @@ def test_jsonresource(getctime):
     assert len(Dummy.find()) == 0
 
 
-@patch("os.path.getctime")
-def test_jsonresource_subcollection(getctime):
+def test_jsonresource_subcollection():
     Parent = JsonCollection(ParentModel, "parent", collection_name="parents")
     Parent.clear()
 
@@ -94,15 +89,13 @@ def test_jsonresource_subcollection(getctime):
     child1 = parent.children(name="child1")
     child1.save()
 
+    time.sleep(1) # make sure this item has a later modified time
     child2 = parent.children(name="child2")
     child2.save()
 
     results = parent.children.find()
     assert len(results) == 2
 
-    # Patch os.path.getctime to return fake times because it may not be
-    # reliable on test infrastructure.
-    getctime.return_value = [1, 2]
     newest = parent.children.find_newest()
     assert newest is not None
     assert newest.name == "child2"
