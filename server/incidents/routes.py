@@ -193,12 +193,7 @@ async def change_active_incident():
 
     set_active_incident(current_app, incident)
 
-    if maps_restored and incident_restored:
-        return await make_response(
-            jsonify({"message": "Incident restored"}),
-            HTTPStatus.OK)
-
-    return jsonify({'message': 'Incident could not be restored'}), HTTPStatus.BAD_REQUEST
+    return jsonify(incident), HTTPStatus.OK
 
 
 #

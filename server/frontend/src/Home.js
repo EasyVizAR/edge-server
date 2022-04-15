@@ -474,7 +474,7 @@ function Home(props) {
     function sort_list(arr){
        for(let i = 0; i < arr.length; i++){
           for(let j = 0; j < arr.length - i - 1; j++){
-              if(parseInt(arr[j + 1]['number']) < parseInt(arr[j]['number'])){
+              if(parseInt(arr[j + 1]['created']) < parseInt(arr[j]['created'])){
                   [arr[j + 1],arr[j]] = [arr[j],arr[j + 1]]
               }
           }
@@ -490,7 +490,7 @@ function Home(props) {
           }
       };
 
-      fetch(`http://${host}:${port}/incidents/history`, requestData).then(response => {
+      fetch(`http://${host}:${port}/incidents`, requestData).then(response => {
         if (response.ok) {
           return response.json();
         }
@@ -498,9 +498,9 @@ function Home(props) {
         var temp_data = [];
         for (var x in data){
           temp_data.push({
-            'number': data[x]['incident_number'],
+            'id': data[x]['id'],
             'name': data[x]['name'],
-            'date_created': data[x]['created']
+            'created': data[x]['created'],
           });
         }
         temp_data = sort_list(temp_data);

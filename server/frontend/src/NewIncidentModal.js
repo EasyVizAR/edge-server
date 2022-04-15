@@ -18,10 +18,10 @@ function NewIncidentModal(props){
           headers: {
               'Content-Type': 'application/json'
           },
-          body: JSON.stringify({'incident_name': incidentName})
+          body: JSON.stringify({'name': incidentName})
       };
 
-      fetch(`http://${host}:${port}/incidents/create`, requestData).then(async response => {
+      fetch(`http://${host}:${port}/incidents`, requestData).then(async response => {
         if (response.ok) {
           return response.json();
         }

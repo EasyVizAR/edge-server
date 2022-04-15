@@ -32,14 +32,14 @@ function IncidentHistory(props){
     }
 
     const requestData = {
-        method: 'POST',
+        method: 'PATCH',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({'name': inEditMode.originalValue})
     };
 
-    fetch(`http://${host}:${port}/incidents/${historyData[id]['number']}`, requestData).then(response => {
+    fetch(`http://${host}:${port}/incidents/${historyData[id]['id']}`, requestData).then(response => {
       if (response.ok) {
         onCancel(e, id);
         return response.json();
@@ -111,14 +111,14 @@ function IncidentHistory(props){
 
   function restoreIncident(incidentNumber, incidentName){
     const requestData = {
-        method: 'POST',
+        method: 'PUT',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({"incident": incidentNumber})
+        body: JSON.stringify({"id": incidentNumber})
     };
 
-    fetch(`http://${host}:${port}/incidents/restore`, requestData).then(response => {
+    fetch(`http://${host}:${port}/incidents/active`, requestData).then(response => {
       if (response.ok) {
         props.currentIncident.set(incidentNumber);
         props.incidentName.set(incidentName);
@@ -152,7 +152,7 @@ function IncidentHistory(props){
       <Table striped bordered hover>
         <thead>
           <tr>
-              <th>Incident Number</th>
+              <th>Incident ID</th>
               <th>Incident Name</th>
               <th>Date Created</th>
               <th></th>
@@ -163,21 +163,21 @@ function IncidentHistory(props){
           {
             historyData.map((e, index) => {
               return <tr>
-                <td>{(e.number == props.currentIncident.get()) ? (e.number + ' (Current)') : (e.number)}</td>
+                <td>{(e.id == props.currentIncident.get()) ? (e.id + ' (Current)') : (e.id)}</td>
                 <td>{
                   inEditMode.status && inEditMode.rowKey === index ? (
                     <input
                       value={historyData[index]['name']}
                       placeholder="Edit Incident Name"
                       onChange={updateIncidentName}
-                      name={"incidentName" + e.number}
+                      name={"incidentName" + e.id}
                       type="text"
-                      id={'incidentName' + e.number}/>
+                      id={'incidentName' + e.id}/>
                   ) : (
                     e.name
                   )
                 }</td>
-                <td>{e.date_created}</td>
+                <td>{e.created}</td>
                 <td>
                 {
                   (inEditMode.status && inEditMode.rowKey === index) ? (
@@ -210,13 +210,13 @@ function IncidentHistory(props){
                 </td>
                 <td>
                   <div>
-                    <TrashIcon item='incident' incidentNumber={e.number} incidentName={e.name}/>
+                    <TrashIcon item='incident' incidentNumber={e.id} incidentName={e.name}/>
                   </div>
                 </td>
                 <td>
                   <div>
                     {e.number != props.currentIncident.get() ? (
-                      <Button className={"btn-primary table-btns"} onClick={(event) => restoreIncident(e.number, e.name)}>Restore</Button>
+                      <Button className={"btn-primary table-btns"} onClick={(event) => restoreIncident(e.id, e.name)}>Restore</Button>
                     ) : ('')
                     }
                   </div>
