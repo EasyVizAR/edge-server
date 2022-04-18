@@ -203,7 +203,29 @@ async def update_photo(photo_id):
     ---
     patch:
         summary: Update photo
-        description: This method may be used to modify selected fields of the object.
+        description: |-
+            This method may be used to modify selected fields of the object.
+
+            The following example would annotate the photo which has ID 0 to
+            note a detected fire extinguisher in the image, expressed as a
+            relative position and size. Please be aware that this would
+            overwrite any existing annotation.
+
+                PATCH /photos/0
+
+                {
+                    "width": 640,
+                    "height": 480,
+                    "annotations": [{
+                        "label": "extinguisher",
+                        "boundary": {
+                            "left": 0.1,
+                            "top": 0.1,
+                            "width": 0.5,
+                            "height": 0.5
+                        }
+                    }]
+                }
         tags:
          - photos
         parameters:
