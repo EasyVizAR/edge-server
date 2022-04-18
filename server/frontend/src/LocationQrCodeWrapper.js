@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router';
 import {Helmet} from 'react-helmet';
-import './MapQrCodeWrapper.css';
+import './LocationQrCodeWrapper.css';
 
-function MapQrCodeWrapper(props){
-  const {map_id} = useParams();
+function LocationQrCodeWrapper(props){
+  const {location_id} = useParams();
   const host = window.location.hostname;
   const port = props.port;
   const [qr, setQrCode] = useState(null);
-  const[map, setMap] = useState(null);
+  const[location, setLocation] = useState(null);
 
   useEffect(() => {
     getQrCode();
-    getMapInfo();
+    getLocationInfo();
   }, []);
 
-  function getMapInfo(){
+  function getLocationInfo(){
     const requestData = {
         method: 'GET',
         headers: {
@@ -23,12 +23,12 @@ function MapQrCodeWrapper(props){
         }
     };
 
-    fetch(`http://${host}:${port}/maps/` + map_id, requestData).then(response => {
+    fetch(`http://${host}:${port}/locations/` + location_id, requestData).then(response => {
       if(response.ok){
         return response.json();
       }
     }).then(data => {
-      setMap(data);
+      setLocation(data);
     }).catch(err => {
       // Do something for an error here
       console.log("Error Reading data " + err);
@@ -44,7 +44,7 @@ function MapQrCodeWrapper(props){
         }
     };
 
-    fetch(`http://${host}:${port}/maps/` + map_id + `/qrcode.svg`, requestData).then(response => {
+    fetch(`http://${host}:${port}/locations/` + location_id + `/qrcode.svg`, requestData).then(response => {
       if(response.ok){
         return response.json();
       }
@@ -56,23 +56,23 @@ function MapQrCodeWrapper(props){
     });
   }
 
-  function MapInfo(){
-    if (map == null){
-      return (<p>Cannot Load Map Data</p>);
+  function LocationInfo(){
+    if (location == null){
+      return (<p>Cannot Load Location Data</p>);
     }
 
     return (
       <div>
-        <h1>{map['name'] != null ? map['name'] : ''}</h1>
-        <h3>{map['id'] != null ? map['id'] : ''}</h3>
+        <h1>{location['name'] != null ? location['name'] : ''}</h1>
+        <h3>{location['id'] != null ? location['id'] : ''}</h3>
       </div>
     );
   }
 
   return (
-    <div className="MapQrCodeWrapper">
+    <div className="LocationQrCodeWrapper">
       <Helmet>
-        <title>Map QR Code</title>
+        <title>Location QR Code</title>
       </Helmet>
 
       <div className="data">
@@ -80,15 +80,15 @@ function MapQrCodeWrapper(props){
           {qr != null ? (
             <p dangerouslySetInnerHTML={{ __html: qr }} />
           ) : (
-            <p>Could not load map QR code. Make sure there is a map selected on the home page.</p>
+            <p>Could not load location QR code. Make sure there is a location selected on the home page.</p>
           )}
         </div>
-        <div className="map-info">
-          <MapInfo/>
+        <div className="location-info">
+          <LocationInfo/>
         </div>
       </div>
     </div>
   );
 }
 
-export default MapQrCodeWrapper;
+export default LocationQrCodeWrapper;

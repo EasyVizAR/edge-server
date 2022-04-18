@@ -29,11 +29,11 @@ function NewIncidentModal(props){
         props.currentIncident.set(data['current incident']);
         props.incidentName.set(incidentName);
         props.updateIncidentInfo();
-        props.setMaps([]);
+        props.setLocations([]);
         props.getHeadsets();
         props.getIncidentHistory();
         e.target.form.elements.incidentName.value = ""
-        props.setTab('map-view');
+        props.setTab('location-view');
       });
   }
 

@@ -2,7 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {BrowserRouter, Link, Route, Routes} from 'react-router-dom';
 import Home from './Home.js';
 import WorkItems from './WorkItems.js';
-import MapQrCodeWrapper from './MapQrCodeWrapper.js'
+import LocationQrCodeWrapper from './LocationQrCodeWrapper.js'
 import NavBar from './NavBar.js'
 
 function App() {
@@ -16,7 +16,7 @@ function App() {
                     <Routes>
                         <Route path="/" element={<Home port={port}/>}/>
                         <Route path="/workitems" element={<WorkItems port={port}/>}/>
-                        <Route path="/maps/:map_id/qrcode.svg" element={<MapQrCodeWrapper port={port}/>}/>
+                        <Route path="/locations/:map_id/qrcode.svg" element={<LocationQrCodeWrapper port={port}/>}/>
                     </Routes>
                 </div>
             </BrowserRouter>

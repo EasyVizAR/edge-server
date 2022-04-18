@@ -1,6 +1,6 @@
 import './Home.css';
 import {Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button, Tab, Tabs} from 'react-bootstrap';
-import NewMap from './NewMap.js';
+import NewLocation from './NewLocation.js';
 import NewFeature from './NewFeature.js';
 import NewIncidentModal from './NewIncidentModal.js';
 import IncidentHistory from './IncidentHistory.js';
@@ -59,16 +59,16 @@ function Home(props) {
     const mapIconSize = 7;
     const circleSvgIconSize = 11;
 
-    const [selectedMap, setSelectedMap] = useState('');
+    const [selectedLocation, setSelectedLocation] = useState('');
     const [features, setFeatures] = useState([]);
     const [selectedImage, setSelectedImage] = useState('');
     const [headsets, setHeadsets] = useState([]);
     const [combinedMapObjects, setCombinedMapObjects] = useState([]);
-    const [maps, setMaps] = useState([]);
+    const [locations, setLocations] = useState([]);
     const [showNewFeature, displayNewFeature] = useState(false);
-    const [mapLoaded, setMapLoaded] = useState(false);
+    const [locationLoaded, setLocationLoaded] = useState(false);
     const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
-    const [inEditModeMap, setInEditModeMap] = useState({
+    const [inEditModeLocation, setInEditModeLocation] = useState({
         status: false,
         rowKey: null
     });
@@ -79,15 +79,15 @@ function Home(props) {
     });
     const [cursor, setCursor] = useState('auto');
     const [changedHeadsetName, setChangedHeadsetName] = useState(null);
-    const [changedMap, setChangedMap] = useState(null);
+    const [changedLocation, setChangedLocation] = useState(null);
     const [clickCount, setClickCount] = useState(0);
     const [iconIndex, setIconIndex] = useState(null);
     const [headsetsChecked, setHeadsetsChecked] = useState(false);
     const [featuresChecked, setFeaturesChecked] = useState(false);
     const [sliderValue, setSliderValue] = useState(0);
-    const [currMapName, setCurrMapName] = useState('');
+    const [currLocationName, setCurrLocationName] = useState('');
     const [placementType, setPlacementType] = useState('');
-    const [tab, setTab] = useState('map-view');
+    const [tab, setTab] = useState('location-view');
     const [historyData, setHistoryData] = useState([]);
 
     const incidentInfo = useStateSynchronous(-1);
@@ -95,7 +95,7 @@ function Home(props) {
     const currentIncident = useStateSynchronous(-1);
 
     useEffect(() => {
-        get_maps();
+        get_locations();
         getCurrentIncident();
         getHeadsets();
     }, []);
@@ -112,13 +112,13 @@ function Home(props) {
     }, [headsets, setHeadsets])
 
     useEffect(() => {
-        if (selectedMap == '' && maps.length > 0)
-            setSelectedMap(getDefaultMapSelection());
-    }, [maps, setMaps]);
+        if (selectedLocation == '' && locations.length > 0)
+            setSelectedLocation(getDefaultLocationSelection());
+    }, [locations, setLocations]);
 
     useEffect(() => {
-        setSelectedImage(getMapImage(selectedMap));
-    }, [selectedMap, setSelectedMap]);
+        setSelectedImage(getMapImage(selectedLocation));
+    }, [selectedLocation, setSelectedLocation]);
 
 
     // time goes off every 10 seconds to refresh headset data
@@ -130,7 +130,7 @@ function Home(props) {
     useEffect(() => {
         const imgUrl = selectedImage.split("?")[0] + "?" + Math.floor(Math.random() * 100);
         const timer = setTimeout(() => {
-            if (cursor != 'crosshair') // trigger only if not in on map edit mode
+            if (cursor != 'crosshair') // trigger only if not in on Location edit mode
                 setSelectedImage(imgUrl)
         }, 6e4) // 60 secs
         return () => clearTimeout(timer)
@@ -159,14 +159,14 @@ function Home(props) {
     };
 
     const combineMapObjects = () => {
-        if (!mapLoaded)
+        if (!locationLoaded)
             return;
         var combinedMapObjectList = [];
 
         if (featuresChecked)
             for (const i in features) {
                 const v = features[i];
-                if (selectedMap != v.mapId)
+                if (selectedLocation != v.mapId)
                     continue;
                 combinedMapObjectList.push({
                     'id': v.id,
@@ -184,7 +184,7 @@ function Home(props) {
         if (headsetsChecked)
             for (const i in headsets) {
                 const v = headsets[i];
-                if (selectedMap != v.mapId)
+                if (selectedLocation != v.mapId)
                     continue;
                 combinedMapObjectList.push({
                     'id': v.id,
@@ -209,7 +209,7 @@ function Home(props) {
               var fetchedHeadsets = []
               for (var k in data) {
                   var v = data[k];
-                  if (selectedMap === v.mapId) {
+                  if (selectedLocation === v.mapId) {
                     fetchedHeadsets.push({
                         'id': v.id,
                         'lastUpdate': v.lastUpdate,
@@ -229,29 +229,29 @@ function Home(props) {
     }
 
 
-    // gets list of maps from server
-    function get_maps() {
-        setMaps([]);
+    // gets list of locations from server
+    function get_locations() {
+        setLocations([]);
 
-        fetch(`http://${host}:${port}/maps`)
+        fetch(`http://${host}:${port}/locations`)
             .then(response => response.json())
             .then(data => {
-                var maps_list = [];
-
+                var location_list = [];
+                console.log('data below::');
+                console.log(data);
                 // var fetchedMaps = [];
                 for (var key in data) {
                     // fetchedMaps.push({'id': data[key]['id'], 'name': data[key]['name'], 'image': data[key]['image'], 'viewBox': data[key]['viewBox']});
-                    maps_list.push({
+                    // TODO add locations
+                    location_list.push({
                         'id': data[key]['id'],
                         'name': data[key]['name'],
-                        'image': data[key]['image'],
-                        'viewBox': data[key]['viewBox']
                     });
                 }
-                setMaps(maps_list);
-                // setSelectedMap(getDefaultMapSelection());
+                setLocations(location_list);
+                // setSelectedLocation(getDefaultLocationSelection());
             });
-        // setSelectedMap(getDefaultMapSelection());
+        // setSelectedLocation(getDefaultLocationSelection());
     }
 
     function updateIncidentInfo(){
@@ -262,13 +262,13 @@ function Home(props) {
       }
     }
 
-    const onMapLoad = () => {
-        if (selectedMap == 'NULL')
+    const onLocationLoad = () => {
+        if (selectedLocation == 'NULL')
             return;
 
-        setMapLoaded(true);
+        setLocationLoaded(true);
 
-        fetch(`http://${host}:${port}/maps/${selectedMap}/features`)
+        fetch(`http://${host}:${port}/locations/${selectedLocation}/features`)
             .then(response => {
                 if (response.ok) {
                     return response.json();
@@ -304,7 +304,7 @@ function Home(props) {
                 let fetchedHeadsets = []
                 for (let k in data) {
                     let v = data[k];
-                    if (selectedMap === v.mapId) {
+                    if (selectedLocation === v.mapId) {
                         fetchedHeadsets.push({
                             'id': v.id,
                             'lastUpdate': v.lastUpdate,
@@ -331,9 +331,9 @@ function Home(props) {
 
     const getMapImage = (mapId) => {
         var map = null;
-        for (var i = 0; i < maps.length; i++) {
-            if (maps[i].id == mapId) {
-                map = maps[i];
+        for (var i = 0; i < locations.length; i++) {
+            if (locations[i].id == mapId) {
+                map = locations[i];
                 break;
             }
         }
@@ -351,36 +351,36 @@ function Home(props) {
         // }
     }
 
-    const handleMapSelection = (e, o) => {
-        setSelectedMap(e);
+    const handleLocationSelection = (e, o) => {
+        setSelectedLocation(e);
 
-        for (var x in maps){
-          if (maps[x]['id'] == e){
-            setCurrMapName(maps[x]['name']);
+        for (var x in locations){
+          if (locations[x]['id'] == e){
+            setCurrLocationName(locations[x]['name']);
           }
         }
         setFeaturesChecked(false);
         setHeadsetsChecked(false);
     }
 
-    const getDefaultMapSelection = () => {
-        if (maps.length == 0)
+    const getDefaultLocationSelection = () => {
+        if (locations.length == 0)
             return 'NULL';
-        setCurrMapName(maps[0]['name']);
-        return maps[0]['id'];
+        setCurrLocationName(locations[0]['name']);
+        return locations[0]['id'];
     }
 
     const getDefaultMapImage = () => {
-        return getMapImage(getDefaultMapSelection());
+        return getMapImage(getDefaultLocationSelection());
     }
 
     const convert2Pixel = (r) => {
         var map = {};
-        for (var i = 0; i < maps.length; i++) {
-            if (maps[i]['id'] == selectedMap)
-                map = maps[i];
+        for (var i = 0; i < locations.length; i++) {
+            if (locations[i]['id'] == selectedLocation)
+                map = locations[i];
         }
-        if (Object.keys(map).length === 0 || !mapLoaded)
+        if (Object.keys(map).length === 0 || !locationLoaded)
             return 0;
         const width = map['viewBox'][2];
         return document.getElementById('map-image').offsetWidth / width * r;
@@ -389,11 +389,11 @@ function Home(props) {
     const convertVector2Scaled = (x, yy) => {
         var list = [];
         var map = {};
-        for (var i = 0; i < maps.length; i++) {
-            if (maps[i]['id'] == selectedMap)
-                map = maps[i];
+        for (var i = 0; i < locations.length; i++) {
+            if (locations[i]['id'] == selectedLocation)
+                map = locations[i];
         }
-        if (Object.keys(map).length === 0 || !mapLoaded)
+        if (Object.keys(map).length === 0 || !locationLoaded)
             return [0, 0];
         const xmin = map['viewBox'][0];
         const ymin = map['viewBox'][1];
@@ -408,11 +408,11 @@ function Home(props) {
     const convertScaled2Vector = (px, py) => {
         var list = [];
         var map = {};
-        for (var i = 0; i < maps.length; i++) {
-            if (maps[i]['id'] == selectedMap)
-                map = maps[i];
+        for (var i = 0; i < locations.length; i++) {
+            if (locations[i]['id'] == selectedLocation)
+                map = locations[i];
         }
-        if (Object.keys(map).length === 0 || !mapLoaded)
+        if (Object.keys(map).length === 0 || !locationLoaded)
             return [0, 0];
 
         const xmin = map['viewBox'][0];
@@ -443,7 +443,7 @@ function Home(props) {
             f.pop();
         f.push({
             id: 'fire-1',
-            mapId: selectedMap,
+            LocationId: selectedLocation,
             name: 'Fire',
             positionX: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[0],
             positionY: 0,
@@ -508,20 +508,19 @@ function Home(props) {
       });
     }
 
-    // turns on map editing
-    const onEditMap = (e, id) => {
-        if (inEditModeMap.status == true && inEditModeMap.rowKey != null) {
-            alert("Please save or cancel edit on other map before editing another map");
+    // turns on Location editing
+    const onEditLocation = (e, id) => {
+        if (inEditModeLocation.status == true && inEditModeLocation.rowKey != null) {
+            alert("Please save or cancel edit on other location before editing another location");
             return;
         }
 
-        var map = {
-          'name': maps[id]['name'],
-          'image': maps[id]['image']
+        var location = {
+          'name': locations[id]['name'],
         }
-        setChangedMap(map);
+        setChangedLocation(location);
 
-        setInEditModeMap({
+        setInEditModeLocation({
             status: true,
             rowKey: id
         });
@@ -578,25 +577,17 @@ function Home(props) {
         console.log("headset updated");
     }
 
-    // saves the map data
-    const saveMap = (e, index) => {
+    // saves the Location data
+    const saveLocation = (e, index) => {
         const id = e.target.id.substring(7, e.target.id.length);
-        const url = `http://${host}:${port}/maps/${id}`;
+        const url = `http://${host}:${port}/locations/${id}`;
         var i = 0;
-        for (var x in maps) {
-            if (maps[x]['id'] == id) {
+        for (var x in locations) {
+            if (locations[x]['id'] == id) {
 
-                var dup_name = checkMapName(maps[i]['name'], maps[x]['id']);
+                var dup_name = checkLocationName(locations[i]['name'], locations[x]['id']);
                 if (dup_name) {
-                    var conf = window.confirm('There is another map with the same name. Are you sure you want to continue?');
-                    if (!conf) {
-                        return;
-                    }
-                }
-
-                var dup_image = checkMapImage(maps[i]['image'], maps[x]['id']);
-                if (dup_image) {
-                    var conf = window.confirm('There is another map with the same image. Are you sure you want to continue?');
+                    var conf = window.confirm('There is another location with the same name. Are you sure you want to continue?');
                     if (!conf) {
                         return;
                     }
@@ -607,17 +598,16 @@ function Home(props) {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(maps[x])
+                    body: JSON.stringify(locations[x])
                 };
                 fetch(url, requestData).then(response => {
 
-                  var new_map = {
-                    'name': maps[x]['name'],
-                    'image': maps[x]['image']
+                  var new_location = {
+                    'name': locations[x]['name']
                   };
-                  setChangedMap(new_map);
-                  onCancelMap(index);
-                  get_maps();
+                  setChangedLocation(new_location);
+                  onCancelLocation(index);
+                  get_locations();
                 });
                 break;
             }
@@ -626,20 +616,19 @@ function Home(props) {
 
     }
 
-    // cancels map editing
-    const onCancelMap = (index) => {
-        for (var x in maps){
+    // cancels Location editing
+    const onCancelLocation = (index) => {
+        for (var x in locations){
           if (x == index){
-            maps[x]['name'] = changedMap['name'];
-            maps[x]['image'] = changedMap['image'];
+            locations[x]['name'] = changedLocation['name'];
             break;
           }
         }
 
-        setChangedMap(null);
+        setChangedLocation(null);
 
         // reset the inEditMode state value
-        setInEditModeMap({
+        setInEditModeLocation({
             status: false,
             rowKey: null
         });
@@ -678,52 +667,52 @@ function Home(props) {
         setHeadsets(newHeadsets);
     }
 
-    // onchange handler for updating map image
+    // onchange handler for updating Location image
     const updateImage = (e) => {
-        var newMaps = [];
+        var newLocations = [];
         var prefix = "mapImage";
         var image_id = e.target.id.substring(prefix.length, e.target.id.length);
-        for (var x in maps) {
-            if (maps[x]['id'] == image_id) {
-                maps[x]['image'] = e.target.value;
-                inEditModeMap.map_image = e.target.value;
+        for (var x in locations) {
+            if (locations[x]['id'] == image_id) {
+                //locations[x]['image'] = e.target.value;
+                //inEditModeMap.map_image = e.target.value;
             }
-            newMaps.push(maps[x]);
+            //newLocations.push(locations[x]);
         }
-        setMaps(newMaps);
+        //setLocations(newLocations);
     }
 
-    // on change handler for updating map name
-    const updateMapName = (e) => {
-        var newMaps = [];
-        var prefix = "mapName";
-        var map_id = e.target.id.substring(prefix.length, e.target.id.length);
+    // on change handler for updating Location name
+    const updateLocationName = (e) => {
+        var newLocations = [];
+        var prefix = "locationName";
+        var location_id = e.target.id.substring(prefix.length, e.target.id.length);
 
-        for (var x in maps) {
-            if (maps[x]['id'] == map_id) {
-                maps[x]['name'] = e.target.value;
-                inEditModeMap.map_name = e.target.value;
+        for (var x in locations) {
+            if (locations[x]['id'] == location_id) {
+                locations[x]['name'] = e.target.value;
+                inEditModeLocation.location_name = e.target.value;
             }
-            newMaps.push(maps[x]);
+            newLocations.push(locations[x]);
         }
-        setMaps(newMaps);
+        setLocations(newLocations);
     }
 
     // checks if an image associated with a map already exists
-    function checkMapImage(image, id) {
-        for (var x in maps) {
-            if (maps[x]['image'] === image && maps[x]['id'] != id) {
-                return true;
-            }
-        }
-        return false;
-    }
+    //function checkMapImage(image, id) {
+        //for (var x in locations) {
+            //if (locations[x]['image'] === image && locations[x]['id'] != id) {
+                //return true;
+            //}
+        //}
+        //return false;
+    //}
 
-    // checks if a map name already exists
-    function checkMapName(name, id) {
-        for (var x in maps) {
-            if (maps[x]['name'] === name && maps[x]['id'] != id) {
-                console.log(maps[x]['name'] + '.............' + maps[x]['id'])
+    // checks if a Location name already exists
+    function checkLocationName(name, id) {
+        for (var x in locations) {
+            if (locations[x]['name'] === name && locations[x]['id'] != id) {
+                console.log(locations[x]['name'] + '.............' + locations[x]['id'])
                 return true;
             }
         }
@@ -788,13 +777,13 @@ function Home(props) {
             });
     }
 
-    function deleteMap(id, name) {
-        const del = window.confirm("Are you sure you want to delete map '" + name + "'?");
+    function deleteLocation(id, name) {
+        const del = window.confirm("Are you sure you want to delete Location '" + name + "'?");
         if (!del) {
             return;
         }
 
-        const url = `http://${host}:${port}/maps/${id}`;
+        const url = `http://${host}:${port}/locations/${id}`;
         const requestData = {
             method: 'DELETE',
             headers: {
@@ -804,12 +793,12 @@ function Home(props) {
 
         fetch(url, requestData)
             .then(response => {
-                for (var x in maps) {
-                    if (maps[x]['id'] == id) {
-                        maps.pop(maps[x]);
+                for (var x in locations) {
+                    if (locations[x]['id'] == id) {
+                        locations.pop(locations[x]);
                     }
                 }
-                get_maps();
+                get_locations();
             });
     }
 
@@ -830,7 +819,7 @@ function Home(props) {
         } else {
             return (
                 <Button style={{width: "30px", height: "30px"}} className='btn-danger table-btns'
-                        onClick={(e) => deleteMap(itemId, itemName)} title="Delete Map">
+                        onClick={(e) => deleteLocation(itemId, itemName)} title="Delete Location">
                     <FontAwesomeIcon icon={solid('trash-can')} size="lg"
                                      style={{position: 'relative', right: '0px', top: '-1px'}}/>
                 </Button>
@@ -877,13 +866,13 @@ function Home(props) {
             </Helmet>
             <div className="home-body">
                 <Tabs activeKey={tab} className="mb-3 tabs" onSelect={(t) => setTab(t)}>
-                  <Tab eventKey="map-view" title="Map View">
-                    <div className="map-nav">
+                  <Tab eventKey="location-view" title="Location View">
+                    <div className="location-nav">
                       <div className="dropdown-container">
-                          <DropdownButton id="map-dropdown" title="Select Map" onSelect={handleMapSelection}
-                                          defaultValue={getDefaultMapSelection}>
+                          <DropdownButton id="location-dropdown" title="Select Location" onSelect={handleLocationSelection}
+                                          defaultValue={getDefaultLocationSelection}>
                               {
-                                  maps.map((e, index) => {
+                                  locations.map((e, index) => {
                                       return <Dropdown.Item eventKey={e.id}>{e.name}</Dropdown.Item>
                                   })
                               }
@@ -896,28 +885,28 @@ function Home(props) {
                       </div>
 
                       <div className="QR-code-btn header-button">
-                        <Button title="Map QR Code" variant="secondary" href={"/maps/" + selectedMap + "/qrcode.svg"} target="_blank">Map QR Code</Button>
+                        <Button title="Location QR Code" variant="secondary" href={"/locations/" + selectedLocation + "/qrcode.svg"} target="_blank">Location QR Code</Button>
                       </div>
                     </div>
 
                     <div className='home-content'>
                       <NewFeature port={port} showNewFeature={showNewFeature} changeCursor={toggleCursor} changeIcon={changeIcon}
-                                  pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedMap}
+                                  pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedLocation}
                                   setIconIndex={setIconIndex} sliderValue={sliderValue} setSliderValue={setSliderValue}
                                   setPlacementType={setPlacementType} placementType={placementType}/>
 
                       <div style={{textAlign: 'left', marginBottom: '15px'}}>
                         <div style={{display: 'inline-block'}}>
-                          <p className="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Map Name</p>
-                          <h4 style={{marginTop: '0px'}}>{currMapName != '' ? (currMapName) : ('No Map Selected')}</h4>
+                          <p className="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Location Name</p>
+                          <h4 style={{marginTop: '0px'}}>{currLocationName != '' ? (currLocationName) : ('No Location Selected')}</h4>
                         </div>
                         <div style={{marginLeft: '15px', display: 'inline-block'}}>
                           <p className="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Incident Name</p>
                           <h4 style={{marginTop: '0px'}}>{incidentInfo.get()}</h4>
                         </div>
                       </div>
-                      <div className="map-image-container">
-                          <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
+                      <div className="location-image-container">
+                          <img id="map-image" src={selectedImage} alt="Image of the environment" onLoad={onLocationLoad}
                                onClick={onMouseClick} style={{cursor: cursor}}/>
                           {combinedMapObjects.map((f, index) => {
                               return f.placement == 'floating' && f.editing == 'true'?
@@ -992,13 +981,16 @@ function Home(props) {
                               />
                           </Form>
                       </div>
-                      <div>
+                      <div style={{marginTop: "20px"}}>
+                          <div>
+                            <h3 style={{textAlign: "left"}}>Headsets</h3>
+                          </div>
                           <Table striped bordered hover>
                               <thead>
                               <tr>
                                   <th rowSpan='2'>Headset ID</th>
                                   <th rowSpan='2'>Name</th>
-                                  <th rowSpan='2'>Map ID</th>
+                                  <th rowSpan='2'>Location ID</th>
                                   <th rowSpan='2'>Last Update</th>
                                   <th colSpan='3'>Position</th>
 
@@ -1088,31 +1080,33 @@ function Home(props) {
                               </tbody>
                           </Table>
                       </div>
-                      <div>
+                      <div style={{marginTop: "20px"}}>
+                          <div>
+                            <h3 style={{textAlign: "left"}}>Locations</h3>
+                          </div>
                           <Table striped bordered hover>
                               <thead>
                               <tr>
-                                  <th rowSpan='2'>Map ID</th>
+                                  <th rowSpan='2'>Location ID</th>
                                   <th rowSpan='2'>Name</th>
-                                  <th rowSpan='2'>Image</th>
                               </tr>
                               </thead>
                               <tbody>
                               {
-                                  maps.length > 0 ? (
-                                    maps.map((e, index) => {
+                                  locations.length > 0 ? (
+                                    locations.map((e, index) => {
                                         return <tr>
                                             <td>{e.id}</td>
                                             <td>
                                                 {
-                                                    inEditModeMap.status && inEditModeMap.rowKey === index ? (
+                                                    inEditModeLocation.status && inEditModeLocation.rowKey === index ? (
                                                         <input
-                                                            placeholder="Edit Map Name"
+                                                            placeholder="Edit Location Name"
                                                             name="input"
                                                             type="text"
-                                                            id={'mapName' + e.id}
-                                                            onChange={updateMapName}
-                                                            value={maps[index]['name']}/>
+                                                            id={'locationName' + e.id}
+                                                            onChange={updateLocationName}
+                                                            value={locations[index]['name']}/>
                                                     ) : (
                                                         e.name
                                                     )
@@ -1120,27 +1114,12 @@ function Home(props) {
                                             </td>
                                             <td>
                                                 {
-                                                    inEditModeMap.status && inEditModeMap.rowKey === index ? (
-                                                        <input
-                                                            placeholder="Edit Map Image"
-                                                            name="input"
-                                                            type="text"
-                                                            id={'mapImage' + e.id}
-                                                            onChange={updateImage}
-                                                            value={maps[index]['image']}/>
-                                                    ) : (
-                                                        e.image
-                                                    )
-                                                }
-                                            </td>
-                                            <td>
-                                                {
-                                                    (inEditModeMap.status && inEditModeMap.rowKey === index) ? (
+                                                    (inEditModeLocation.status && inEditModeLocation.rowKey === index) ? (
                                                         <React.Fragment>
                                                             <Button
                                                                 className={"btn-success table-btns"}
-                                                                id={'mapsbtn' + e.id}
-                                                                onClick={(e) => saveMap(e, index)}
+                                                                id={'locationsbtn' + e.id}
+                                                                onClick={(e) => saveLocation(e, index)}
                                                                 title='Save'>
                                                                 Save
                                                             </Button>
@@ -1148,7 +1127,7 @@ function Home(props) {
                                                             <Button
                                                                 className={"btn-secondary table-btns"}
                                                                 style={{marginLeft: 8}}
-                                                                onClick={() => onCancelMap(index)}
+                                                                onClick={() => onCancelLocation(index)}
                                                                 title='Cancel'>
                                                                 Cancel
                                                             </Button>
@@ -1156,7 +1135,7 @@ function Home(props) {
                                                     ) : (
                                                         <Button
                                                             className={"btn-primary table-btns"}
-                                                            onClick={(e) => onEditMap(e, index)}
+                                                            onClick={(e) => onEditLocation(e, index)}
                                                             title='Edit'>
                                                             Edit
                                                         </Button>
@@ -1165,13 +1144,13 @@ function Home(props) {
                                             </td>
                                             <td>
                                                 <div>
-                                                    <TrashIcon item='map' id={e.id} name={e.name}/>
+                                                    <TrashIcon item='location' id={e.id} name={e.name}/>
                                                 </div>
                                             </td>
                                         </tr>
                                     })
                                   ) : (
-                                    <tr><td colspan="100%">No Maps</td></tr>
+                                    <tr><td colspan="100%">No Locations</td></tr>
                                   )
                               }
                               </tbody>
@@ -1179,11 +1158,11 @@ function Home(props) {
                       </div>
                     </div>
                   </Tab>
-                  <Tab eventKey="create-map" title="Create Map">
-                    <NewMap port={port} getHeadsets={getHeadsets} getMaps={get_maps} setTab={setTab}/>
+                  <Tab eventKey="create-location" title="Create Location">
+                    <NewLocation port={port} getHeadsets={getHeadsets} getLocations={get_locations} setTab={setTab}/>
                   </Tab>
                   <Tab eventKey="create-incident" title="Create Incident">
-                    <NewIncidentModal port={port} getHeadsets={getHeadsets} setMaps={setMaps}
+                    <NewIncidentModal port={port} getHeadsets={getHeadsets} setLocations={setLocations}
                                       getCurrentIncident={getCurrentIncident} currentIncident={currentIncident} incidentName={incidentName}
                                       updateIncidentInfo={updateIncidentInfo} setTab={setTab} getIncidentHistory={getIncidentHistory} />
                   </Tab>
@@ -1191,10 +1170,10 @@ function Home(props) {
                     <IncidentHistory port={port} currentIncident={currentIncident} incidentName={incidentName}
                                      updateIncidentInfo={updateIncidentInfo} historyData={historyData}
                                      setHistoryData={setHistoryData} getIncidentHistory={getIncidentHistory}
-                                     getMaps={get_maps} getHeadsets={getHeadsets} getCurrentIncident={getCurrentIncident}/>
+                                     getLocations={get_locations} getHeadsets={getHeadsets} getCurrentIncident={getCurrentIncident}/>
                   </Tab>
                   <Tab eventKey="all-headsets" title="All Headsets">
-                    <AllHeadsets port={port} getMapHeadsets={getHeadsets} />
+                    <AllHeadsets port={port} getLocationHeadsets={getHeadsets} />
                   </Tab>
 
                 </Tabs>

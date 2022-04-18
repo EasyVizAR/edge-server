@@ -66,7 +66,7 @@ function AllHeadsets(props){
                   }
               }
               getAllHeadsets();
-              props.getMapHeadsets();
+              props.getLocationHeadsets();
           });
   }
 
@@ -183,7 +183,7 @@ function AllHeadsets(props){
           <tr>
             <th rowSpan='2'>Headset ID</th>
             <th rowSpan='2'>Name</th>
-            <th rowSpan='2'>Map ID</th>
+            <th rowSpan='2'>Location ID</th>
             <th rowSpan='2'>Last Update</th>
             <th colSpan='3'>Position</th>
 
