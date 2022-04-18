@@ -237,8 +237,6 @@ function Home(props) {
             .then(response => response.json())
             .then(data => {
                 var location_list = [];
-                console.log('data below::');
-                console.log(data);
                 // var fetchedMaps = [];
                 for (var key in data) {
                     // fetchedMaps.push({'id': data[key]['id'], 'name': data[key]['name'], 'image': data[key]['image'], 'viewBox': data[key]['viewBox']});
@@ -578,7 +576,7 @@ function Home(props) {
 
     // saves the Location data
     const saveLocation = (e, index) => {
-        const id = e.target.id.substring(7, e.target.id.length);
+        const id = e.target.id.substring(12, e.target.id.length);
         const url = `http://${host}:${port}/locations/${id}`;
         var i = 0;
         for (var x in locations) {
