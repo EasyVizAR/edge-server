@@ -131,3 +131,49 @@ async def test_photo_upload():
         assert response.is_json
         photo2 = await response.get_json()
         assert photo2['id'] == photo['id']
+
+
+@pytest.mark.asyncio
+async def test_photo_annotations():
+    """
+    Test photo annotations
+    """
+    async with app.test_client() as client:
+        photos_url = "/photos"
+
+        # Create an object
+        response = await client.post(photos_url, json=dict(contentType="image/jpeg"))
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        photo = await response.get_json()
+        assert isinstance(photo, dict)
+        assert photo['ready'] is False
+        assert isinstance(photo['annotations'], list)
+        assert len(photo['annotations']) == 0
+
+        photo_url = "/photos/{}".format(photo['id'])
+
+        # Annotate the image
+        update = {
+            "width": 640,
+            "height": 480,
+            "annotations": [{
+                "label": "extinguisher",
+                "boundary": {
+                    "left": 0.1,
+                    "top": 0.1,
+                    "width": 0.5,
+                    "height": 0.5
+                }
+            }]
+        }
+        response = await client.patch(photo_url, json=update)
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        photo2 = await response.get_json()
+        assert photo2['id'] == photo['id']
+        assert photo2['width'] == 640
+        assert photo2['height'] == 480
+        assert isinstance(photo2['annotations'], list)
+        assert len(photo2['annotations']) == 1
+        assert photo2['annotations'][0]['label'] == "extinguisher"
