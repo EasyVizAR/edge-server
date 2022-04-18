@@ -108,6 +108,9 @@ async def delete_headset(headset_id):
         responses:
             200:
                 description: Headset deleted
+                content:
+                    application/json:
+                        schema: Headset
     """
 
     headset = g.Headset.find_by_id(headset_id)

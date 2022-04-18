@@ -20,6 +20,19 @@ async def list_pose_changes(headset_id):
         summary: List headset pose changes
         tags:
          - pose-changes
+        parameters:
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
+        responses:
+            200:
+                description: A list of objects.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: PoseChange
     """
 
     headset = g.active_incident.Headset.find_by_id(headset_id)
@@ -41,12 +54,23 @@ async def list_pose_changes(headset_id):
 @pose_changes.route('/headsets/<headset_id>/pose-changes', methods=['POST'])
 async def create_pose_change(headset_id):
     """
-    Create headset pose changes
+    Create headset pose change
     ---
     post:
-        summary: Create headset pose changes
+        summary: Create headset pose change
         tags:
          - pose-changes
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: PoseChange
+        responses:
+            200:
+                description: The created object
+                content:
+                    application/json:
+                        schema: PoseChange
     """
     headset = g.Headset.find_by_id(headset_id)
     if headset is None:

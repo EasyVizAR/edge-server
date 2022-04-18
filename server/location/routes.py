@@ -21,6 +21,19 @@ async def list_locations():
         summary: List locations
         tags:
          - locations
+        parameters:
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
+        responses:
+            200:
+                description: A list of objects.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: Location
     """
 
     locations = g.active_incident.Location.find()
@@ -44,6 +57,17 @@ async def create_location():
         summary: Create location
         tags:
          - locations
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Location
+        responses:
+            200:
+                description: The created object
+                content:
+                    application/json:
+                        schema: Location
     """
     body = await request.get_json()
 
@@ -62,6 +86,17 @@ async def delete_location(location_id):
         summary: Delete location
         tags:
          - locations
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: ID of the object to be deleted
+        responses:
+            200:
+                description: The object which was deleted
+                content:
+                    application/json:
+                        schema: Location
     """
 
     location = g.active_incident.Location.find_by_id(location_id)
@@ -82,6 +117,17 @@ async def get_location(location_id):
         summary: Get location
         tags:
          - locations
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Object ID
+        responses:
+            200:
+                description: The requested object
+                content:
+                    application/json:
+                        schema: Location
     """
     location = g.active_incident.Location.find_by_id(location_id)
     if location is None:
@@ -99,6 +145,22 @@ async def replace_location(location_id):
         summary: Replace location
         tags:
          - locations
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: The object ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Location
+        responses:
+            200:
+                description: The new object
+                content:
+                    application/json:
+                        schema: Location
     """
     body = await request.get_json()
     body['id'] = location_id
@@ -119,8 +181,25 @@ async def update_location(location_id):
     ---
     patch:
         summary: Update location
+        description: This method may be used to modify selected fields of the object.
         tags:
          - locations
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: ID of the object to be modified
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Location
+        responses:
+            200:
+                description: The modified object
+                content:
+                    application/json:
+                        schema: Location
     """
 
     location = g.active_incident.Location.find_by_id(location_id)

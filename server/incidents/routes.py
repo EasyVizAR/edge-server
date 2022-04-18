@@ -41,6 +41,27 @@ def set_active_incident(app, incident):
 
 @incidents.route('/incidents', methods=['GET'])
 async def list_incidents():
+    """
+    List incidents
+    ---
+    get:
+        summary: List incidents
+        tags:
+         - incidents
+        parameters:
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
+        responses:
+            200:
+                description: A list of objects.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: Incident
+    """
     incidents = g.Incident.find()
 
     # Wrap the maps list if the caller requested an envelope.
@@ -55,6 +76,27 @@ async def list_incidents():
 
 @incidents.route('/incidents', methods=['POST'])
 async def create_incident():
+    """
+    Create incident
+    ---
+    post:
+        summary: Create incident
+        description: A side effect of this method is that the newly created
+            incident will become the current active incident.
+        tags:
+         - incidents
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Incident
+        responses:
+            200:
+                description: The created object
+                content:
+                    application/json:
+                        schema: Incident
+    """
     body = await request.get_json()
 
     incident = g.Incident.load(body, replace_id=True)
@@ -67,6 +109,25 @@ async def create_incident():
 
 @incidents.route('/incidents/<incident_id>', methods=['DELETE'])
 async def delete_incident(incident_id):
+    """
+    Delete incident
+    ---
+    delete:
+        summary: Delete incident
+        tags:
+         - incidents
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: ID of the object to be deleted
+        responses:
+            200:
+                description: The object which was deleted
+                content:
+                    application/json:
+                        schema: Incident
+    """
     incident = g.Incident.find_by_id(incident_id)
     if incident is None:
         raise exceptions.NotFound(description="Incident {} was not found".format(incident_id))
@@ -78,6 +139,25 @@ async def delete_incident(incident_id):
 
 @incidents.route('/incidents/<incident_id>', methods=['GET'])
 async def get_incident(incident_id):
+    """
+    Get incident
+    ---
+    get:
+        summary: Get incident
+        tags:
+         - incidents
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Object ID
+        responses:
+            200:
+                description: The requested object
+                content:
+                    application/json:
+                        schema: Incident
+    """
     incident = g.Incident.find_by_id(incident_id)
     if incident is None:
         raise exceptions.NotFound(description="Incident {} was not found".format(incident_id))
@@ -92,8 +172,26 @@ async def replace_incident(incident_id):
     ---
     put:
         summary: Replace incident
+        description: A side effect of this method is that the newly created
+            incident will become the current active incident.
         tags:
          - incidents
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: The object ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Incident
+        responses:
+            200:
+                description: The new object
+                content:
+                    application/json:
+                        schema: Incident
     """
     body = await request.get_json()
     body['id'] = incident_id
@@ -116,8 +214,26 @@ async def update_incident(incident_id):
     ---
     patch:
         summary: Update incident
+        description: This method may be used to modify selected fields of the object.
+            Updating an incident will not cause it to become the active incident.
         tags:
          - incidents
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: ID of the object to be modified
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Incident
+        responses:
+            200:
+                description: The modified object
+                content:
+                    application/json:
+                        schema: Incident
     """
 
     incident = g.Incident.find_by_id(incident_id)
@@ -139,10 +255,10 @@ async def update_incident(incident_id):
 @incidents.route('/incidents/active', methods=['GET'])
 async def get_active_incident():
     """
-    Get the currently active incident
+    Get the current active incident
     ---
     get:
-        summary: Get the currently active incident
+        summary: Get the current active incident
         tags:
           - incidents
         responses:
@@ -162,10 +278,10 @@ async def get_active_incident():
 @incidents.route('/incidents/active', methods=['PUT'])
 async def change_active_incident():
     """
-    Change the currently active incident
+    Change the current active incident
     ---
     put:
-        summary: Change the currently active incident
+        summary: Change the current active incident
         tags:
           - incidents
         responses:

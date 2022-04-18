@@ -10,9 +10,9 @@ from server.resources.geometry import Box
 @dataclass
 class AnnotationModel(JsonResource):
     """
-    Annotation for an image file, e.g. detected object.
+    Annotation for an image file, e.g. a detected object with its bounding box.
     """
-    id: int
+    id:         int
 
     label:      str = field(default="object")
     boundary:   Box = field(default_factory=Box)

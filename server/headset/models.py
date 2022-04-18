@@ -9,6 +9,19 @@ from server.resources.geometry import Vector3f
 
 @dataclass
 class HeadsetModel(JsonResource):
+    """
+    Headset refers to any individual AR device that participates in the system.
+
+    The most important fields are the name, position, and orientation. It is
+    important for all headsets involved in the same activity to synchronize to
+    a common coordinate system so that the position and orientation can be
+    meaningful.
+
+    The headset object tracks only the most recent position and orientation,
+    together known as a "pose". The history of pose changes for a given headset
+    is stored separately in the pose-changes resource
+    (/headset/{headset_id}/pose-changes).
+    """
     id:     str
     name:   str = field(default="New Headset")
 

@@ -21,6 +21,19 @@ async def list_surfaces():
         summary: List surfaces
         tags:
          - surfaces
+        parameters:
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
+        responses:
+            200:
+                description: A list of objects.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: Surface
     """
     surfaces = g.active_incident.Surface.find()
 
@@ -34,7 +47,6 @@ async def list_surfaces():
     return jsonify(result), HTTPStatus.OK
 
 
-
 @surfaces.route('/surfaces', methods=['POST'])
 async def create_surface():
     """
@@ -44,6 +56,17 @@ async def create_surface():
         summary: Create surface
         tags:
          - surfaces
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Surface
+        responses:
+            200:
+                description: The created object
+                content:
+                    application/json:
+                        schema: Surface
     """
     body = await request.get_json()
 
@@ -64,6 +87,17 @@ async def delete_surface(surface_id):
         summary: Delete surface
         tags:
          - surfaces
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: ID of the object to be deleted
+        responses:
+            200:
+                description: The object which was deleted
+                content:
+                    application/json:
+                        schema: Surface
     """
     surface = g.active_incident.Surface.find_by_id(surface_id)
     if surface is None:
@@ -83,6 +117,17 @@ async def get_surface(surface_id):
         summary: Get surface
         tags:
          - surfaces
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Object ID
+        responses:
+            200:
+                description: The requested object
+                content:
+                    application/json:
+                        schema: Surface
     """
     surface = g.active_incident.Surface.find_by_id(surface_id)
     if surface is None:
@@ -100,6 +145,23 @@ async def replace_surface(surface_id):
         summary: Replace surface
         tags:
          - surfaces
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: The object ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Surface
+        responses:
+            200:
+                description: The new object
+                content:
+                    application/json:
+                        schema: Surface
+
     """
     body = await request.get_json()
     body['id'] = surface_id
@@ -120,8 +182,25 @@ async def update_surface(surface_id):
     ---
     patch:
         summary: Update surface
+        description: This method may be used to modify selected fields of the object.
         tags:
          - surfaces
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: ID of the object to be modified
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Surface
+        responses:
+            200:
+                description: The modified object
+                content:
+                    application/json:
+                        schema: Surface
     """
     surface = g.active_incident.Surface.find_by_id(surface_id)
     if surface is None:

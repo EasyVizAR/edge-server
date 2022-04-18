@@ -23,6 +23,12 @@ class HeadsetContainer(DictResource):
 
 @dataclass
 class IncidentModel(JsonResource):
+    """
+    An incident represents an world event with a definite start time.
+
+    It also serves as a container for data created during that event
+    such as headset location history, photos, and 3D geometry.
+    """
     id:         str = field(default=None)
     name:       str = field(default=None)
     created:    float = field(default_factory=time.time)

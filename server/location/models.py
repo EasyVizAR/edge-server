@@ -10,6 +10,16 @@ from server.resources.jsonresource import JsonCollection, JsonResource
 
 @dataclass
 class LocationModel(JsonResource):
+    """
+    A location such as a building with a definite geographical boundary.
+
+    A location may have one or more features, which are points of interest,
+    messages, or other pieces digital information that team members would like
+    to share.
+
+    A location may have one or more map layers, e.g. a floor plan for each
+    floor of a building.
+    """
     id:     str
     name:   str
 

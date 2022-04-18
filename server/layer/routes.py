@@ -23,6 +23,19 @@ async def list_layers(location_id):
         summary: List layers
         tags:
          - layers
+        parameters:
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
+        responses:
+            200:
+                description: A list of objects.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: Layer
     """
     location = g.active_incident.Location.find_by_id(location_id)
     if location is None:
@@ -49,6 +62,17 @@ async def create_layer(location_id):
         summary: Create layer
         tags:
          - layers
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Layer
+        responses:
+            200:
+                description: The created object
+                content:
+                    application/json:
+                        schema: Layer
     """
     body = await request.get_json()
 
@@ -100,6 +124,17 @@ async def delete_layer(location_id, layer_id):
         summary: Delete layer
         tags:
          - layers
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: ID of the object to be deleted
+        responses:
+            200:
+                description: The object which was deleted
+                content:
+                    application/json:
+                        schema: Layer
     """
 
     location = g.active_incident.Location.find_by_id(location_id)
@@ -124,6 +159,17 @@ async def get_layer(location_id, layer_id):
         summary: Get layer
         tags:
          - layers
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Object ID
+        responses:
+            200:
+                description: The requested object
+                content:
+                    application/json:
+                        schema: Layer
     """
     location = g.active_incident.Location.find_by_id(location_id)
     if location is None:
@@ -145,6 +191,22 @@ async def replace_layer(location_id, layer_id):
         summary: Replace layer
         tags:
          - layers
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: The object ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Layer
+        responses:
+            200:
+                description: The new object
+                content:
+                    application/json:
+                        schema: Layer
     """
     body = await request.get_json()
     body['id'] = layer_id
@@ -169,8 +231,25 @@ async def update_layer(location_id, layer_id):
     ---
     patch:
         summary: Update layer
+        description: This method may be used to modify selected fields of the object.
         tags:
          - layers
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: ID of the object to be modified
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Layer
+        responses:
+            200:
+                description: The modified object
+                content:
+                    application/json:
+                        schema: Layer
     """
 
     location = g.active_incident.Location.find_by_id(location_id)
@@ -208,6 +287,7 @@ async def get_layer_file(location_id, layer_id):
                 content:
                     image/jpeg: {}
                     image/png: {}
+                    image/svg+xml: {}
     """
     location = g.active_incident.Location.find_by_id(location_id)
     if location is None:

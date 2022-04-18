@@ -105,7 +105,7 @@ async def test_photo_upload():
         assert response.is_json
         photo = await response.get_json()
         assert isinstance(photo, dict)
-        assert photo['status'] == "created"
+        assert photo['ready'] is False
 
         photo_url = "/photos/{}".format(photo['id'])
 
@@ -116,7 +116,7 @@ async def test_photo_upload():
         photo2 = await response.get_json()
         assert isinstance(photo, dict)
         assert photo2['id'] == photo['id']
-        assert photo2['status'] == "ready"
+        assert photo2['ready'] is True
         assert photo2['updated'] > photo['updated']
 
         # Test downloading the file

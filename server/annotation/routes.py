@@ -19,6 +19,19 @@ async def list_annotations(photo_id):
         summary: List annotations
         tags:
          - annotations
+        parameters:
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
+        responses:
+            200:
+                description: A list of annotations.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: Annotation
     """
     photo = g.active_incident.Photo.find_by_id(photo_id)
     if photo is None:
@@ -45,6 +58,17 @@ async def create_annotation(photo_id):
         summary: Create annotation
         tags:
          - annotations
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Annotation
+        responses:
+            200:
+                description: An annotation object
+                content:
+                    application/json:
+                        schema: Annotation
     """
     body = await request.get_json()
 
@@ -67,6 +91,17 @@ async def delete_annotation(photo_id, annotation_id):
         summary: Delete annotation
         tags:
          - annotations
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Annotation ID
+        responses:
+            200:
+                description: The object which was deleted
+                content:
+                    application/json:
+                        schema: Annotation
     """
 
     photo = g.active_incident.Photo.find_by_id(photo_id)
@@ -91,6 +126,17 @@ async def get_annotation(photo_id, annotation_id):
         summary: Get annotation
         tags:
          - annotations
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Object ID
+        responses:
+            200:
+                description: The requested object
+                content:
+                    application/json:
+                        schema: Annotation
     """
     photo = g.active_incident.Photo.find_by_id(photo_id)
     if photo is None:
@@ -112,6 +158,22 @@ async def replace_annotation(photo_id, annotation_id):
         summary: Replace annotation
         tags:
          - annotations
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: The object ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Annotation
+        responses:
+            200:
+                description: The new object
+                content:
+                    application/json:
+                        schema: Annotation
     """
     body = await request.get_json()
     body['id'] = annotation_id
@@ -136,8 +198,25 @@ async def update_annotation(photo_id, annotation_id):
     ---
     patch:
         summary: Update annotation
+        description: This method may be used to modify selected fields of the object.
         tags:
          - annotations
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: ID of the object to be modified
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Annotation
+        responses:
+            200:
+                description: The modified object
+                content:
+                    application/json:
+                        schema: Annotation
     """
 
     photo = g.active_incident.Photo.find_by_id(photo_id)

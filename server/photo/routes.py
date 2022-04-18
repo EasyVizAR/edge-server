@@ -24,6 +24,19 @@ async def list_photos():
         summary: List photos
         tags:
          - photos
+        parameters:
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
+        responses:
+            200:
+                description: A list of objects.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: Photo
     """
     photos = g.active_incident.Photo.find()
 
@@ -46,6 +59,17 @@ async def create_photo():
         summary: Create photo
         tags:
          - photos
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Photo
+        responses:
+            200:
+                description: The created object
+                content:
+                    application/json:
+                        schema: Photo
     """
     body = await request.get_json()
 
@@ -65,10 +89,10 @@ async def create_photo():
         upload_file_name = "image.{}".format(extension)
         photo.filePath = os.path.join(photo.get_dir(), upload_file_name)
         photo.fileUrl = "/photos/{}/{}".format(photo.id, upload_file_name)
-        photo.status = "created"
+        photo.ready = False
 
     else:
-        photo.status = "ready"
+        photo.ready = True
 
     photo.save()
 
@@ -84,6 +108,17 @@ async def delete_photo(photo_id):
         summary: Delete photo
         tags:
          - photos
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: ID of the object to be deleted
+        responses:
+            200:
+                description: The object which was deleted
+                content:
+                    application/json:
+                        schema: Photo
     """
 
     photo = g.active_incident.Photo.find_by_id(photo_id)
@@ -104,6 +139,17 @@ async def get_photo(photo_id):
         summary: Get photo
         tags:
          - photos
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Object ID
+        responses:
+            200:
+                description: The requested object
+                content:
+                    application/json:
+                        schema: Photo
     """
     photo = g.active_incident.Photo.find_by_id(photo_id)
     if photo is None:
@@ -121,6 +167,22 @@ async def replace_photo(photo_id):
         summary: Replace photo
         tags:
          - photos
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: The object ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Photo
+        responses:
+            200:
+                description: The new object
+                content:
+                    application/json:
+                        schema: Photo
     """
     body = await request.get_json()
     body['id'] = photo_id
@@ -141,8 +203,25 @@ async def update_photo(photo_id):
     ---
     patch:
         summary: Update photo
+        description: This method may be used to modify selected fields of the object.
         tags:
          - photos
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: ID of the object to be modified
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Photo
+        responses:
+            200:
+                description: The modified object
+                content:
+                    application/json:
+                        schema: Photo
     """
 
     photo = g.active_incident.Photo.find_by_id(photo_id)
@@ -213,7 +292,7 @@ async def upload_photo_file(photo_id, filename):
 
     photo.filePath = file_path
     photo.fileUrl = "/photos/{}/{}".format(photo_id, secure_filename(filename))
-    photo.status = "ready"
+    photo.ready = True
     photo.updated = time.time()
     photo.save()
 

@@ -22,6 +22,19 @@ async def list_features(location_id):
         summary: List features
         tags:
          - features
+        parameters:
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
+        responses:
+            200:
+                description: A list of objects.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: Feature
     """
     location = g.active_incident.Location.find_by_id(location_id)
     if location is None:
@@ -48,6 +61,17 @@ async def create_feature(location_id):
         summary: Create feature
         tags:
          - features
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Feature
+        responses:
+            200:
+                description: The created object
+                content:
+                    application/json:
+                        schema: Feature
     """
     body = await request.get_json()
 
@@ -70,6 +94,17 @@ async def delete_feature(location_id, feature_id):
         summary: Delete feature
         tags:
          - features
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: ID of the object to be deleted
+        responses:
+            200:
+                description: The object which was deleted
+                content:
+                    application/json:
+                        schema: Feature
     """
 
     location = g.active_incident.Location.find_by_id(location_id)
@@ -94,6 +129,17 @@ async def get_feature(location_id, feature_id):
         summary: Get feature
         tags:
          - features
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Object ID
+        responses:
+            200:
+                description: The requested object
+                content:
+                    application/json:
+                        schema: Feature
     """
     location = g.active_incident.Location.find_by_id(location_id)
     if location is None:
@@ -115,6 +161,22 @@ async def replace_feature(location_id, feature_id):
         summary: Replace feature
         tags:
          - features
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: The object ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Feature
+        responses:
+            200:
+                description: The new object
+                content:
+                    application/json:
+                        schema: Feature
     """
     body = await request.get_json()
     body['id'] = feature_id
@@ -139,8 +201,25 @@ async def update_feature(location_id, feature_id):
     ---
     patch:
         summary: Update feature
+        description: This method may be used to modify selected fields of the object.
         tags:
          - features
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: ID of the object to be modified
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: Feature
+        responses:
+            200:
+                description: The modified object
+                content:
+                    application/json:
+                        schema: Feature
     """
 
     location = g.active_incident.Location.find_by_id(location_id)
