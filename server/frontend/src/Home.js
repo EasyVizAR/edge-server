@@ -242,7 +242,6 @@ function Home(props) {
                 // var fetchedMaps = [];
                 for (var key in data) {
                     // fetchedMaps.push({'id': data[key]['id'], 'name': data[key]['name'], 'image': data[key]['image'], 'viewBox': data[key]['viewBox']});
-                    // TODO add locations
                     location_list.push({
                         'id': data[key]['id'],
                         'name': data[key]['name'],
