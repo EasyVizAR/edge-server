@@ -1,10 +1,19 @@
 import time
 
 from dataclasses import field
+from typing import List
+
 from marshmallow_dataclass import dataclass
 
 from server.annotation.models import AnnotationModel
+from server.resources.geometry import Box
 from server.resources.jsonresource import JsonCollection, JsonResource
+
+
+@dataclass
+class Annotation:
+    label:      str = field(default="object")
+    boundary:   Box = field(default_factory=Box)
 
 
 @dataclass
@@ -37,6 +46,8 @@ class PhotoModel(JsonResource):
 
     retention:      str = field(default="auto")
     createdBy:      str = field(default=None)
+
+    annotations:    List[Annotation] = field(default_factory=list)
 
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)
