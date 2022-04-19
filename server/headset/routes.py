@@ -58,7 +58,40 @@ async def create_headset():
     Create a headset
     ---
     post:
-        description: Create a headset
+        summary: Create a headset
+        description: |-
+            Use this method to register a new headset. Headsets persist across
+            incidents and locations on the server, so outside of testing and
+            development, this should only need to be called once on the first
+            time a physical device connects to a particular edge server.
+
+            Most important is passing a descriptive name that differentiates
+            the headsets from others on the server. If the location and
+            position are known, those can be set during registration or later
+            on through an update.
+
+            The following example creates a headset with a known location,
+            position, and orientation.
+
+                POST /headsets
+                Content-Type: application/json
+                {
+                    "name": "Lance's Headset",
+                    "locationId": "28c68ff7-0655-4392-a218-ecc6645191c2",
+                    "position": {"x": 0, "y": 0, "z": 0},
+                    "orientation": {"x": 1, "y": 0, "z": 0}
+                }
+
+            The server responds with the created headset object, which
+            most importantly, contains the new headset ID, which can be
+            in subsequent operations.
+
+                201 CREATED
+                Content-Type: application/json
+                {
+                    "id": "207f24fb-558f-4d34-953a-8f7765f25069",
+                    ...
+                }
         tags:
           - headsets
         requestBody:
@@ -67,7 +100,7 @@ async def create_headset():
                 application/json:
                     schema: Headset
         responses:
-            200:
+            201:
                 description: A headset
                 content:
                     application/json:
@@ -162,7 +195,11 @@ async def replace_headset(headsetId):
     Replace a headset
     ---
     put:
-        description: Replace a headset
+        summary: Replace a headset
+        description: |-
+            Please note this is a full create or replace operation that
+            expects all fields to be set in the request body. For a partial
+            update operation, please use the PATCH operation instead.
         tags:
           - headsets
         parameters:
@@ -209,7 +246,28 @@ async def update_headset(headset_id):
     Update a headset
     ---
     patch:
-        description: Update a headset
+        summary: Update a headset
+        description: |-
+            This can be used to selectively update fields in the headset
+            record.
+
+            Here is an example that sets the headset's current location,
+            position, and orientation but would not affect other fields
+            such as the name.
+
+                PATCH /headsets/207f24fb-558f-4d34-953a-8f7765f25069
+                Content-Type: application/json
+                {
+                    "locationId": "28c68ff7-0655-4392-a218-ecc6645191c2",
+                    "position": {"x": 0, "y": 0, "z": 0},
+                    "orientation": {"x": 1, "y": 0, "z": 0}
+                }
+
+            If position and/or orientation are altered through this method, a
+            side effect is that a pose change record will also be created,
+            which would be apparent in the following request.
+
+                GET /headsets/207f24fb-558f-4d34-953a-8f7765f25069/pose-changes
         tags:
           - headsets
         parameters:

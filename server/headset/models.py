@@ -1,8 +1,6 @@
 import time
 
-from dataclasses import field
-from marshmallow_dataclass import dataclass
-
+from server.resources.dataclasses import dataclass, field
 from server.resources.jsonresource import JsonResource, JsonCollection
 from server.resources.geometry import Vector3f
 
@@ -23,13 +21,17 @@ class HeadsetModel(JsonResource):
     (/headset/{headset_id}/pose-changes).
     """
     id:     str
-    name:   str = field(default="New Headset")
+    name:   str = field(default="New Headset", description="Name of the headset")
+
+    locationId:     str = field(default=None, description="Current location or NULL")
 
     # mapId is deprecated and should be removed after transition to location and layer system
-    mapId:  str = field(default=None)
+    mapId:  str = field(default=None, description="deprecated")
 
-    position:       Vector3f = field(default_factory=Vector3f)
-    orientation:    Vector3f = field(default_factory=Vector3f)
+    position:       Vector3f = field(default_factory=Vector3f,
+                                     description="Most recent position relative to current location")
+    orientation:    Vector3f = field(default_factory=Vector3f,
+                                     description="Most recent orientation relative to current location")
 
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)
