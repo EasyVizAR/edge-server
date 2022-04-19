@@ -1,6 +1,10 @@
+import os
+
 from http import HTTPStatus
 
-from quart import Blueprint, g, jsonify, request
+import pyqrcode
+
+from quart import Blueprint, current_app, g, jsonify, request, send_from_directory
 from werkzeug import exceptions
 
 from server.incidents.models import Incident
@@ -216,3 +220,36 @@ async def update_location(location_id):
     location.save()
 
     return jsonify(location), HTTPStatus.OK
+
+
+@locations.route('/locations/<location_id>/qrcode', methods=['GET'])
+async def get_location_qrcode(location_id):
+    """
+    Get a QR code for the location.
+    ---
+    get:
+        description: Get a QR code for the location.
+        tags:
+          - locations
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Location ID
+        responses:
+            200:
+                description: An SVG image file.
+                content:
+                    image/svg+xml: {}
+    """
+    location = g.active_incident.Location.find_by_id(location_id)
+    if location is None:
+        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+
+    image_path = os.path.join(location.get_dir(), "qrcode.svg")
+    if not os.path.exists(image_path):
+        url = 'vizar://{}/locations/{}'.format(current_app.config['VIZAR_EDGE_HOST'], location_id)
+        code = pyqrcode.create(url, error='L')
+        code.svg(image_path, title=url, scale=16)
+
+    return await send_from_directory(location.get_dir(), "qrcode.svg")

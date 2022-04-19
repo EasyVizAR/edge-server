@@ -47,6 +47,13 @@ async def test_location_routes():
         assert location2['id'] == location['id']
         assert location2['name'] == location['name']
 
+        qrcode_url = "/locations/{}/qrcode".format(location['id'])
+
+        # Test getting the QR code
+        response = await client.get(qrcode_url)
+        assert response.status_code == HTTPStatus.OK
+        assert response.headers['Content-Type'].startswith("image/svg+xml")
+
         # Test changing the name
         response = await client.patch(location_url, json=dict(id="bad", name="Changed"))
         assert response.status_code == HTTPStatus.OK

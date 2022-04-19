@@ -110,6 +110,7 @@ async def create_openapi_spec(app):
         spec.path(view=locations.get_location)
         spec.path(view=locations.replace_location)
         spec.path(view=locations.update_location)
+        spec.path(view=locations.get_location_qrcode)
 
         spec.path(view=photos.list_photos)
         spec.path(view=photos.create_photo)
