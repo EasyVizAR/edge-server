@@ -31,13 +31,13 @@ async def test_photo_routes():
         assert isinstance(photos2['items'], list)
 
         # Create an object
-        response = await client.post(photos_url, json=dict(fileUrl="/foo"))
+        response = await client.post(photos_url, json=dict(imageUrl="/foo"))
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         photo = await response.get_json()
         assert isinstance(photo, dict)
         assert photo['id'] is not None
-        assert photo['fileUrl'] == "/foo"
+        assert photo['imageUrl'] == "/foo"
 
         photo_url = "{}/{}".format(photos_url, photo['id'])
 
@@ -47,15 +47,15 @@ async def test_photo_routes():
         assert response.is_json
         photo2 = await response.get_json()
         assert photo2['id'] == photo['id']
-        assert photo2['fileUrl'] == photo['fileUrl']
+        assert photo2['imageUrl'] == photo['imageUrl']
 
         # Test changing the name
-        response = await client.patch(photo_url, json=dict(id="bad", fileUrl="/bar"))
+        response = await client.patch(photo_url, json=dict(id="bad", imageUrl="/bar"))
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         photo2 = await response.get_json()
         assert photo2['id'] == photo['id']
-        assert photo2['fileUrl'] == "/bar"
+        assert photo2['imageUrl'] == "/bar"
 
         # Test replacement
         response = await client.put(photo_url, json=photo)
@@ -63,7 +63,7 @@ async def test_photo_routes():
         assert response.is_json
         photo2 = await response.get_json()
         assert photo2['id'] == photo['id']
-        assert photo2['fileUrl'] == photo['fileUrl']
+        assert photo2['imageUrl'] == photo['imageUrl']
 
         # Test deleting the object
         response = await client.delete(photo_url)
@@ -78,7 +78,7 @@ async def test_photo_routes():
         assert response.is_json
         photo2 = await response.get_json()
         assert photo2['id'] == photo['id']
-        assert photo2['fileUrl'] == photo['fileUrl']
+        assert photo2['imageUrl'] == photo['imageUrl']
 
         # Test that object does not exist after DELETE
         response = await client.delete(photo_url)
@@ -87,7 +87,7 @@ async def test_photo_routes():
         assert response.status_code == HTTPStatus.NOT_FOUND
         response = await client.get(photo_url)
         assert response.status_code == HTTPStatus.NOT_FOUND
-        response = await client.patch(photo_url, json=dict(fileUrl="/bar"))
+        response = await client.patch(photo_url, json=dict(imageUrl="/bar"))
         assert response.status_code == HTTPStatus.NOT_FOUND
 
 
@@ -110,7 +110,7 @@ async def test_photo_upload():
         photo_url = "/photos/{}".format(photo['id'])
 
         # Test upload process
-        response = await client.put(photo['fileUrl'], data="test")
+        response = await client.put(photo['imageUrl'], data="test")
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         photo2 = await response.get_json()
@@ -120,7 +120,7 @@ async def test_photo_upload():
         assert photo2['updated'] > photo['updated']
 
         # Test downloading the file
-        response = await client.get(photo['fileUrl'])
+        response = await client.get(photo['imageUrl'])
         assert response.status_code == HTTPStatus.OK
         data = await response.get_data()
         assert data == "test".encode('utf-8')

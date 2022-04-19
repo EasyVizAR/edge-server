@@ -57,6 +57,42 @@ async def create_photo():
     ---
     post:
         summary: Create photo
+        description: |-
+            This method may be used to link to an external image simply by
+            setting the imageUrl in the request body, but for its intended use
+            case, it is the first step to initiate an image upload to the edge
+            server.
+
+            The following example starts the upload process by sending some
+            basic information about the image to the edge server.
+
+                POST /photos
+                Content-Type: application/json
+                {
+                    "contentType": "image/jpeg",
+                    "width": 640,
+                    "height": 480
+                }
+
+            The server responds with the new photo record, which most importantly,
+            contains the location for the image URL. The ready flag will change from
+            false to true after the client completes the image upload.
+
+                201 CREATED
+                Content-Type: application/json
+                {
+                    "id": "53c08f93-93b6-4f7c-b9a4-676b5e37b744",
+                    "imageUrl": "/photos/53c08f93-93b6-4f7c-b9a4-676b5e37b744/image.jpeg",
+                    "ready": false,
+                    ...
+                }
+
+            The client can use the information from the server's response to complete
+            the image upload using the imageUrl returned by the server.
+
+                PUT /photos/53c08f93-93b6-4f7c-b9a4-676b5e37b744/image.jpeg
+                Content-Type: image/jpeg
+                [ DATA ]
         tags:
          - photos
         requestBody:
@@ -65,7 +101,7 @@ async def create_photo():
                 application/json:
                     schema: Photo
         responses:
-            200:
+            201:
                 description: The created object
                 content:
                     application/json:
@@ -75,9 +111,9 @@ async def create_photo():
 
     photo = g.active_incident.Photo.load(body, replace_id=True)
 
-    # The photo object should either specify an external fileUrl, or the caller
+    # The photo object should either specify an external imageUrl, or the caller
     # will need to upload a file after creating this object.
-    if photo.fileUrl is None:
+    if photo.imageUrl is None:
         if photo.contentType == "image/jpeg":
             extension = "jpeg"
         elif photo.contentType == "image/png":
@@ -87,8 +123,8 @@ async def create_photo():
             raise exceptions.BadRequest(description=error)
 
         upload_file_name = "image.{}".format(extension)
-        photo.filePath = os.path.join(photo.get_dir(), upload_file_name)
-        photo.fileUrl = "/photos/{}/{}".format(photo.id, upload_file_name)
+        photo.imagePath = os.path.join(photo.get_dir(), upload_file_name)
+        photo.imageUrl = "/photos/{}/image".format(photo.id)
         photo.ready = False
 
     else:
@@ -212,7 +248,7 @@ async def update_photo(photo_id):
             overwrite any existing annotation.
 
                 PATCH /photos/0
-
+                Content-Type: application/json
                 {
                     "width": 640,
                     "height": 480,
@@ -262,8 +298,8 @@ async def update_photo(photo_id):
     return jsonify(photo), HTTPStatus.OK
 
 
-@photos.route('/photos/<photo_id>/<filename>', methods=['GET'])
-async def get_photo_file(photo_id, filename):
+@photos.route('/photos/<photo_id>/image', methods=['GET'])
+async def get_photo_file(photo_id):
     """
     Get a photo data file
     ---
@@ -282,12 +318,11 @@ async def get_photo_file(photo_id, filename):
     if photo is None:
         raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
-    data_dir = photo.get_dir()
-    return await send_from_directory(data_dir, filename)
+    return await send_from_directory(photo.get_dir(), os.path.basename(photo.imagePath))
 
 
-@photos.route('/photos/<photo_id>/<filename>', methods=['PUT'])
-async def upload_photo_file(photo_id, filename):
+@photos.route('/photos/<photo_id>/image', methods=['PUT'])
+async def upload_photo_file(photo_id):
     """
     Upload a photo data file
     ---
@@ -305,15 +340,13 @@ async def upload_photo_file(photo_id, filename):
     if photo is None:
         raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
-    file_path = os.path.join(photo.get_dir(), secure_filename(filename))
-    created = not os.path.exists(file_path)
+    created = not os.path.exists(photo.imagePath)
 
     body = await request.get_data()
-    with open(file_path, "wb") as output:
+    with open(photo.imagePath, "wb") as output:
         output.write(body)
 
-    photo.filePath = file_path
-    photo.fileUrl = "/photos/{}/{}".format(photo_id, secure_filename(filename))
+    photo.imageUrl = "/photos/{}/image".format(photo_id)
     photo.ready = True
     photo.updated = time.time()
     photo.save()

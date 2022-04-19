@@ -28,7 +28,7 @@ class PhotoModel(JsonResource):
     This is easily done with a multi-step procedure:
     1. The headset creates a photo object (POST /photos) with metadata such as
     the file type and image size.
-    2. The server responds with a unique URL (fileUrl) for the image.
+    2. The server responds with a unique URL (imageUrl) for the image.
     3. The headset uploads the image file to the specified location using the
     PUT method.
 
@@ -37,8 +37,8 @@ class PhotoModel(JsonResource):
     id:             str
 
     contentType:    str = field(default="image/jpeg")
-    filePath:       str = field(default=None)
-    fileUrl:        str = field(default=None)
+    imagePath:      str = field(default=None)
+    imageUrl:       str = field(default=None)
     ready:          bool = field(default=False)
 
     height:         int = field(default=None)
