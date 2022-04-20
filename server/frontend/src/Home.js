@@ -556,11 +556,13 @@ function Home(props) {
                 }
 
                 const requestData = {
-                    method: 'PUT',
+                    method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(headsets[x])
+                    body: JSON.stringify({
+                        'name': headsets[x]['name']
+                    })
                 };
 
                 fetch(url, requestData).then(response => {
@@ -591,11 +593,13 @@ function Home(props) {
                 }
 
                 const requestData = {
-                    method: 'PUT',
+                    method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(locations[x])
+                    body: JSON.stringify({
+                        'name': locations[x]['name']
+                    })
                 };
                 fetch(url, requestData).then(response => {
 

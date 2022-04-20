@@ -103,11 +103,13 @@ function AllHeadsets(props){
               }
 
               const requestData = {
-                  method: 'PUT',
+                  method: 'PATCH',
                   headers: {
                       'Content-Type': 'application/json'
                   },
-                  body: JSON.stringify(headsets.get()[x])
+                  body: JSON.stringify({
+                      'name': headsets.get()[x]['name']
+                  })
               };
 
               fetch(url, requestData).then(response => {
