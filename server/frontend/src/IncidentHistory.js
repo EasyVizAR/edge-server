@@ -103,7 +103,7 @@ function IncidentHistory(props){
       fetch(url, requestData)
       .then(response => {
         props.getIncidentHistory();
-        props.getMaps();
+        props.getLocations();
         props.getHeadsets();
         props.getCurrentIncident();
       });
@@ -122,7 +122,7 @@ function IncidentHistory(props){
       if (response.ok) {
         props.currentIncident.set(incidentNumber);
         props.incidentName.set(incidentName);
-        props.getMaps();
+        props.getLocations();
         props.getHeadsets();
         props.getCurrentIncident();
         props.updateIncidentInfo();
