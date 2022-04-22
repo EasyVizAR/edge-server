@@ -761,13 +761,14 @@ function Home(props) {
                           <h4 style={{marginTop: '0px'}}>{incidentInfo.get()}</h4>
                         </div>
                       </div>
-                        <MapContainer selectedImage={selectedImage} selectedMap={selectedMap} maps={maps} port={port}
+                        <MapContainer id="map-container" selectedImage={selectedImage} selectedMap={selectedMap} maps={maps} port={port}
                         setFeatures={setFeatures} setHeadsets={setHeadsets} cursor={cursor} setClickCount={setClickCount}
                                       clickCount={clickCount} placementType={placementType} iconIndex={iconIndex}
                                       setPointCoordinates={setPointCoordinates} headsetsChecked={headsetsChecked}
                                       featuresChecked={featuresChecked} sliderValue={sliderValue} mapLoaded ={mapLoaded}
                                       combinedMapObjects={combinedMapObjects}  setMapLoaded={setMapLoaded}
-                                      convertVector2Scaled = {convertVector2Scaled} crossHairIcon={crossHairIcon}/>
+                                      convertVector2Scaled = {convertVector2Scaled} crossHairIcon={crossHairIcon}
+                        />
                       <div style={{width: 'max-content'}}>
                           <Form onChange={changeMapObjectsContainer}>
                               <Form.Check

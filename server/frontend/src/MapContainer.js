@@ -1,6 +1,8 @@
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import React from "react";
+import React, {useState} from "react";
 import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
+import "./MapContainer.css"
+import {Form, FormCheck} from "react-bootstrap";
 
 function MapContainer(props) {
     const host = window.location.hostname;
@@ -8,6 +10,7 @@ function MapContainer(props) {
     const mapIconSize = 7;
     const circleSvgIconSize = 11;
 
+    const [layers, setLayers] = useState(['Layer-1', 'Layer-2'])
 
     const icons = {
         fire: solid('fire'),
@@ -166,34 +169,17 @@ function MapContainer(props) {
             - document.getElementById('map-image').offsetHeight / 100.0 * mapIconSize) / 2.0;
     }
 
-    return (<div>
-        <div className="map-image-container">
-            <img id="map-image" src={props.selectedImage} alt="Map of the environment" onLoad={onMapLoad}
-                 onClick={onMouseClick} style={{cursor: props.cursor}}/>
-            {props.combinedMapObjects.map((f, index) => {
-                return f.placement == 'floating' && f.editing == 'true'?
-                    <div>
-                        <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
-                                         alt={f.name} style={{
-                            left: props.combinedMapObjects[index].scaledX,
-                            top: props.combinedMapObjects[index].scaledY,
-                            height: mapIconSize + "%",
-                            pointerEvents: "none"
-                        }}/>
-                        <svg className="features"
-                             width={getCircleSvgSize(props.sliderValue)}
-                             height={getCircleSvgSize(props.sliderValue)}
-                             style={{
-                                 left: props.combinedMapObjects[index].scaledX - getCircleSvgShift(props.sliderValue),
-                                 top: props.combinedMapObjects[index].scaledY - getCircleSvgShift(props.sliderValue),
-                                 pointerEvents: "none"
-                             }}>
-                            <circle style={{pointerEvents: "none"}} cx={getCircleSvgSize(props.sliderValue) / 2}
-                                    cy={getCircleSvgSize(props.sliderValue) / 2}
-                                    r={convert2Pixel(props.sliderValue)} fill-opacity="0.3" fill="#0000FF"/>
-                        </svg>
-                    </div>
-                    : f.placement == 'floating' ?
+    const onLayerRadioChange = (e) => {
+        console.log(e);
+    }
+
+    return (
+        <div className="map-layer-container">
+            <div className="map-image-container">
+                <img id="map-image" src={props.selectedImage} alt="Map of the environment" onLoad={onMapLoad}
+                     onClick={onMouseClick} style={{cursor: props.cursor}}/>
+                {props.combinedMapObjects.map((f, index) => {
+                    return f.placement == 'floating' && f.editing == 'true' ?
                         <div>
                             <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
                                              alt={f.name} style={{
@@ -203,29 +189,64 @@ function MapContainer(props) {
                                 pointerEvents: "none"
                             }}/>
                             <svg className="features"
-                                 width={getCircleSvgSize(f.radius)}
-                                 height={getCircleSvgSize(f.radius)}
+                                 width={getCircleSvgSize(props.sliderValue)}
+                                 height={getCircleSvgSize(props.sliderValue)}
                                  style={{
-                                     left: props.combinedMapObjects[index].scaledX - getCircleSvgShift(f.radius),
-                                     top: props.combinedMapObjects[index].scaledY - getCircleSvgShift(f.radius),
+                                     left: props.combinedMapObjects[index].scaledX - getCircleSvgShift(props.sliderValue),
+                                     top: props.combinedMapObjects[index].scaledY - getCircleSvgShift(props.sliderValue),
                                      pointerEvents: "none"
                                  }}>
-                                <circle style={{pointerEvents: "none"}} cx={getCircleSvgSize(f.radius) / 2}
-                                        cy={getCircleSvgSize(f.radius) / 2}
-                                        r={convert2Pixel(f.radius)} fill-opacity="0.3" fill="#0000FF"/>
+                                <circle style={{pointerEvents: "none"}} cx={getCircleSvgSize(props.sliderValue) / 2}
+                                        cy={getCircleSvgSize(props.sliderValue) / 2}
+                                        r={convert2Pixel(props.sliderValue)} fill-opacity="0.3" fill="#0000FF"/>
                             </svg>
                         </div>
-                        : <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
-                                           alt={f.name}
-                                           style={{
-                                               left: props.combinedMapObjects[index].scaledX,
-                                               top: props.combinedMapObjects[index].scaledY,
-                                               height: mapIconSize + "%",
-                                               pointerEvents: "none"
-                                           }}/>
-            })}
+                        : f.placement == 'floating' ?
+                            <div>
+                                <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
+                                                 alt={f.name} style={{
+                                    left: props.combinedMapObjects[index].scaledX,
+                                    top: props.combinedMapObjects[index].scaledY,
+                                    height: mapIconSize + "%",
+                                    pointerEvents: "none"
+                                }}/>
+                                <svg className="features"
+                                     width={getCircleSvgSize(f.radius)}
+                                     height={getCircleSvgSize(f.radius)}
+                                     style={{
+                                         left: props.combinedMapObjects[index].scaledX - getCircleSvgShift(f.radius),
+                                         top: props.combinedMapObjects[index].scaledY - getCircleSvgShift(f.radius),
+                                         pointerEvents: "none"
+                                     }}>
+                                    <circle style={{pointerEvents: "none"}} cx={getCircleSvgSize(f.radius) / 2}
+                                            cy={getCircleSvgSize(f.radius) / 2}
+                                            r={convert2Pixel(f.radius)} fill-opacity="0.3" fill="#0000FF"/>
+                                </svg>
+                            </div>
+                            : <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
+                                               alt={f.name}
+                                               style={{
+                                                   left: props.combinedMapObjects[index].scaledX,
+                                                   top: props.combinedMapObjects[index].scaledY,
+                                                   height: mapIconSize + "%",
+                                                   pointerEvents: "none"
+                                               }}/>
+                })}
+            </div>
+            <Form className='layer-radio-form'>
+                {layers.map((layer, idx) => {
+                    return <FormCheck
+                        name="layer-radios"
+                        id={layer + "-id"}
+                        label={layer}
+                        type="radio"
+                        value={layer}
+                        onChange={onLayerRadioChange}
+                    />
+                })}
+            </Form>
         </div>
-    </div>);
+    );
 }
 
 

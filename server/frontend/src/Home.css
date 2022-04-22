@@ -25,29 +25,7 @@
   width: 50%;
   height: 50%;
 }
-.map-image-container {
-  position: relative;
-  top: 0;
-  left: 0;
-}
-#map-image {
-  position: relative;
-  width: 25%;
-  top: 0;
-  left: 0;
-  border: 1px solid #000000;
-}
-.features {
-  position: absolute;
-  /* left: 924px;
-  top: 66.5px; */
-  border: 0px solid #000000;
-}
-#map-image {
-  display: flex;
-  justify-self: center;
-  align-self: center;
-}
+
 .header-button{
   margin-top: 10px;
   margin-left: 10px;
