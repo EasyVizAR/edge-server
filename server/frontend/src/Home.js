@@ -29,6 +29,7 @@ import {
     faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import MapContainer from "./MapContainer";
+import NewLayer from "./NewLayer";
 
 fontawesome.library.add(faBandage, faDoorClosed, faElevator,
     faExclamationTriangle, faFire, faFireExtinguisher, faHeadset, faMessage,
@@ -991,6 +992,10 @@ function Home(props) {
                   <Tab eventKey="all-headsets" title="All Headsets">
                     <AllHeadsets port={port} getMapHeadsets={getHeadsets} />
                   </Tab>
+
+                    <Tab eventKey="create-layer" title="Create Layer">
+                        <NewLayer port={port} getHeadsets={getHeadsets} getMaps={get_maps} setTab={setTab}/>
+                    </Tab>
 
                 </Tabs>
             </div>
