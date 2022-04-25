@@ -254,6 +254,7 @@ async def update_photo(photo_id):
                     "height": 480,
                     "annotations": [{
                         "label": "extinguisher",
+                        "confidence": 1.0,
                         "boundary": {
                             "left": 0.1,
                             "top": 0.1,

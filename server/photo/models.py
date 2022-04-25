@@ -13,6 +13,7 @@ from server.resources.jsonresource import JsonCollection, JsonResource
 @dataclass
 class Annotation:
     label:      str = field(default="object")
+    confidence: float = field(default=0.0)
     boundary:   Box = field(default_factory=Box)
 
 
