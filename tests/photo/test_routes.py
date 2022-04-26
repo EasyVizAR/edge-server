@@ -1,4 +1,5 @@
 import os
+import time
 
 from http import HTTPStatus
 
@@ -177,3 +178,49 @@ async def test_photo_annotations():
         assert isinstance(photo2['annotations'], list)
         assert len(photo2['annotations']) == 1
         assert photo2['annotations'][0]['label'] == "extinguisher"
+
+
+@pytest.mark.asyncio
+async def test_photo_long_polling():
+    """
+    Test photo long polling
+    """
+    async with app.test_client() as client:
+        photos_url = "/photos"
+        start_time = time.time()
+
+        # Initial list of photos should be empty
+        response = await client.get(photos_url + "?since={}".format(start_time))
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        photos = await response.get_json()
+        assert isinstance(photos, list)
+        assert len(photos) == 0
+
+        # A short wait should timeout with no results
+        response = await client.get(photos_url + "?since={}&wait=0.001".format(start_time))
+        assert response.status_code == HTTPStatus.NO_CONTENT
+        assert response.is_json
+        photos = await response.get_json()
+        assert isinstance(photos, list)
+        assert len(photos) == 0
+
+        # Set up a listener
+        listener = client.get(photos_url + "?since={}&wait=5".format(start_time))
+
+        # Create an object
+        response = await client.post(photos_url, json=dict(imageUrl="/foo"))
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        photo = await response.get_json()
+        assert isinstance(photo, dict)
+        assert photo['id'] is not None
+        assert photo['imageUrl'] == "/foo"
+
+        # The listener should have received the same object
+        response2 = await listener
+        assert response2.status_code == HTTPStatus.OK
+        assert response2.is_json
+        photo2 = await response2.get_json()
+        assert isinstance(photo2, list)
+        assert photo2[0] == photo

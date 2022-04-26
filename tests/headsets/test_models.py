@@ -13,9 +13,7 @@ def test_headset_model():
     assert int(item.orientation.x) == 0
     assert int(item.orientation.y) == 0
     assert int(item.orientation.z) == 0
-    assert item.matches({}) is True
-    assert item.matches({"name": item.name}) is True
-    assert item.matches({"name": ""}) is False
+    assert int(item.orientation.w) == 0
 
 
 def test_headset_collection():
