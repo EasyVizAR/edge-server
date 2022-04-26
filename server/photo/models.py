@@ -6,7 +6,7 @@ from typing import List
 from marshmallow_dataclass import dataclass
 
 from server.annotation.models import AnnotationModel
-from server.resources.geometry import Box
+from server.resources.geometry import Box, Vector3f, Vector4f
 from server.resources.jsonresource import JsonCollection, JsonResource
 
 
@@ -47,6 +47,9 @@ class PhotoModel(JsonResource):
 
     retention:      str = field(default="auto")
     createdBy:      str = field(default=None)
+
+    cameraPosition:     Vector3f = field(default=None)
+    cameraOrientation:  Vector4f = field(default=None)
 
     annotations:    List[Annotation] = field(default_factory=list)
 

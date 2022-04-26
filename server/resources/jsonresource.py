@@ -28,7 +28,7 @@ used to create new objects find objects in storage.
 
     results = Dummy.find(name="foobar")
 """
-
+import asyncio
 import json
 import os
 import shutil
@@ -38,9 +38,12 @@ import uuid
 import marshmallow
 
 from server.resources.abstractresource import AbstractResource, AbstractCollection
+from server.resources.filter import Filter
 
 
 class JsonResource(AbstractResource):
+    on_update = []
+
     def delete(self):
         shutil.rmtree(self._storage_dir, ignore_errors=True)
 
@@ -59,24 +62,15 @@ class JsonResource(AbstractResource):
         """
         return self._storage_path
 
-    def matches(self, query):
-        for k, v in query.items():
-            if v is not None and getattr(self, k) != v:
-                return False
-        return True
-
-    def notify_listeners(self, listeners):
-        remaining = []
-        for future, query in listeners:
+    def notify_listeners(self, created):
+        # TODO possibly distinguish create and update events
+        for i, listener in enumerate(JsonResource.on_update):
+            future, filt = listener
             if future.cancelled():
-                continue
-            elif self.matches(query):
+                JsonResource.on_update.pop(i)
+            elif filt.matches(self):
                 future.set_result(self)
-            else:
-                remaining.append((future, query))
-
-        listeners.clear()
-        listeners.extend(remaining)
+                JsonResource.on_update.pop(i)
 
     def on_ready(self):
         """
@@ -100,9 +94,7 @@ class JsonResource(AbstractResource):
             output.write(json_out)
 
         # Notify any listeners of the change.
-#        if created:
-#            self.notify_listeners(self.on_create)
-#        self.notify_listeners(self.on_update)
+        self.notify_listeners(created)
 
         return created
 
@@ -110,11 +102,16 @@ class JsonResource(AbstractResource):
         for key, value in other.items():
             setattr(self, key, value)
 
+    @classmethod
+    async def wait_for(cls, filt=None):
+        if filt is None:
+            filt = Filter()
+        future = asyncio.get_event_loop().create_future()
+        cls.on_update.append((future, filt))
+        return await future
+
 
 class JsonCollection(AbstractCollection):
-    on_create = []
-    on_update = []
-
     def __init__(self, resource_class, resource_name, collection_name=None, id_type="numeric", parent=None):
         """
         Create a new collection.
@@ -190,12 +187,16 @@ class JsonCollection(AbstractCollection):
         """
         shutil.rmtree(self.base_directory, ignore_errors=True)
 
-    def find(self, **kwargs):
+    def find(self, filt=None, **kwargs):
         """
         Find all objects that match the query parameters.
         """
         if not os.path.isdir(self.base_directory):
             return []
+
+        if filt is None:
+            filt = Filter()
+            filt.add_from_dict(kwargs)
 
         results = []
         for dname in os.listdir(self.base_directory):
@@ -206,7 +207,7 @@ class JsonCollection(AbstractCollection):
             with open(fname, "r") as source:
                 item = self.resource_schema.loads(source.read())
                 self.prepare_item(item)
-                if item.matches(kwargs):
+                if filt.matches(item):
                     results.append(item)
 
         return results
@@ -226,12 +227,16 @@ class JsonCollection(AbstractCollection):
         except:
             return None
 
-    def find_newest(self, **query):
+    def find_newest(self, filt=None, **kwargs):
         """
         Find the newest object based on file creation times.
         """
         if not os.path.isdir(self.base_directory):
             return None
+
+        if filt is None:
+            filt = Filter()
+            filt.add_from_dict(kwargs)
 
         for entry in sorted(os.scandir(self.base_directory), key=lambda x: x.stat().st_mtime, reverse=True):
             if not entry.is_dir():
@@ -241,7 +246,7 @@ class JsonCollection(AbstractCollection):
             with open(file_path, "r") as source:
                 item = self.resource_schema.loads(source.read())
                 self.prepare_item(item)
-                if item.matches(query):
+                if filt.matches(item):
                     return item
 
         return None
@@ -292,3 +297,6 @@ class JsonCollection(AbstractCollection):
         item._storage_path = os.path.join(self.base_directory, self.format_id(item.id), self.resource_filename)
         item.on_ready()
         return item
+
+    async def wait_for(self, filt=None):
+        return await self.resource_class.wait_for(filt=filt)

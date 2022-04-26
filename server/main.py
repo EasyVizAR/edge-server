@@ -69,6 +69,7 @@ def before_first_request():
     # Initialize maps storage and create the first map if there is not one.
     initialize_maps(app)
 
+
 @app.before_request
 def before_request():
     g.Headset = Headset

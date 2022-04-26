@@ -124,47 +124,35 @@ async def test_headset_put_updates():
         headset2 = await response.get_json()
         assert isinstance(headset, dict)
         assert headset2['id'] == headset['id']
-        assert headset2['position']['x'] == updated['position']['x']
-        assert headset2['position']['y'] == updated['position']['y']
-        assert headset2['position']['z'] == updated['position']['z']
-        assert headset2['orientation']['x'] == updated['orientation']['x']
-        assert headset2['orientation']['y'] == updated['orientation']['y']
-        assert headset2['orientation']['z'] == updated['orientation']['z']
+        assert headset2['position'] == updated['position']
+        assert headset2['orientation'] == updated['orientation']
         assert headset2['updated'] > updated['updated']
 
         # Test changing orientation only
         updated = headset2.copy()
-        updated['orientation'] = dict(x=1, y=0, z=0)
+        updated['orientation'] = dict(x=1, y=0, z=0, w=0)
         response = await client.put(headset_url, json=updated)
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         headset2 = await response.get_json()
         assert isinstance(headset, dict)
         assert headset2['id'] == headset['id']
-        assert headset2['position']['x'] == updated['position']['x']
-        assert headset2['position']['y'] == updated['position']['y']
-        assert headset2['position']['z'] == updated['position']['z']
-        assert headset2['orientation']['x'] == updated['orientation']['x']
-        assert headset2['orientation']['y'] == updated['orientation']['y']
-        assert headset2['orientation']['z'] == updated['orientation']['z']
+        assert headset2['position'] == updated['position']
+        assert headset2['orientation'] == updated['orientation']
         assert headset2['updated'] > updated['updated']
 
         # Test changing position and orientation
         updated = headset2.copy()
         updated['position'] = dict(x=2, y=2, z=2)
-        updated['orientation'] = dict(x=1, y=0, z=0)
+        updated['orientation'] = dict(x=1, y=0, z=0, w=0)
         response = await client.put(headset_url, json=updated)
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         headset2 = await response.get_json()
         assert isinstance(headset, dict)
         assert headset2['id'] == headset['id']
-        assert headset2['position']['x'] == updated['position']['x']
-        assert headset2['position']['y'] == updated['position']['y']
-        assert headset2['position']['z'] == updated['position']['z']
-        assert headset2['orientation']['x'] == updated['orientation']['x']
-        assert headset2['orientation']['y'] == updated['orientation']['y']
-        assert headset2['orientation']['z'] == updated['orientation']['z']
+        assert headset2['position'] == updated['position']
+        assert headset2['orientation'] == updated['orientation']
         assert headset2['updated'] > updated['updated']
 
         # Test GET headset returns an appropriate object
@@ -173,12 +161,8 @@ async def test_headset_put_updates():
         assert response.is_json
         headset2 = await response.get_json()
         assert headset2['id'] == headset['id']
-        assert headset2['position']['x'] == updated['position']['x']
-        assert headset2['position']['y'] == updated['position']['y']
-        assert headset2['position']['z'] == updated['position']['z']
-        assert headset2['orientation']['x'] == updated['orientation']['x']
-        assert headset2['orientation']['y'] == updated['orientation']['y']
-        assert headset2['orientation']['z'] == updated['orientation']['z']
+        assert headset2['position'] == updated['position']
+        assert headset2['orientation'] == updated['orientation']
         assert headset2['updated'] > headset['updated']
 
         # Test pose changes returns all of the changes
@@ -202,7 +186,7 @@ async def test_headset_put_updates():
 
 
 @pytest.mark.asyncio
-async def test_headset_put_updates():
+async def test_headset_patch_updates():
     """
     Test headset PATCH updates
     """
@@ -230,45 +214,33 @@ async def test_headset_put_updates():
         headset2 = await response.get_json()
         assert isinstance(headset, dict)
         assert headset2['id'] == headset['id']
-        assert headset2['position']['x'] == position['x']
-        assert headset2['position']['y'] == position['y']
-        assert headset2['position']['z'] == position['z']
-        assert headset2['orientation']['x'] == headset['orientation']['x']
-        assert headset2['orientation']['y'] == headset['orientation']['y']
-        assert headset2['orientation']['z'] == headset['orientation']['z']
+        assert headset2['position'] == position
+        assert headset2['orientation'] == headset['orientation']
         assert headset2['updated'] > headset['updated']
 
         # Test changing orientation only
-        orientation = dict(x=1, y=0, z=0)
+        orientation = dict(x=1, y=0, z=0, w=0)
         response = await client.patch(headset_url, json=dict(orientation=orientation))
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         headset2 = await response.get_json()
         assert isinstance(headset, dict)
         assert headset2['id'] == headset['id']
-        assert headset2['position']['x'] == position['x']
-        assert headset2['position']['y'] == position['y']
-        assert headset2['position']['z'] == position['z']
-        assert headset2['orientation']['x'] == orientation['x']
-        assert headset2['orientation']['y'] == orientation['y']
-        assert headset2['orientation']['z'] == orientation['z']
+        assert headset2['position'] == position
+        assert headset2['orientation'] == orientation
         assert headset2['updated'] > headset['updated']
 
         # Test changing position and orientation
         position = dict(x=2, y=2, z=2)
-        orientation = dict(x=1, y=0, z=0)
+        orientation = dict(x=1, y=0, z=0, w=0)
         response = await client.patch(headset_url, json=dict(position=position, orientation=orientation))
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         headset2 = await response.get_json()
         assert isinstance(headset, dict)
         assert headset2['id'] == headset['id']
-        assert headset2['position']['x'] == position['x']
-        assert headset2['position']['y'] == position['y']
-        assert headset2['position']['z'] == position['z']
-        assert headset2['orientation']['x'] == orientation['x']
-        assert headset2['orientation']['y'] == orientation['y']
-        assert headset2['orientation']['z'] == orientation['z']
+        assert headset2['position'] == position
+        assert headset2['orientation'] == orientation
         assert headset2['updated'] > headset['updated']
 
         # Test GET headset returns an appropriate object
@@ -277,12 +249,8 @@ async def test_headset_put_updates():
         assert response.is_json
         headset2 = await response.get_json()
         assert headset2['id'] == headset['id']
-        assert headset2['position']['x'] == position['x']
-        assert headset2['position']['y'] == position['y']
-        assert headset2['position']['z'] == position['z']
-        assert headset2['orientation']['x'] == orientation['x']
-        assert headset2['orientation']['y'] == orientation['y']
-        assert headset2['orientation']['z'] == orientation['z']
+        assert headset2['position'] == position
+        assert headset2['orientation'] == orientation
         assert headset2['updated'] > headset['updated']
 
         # Test pose changes returns all of the changes
