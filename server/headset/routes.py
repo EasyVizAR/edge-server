@@ -79,7 +79,7 @@ async def create_headset():
                     "name": "Lance's Headset",
                     "locationId": "28c68ff7-0655-4392-a218-ecc6645191c2",
                     "position": {"x": 0, "y": 0, "z": 0},
-                    "orientation": {"x": 1, "y": 0, "z": 0}
+                    "orientation": {"x": 0, "y": 0, "z": 0, "w": 0}
                 }
 
             The server responds with the created headset object, which
@@ -260,7 +260,7 @@ async def update_headset(headset_id):
                 {
                     "locationId": "28c68ff7-0655-4392-a218-ecc6645191c2",
                     "position": {"x": 0, "y": 0, "z": 0},
-                    "orientation": {"x": 1, "y": 0, "z": 0}
+                    "orientation": {"x": 0, "y": 0, "z": 0, "w": 0}
                 }
 
             If position and/or orientation are altered through this method, a

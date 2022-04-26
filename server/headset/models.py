@@ -2,7 +2,7 @@ import time
 
 from server.resources.dataclasses import dataclass, field
 from server.resources.jsonresource import JsonResource, JsonCollection
-from server.resources.geometry import Vector3f
+from server.resources.geometry import Vector3f, Vector4f
 
 
 @dataclass
@@ -30,8 +30,8 @@ class HeadsetModel(JsonResource):
 
     position:       Vector3f = field(default_factory=Vector3f,
                                      description="Most recent position relative to current location")
-    orientation:    Vector3f = field(default_factory=Vector3f,
-                                     description="Most recent orientation relative to current location")
+    orientation:    Vector4f = field(default_factory=Vector4f,
+                                     description="Most recent orientation relative to current location, represented as a quaternion")
 
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)

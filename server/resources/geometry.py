@@ -15,3 +15,11 @@ class Vector3f:
     x: float = field(default=0.0)
     y: float = field(default=0.0)
     z: float = field(default=0.0)
+
+
+@dataclass
+class Vector4f:
+    x: float = field(default=0.0)
+    y: float = field(default=0.0)
+    z: float = field(default=0.0)
+    w: float = field(default=0.0)
