@@ -5,9 +5,10 @@ import NewFeature from './NewFeature.js';
 import NewIncidentModal from './NewIncidentModal.js';
 import IncidentHistory from './IncidentHistory.js';
 import AllHeadsets from './AllHeadsets.js';
+import LocationTable from './LocationTable.js';
+import HeadsetTable from './HeadsetTable.js';
 import 'reactjs-popup/dist/index.css';
 import React, {useState, useEffect} from 'react';
-import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 import {Helmet} from 'react-helmet';
@@ -68,18 +69,8 @@ function Home(props) {
     const [showNewFeature, displayNewFeature] = useState(false);
     const [locationLoaded, setLocationLoaded] = useState(false);
     const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
-    const [inEditModeLocation, setInEditModeLocation] = useState({
-        status: false,
-        rowKey: null
-    });
     const [pointCoordinates, setPointCoordinates] = useState([]);
-    const [inEditModeHeadset, setInEditModeHeadset] = useState({
-        status: false,
-        rowKey: null
-    });
     const [cursor, setCursor] = useState('auto');
-    const [changedHeadsetName, setChangedHeadsetName] = useState(null);
-    const [changedLocation, setChangedLocation] = useState(null);
     const [clickCount, setClickCount] = useState(0);
     const [iconIndex, setIconIndex] = useState(null);
     const [headsetsChecked, setHeadsetsChecked] = useState(false);
@@ -505,169 +496,6 @@ function Home(props) {
       });
     }
 
-    // turns on Location editing
-    const onEditLocation = (e, id) => {
-        if (inEditModeLocation.status == true && inEditModeLocation.rowKey != null) {
-            alert("Please save or cancel edit on other location before editing another location");
-            return;
-        }
-
-        var location = {
-          'name': locations[id]['name'],
-        }
-        setChangedLocation(location);
-
-        setInEditModeLocation({
-            status: true,
-            rowKey: id
-        });
-    }
-
-    // turns on headset editing
-    const onEditHeadset = (e, id) => {
-        if (inEditModeHeadset.status == true && inEditModeHeadset.rowKey != null) {
-            alert("Please save or cancel edit on other headset before editing another headset");
-            return;
-        }
-
-        setChangedHeadsetName(headsets[id]['name']);
-
-        setInEditModeHeadset({
-            status: true,
-            rowKey: id,
-            headset_name: headsets[id]['name']
-        });
-    }
-
-    // saves the headset data
-    const onSaveHeadsets = (e, index) => {
-        const headset = null;
-        const id = e.target.id.substring(7, e.target.id.length);
-        const url = `http://${host}:${port}/headsets/${id}`;
-        for (var x in headsets) {
-            if (headsets[x]['id'] == id) {
-
-                var dup = checkHeadsetName(headsets[x]['name'], headsets[x]['id']);
-                if (dup) {
-                    var conf = window.confirm('There is another headset with the same name. Are you sure you want to continue?');
-                    if (!conf) {
-                        return;
-                    }
-                }
-
-                const requestData = {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        'name': headsets[x]['name']
-                    })
-                };
-
-                fetch(url, requestData).then(response => {
-                  setChangedHeadsetName(headsets[x]['name']);
-                  onCancelHeadset(null, index);
-                  getHeadsets();
-                });
-                break;
-            }
-        }
-        console.log("headset updated");
-    }
-
-    // saves the Location data
-    const saveLocation = (e, index) => {
-        const id = e.target.id.substring(12, e.target.id.length);
-        const url = `http://${host}:${port}/locations/${id}`;
-        var i = 0;
-        for (var x in locations) {
-            if (locations[x]['id'] == id) {
-
-                var dup_name = checkLocationName(locations[i]['name'], locations[x]['id']);
-                if (dup_name) {
-                    var conf = window.confirm('There is another location with the same name. Are you sure you want to continue?');
-                    if (!conf) {
-                        return;
-                    }
-                }
-
-                const requestData = {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        'name': locations[x]['name']
-                    })
-                };
-                fetch(url, requestData).then(response => {
-
-                  var new_location = {
-                    'name': locations[x]['name']
-                  };
-                  setChangedLocation(new_location);
-                  onCancelLocation(index);
-                  get_locations();
-                });
-                break;
-            }
-            i = i + 1
-        }
-
-    }
-
-    // cancels Location editing
-    const onCancelLocation = (index) => {
-        for (var x in locations){
-          if (x == index){
-            locations[x]['name'] = changedLocation['name'];
-            break;
-          }
-        }
-
-        setChangedLocation(null);
-
-        // reset the inEditMode state value
-        setInEditModeLocation({
-            status: false,
-            rowKey: null
-        });
-    }
-
-    // turns off headset editing
-    const onCancelHeadset = (element, index) => {
-
-        for (var x in headsets){
-          if (x == index){
-            headsets[x]['name'] = changedHeadsetName;
-            break;
-          }
-        }
-
-        setChangedHeadsetName(null);
-
-        setInEditModeHeadset({
-            status: false,
-            rowKey: null
-        });
-    }
-
-    // onchange handler for updating headset name
-    const updateHeadsetName = (e) => {
-        var newHeadsets = [];
-        var prefix = "headsetName";
-        var headset_id = e.target.id.substring(prefix.length, e.target.id.length);
-
-        for (var x in headsets) {
-            if (headsets[x]['id'] == headset_id) {
-                headsets[x]['name'] = e.target.value;
-            }
-            newHeadsets.push(headsets[x]);
-        }
-        setHeadsets(newHeadsets);
-    }
-
     // onchange handler for updating Location image
     const updateImage = (e) => {
         var newLocations = [];
@@ -683,22 +511,6 @@ function Home(props) {
         //setLocations(newLocations);
     }
 
-    // on change handler for updating Location name
-    const updateLocationName = (e) => {
-        var newLocations = [];
-        var prefix = "locationName";
-        var location_id = e.target.id.substring(prefix.length, e.target.id.length);
-
-        for (var x in locations) {
-            if (locations[x]['id'] == location_id) {
-                locations[x]['name'] = e.target.value;
-                inEditModeLocation.location_name = e.target.value;
-            }
-            newLocations.push(locations[x]);
-        }
-        setLocations(newLocations);
-    }
-
     // checks if an image associated with a map already exists
     //function checkMapImage(image, id) {
         //for (var x in locations) {
@@ -708,27 +520,6 @@ function Home(props) {
         //}
         //return false;
     //}
-
-    // checks if a Location name already exists
-    function checkLocationName(name, id) {
-        for (var x in locations) {
-            if (locations[x]['name'] === name && locations[x]['id'] != id) {
-                console.log(locations[x]['name'] + '.............' + locations[x]['id'])
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // check if a headset name already exists
-    function checkHeadsetName(name, id) {
-        for (var x in headsets) {
-            if (headsets[x]['name'] == name && headsets[x]['id'] != id) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     const toggleCursor = (e) => {
         if (cursor == 'crosshair') {
@@ -750,82 +541,6 @@ function Home(props) {
 
     const changeIcon = (v) => {
         setCrossHairIcon(v);
-    }
-
-    // deletes headset with the id and name
-    function deleteHeadset(id, name) {
-        const del = window.confirm("Are you sure you want to delete headset '" + name + "'?");
-        if (!del) {
-            return;
-        }
-
-        const url = `http://${host}:${port}/headsets/${id}`;
-        const requestData = {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        };
-
-        fetch(url, requestData)
-            .then(response => {
-                for (var x in headsets) {
-                    if (headsets[x]['id'] == id) {
-                        headsets.pop(headsets[x]);
-                    }
-                }
-                getHeadsets();
-            });
-    }
-
-    function deleteLocation(id, name) {
-        const del = window.confirm("Are you sure you want to delete Location '" + name + "'?");
-        if (!del) {
-            return;
-        }
-
-        const url = `http://${host}:${port}/locations/${id}`;
-        const requestData = {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        };
-
-        fetch(url, requestData)
-            .then(response => {
-                for (var x in locations) {
-                    if (locations[x]['id'] == id) {
-                        locations.pop(locations[x]);
-                    }
-                }
-                get_locations();
-            });
-    }
-
-    // code that creates the trash icons
-    function TrashIcon(props) {
-        const item = props.item;
-        const itemId = props.id;
-        const itemName = props.name;
-
-        if (item == 'headset') {
-            return (
-                <Button style={{width: "30px", height: "30px"}} className='btn-danger table-btns'
-                        onClick={(e) => deleteHeadset(itemId, itemName)} title="Delete Headset">
-                    <FontAwesomeIcon icon={solid('trash-can')} size="lg"
-                                     style={{position: 'relative', right: '0px', top: '-1px'}}/>
-                </Button>
-            );
-        } else {
-            return (
-                <Button style={{width: "30px", height: "30px"}} className='btn-danger table-btns'
-                        onClick={(e) => deleteLocation(itemId, itemName)} title="Delete Location">
-                    <FontAwesomeIcon icon={solid('trash-can')} size="lg"
-                                     style={{position: 'relative', right: '0px', top: '-1px'}}/>
-                </Button>
-            );
-        }
     }
 
     function getCurrentIncident(){
@@ -982,181 +697,10 @@ function Home(props) {
                               />
                           </Form>
                       </div>
-                      <div style={{marginTop: "20px"}}>
-                          <div>
-                            <h3 style={{textAlign: "left"}}>Headsets</h3>
-                          </div>
-                          <Table striped bordered hover>
-                              <thead>
-                              <tr>
-                                  <th rowSpan='2'>Headset ID</th>
-                                  <th rowSpan='2'>Name</th>
-                                  <th rowSpan='2'>Location ID</th>
-                                  <th rowSpan='2'>Last Update</th>
-                                  <th colSpan='3'>Position</th>
-
-                                  <th colSpan='3'>Orientation</th>
-                                  <th colSpan='1'></th>
-                              </tr>
-                              <tr>
-                                  <th>X</th>
-                                  <th>Y</th>
-                                  <th>Z</th>
-                                  <th>X</th>
-                                  <th>Y</th>
-                                  <th>Z</th>
-                                  <th></th>
-                              </tr>
-                              </thead>
-                              <tbody>
-                              {
-                                  headsets.length > 0 ? (
-                                    headsets.map((e, index) => (
-                                        <tr>
-                                          <td>{e.id}</td>
-                                          <td id={"headsetName" + index}>
-                                              {
-                                                  inEditModeHeadset.status && inEditModeHeadset.rowKey === index ? (
-                                                      <input
-                                                          value={headsets[index]['name']}
-                                                          placeholder="Edit Headset Name"
-                                                          onChange={updateHeadsetName}
-                                                          name={"headsetinput" + e.id}
-                                                          type="text"
-                                                          id={'headsetName' + e.id}/>
-                                                  ) : (
-                                                      e.name
-                                                  )
-                                              }
-                                          </td>
-                                          <td>{e.mapId}</td>
-                                          <td>{moment.unix(e.lastUpdate).fromNow()}</td>
-                                          <td>{e.positionX}</td>
-                                          <td>{e.positionY}</td>
-                                          <td>{e.positionZ}</td>
-                                          <td>{e.orientationX}</td>
-                                          <td>{e.orientationY}</td>
-                                          <td>{e.orientationZ}</td>
-                                          <td>
-                                              {
-                                                  (inEditModeHeadset.status && inEditModeHeadset.rowKey === index) ? (
-                                                      <React.Fragment>
-                                                          <Button
-                                                              className={"btn-success table-btns"}
-                                                              id={'savebtn' + e.id}
-                                                              onClick={(e) => onSaveHeadsets(e, index)}
-                                                              title='Save'>
-                                                              Save
-                                                          </Button>
-
-                                                          <Button
-                                                              className={"btn-secondary table-btns"}
-                                                              style={{marginLeft: 8}}
-                                                              onClick={(event) => onCancelHeadset(event, index)}
-                                                              title='Cancel'>
-                                                              Cancel
-                                                          </Button>
-                                                      </React.Fragment>
-                                                  ) : (
-                                                      <Button
-                                                          className={"btn-primary table-btns"}
-                                                          onClick={(e) => onEditHeadset(e, index)}
-                                                          title='Edit'>
-                                                          Edit
-                                                      </Button>
-                                                  )
-                                              }
-                                          </td>
-                                          <td>
-                                              <div>
-                                                  <TrashIcon item='headset' id={e.id} name={e.name}/>
-                                              </div>
-                                          </td>
-                                      </tr>
-                                  ))
-                                ) : (
-                                  <tr><td colspan="100%">No Headsets</td></tr>
-                                )
-                              }
-                              </tbody>
-                          </Table>
-                      </div>
-                      <div style={{marginTop: "20px"}}>
-                          <div>
-                            <h3 style={{textAlign: "left"}}>Locations</h3>
-                          </div>
-                          <Table striped bordered hover>
-                              <thead>
-                              <tr>
-                                  <th rowSpan='2'>Location ID</th>
-                                  <th rowSpan='2'>Name</th>
-                              </tr>
-                              </thead>
-                              <tbody>
-                              {
-                                  locations.length > 0 ? (
-                                    locations.map((e, index) => {
-                                        return <tr>
-                                            <td>{e.id}</td>
-                                            <td>
-                                                {
-                                                    inEditModeLocation.status && inEditModeLocation.rowKey === index ? (
-                                                        <input
-                                                            placeholder="Edit Location Name"
-                                                            name="input"
-                                                            type="text"
-                                                            id={'locationName' + e.id}
-                                                            onChange={updateLocationName}
-                                                            value={locations[index]['name']}/>
-                                                    ) : (
-                                                        e.name
-                                                    )
-                                                }
-                                            </td>
-                                            <td>
-                                                {
-                                                    (inEditModeLocation.status && inEditModeLocation.rowKey === index) ? (
-                                                        <React.Fragment>
-                                                            <Button
-                                                                className={"btn-success table-btns"}
-                                                                id={'locationsbtn' + e.id}
-                                                                onClick={(e) => saveLocation(e, index)}
-                                                                title='Save'>
-                                                                Save
-                                                            </Button>
-
-                                                            <Button
-                                                                className={"btn-secondary table-btns"}
-                                                                style={{marginLeft: 8}}
-                                                                onClick={() => onCancelLocation(index)}
-                                                                title='Cancel'>
-                                                                Cancel
-                                                            </Button>
-                                                        </React.Fragment>
-                                                    ) : (
-                                                        <Button
-                                                            className={"btn-primary table-btns"}
-                                                            onClick={(e) => onEditLocation(e, index)}
-                                                            title='Edit'>
-                                                            Edit
-                                                        </Button>
-                                                    )
-                                                }
-                                            </td>
-                                            <td>
-                                                <div>
-                                                    <TrashIcon item='location' id={e.id} name={e.name}/>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    })
-                                  ) : (
-                                    <tr><td colspan="100%">No Locations</td></tr>
-                                  )
-                              }
-                              </tbody>
-                          </Table>
-                      </div>
+                      <HeadsetTable port={port} headsets={headsets} getHeadsets={getHeadsets}
+                                    setHeadsets={setHeadsets}/>
+                      <LocationTable port={port} locations={locations} getLocations={get_locations}
+                                     setLocations={setLocations}/>
                     </div>
                   </Tab>
                   <Tab eventKey="create-location" title="Create Location">

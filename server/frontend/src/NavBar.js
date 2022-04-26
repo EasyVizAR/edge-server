@@ -13,7 +13,7 @@ function NavBar(props){
           </Container>
           <div class="vl"></div>
             <Link className="links" to="/">Home</Link>
-            <Link className="links" to="/workitems">WorkItems</Link>
+            <Link className="links" to="/workitems">Work Items</Link>
         </div>
     </Navbar>
   );
