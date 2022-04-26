@@ -1,11 +1,9 @@
 import time
 
-from dataclasses import field
 from typing import List
 
-from marshmallow_dataclass import dataclass
-
 from server.annotation.models import AnnotationModel
+from server.resources.dataclasses import dataclass, field
 from server.resources.geometry import Box, Vector3f, Vector4f
 from server.resources.jsonresource import JsonCollection, JsonResource
 
@@ -37,10 +35,14 @@ class PhotoModel(JsonResource):
     """
     id:             str
 
-    contentType:    str = field(default="image/jpeg")
-    imagePath:      str = field(default=None)
-    imageUrl:       str = field(default=None)
-    ready:          bool = field(default=False)
+    contentType:    str = field(default="image/jpeg",
+                                description="File MIME type")
+    imagePath:      str = field(default=None,
+                                description="Path to file if present on the server")
+    imageUrl:       str = field(default=None,
+                                description="Either a fully-specified URL (https://...) or a local path on the server (/photos/...)")
+    ready:          bool = field(default=False,
+                                 description="Indicates imageUrl is valid and ready and presumably readable")
 
     height:         int = field(default=None)
     width:          int = field(default=None)

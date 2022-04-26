@@ -17,6 +17,16 @@ from .models import PhotoModel
 photos = Blueprint("photos", __name__)
 
 
+def get_photo_extension(photo):
+    if photo.contentType == "image/jpeg":
+        return "jpeg"
+    elif photo.contentType == "image/png":
+        return "png"
+    else:
+        error = "Unsupported content type ({})".format(photo.contentType)
+        raise exceptions.BadRequest(description=error)
+
+
 @photos.route('/photos', methods=['GET'])
 async def list_photos():
     """
@@ -167,16 +177,8 @@ async def create_photo():
 
     # The photo object should either specify an external imageUrl, or the caller
     # will need to upload a file after creating this object.
-    if photo.imageUrl is None:
-        if photo.contentType == "image/jpeg":
-            extension = "jpeg"
-        elif photo.contentType == "image/png":
-            extension = "png"
-        else:
-            error = "Unsupported content type ({})".format(photo.contentType)
-            raise exceptions.BadRequest(description=error)
-
-        upload_file_name = "image.{}".format(extension)
+    if photo.imageUrl is None or photo.imageUrl.strip() == "":
+        upload_file_name = "image.{}".format(get_photo_extension(photo))
         photo.imagePath = os.path.join(photo.get_dir(), upload_file_name)
         photo.imageUrl = "/photos/{}/image".format(photo.id)
         photo.ready = False
@@ -394,6 +396,11 @@ async def upload_photo_file(photo_id):
     photo = g.active_incident.Photo.find_by_id(photo_id)
     if photo is None:
         raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+
+    # In case the image path was not set correctly or even was set maliciously,
+    # reconstruct it here before writing the file.
+    upload_file_name = "image.{}".format(get_photo_extension(photo))
+    photo.imagePath = os.path.join(photo.get_dir(), upload_file_name)
 
     created = not os.path.exists(photo.imagePath)
 

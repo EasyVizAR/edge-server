@@ -224,3 +224,27 @@ async def test_photo_long_polling():
         photo2 = await response2.get_json()
         assert isinstance(photo2, list)
         assert photo2[0] == photo
+
+
+@pytest.mark.asyncio
+async def test_photo_empty_url():
+    """
+    Test creating photo with an empty URL string
+    """
+    async with app.test_client() as client:
+        photos_url = "/photos"
+
+        # Create an object
+        data = {
+            "contentType": "image/png",
+            "imageUrl": "    "
+        }
+
+        response = await client.post(photos_url, json=data)
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        photo = await response.get_json()
+        assert isinstance(photo, dict)
+        assert photo['ready'] is False
+        assert photo['imageUrl'].startswith('/photos')
+        assert photo['imagePath'].endswith('.png')
