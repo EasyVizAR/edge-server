@@ -71,7 +71,9 @@ async def create_photo():
                 {
                     "contentType": "image/jpeg",
                     "width": 640,
-                    "height": 480
+                    "height": 480,
+                    "cameraPosition": {"x": 0, "y": 0, "z": 0},
+                    "cameraOrientation": {"x": 0, "y": 0, "z": 0, "w": 0}
                 }
 
             The server responds with the new photo record, which most importantly,
