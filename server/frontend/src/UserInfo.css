@@ -1,0 +1,38 @@
+p{
+  color: white;
+}
+li p{
+  color: black;
+}
+.user-content{
+  width: 100%;
+}
+.userDropdown{
+width: 100%;
+  text-align: right;
+  padding-right: 20px;
+}
+.iconUser{
+  text-align: right;
+  color: white;
+}
+#account-dropdown:hover{
+  cursor: pointer;
+  background-color: #B8B8B8;
+}
+#account-dropdown:hover + #accountIcon{
+  color: black;
+}
+#account-dropdown{
+  background-color: inherit;
+  border: none;
+}
+.dropdown{
+  float: right;
+}
+.dropdown-toggle::after {
+  display: none !important;
+}
+.dropdown-item{
+  cursor: pointer;
+}
