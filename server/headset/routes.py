@@ -24,7 +24,16 @@ async def list_headsets():
     List headsets
     ---
     get:
-        description: List headsets
+        summary: List headsets
+        description: |-
+            The following example queries for headsets with on unspecified
+            or unknown location.
+
+                GET /headsets?location_id=none
+
+            The following example queries for headsets at a given location.
+
+                GET /headsets?location_id=28c68ff7-0655-4392-a218-ecc6645191c2
         tags:
           - headsets
         parameters:
@@ -34,6 +43,12 @@ async def list_headsets():
             schema:
                 type: str
             description: If set, the returned list will be wrapped in an envelope with this name.
+          - name: location_id
+            in: query
+            required: false
+            schema:
+                type: str
+            description: Only show headsets present in a given location or unknown location if set to "none".
         responses:
             200:
                 description: A list of headsets.
@@ -43,7 +58,15 @@ async def list_headsets():
                             type: array
                             items: Headset
     """
-    headsets = g.Headset.find()
+
+    filt = Filter()
+    if "location_id" in request.args:
+        location_id = request.args.get("location_id").lower()
+        if location_id in ["", "none", "null"]:
+            location_id = None
+        filt.target_equal_to("location_id", location_id)
+
+    headsets = g.Headset.find(filt=filt)
 
     # Wrap the maps list if the caller requested an envelope.
     query = request.args

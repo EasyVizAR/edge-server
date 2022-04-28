@@ -60,6 +60,16 @@ async def test_headset_routes():
         assert headset2['id'] == headset['id']
         assert headset2[test_field] == "bar"
 
+        # Test changing the location and querying for headsets at that location
+        response = await client.patch(headset_url, json={"location_id": "somewhere"})
+        assert response.status_code == HTTPStatus.OK
+        response = await client.get("/headsets?location_id=somewhere")
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        headsets = await response.get_json()
+        assert isinstance(headsets, list)
+        assert headset['id'] in (h['id'] for h in headsets)
+
         # Test replacement
         response = await client.put(headset_url, json=headset)
         assert response.status_code == HTTPStatus.OK
