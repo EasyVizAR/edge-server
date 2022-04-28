@@ -1,5 +1,7 @@
 import time
 
+from typing import Set
+
 from server.resources.dataclasses import dataclass, field
 from server.resources.jsonresource import JsonResource, JsonCollection
 from server.resources.geometry import Vector3f, Vector4f
@@ -23,7 +25,10 @@ class HeadsetModel(JsonResource):
     id:     str
     name:   str = field(default="New Headset", description="Name of the headset")
 
-    locationId:     str = field(default=None, description="Current location or NULL")
+    location_id:            str = field(default=None,
+                                        description="Current location or NULL if unknown or inactive")
+    active_in_incidents:    Set[str] = field(default_factory=set,
+                                             description="Set of incidents in which the unit was active, updated automatically by the server")
 
     # mapId is deprecated and should be removed after transition to location and layer system
     mapId:  str = field(default=None, description="deprecated")

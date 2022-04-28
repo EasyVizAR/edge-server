@@ -12,6 +12,7 @@ from werkzeug.utils import secure_filename
 from server.headset.headsetrepository import get_headset_repository
 from server.incidents.incident_handler import init_incidents_handler
 from server.incidents.models import Incident
+from server.resources.filter import Filter
 from server.utils.utils import GenericJsonEncoder, save_image
 
 headsets = Blueprint('headsets', __name__)
@@ -30,6 +31,8 @@ async def list_headsets():
           - name: envelope
             in: query
             required: false
+            schema:
+                type: str
             description: If set, the returned list will be wrapped in an envelope with this name.
         responses:
             200:
@@ -77,7 +80,7 @@ async def create_headset():
                 Content-Type: application/json
                 {
                     "name": "Lance's Headset",
-                    "locationId": "28c68ff7-0655-4392-a218-ecc6645191c2",
+                    "location_id": "28c68ff7-0655-4392-a218-ecc6645191c2",
                     "position": {"x": 0, "y": 0, "z": 0},
                     "orientation": {"x": 0, "y": 0, "z": 0, "w": 0}
                 }
@@ -113,6 +116,7 @@ async def create_headset():
     # TODO: Finalize authentication method
 
     headset = g.Headset.load(body, replace_id=True)
+    headset.active_in_incidents.add(g.active_incident.id)
     headset.save()
 
     folder = g.active_incident.Headset.add(headset.id)
@@ -224,15 +228,19 @@ async def replace_headset(headsetId):
 
     headset = g.Headset.load(body)
     headset.updated = time.time()
-    created = headset.save()
 
     incident_folder = g.active_incident.Headset.find_by_id(headsetId)
     if incident_folder is None:
         incident_folder = g.active_incident.Headset.add(headset.id)
 
+        # This is the first time the headset appears under the current incident.
+        headset.active_in_incidents.add(g.active_incident.id)
+
     if 'position' in body or 'orientation' in body:
         change = incident_folder.PoseChange.load(body)
         incident_folder.PoseChange.add(change)
+
+    created = headset.save()
 
     if created:
         return jsonify(headset), HTTPStatus.CREATED
@@ -258,7 +266,7 @@ async def update_headset(headset_id):
                 PATCH /headsets/207f24fb-558f-4d34-953a-8f7765f25069
                 Content-Type: application/json
                 {
-                    "locationId": "28c68ff7-0655-4392-a218-ecc6645191c2",
+                    "location_id": "28c68ff7-0655-4392-a218-ecc6645191c2",
                     "position": {"x": 0, "y": 0, "z": 0},
                     "orientation": {"x": 0, "y": 0, "z": 0, "w": 0}
                 }
@@ -299,14 +307,78 @@ async def update_headset(headset_id):
 
     headset.update(body)
     headset.updated = time.time()
-    headset.save()
 
     if 'position' in body or 'orientation' in body:
         folder = g.active_incident.Headset.find_by_id(headset_id)
+        if folder is None:
+            # This is the first time the headset appears under the current incident.
+            folder = g.active_incident.Headset.add(headset.id)
+            headset.active_in_incidents.add(g.active_incident.id)
         change = folder.PoseChange.load(body)
         folder.PoseChange.add(change)
 
+    headset.save()
+
     return jsonify(headset), HTTPStatus.OK
+
+
+@headsets.route('/incidents/<incident_id>/headsets', methods=['GET'])
+async def list_incident_headsets(incident_id):
+    """
+    List headsets involved in an incident
+    ---
+    get:
+        summary: List headsets involved in an incident
+        description: |-
+            This method may be used to find only the headsets that were active
+            in a particular incident, including the currently active incident.
+            The string "active" serves as an alias for the ID of the active
+            incident.
+
+            Example:
+
+                GET /incidents/active/headsets
+        tags:
+          - headsets
+        parameters:
+          - name: incident_id
+            in: path
+            required: true
+            schema:
+                type: str
+            description: Incident ID or "active" for the active incident.
+          - name: envelope
+            in: query
+            required: false
+            schema:
+                type: str
+            description: If set, the returned list will be wrapped in an envelope with this name.
+        responses:
+            200:
+                description: A list of headsets.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: Headset
+    """
+    filt = Filter()
+
+    incident_id = incident_id.lower()
+    if incident_id == "active":
+        incident_id = g.active_incident.id
+    filt.target_contains("active_in_incidents", incident_id)
+
+    headsets = g.Headset.find(filt=filt)
+
+    # Wrap the maps list if the caller requested an envelope.
+    query = request.args
+    if "envelope" in query:
+        result = {query.get("envelope"): headsets}
+    else:
+        result = headsets
+
+    return jsonify(result), HTTPStatus.OK
 
 
 #

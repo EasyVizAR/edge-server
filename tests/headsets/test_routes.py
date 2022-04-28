@@ -271,3 +271,59 @@ async def test_headset_patch_updates():
         assert response.is_json
         headset2 = await response.get_json()
         assert headset2['id'] == headset['id']
+
+
+@pytest.mark.asyncio
+async def test_headset_incidents_tracking():
+    """
+    Test that server tracks list of incidents in which a headset is active.
+    """
+    async with app.test_client() as client:
+        # Create a headset
+        response = await client.post("/headsets", json=dict(name="Test Incidents"))
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        headset = await response.get_json()
+        assert isinstance(headset, dict)
+        assert isinstance(headset['active_in_incidents'], list)
+        assert len(headset['active_in_incidents']) == 1
+
+        # Create a new incident
+        response = await client.post("/incidents", json=dict(name="Test Incident"))
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        incident = await response.get_json()
+        assert isinstance(incident, dict)
+
+        # List of active headsets should be empty
+        response = await client.get("/incidents/active/headsets")
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        active = await response.get_json()
+        assert isinstance(active, list)
+        assert len(active) == 0
+
+        headset_url = "/headsets/{}".format(headset['id'])
+
+        # Test changing headset position
+        position = dict(x=1, y=1, z=1)
+        response = await client.patch(headset_url, json=dict(position=position))
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        headset2 = await response.get_json()
+        assert isinstance(headset2, dict)
+        assert isinstance(headset2['active_in_incidents'], list)
+        assert len(headset2['active_in_incidents']) == 2
+
+        # List of active headsets should contain the headset
+        response = await client.get("/incidents/active/headsets")
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        active = await response.get_json()
+        assert isinstance(active, list)
+        assert len(active) == 1
+        assert active[0]['id'] == headset['id']
+
+        # Clean up
+        await client.delete(headset_url)
+        await client.delete("/incidents/{}".format(incident['id']))

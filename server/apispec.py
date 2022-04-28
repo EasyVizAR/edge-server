@@ -85,6 +85,7 @@ async def create_openapi_spec(app):
         spec.path(view=headsets.get_headset)
         spec.path(view=headsets.replace_headset)
         spec.path(view=headsets.update_headset)
+        spec.path(view=headsets.list_incident_headsets)
 
         spec.path(view=incidents.list_incidents)
         spec.path(view=incidents.create_incident)

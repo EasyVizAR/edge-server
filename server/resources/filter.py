@@ -13,6 +13,9 @@ class Filter:
             if value is not None:
                 self.target_equal_to(key, value)
 
+    def target_contains(self, field, value):
+        self.add(field, value, operator.contains)
+
     def target_equal_to(self, field, value):
         self.add(field, value, operator.eq)
 
