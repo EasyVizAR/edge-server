@@ -9,6 +9,7 @@ import LocationTable from './LocationTable.js';
 import HeadsetTable from './HeadsetTable.js';
 import 'reactjs-popup/dist/index.css';
 import React, {useState, useEffect} from 'react';
+import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 import {Helmet} from 'react-helmet';
@@ -29,6 +30,7 @@ import {
     faTruckMedical,
     faUser,
 } from "@fortawesome/free-solid-svg-icons";
+import LayerContainer from "./LayerContainer";
 
 fontawesome.library.add(faBandage, faDoorClosed, faElevator,
     faExclamationTriangle, faFire, faFireExtinguisher, faHeadset, faMessage,
@@ -62,12 +64,13 @@ function Home(props) {
 
     const [selectedLocation, setSelectedLocation] = useState('');
     const [features, setFeatures] = useState([]);
-    const [selectedImage, setSelectedImage] = useState('');
     const [headsets, setHeadsets] = useState([]);
     const [combinedMapObjects, setCombinedMapObjects] = useState([]);
     const [locations, setLocations] = useState([]);
     const [showNewFeature, displayNewFeature] = useState(false);
-    const [locationLoaded, setLocationLoaded] = useState(false);
+    const [layers, setLayers] = useState([]);
+    const [selectedLayerId, setSelectedLayerId] = useState(-1);
+    const [layerLoaded, setLayerLoaded] = useState(false);
     const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
     const [pointCoordinates, setPointCoordinates] = useState([]);
     const [cursor, setCursor] = useState('auto');
@@ -107,23 +110,11 @@ function Home(props) {
             setSelectedLocation(getDefaultLocationSelection());
     }, [locations, setLocations]);
 
-    useEffect(() => {
-        setSelectedImage(getMapImage(selectedLocation));
-    }, [selectedLocation, setSelectedLocation]);
 
 
     // time goes off every 10 seconds to refresh headset data
     useEffect(() => {
         const timer = setTimeout(() => getHeadsets(), 1e4)
-        return () => clearTimeout(timer)
-    });
-
-    useEffect(() => {
-        const imgUrl = selectedImage.split("?")[0] + "?" + Math.floor(Math.random() * 100);
-        const timer = setTimeout(() => {
-            if (cursor != 'crosshair') // trigger only if not in on Location edit mode
-                setSelectedImage(imgUrl)
-        }, 6e4) // 60 secs
         return () => clearTimeout(timer)
     });
 
@@ -150,15 +141,15 @@ function Home(props) {
     };
 
     const combineMapObjects = () => {
-        if (!locationLoaded)
+        if (!layerLoaded)
             return;
         var combinedMapObjectList = [];
 
         if (featuresChecked)
             for (const i in features) {
                 const v = features[i];
-                if (selectedLocation != v.mapId)
-                    continue;
+                // if (selectedLocation != v.mapId)
+                //     continue;
                 combinedMapObjectList.push({
                     'id': v.id,
                     'mapId': v.mapId,
@@ -250,73 +241,6 @@ function Home(props) {
       }
     }
 
-    const onLocationLoad = () => {
-        if (selectedLocation == 'NULL')
-            return;
-
-        setLocationLoaded(true);
-
-        fetch(`http://${host}:${port}/locations/${selectedLocation}/features`)
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                }
-            }).then(data => {
-
-            let fetchedFeatures = []
-            if (data == undefined || data == null || data[0] === undefined) {
-                console.log("NO DATA FOR MAP")
-            } else {
-                for (let i in data) {
-                    let v = data[i];
-
-                    fetchedFeatures.push({
-                        'id': v.id,
-                        'mapId': v.mapId,
-                        'name': v.name,
-                        'positionX': v.position.x,
-                        'positionY': v.position.y,
-                        'positionZ': v.position.z,
-                        'iconValue': v.type,
-                        'radius': v.style.radius,
-                        'placement': v.style.placement
-                    });
-                }
-            }
-            setFeatures(fetchedFeatures);
-
-            fetch(`http://${host}:${port}/headsets`)
-                .then(response => {
-                    return response.json()
-                }).then(data => {
-                let fetchedHeadsets = []
-                for (let k in data) {
-                    let v = data[k];
-                    if (selectedLocation === v.mapId) {
-                        fetchedHeadsets.push({
-                            'id': v.id,
-                            'lastUpdate': v.lastUpdate,
-                            'mapId': v.mapId,
-                            'name': v.name,
-                            'orientationX': v.orientation.x,
-                            'orientationY': v.orientation.y,
-                            'orientationZ': v.orientation.z,
-                            'positionX': v.position.x,
-                            'positionY': v.position.y,
-                            'positionZ': v.position.z,
-                            'scaledX': convertVector2Scaled(v.position.x, v.position.z)[0],
-                            'scaledY': convertVector2Scaled(v.position.x, v.position.z)[1],
-                            'iconValue': 'user'
-                        });
-                    }
-                }
-                setHeadsets(fetchedHeadsets);
-            });
-
-        });
-
-    }
-
     const getMapImage = (mapId) => {
         var map = null;
         for (var i = 0; i < locations.length; i++) {
@@ -362,53 +286,21 @@ function Home(props) {
         return getMapImage(getDefaultLocationSelection());
     }
 
-    const convert2Pixel = (r) => {
-        var map = {};
-        for (var i = 0; i < locations.length; i++) {
-            if (locations[i]['id'] == selectedLocation)
-                map = locations[i];
-        }
-        if (Object.keys(map).length === 0 || !locationLoaded)
-            return 0;
-        const width = map['viewBox'][2];
-        return document.getElementById('map-image').offsetWidth / width * r;
-    }
-
     const convertVector2Scaled = (x, yy) => {
         var list = [];
         var map = {};
-        for (var i = 0; i < locations.length; i++) {
-            if (locations[i]['id'] == selectedLocation)
-                map = locations[i];
+        for (var i = 0; i < layers.length; i++) {
+            if (layers[i]['id'] == selectedLayerId)
+                map = layers[i];
         }
-        if (Object.keys(map).length === 0 || !locationLoaded)
+        if (Object.keys(map).length === 0 || !layerLoaded)
             return [0, 0];
-        const xmin = map['viewBox'][0];
-        const ymin = map['viewBox'][1];
-        const width = map['viewBox'][2];
-        const height = map['viewBox'][3];
+        const xmin = map['viewBox']['left'];
+        const ymin = map['viewBox']['top'];
+        const width = map['viewBox']['width'];
+        const height = map['viewBox']['height'];
         list.push(document.getElementById('map-image').offsetWidth / width * (x - xmin));
         list.push(document.getElementById('map-image').offsetHeight / height * (yy - ymin));
-
-        return list;
-    }
-
-    const convertScaled2Vector = (px, py) => {
-        var list = [];
-        var map = {};
-        for (var i = 0; i < locations.length; i++) {
-            if (locations[i]['id'] == selectedLocation)
-                map = locations[i];
-        }
-        if (Object.keys(map).length === 0 || !locationLoaded)
-            return [0, 0];
-
-        const xmin = map['viewBox'][0];
-        const ymin = map['viewBox'][1];
-        const width = map['viewBox'][2];
-        const height = map['viewBox'][3];
-        list.push((px * width / document.getElementById('map-image').offsetWidth + xmin));
-        list.push((py * height / document.getElementById('map-image').offsetHeight + ymin));
 
         return list;
     }
@@ -417,41 +309,6 @@ function Home(props) {
         var coordinates = pointCoordinates;
         coordinates[idx] = value;
         setPointCoordinates(coordinates);
-    }
-
-    const onMouseClick = (e) => {
-        if (cursor != 'crosshair')
-            return;
-
-        let f = []
-        for (let i in features) {
-            f.push(features[i]);
-        }
-        if (clickCount > 0)
-            f.pop();
-        f.push({
-            id: 'fire-1',
-            LocationId: selectedLocation,
-            name: 'Fire',
-            positionX: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[0],
-            positionY: 0,
-            positionZ: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[1],
-            scaledX: e.clientX - e.target.getBoundingClientRect().left,
-            scaledY: e.clientY - e.target.getBoundingClientRect().top,
-            icon: crossHairIcon,
-            iconValue: icons[iconIndex].iconName,
-            editing: 'true',
-            placement: placementType
-        });
-
-        setFeatures(f);
-        setPointCoordinates([convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left,
-            e.clientY - e.target.getBoundingClientRect().top)[0],
-            0,
-            convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left,
-                e.clientY - e.target.getBoundingClientRect().top)[1]]);
-
-        setClickCount(clickCount + 1);
     }
 
     // shows the new feature popup
@@ -566,15 +423,6 @@ function Home(props) {
         });
     }
 
-    const getCircleSvgSize = (r) => {
-        return Math.max(convert2Pixel(r) * 2, document.getElementById('map-image').offsetHeight / 100.0 * circleSvgIconSize);
-    }
-
-    const getCircleSvgShift = (r) => {
-        return (Math.max(convert2Pixel(r) * 2, document.getElementById('map-image').offsetHeight / 100.0 * circleSvgIconSize)
-            - document.getElementById('map-image').offsetHeight / 100.0 * mapIconSize) / 2.0;
-    }
-
     return (
         <div className="Home">
             <Helmet>
@@ -621,64 +469,18 @@ function Home(props) {
                           <h4 style={{marginTop: '0px'}}>{incidentInfo.get()}</h4>
                         </div>
                       </div>
-                      <div className="location-image-container">
-                          <img id="map-image" src={selectedImage} alt="Image of the environment" onLoad={onLocationLoad}
-                               onClick={onMouseClick} style={{cursor: cursor}}/>
-                          {combinedMapObjects.map((f, index) => {
-                              return f.placement == 'floating' && f.editing == 'true'?
-                                  <div>
-                                      <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
-                                                       alt={f.name} style={{
-                                          left: combinedMapObjects[index].scaledX,
-                                          top: combinedMapObjects[index].scaledY,
-                                          height: mapIconSize + "%",
-                                          pointerEvents: "none"
-                                      }}/>
-                                      <svg className="features"
-                                           width={getCircleSvgSize(sliderValue)}
-                                           height={getCircleSvgSize(sliderValue)}
-                                           style={{
-                                               left: combinedMapObjects[index].scaledX - getCircleSvgShift(sliderValue),
-                                               top: combinedMapObjects[index].scaledY - getCircleSvgShift(sliderValue),
-                                               pointerEvents: "none"
-                                           }}>
-                                    <circle style={{pointerEvents: "none"}} cx={getCircleSvgSize(sliderValue) / 2}
-                                                  cy={getCircleSvgSize(sliderValue) / 2}
-                                                  r={convert2Pixel(sliderValue)} fill-opacity="0.3" fill="#0000FF"/>
-                                      </svg>
-                                  </div>
-                                  : f.placement == 'floating' ?
-                                      <div>
-                                          <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
-                                                           alt={f.name} style={{
-                                              left: combinedMapObjects[index].scaledX,
-                                              top: combinedMapObjects[index].scaledY,
-                                              height: mapIconSize + "%",
-                                              pointerEvents: "none"
-                                          }}/>
-                                          <svg className="features"
-                                               width={getCircleSvgSize(f.radius)}
-                                               height={getCircleSvgSize(f.radius)}
-                                               style={{
-                                                   left: combinedMapObjects[index].scaledX - getCircleSvgShift(f.radius),
-                                                   top: combinedMapObjects[index].scaledY - getCircleSvgShift(f.radius),
-                                                   pointerEvents: "none"
-                                               }}>
-                                        <circle style={{pointerEvents: "none"}} cx={getCircleSvgSize(f.radius) / 2}
-                                                      cy={getCircleSvgSize(f.radius) / 2}
-                                                      r={convert2Pixel(f.radius)} fill-opacity="0.3" fill="#0000FF"/>
-                                          </svg>
-                                      </div>
-                                      : <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
-                                                   alt={f.name}
-                                                      style={{
-                                                          left: combinedMapObjects[index].scaledX,
-                                                          top: combinedMapObjects[index].scaledY,
-                                                    height: mapIconSize + "%",
-                                                    pointerEvents: "none"
-                                                      }}/>
-                          })}
-                      </div>
+                        <LayerContainer id="map-container" port={port} features={features}
+                                        setFeatures={setFeatures} setHeadsets={setHeadsets} cursor={cursor} setClickCount={setClickCount}
+                                        clickCount={clickCount} placementType={placementType} iconIndex={iconIndex}
+                                        setPointCoordinates={setPointCoordinates} headsetsChecked={headsetsChecked}
+                                        featuresChecked={featuresChecked} sliderValue={sliderValue}
+                                        combinedMapObjects={combinedMapObjects} selectedLocation={selectedLocation}
+                                        convertVector2Scaled = {convertVector2Scaled} crossHairIcon={crossHairIcon}
+                                        layerLoaded={layerLoaded} setLayerLoaded={setLayerLoaded}
+                                        layers={layers} setLayers={setLayers} selectedLayerId={selectedLayerId}
+                                        setSelectedLayerId={setSelectedLayerId}
+                                      // selectedMap={selectedMap} maps={maps} setMapLoaded={setMapLoaded} mapLoaded ={mapLoaded} selectedImage={selectedImage}
+                        />
                       <div style={{width: 'max-content'}}>
                           <Form onChange={changeMapObjectsContainer}>
                               <Form.Check

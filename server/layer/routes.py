@@ -326,9 +326,10 @@ async def upload_layer_image(location_id, layer_id):
 
     created = not os.path.exists(layer.imagePath)
 
-    body = await request.get_data()
-    with open(layer.imagePath, "wb") as output:
-        output.write(body)
+    request_files = await request.files
+    image = request_files['image']
+    from server.utils.utils import save_image
+    await save_image(layer.imagePath, image)
 
     layer.imageUrl = "/locations/{}/layers/{}/image".format(location_id, layer_id)
     layer.ready = True

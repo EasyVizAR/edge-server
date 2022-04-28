@@ -217,7 +217,7 @@ function NewFeature(props) {
         }
 
         console.log(new_feature)
-        let url = `http://${host}:${port}/maps/${props.mapID}/features`;
+        let url = `http://${host}:${port}/locations/${props.mapID}/features`
         const requestData = {
             method: 'POST',
             headers: {
