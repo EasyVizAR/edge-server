@@ -5,6 +5,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 import './IncidentHistory.css';
 import useStateSynchronous from './useStateSynchronous.js';
+import moment from 'moment';
 
 function IncidentHistory(props){
   const host = window.location.hostname;
@@ -177,7 +178,7 @@ function IncidentHistory(props){
                     e.name
                   )
                 }</td>
-                <td>{e.created}</td>
+                <td>{moment.unix(e.created).fromNow()}</td>
                 <td>
                 {
                   (inEditMode.status && inEditMode.rowKey === index) ? (
