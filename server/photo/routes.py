@@ -10,6 +10,7 @@ from werkzeug.utils import secure_filename
 
 from server.resources.csvresource import CsvCollection
 from server.resources.filter import Filter
+from server.utils.utils import save_image
 
 from .models import PhotoModel
 
@@ -404,9 +405,13 @@ async def upload_photo_file(photo_id):
 
     created = not os.path.exists(photo.imagePath)
 
-    body = await request.get_data()
-    with open(photo.imagePath, "wb") as output:
-        output.write(body)
+    request_files = await request.files
+    if 'image' in request_files:
+        await save_image(photo.imagePath, request_files['image'])
+    else:
+        body = await request.get_data()
+        with open(photo.imagePath, "wb") as output:
+            output.write(body)
 
     photo.imageUrl = "/photos/{}/image".format(photo_id)
     photo.ready = True

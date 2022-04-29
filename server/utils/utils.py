@@ -23,7 +23,6 @@ class GenericJsonEncoder(JSONEncoder):
 
 
 async def save_image(file_path, image):
-    print(f"Saving file to {file_path}")
     if not os.path.exists(os.path.dirname(file_path)):
         try:
             os.makedirs(os.path.dirname(file_path))

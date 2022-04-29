@@ -7,6 +7,7 @@ from quart import Blueprint, g, jsonify, request, send_from_directory
 from werkzeug import exceptions
 
 from server.resources.csvresource import CsvCollection
+from server.utils.utils import save_image
 
 from .models import LayerModel
 
@@ -327,9 +328,12 @@ async def upload_layer_image(location_id, layer_id):
     created = not os.path.exists(layer.imagePath)
 
     request_files = await request.files
-    image = request_files['image']
-    from server.utils.utils import save_image
-    await save_image(layer.imagePath, image)
+    if 'image' in request_files:
+        await save_image(layer.imagePath, request_files['image'])
+    else:
+        body = await request.get_data()
+        with open(layer.imagePath, "wb") as output:
+            output.write(body)
 
     layer.imageUrl = "/locations/{}/layers/{}/image".format(location_id, layer_id)
     layer.ready = True
