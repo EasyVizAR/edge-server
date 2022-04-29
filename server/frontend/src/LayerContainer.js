@@ -209,7 +209,7 @@ function LayerContainer(props) {
                     if (props.selectedMap === v.mapId) {
                         fetchedHeadsets.push({
                             'id': v.id,
-                            'lastUpdate': v.lastUpdate,
+                            'updated': v.updated,
                             'mapId': v.mapId,
                             'name': v.name,
                             'orientationX': v.orientation.x,

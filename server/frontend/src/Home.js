@@ -194,7 +194,7 @@ function Home(props) {
                   if (selectedLocation === v.mapId) {
                     fetchedHeadsets.push({
                         'id': v.id,
-                        'lastUpdate': v.lastUpdate,
+                        'updated': v.updated,
                         'mapId': v.mapId,
                         'name': v.name,
                         'orientationX': v.orientation.x,

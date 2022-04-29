@@ -163,7 +163,7 @@ function AllHeadsets(props){
         var v = data[k];
         fetchedHeadsets.push({
           'id': v.id,
-          'lastUpdate': v.lastUpdate,
+          'updated': v.updated,
           'mapId': v.mapId,
           'name': v.name,
           'orientationX': v.orientation.x,
@@ -224,7 +224,7 @@ function AllHeadsets(props){
                     }
                   </td>
                   <td>{e.mapId}</td>
-                  <td>{moment.unix(e.lastUpdate).fromNow()}</td>
+                  <td>{moment.unix(e.updated).fromNow()}</td>
                   <td>{e.positionX}</td>
                   <td>{e.positionY}</td>
                   <td>{e.positionZ}</td>

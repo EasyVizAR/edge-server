@@ -196,7 +196,7 @@ function HeadsetTable(props){
                     }
                   </td>
                   <td>{e.mapId}</td>
-                  <td>{moment.unix(e.lastUpdate).fromNow()}</td>
+                  <td>{moment.unix(e.updated).fromNow()}</td>
                   <td>{e.positionX}</td>
                   <td>{e.positionY}</td>
                   <td>{e.positionZ}</td>
