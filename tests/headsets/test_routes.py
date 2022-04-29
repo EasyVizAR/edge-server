@@ -295,8 +295,6 @@ async def test_headset_incidents_tracking():
         assert response.is_json
         headset = await response.get_json()
         assert isinstance(headset, dict)
-        assert isinstance(headset['active_in_incidents'], list)
-        assert len(headset['active_in_incidents']) == 1
 
         # Create a new incident
         response = await client.post("/incidents", json=dict(name="Test Incident"))
@@ -322,8 +320,6 @@ async def test_headset_incidents_tracking():
         assert response.is_json
         headset2 = await response.get_json()
         assert isinstance(headset2, dict)
-        assert isinstance(headset2['active_in_incidents'], list)
-        assert len(headset2['active_in_incidents']) == 2
 
         # List of active headsets should contain the headset
         response = await client.get("/incidents/active/headsets")

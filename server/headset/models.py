@@ -25,10 +25,8 @@ class HeadsetModel(JsonResource):
     id:     str
     name:   str = field(default="New Headset", description="Name of the headset")
 
-    location_id:            str = field(default=None,
-                                        description="Current location or NULL if unknown or inactive")
-    active_in_incidents:    Set[str] = field(default_factory=set,
-                                             description="Set of incidents in which the unit was active, updated automatically by the server")
+    location_id:    str = field(default=None,
+                                description="Current location or NULL if unknown or inactive")
 
     # mapId is deprecated and should be removed after transition to location and layer system
     mapId:  str = field(default=None, description="deprecated")

@@ -139,7 +139,6 @@ async def create_headset():
     # TODO: Finalize authentication method
 
     headset = g.Headset.load(body, replace_id=True)
-    headset.active_in_incidents.add(g.active_incident.id)
     headset.save()
 
     folder = g.active_incident.Headset.add(headset.id)
@@ -256,9 +255,6 @@ async def replace_headset(headsetId):
     if incident_folder is None:
         incident_folder = g.active_incident.Headset.add(headset.id)
 
-        # This is the first time the headset appears under the current incident.
-        headset.active_in_incidents.add(g.active_incident.id)
-
     if 'position' in body or 'orientation' in body:
         change = incident_folder.PoseChange.load(body)
         incident_folder.PoseChange.add(change)
@@ -336,7 +332,6 @@ async def update_headset(headset_id):
         if folder is None:
             # This is the first time the headset appears under the current incident.
             folder = g.active_incident.Headset.add(headset.id)
-            headset.active_in_incidents.add(g.active_incident.id)
         change = folder.PoseChange.load(body)
         folder.PoseChange.add(change)
 
@@ -385,14 +380,23 @@ async def list_incident_headsets(incident_id):
                             type: array
                             items: Headset
     """
-    filt = Filter()
-
     incident_id = incident_id.lower()
     if incident_id == "active":
-        incident_id = g.active_incident.id
-    filt.target_contains("active_in_incidents", incident_id)
+        incident = g.active_incident
+    else:
+        incident = g.Incident.find_by_id(incident_id)
 
-    headsets = g.Headset.find(filt=filt)
+    if incident is None:
+        raise exceptions.NotFound(description="Incident {} was not found".format(incident_id))
+
+    headsets = []
+
+    # Find the headset IDs which have records in the incident folder.
+    # Then use the headset ID to find the headset object.
+    for incid_headset in incident.Headset.find():
+        headset = g.Headset.find_by_id(incid_headset.id)
+        if headset is not None:
+            headsets.append(headset)
 
     # Wrap the maps list if the caller requested an envelope.
     query = request.args

@@ -36,6 +36,7 @@ import time
 import uuid
 
 from server.resources.abstractresource import AbstractResource, AbstractCollection
+from server.resources.filter import Filter
 
 
 class DictResource(AbstractResource):
@@ -106,21 +107,25 @@ class DictCollection(AbstractCollection):
         """
         shutil.rmtree(self.base_directory, ignore_errors=True)
 
-    def find(self, **kwargs):
+    def find(self, filt=None, **kwargs):
         """
         Find all objects that match the query parameters.
         """
         if not os.path.isdir(self.base_directory):
             return []
 
+        if filt is None:
+            filt = Filter()
+            filt.add_from_dict(kwargs)
+
         results = []
         for dname in os.listdir(self.base_directory):
             subdir = os.path.join(self.base_directory, dname)
             if not os.path.isdir(subdir):
                 continue
-            item = self.resource_class(id)
+            item = self.resource_class(dname)
             self.prepare_item(item)
-            if item.matches(kwargs):
+            if filt.matches(item):
                 results.append(item)
 
         return results
