@@ -178,7 +178,7 @@ function IncidentHistory(props){
                     e.name
                   )
                 }</td>
-                <td>{moment.unix(e.created).fromNow()}</td>
+                <td>{moment.unix(e.created).format("MM-DD-YYYY")}</td>
                 <td>
                 {
                   (inEditMode.status && inEditMode.rowKey === index) ? (
