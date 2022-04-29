@@ -16,7 +16,7 @@ function App() {
                     <Routes>
                         <Route path="/" element={<Home port={port}/>}/>
                         <Route path="/workitems" element={<WorkItems port={port}/>}/>
-                        <Route path="/locations/:map_id/qrcode.svg" element={<LocationQrCodeWrapper port={port}/>}/>
+                        <Route path="/locations/:map_id/qrcode" element={<LocationQrCodeWrapper port={port}/>}/>
                     </Routes>
                 </div>
             </BrowserRouter>

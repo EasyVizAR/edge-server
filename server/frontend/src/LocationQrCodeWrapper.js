@@ -39,17 +39,16 @@ function LocationQrCodeWrapper(props){
     const requestData = {
         method: 'GET',
         headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'text/svg'
+            'Accept': 'image/svg+xml'
         }
     };
 
-    fetch(`http://${host}:${port}/locations/` + location_id + `/qrcode.svg`, requestData).then(response => {
+    fetch(`http://${host}:${port}/locations/` + location_id + `/qrcode`, requestData).then(response => {
       if(response.ok){
         return response.json();
       }
     }).then(data => {
-      setQrCode(data['image'])
+      setQrCode(data)
     }).catch(err => {
       // Do something for an error here
       console.log("Error Reading data " + err);

@@ -449,7 +449,7 @@ function Home(props) {
                       </div>
 
                       <div className="QR-code-btn header-button">
-                        <Button title="Location QR Code" variant="secondary" href={"/locations/" + selectedLocation + "/qrcode.svg"} target="_blank">Location QR Code</Button>
+                        <Button title="Location QR Code" variant="secondary" href={"/locations/" + selectedLocation + "/qrcode"} target="_blank">Location QR Code</Button>
                       </div>
                     </div>
 
