@@ -63,8 +63,8 @@ def lp_intersect(p0, p1, p_co, p_no, epsilon=1e-6):
 
 class Floorplanner:
 
-    def __init__(self, raw_ply_path, image_scale=1, json_data_path=None):
-        self.raw_ply_path = raw_ply_path
+    def __init__(self, ply_path_or_list, image_scale=1, json_data_path=None):
+        self.ply_path_or_list = ply_path_or_list
         self.image_scale = image_scale
         self.json_data_path = json_data_path
         self.data = {}
@@ -157,7 +157,11 @@ class Floorplanner:
             self.first_load_json = False
 
         changes = 0
-        for i, path in enumerate(glob.glob(self.raw_ply_path)):
+
+        if isinstance(self.ply_path_or_list, str):
+            self.ply_path_or_list = glob.glob(self.ply_path_or_list)
+
+        for i, path in enumerate(self.ply_path_or_list):
             time_of_prev_mod = os.path.getmtime(path)
             update_lines_at_path = path not in self.data or self.data[path]["last_modified"] < time_of_prev_mod
             if initialize or update_lines_at_path:

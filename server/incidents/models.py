@@ -37,7 +37,7 @@ class IncidentModel(JsonResource):
         self.Headset = DictCollection(HeadsetContainer, "headsets", id_type="uuid", parent=self)
         self.Location = JsonCollection(LocationModel, "location", id_type="uuid", parent=self)
         self.Photo = JsonCollection(PhotoModel, "photo", id_type="uuid", parent=self)
-        self.Surface = JsonCollection(SurfaceModel, "photo", id_type="uuid", parent=self)
+        self.Surface = JsonCollection(SurfaceModel, "surface", id_type="uuid", parent=self)
 
 
 Incident = JsonCollection(IncidentModel, "incident", id_type="uuid")

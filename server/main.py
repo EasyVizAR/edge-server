@@ -19,6 +19,7 @@ from server.work_items.routes import work_items
 
 from server.headset.models import Headset
 from server.incidents.models import Incident
+from server.mapping.mapping_thread import MappingThread
 
 from server.resources.abstractresource import AbstractCollection
 
@@ -60,6 +61,7 @@ app.register_blueprint(routes)
 app.register_blueprint(surfaces)
 app.register_blueprint(work_items)
 
+
 @app.before_first_request
 def before_first_request():
     # Make sure an active incident exists before initialize_maps is called.
@@ -68,6 +70,9 @@ def before_first_request():
 
     # Initialize maps storage and create the first map if there is not one.
     initialize_maps(app)
+
+    app.mapping_thread = MappingThread()
+    app.mapping_thread.start()
 
 
 @app.before_request

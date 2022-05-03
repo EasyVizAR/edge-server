@@ -3,7 +3,7 @@ import time
 
 from http import HTTPStatus
 
-from quart import Blueprint, g, jsonify, request, send_from_directory
+from quart import Blueprint, current_app, g, jsonify, request, send_from_directory
 from werkzeug import exceptions
 
 from server.resources.csvresource import CsvCollection
@@ -259,6 +259,7 @@ async def upload_surface_file(surface_id):
         surface = g.active_incident.Surface(surface_id)
         surface.filePath = os.path.join(surface.get_dir(), "surface.ply")
         surface.fileUrl = "/surfaces/{}/surface.ply".format(surface_id)
+        surface.save()
 
     created = not os.path.exists(surface.filePath)
 
@@ -268,6 +269,8 @@ async def upload_surface_file(surface_id):
 
     surface.updated = time.time()
     surface.save()
+
+    current_app.mapping_thread.enqueue_task(g.active_incident.id)
 
     if created:
         return jsonify(surface), HTTPStatus.CREATED
