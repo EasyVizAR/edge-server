@@ -248,7 +248,7 @@ async def get_location_qrcode(location_id):
 
     image_path = os.path.join(location.get_dir(), "qrcode.svg")
     if not os.path.exists(image_path):
-        url = 'vizar://{}/locations/{}'.format(current_app.config['VIZAR_EDGE_HOST'], location_id)
+        url = 'vizar://{}/locations/{}'.format(request.host, location_id)
         code = pyqrcode.create(url, error='L')
         code.svg(image_path, title=url, scale=16)
 
