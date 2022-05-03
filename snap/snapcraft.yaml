@@ -16,12 +16,17 @@ apps:
     command: bin/server
     daemon: simple
     environment:
+      APPLICATION_CONFIG: $SNAP_DATA/server.conf
       VIZAR_DATA_DIR: $SNAP_DATA
       VIZAR_STATIC_FOLDER: $SNAP/frontend/build
       VIZAR_HOST: 0.0.0.0
     plugs:
       - network
       - network-bind
+
+hooks:
+  configure:
+    plugs: []
 
 parts:
   frontend:
