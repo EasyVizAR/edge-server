@@ -23,7 +23,7 @@
 }
 
 .map-image-container {
-    max-width: 50%;
+    min-width: 50%;
     position: relative;
     align-content: center;
 }
