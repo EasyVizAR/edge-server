@@ -31,6 +31,7 @@ import {
     faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import LayerContainer from "./LayerContainer";
+import NewLayer from "./NewLayer";
 
 fontawesome.library.add(faBandage, faDoorClosed, faElevator,
     faExclamationTriangle, faFire, faFireExtinguisher, faHeadset, faMessage,
@@ -110,7 +111,11 @@ function Home(props) {
             setSelectedLocation(getDefaultLocationSelection());
     }, [locations, setLocations]);
 
-
+    useEffect(() => {
+        if (selectedLocation != '') {
+            getLayers();
+        }
+    }, [selectedLocation]);
 
     // time goes off every 10 seconds to refresh headset data
     useEffect(() => {
@@ -423,6 +428,19 @@ function Home(props) {
         });
     }
 
+    const getLayers = () => {
+        fetch(`http://${host}:${port}/locations/${selectedLocation}/layers`)
+            .then(response => response.json())
+            .then(data => {
+                var layerList = [];
+                for (const key in data) {
+                    if (data[key].ready)
+                        layerList.push(data[key]);
+                }
+                setLayers(layerList);
+            });
+    }
+
     return (
         <div className="Home">
             <Helmet>
@@ -522,7 +540,9 @@ function Home(props) {
                   <Tab eventKey="all-headsets" title="All Headsets">
                     <AllHeadsets port={port} getLocationHeadsets={getHeadsets} />
                   </Tab>
-
+                    <Tab eventKey="create-layer" title="Create Layer">
+                        <NewLayer port={port} getHeadsets={getHeadsets} getLayers={getLayers} setTab={setTab} locations={locations}/>
+                    </Tab>
                 </Tabs>
             </div>
         </div>

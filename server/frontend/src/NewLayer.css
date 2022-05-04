@@ -10,3 +10,10 @@
   align-items: center;
   justify-content: center;
 }
+.radio-container {
+  display: flex;
+  flex-direction: row;
+  align-content: center;
+  justify-content: center;
+  margin-top: 1%;
+}

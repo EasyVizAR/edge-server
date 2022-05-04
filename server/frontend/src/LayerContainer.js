@@ -36,12 +36,6 @@ function LayerContainer(props) {
     });
 
     useEffect(() => {
-        if (props.selectedLocation != '') {
-            getLayers();
-        }
-    }, [props.selectedLocation]);
-
-    useEffect(() => {
         setSelectedImage(getMapImage());
     }, [props.selectedLayerId]);
 
@@ -77,19 +71,6 @@ function LayerContainer(props) {
             return '';
 
         return `http://${host}:${port}/locations/${props.selectedLocation}/layers/${props.selectedLayerId}/image`;
-    }
-
-    const getLayers = () => {
-        fetch(`http://${host}:${port}/locations/${props.selectedLocation}/layers`)
-            .then(response => response.json())
-            .then(data => {
-                var layerList = [];
-                for (const key in data) {
-                    if (data[key].ready)
-                        layerList.push(data[key]);
-                }
-                props.setLayers(layerList);
-            });
     }
 
     const getDefaultLayerId = () => {
