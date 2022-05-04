@@ -167,7 +167,7 @@ function LayerContainer(props) {
                     let v = data[i];
                     fetchedFeatures.push({
                         'id': v.id,
-                        'mapId': props.selectedLocation,
+                        'locationId': props.selectedLocation,
                         'name': v.name,
                         'positionX': v.position.x,
                         'positionY': v.position.y,
@@ -180,28 +180,26 @@ function LayerContainer(props) {
             }
             props.setFeatures(fetchedFeatures);
 
-            fetch(`http://${host}:${port}/headsets`)
+            fetch(`http://${host}:${port}/headsets?location_id=${props.selectedLocation}`)
                 .then(response => {
                     return response.json()
                 }).then(data => {
                 let fetchedHeadsets = []
                 for (let k in data) {
                     let v = data[k];
-                    if (props.selectedMap === v.mapId) {
-                        fetchedHeadsets.push({
-                            'id': v.id,
-                            'updated': v.updated,
-                            'mapId': v.mapId,
-                            'name': v.name,
-                            'orientationX': v.orientation.x,
-                            'orientationY': v.orientation.y,
-                            'orientationZ': v.orientation.z,
-                            'positionX': v.position.x,
-                            'positionY': v.position.y,
-                            'positionZ': v.position.z,
-                            'iconValue': 'user'
-                        });
-                    }
+                      fetchedHeadsets.push({
+                          'id': v.id,
+                          'updated': v.updated,
+                          'locationId': v.location_id,
+                          'name': v.name,
+                          'orientationX': v.orientation.x,
+                          'orientationY': v.orientation.y,
+                          'orientationZ': v.orientation.z,
+                          'positionX': v.position.x,
+                          'positionY': v.position.y,
+                          'positionZ': v.position.z,
+                          'iconValue': 'user'
+                      });
                 }
                 props.setHeadsets(fetchedHeadsets);
             });

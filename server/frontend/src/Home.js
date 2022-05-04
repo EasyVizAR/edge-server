@@ -157,7 +157,7 @@ function Home(props) {
                 //     continue;
                 combinedMapObjectList.push({
                     'id': v.id,
-                    'mapId': v.mapId,
+                    'locationId': v.locationId,
                     'name': v.name,
                     'scaledX': convertVector2Scaled(v.positionX, v.positionZ)[0],
                     'scaledY': convertVector2Scaled(v.positionX, v.positionZ)[1],
@@ -171,11 +171,11 @@ function Home(props) {
         if (headsetsChecked)
             for (const i in headsets) {
                 const v = headsets[i];
-                if (selectedLocation != v.mapId)
+                if (selectedLocation != v.locationId)
                     continue;
                 combinedMapObjectList.push({
                     'id': v.id,
-                    'mapId': v.mapId,
+                    'locationId': v.locationId,
                     'name': v.name,
                     'scaledX': convertVector2Scaled(v.positionX, v.positionZ)[0],
                     'scaledY': convertVector2Scaled(v.positionY, v.positionZ)[1],
@@ -189,27 +189,25 @@ function Home(props) {
 
     // function that sends request to server to get headset data
     function getHeadsets() {
-        fetch(`http://${host}:${port}/headsets`)
+        fetch(`http://${host}:${port}/headsets?location_id=${selectedLocation}`)
             .then(response => {
                 return response.json()
             }).then(data => {
               var fetchedHeadsets = []
               for (var k in data) {
-                  var v = data[k];
-                  if (selectedLocation === v.mapId) {
-                    fetchedHeadsets.push({
-                        'id': v.id,
-                        'updated': v.updated,
-                        'mapId': v.mapId,
-                        'name': v.name,
-                        'orientationX': v.orientation.x,
-                        'orientationY': v.orientation.y,
-                        'orientationZ': v.orientation.z,
-                        'positionX': v.position.x,
-                        'positionY': v.position.y,
-                        'positionZ': v.position.z
-                    });
-                  }
+                  const v = data[k];
+                  fetchedHeadsets.push({
+                      'id': v.id,
+                      'updated': v.updated,
+                      'locationId': v.location_id,
+                      'name': v.name,
+                      'orientationX': v.orientation.x,
+                      'orientationY': v.orientation.y,
+                      'orientationZ': v.orientation.z,
+                      'positionX': v.position.x,
+                      'positionY': v.position.y,
+                      'positionZ': v.position.z
+                  });
               }
               setHeadsets(fetchedHeadsets);
             });
@@ -246,10 +244,10 @@ function Home(props) {
       }
     }
 
-    const getMapImage = (mapId) => {
+    const getMapImage = (locationId) => {
         var map = null;
         for (var i = 0; i < locations.length; i++) {
-            if (locations[i].id == mapId) {
+            if (locations[i].id == locationId) {
                 map = locations[i];
                 break;
             }
