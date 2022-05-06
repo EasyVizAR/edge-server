@@ -69,6 +69,8 @@ function LayerContainer(props) {
         }
         if (map == null)
             return '';
+        if (map.viewBox == null || map.viewBox.height == 0 || map.viewBox.width == 0)
+            return '';
 
         return `http://${host}:${port}/locations/${props.selectedLocation}/layers/${props.selectedLayerId}/image`;
     }
