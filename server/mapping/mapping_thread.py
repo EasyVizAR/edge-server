@@ -27,7 +27,7 @@ class MappingThread(threading.Thread):
 
     def process_task(self, incident_id, location_id):
         incident = Incident.find_by_id(incident_id)
-        location = incident.find_by_id(location_id)
+        location = incident.Location.find_by_id(location_id)
         surfaces = location.Surface.find()
 
         surface_files = [surface.filePath for surface in surfaces]
