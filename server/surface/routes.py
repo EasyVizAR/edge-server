@@ -12,8 +12,8 @@ from server.resources.csvresource import CsvCollection
 surfaces = Blueprint("surfaces", __name__)
 
 
-@surfaces.route('/surfaces', methods=['GET'])
-async def list_surfaces():
+@surfaces.route('/locations/<location_id>/surfaces', methods=['GET'])
+async def list_surfaces(location_id):
     """
     List surfaces
     ---
@@ -35,7 +35,11 @@ async def list_surfaces():
                             type: array
                             items: Surface
     """
-    surfaces = g.active_incident.Surface.find()
+    location = g.active_incident.Location.find_by_id(location_id)
+    if location is None:
+        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+
+    surfaces = location.Surface.find()
 
     # Wrap the list if the caller requested an envelope.
     query = request.args
@@ -47,8 +51,8 @@ async def list_surfaces():
     return jsonify(result), HTTPStatus.OK
 
 
-@surfaces.route('/surfaces', methods=['POST'])
-async def create_surface():
+@surfaces.route('/locations/<location_id>/surfaces', methods=['POST'])
+async def create_surface(location_id):
     """
     Create surface
     ---
@@ -70,16 +74,20 @@ async def create_surface():
     """
     body = await request.get_json()
 
-    surface = g.active_incident.Surface.load(body, replace_id=True)
+    location = g.active_incident.Location.find_by_id(location_id)
+    if location is None:
+        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+
+    surface = location.Surface.load(body, replace_id=True)
     surface.filePath = os.path.join(surface.get_dir(), "surface.ply")
-    surface.fileUrl = "/surfaces/{}/surface.ply".format(surface.id)
+    surface.fileUrl = "/locations/{}/surfaces/{}/surface.ply".format(location.id, surface.id)
     surface.save()
 
     return jsonify(surface), HTTPStatus.CREATED
 
 
-@surfaces.route('/surfaces/<surface_id>', methods=['DELETE'])
-async def delete_surface(surface_id):
+@surfaces.route('/locations/<location_id>/surfaces/<surface_id>', methods=['DELETE'])
+async def delete_surface(location_id, surface_id):
     """
     Delete surface
     ---
@@ -99,7 +107,11 @@ async def delete_surface(surface_id):
                     application/json:
                         schema: Surface
     """
-    surface = g.active_incident.Surface.find_by_id(surface_id)
+    location = g.active_incident.Location.find_by_id(location_id)
+    if location is None:
+        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+
+    surface = location.Surface.find_by_id(surface_id)
     if surface is None:
         raise exceptions.NotFound(description="Surface {} was not found".format(surface_id))
 
@@ -108,8 +120,8 @@ async def delete_surface(surface_id):
     return jsonify(surface), HTTPStatus.OK
 
 
-@surfaces.route('/surfaces/<surface_id>', methods=['GET'])
-async def get_surface(surface_id):
+@surfaces.route('/locations/<location_id>/surfaces/<surface_id>', methods=['GET'])
+async def get_surface(location_id, surface_id):
     """
     Get surface
     ---
@@ -129,15 +141,19 @@ async def get_surface(surface_id):
                     application/json:
                         schema: Surface
     """
-    surface = g.active_incident.Surface.find_by_id(surface_id)
+    location = g.active_incident.Location.find_by_id(location_id)
+    if location is None:
+        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+
+    surface = location.Surface.find_by_id(surface_id)
     if surface is None:
         raise exceptions.NotFound(description="Surface {} was not found".format(surface_id))
 
     return jsonify(surface), HTTPStatus.OK
 
 
-@surfaces.route('/surfaces/<surface_id>', methods=['PUT'])
-async def replace_surface(surface_id):
+@surfaces.route('/locations/<location_id>/surfaces/<surface_id>', methods=['PUT'])
+async def replace_surface(location_id, surface_id):
     """
     Replace surface
     ---
@@ -166,7 +182,11 @@ async def replace_surface(surface_id):
     body = await request.get_json()
     body['id'] = surface_id
 
-    surface = g.active_incident.Surface.load(body)
+    location = g.active_incident.Location.find_by_id(location_id)
+    if location is None:
+        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+
+    surface = location.Surface.load(body)
     created = surface.save()
 
     if created:
@@ -175,8 +195,8 @@ async def replace_surface(surface_id):
         return jsonify(surface), HTTPStatus.OK
 
 
-@surfaces.route('/surfaces/<surface_id>', methods=['PATCH'])
-async def update_surface(surface_id):
+@surfaces.route('/locations/<location_id>/surfaces/<surface_id>', methods=['PATCH'])
+async def update_surface(location_id, surface_id):
     """
     Update surface
     ---
@@ -202,7 +222,11 @@ async def update_surface(surface_id):
                     application/json:
                         schema: Surface
     """
-    surface = g.active_incident.Surface.find_by_id(surface_id)
+    location = g.active_incident.Location.find_by_id(location_id)
+    if location is None:
+        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+
+    surface = location.Surface.find_by_id(surface_id)
     if surface is None:
         raise exceptions.NotFound(description="Surface {} was not found".format(surface_id))
 
@@ -218,8 +242,8 @@ async def update_surface(surface_id):
     return jsonify(surface), HTTPStatus.OK
 
 
-@surfaces.route('/surfaces/<surface_id>/surface.ply', methods=['GET'])
-async def get_surface_file(surface_id):
+@surfaces.route('/locations/<location_id>/surfaces/<surface_id>/surface.ply', methods=['GET'])
+async def get_surface_file(location_id, surface_id):
     """
     Get a surface data file
     ---
@@ -233,15 +257,19 @@ async def get_surface_file(surface_id):
                 content:
                     application/ply: {}
     """
-    surface = g.active_incident.Surface.find_by_id(surface_id)
+    location = g.active_incident.Location.find_by_id(location_id)
+    if location is None:
+        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+
+    surface = location.Surface.find_by_id(surface_id)
     if surface is None:
         raise exceptions.NotFound(description="Surface {} was not found".format(surface_id))
 
     return await send_from_directory(surface.get_dir(), "surface.ply")
 
 
-@surfaces.route('/surfaces/<surface_id>/surface.ply', methods=['PUT'])
-async def upload_surface_file(surface_id):
+@surfaces.route('/locations/<location_id>/surfaces/<surface_id>/surface.ply', methods=['PUT'])
+async def upload_surface_file(location_id, surface_id):
     """
     Upload a surface data file
     ---
@@ -254,11 +282,15 @@ async def upload_surface_file(surface_id):
             content:
                 application/ply: {}
     """
-    surface = g.active_incident.Surface.find_by_id(surface_id)
+    location = g.active_incident.Location.find_by_id(location_id)
+    if location is None:
+        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+
+    surface = location.Surface.find_by_id(surface_id)
     if surface is None:
-        surface = g.active_incident.Surface(surface_id)
+        surface = location.Surface(surface_id)
         surface.filePath = os.path.join(surface.get_dir(), "surface.ply")
-        surface.fileUrl = "/surfaces/{}/surface.ply".format(surface_id)
+        surface.fileUrl = "/locations/{}/surfaces/{}/surface.ply".format(location.id, surface.id)
         surface.save()
 
     created = not os.path.exists(surface.filePath)
@@ -270,7 +302,7 @@ async def upload_surface_file(surface_id):
     surface.updated = time.time()
     surface.save()
 
-    current_app.mapping_thread.enqueue_task(g.active_incident.id)
+    current_app.mapping_thread.enqueue_task(g.active_incident.id, location_id)
 
     if created:
         return jsonify(surface), HTTPStatus.CREATED
