@@ -29,17 +29,17 @@ function WorkItems(props){
       var temp_data = [];
       for (var x in data){
 
-        var hasBoundary = -1;
+        var boundaryIndex = -1;
 
         if(data[x]['annotations'].length != 0){
           for(var y in data[x]['annotations']){
             if (data[x]['annotations'][y]['boundary'] != null){
-              hasBoundary = y;
+              boundaryIndex = y;
             }
           }
         }
 
-        if (hasBoundary >= 0){
+        if (boundaryIndex >= 0){
           temp_data.push({
             'id': data[x]['id'],
             'created': data[x]['created'],
@@ -47,10 +47,10 @@ function WorkItems(props){
             'imageUrl': data[x]['imageUrl'],
             'contentType': data[x]['contentType'],
             'hasBoundary': true,
-            'topOffset': data[x]['annotations'][hasBoundary]['boundary']['top'],
-            'leftOffset': data[x]['annotations'][hasBoundary]['boundary']['left'],
-            'divWidth': data[x]['annotations'][hasBoundary]['boundary']['width'],
-            'divHeight': data[x]['annotations'][hasBoundary]['boundary']['height']
+            'topOffset': data[x]['annotations'][boundaryIndex]['boundary']['top'],
+            'leftOffset': data[x]['annotations'][boundaryIndex]['boundary']['left'],
+            'divWidth': data[x]['annotations'][boundaryIndex]['boundary']['width'],
+            'divHeight': data[x]['annotations'][boundaryIndex]['boundary']['height']
           });
         }else{
           temp_data.push({
@@ -63,10 +63,8 @@ function WorkItems(props){
           });
         }
       }
-      //temp_data.push({"annotations":[],"cameraOrientation":null,"cameraPosition":null,"contentType":"image/jpeg","created":1651072243.0537646,"createdBy":null,"height":428,"id":"0cf47f4e-62a9-4e08-8a51-7674eb566cb7","imagePath":"data/incidents/1c6a7b24-659a-4217-bef5-cc93a1d75db6/photos/0cf47f4e-62a9-4e08-8a51-7674eb566cb7/image.jpeg","imageUrl":"/photos/0cf47f4e-62a9-4e08-8a51-7674eb566cb7/image","ready":true,"retention":"auto","updated":1651072243.1504846,"width":760});
-      //temp_data.push({"annotations":[],"cameraOrientation":null,"cameraPosition":null,"contentType":"image/jpeg","created":1650907000.634958,"createdBy":null,"height":null,"id":"20eea52f-c2e2-486c-a129-370421c8f615","imagePath":null,"imageUrl":"https://farm4.staticflickr.com/3458/3179638162_476fa0b548_z.jpg","ready":true,"retention":"auto","updated":1650907000.636283,"width":null});
+
       setWorkItems(temp_data);
-      console.log(temp_data);
     });
   }
 
