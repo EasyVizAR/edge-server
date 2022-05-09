@@ -8,3 +8,25 @@
   width: 90% !important;
   table-layout: auto;
 }
+img {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+img:hover {
+  box-shadow: 0 0 2px 1px rgba(0, 140, 186, 0.5);
+}
+.image-parent{
+  position: relative;
+  height: 100%;
+  width: 150px;
+  margin: auto;
+}
+.work-items-images{
+  position: relative;
+  width: 150px;
+}
+.imageBorderDiv{
+  border: solid;
+  position: absolute;
+  color: red;
+}
