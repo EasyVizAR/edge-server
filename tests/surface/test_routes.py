@@ -13,10 +13,16 @@ async def test_surface_routes():
     Test surface routes
     """
     # Name of a field within the resource which we can change and test.
-    test_field = "locationId"
+    test_field = "uploadedBy"
 
     async with app.test_client() as client:
-        surfaces_url = "/surfaces"
+        # Create a test location
+        response = await client.post("/locations", json=dict(name="Surface Test"))
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        location = await response.get_json()
+
+        surfaces_url = "/locations/{}/surfaces".format(location['id'])
 
         # Initial list of surfaces
         response = await client.get(surfaces_url)
@@ -24,8 +30,6 @@ async def test_surface_routes():
         assert response.is_json
         surfaces = await response.get_json()
         assert isinstance(surfaces, list)
-
-        surface_url = "/surfaces/0"
 
         # Initial list of surfaces with envelope
         response = await client.get(surfaces_url + "?envelope=items")
@@ -102,7 +106,13 @@ async def test_surface_upload():
     Test surface upload
     """
     async with app.test_client() as client:
-        surfaces_url = "/surfaces"
+        # Create a test location
+        response = await client.post("/locations", json=dict(name="Surface Test"))
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        location = await response.get_json()
+
+        surfaces_url = "/locations/{}/surfaces".format(location['id'])
 
         # Create an object
         response = await client.post(surfaces_url, json={"type": "uploaded"})

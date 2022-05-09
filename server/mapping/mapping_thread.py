@@ -21,53 +21,51 @@ class MappingThread(threading.Thread):
         self.running = True
         self.work_queue = queue.Queue()
 
-    def enqueue_task(self, incident_id):
-        item = incident_id
+    def enqueue_task(self, incident_id, location_id):
+        """
+        Notify the worker thread of a location with updated surfaces.
+        """
+        item = (incident_id, location_id)
         self.work_queue.put(item, block=False)
 
-    def process_task(self, incident_id):
+    def process_task(self, incident_id, location_id):
+        """
+        Rebuild the map for a location from updated surfaces.
+
+        This should be called from the mapping thread.
+        """
         incident = Incident.find_by_id(incident_id)
-        surfaces = incident.Surface.find()
+        location = incident.Location.find_by_id(location_id)
+        surfaces = location.Surface.find()
 
-        files_by_location = collections.defaultdict(list)
-        for surface in surfaces:
-            files_by_location[surface.locationId].append(surface.filePath)
+        surface_files = [surface.filePath for surface in surfaces]
 
-        for location_id, files in files_by_location.items():
-            # If location_id is None, we are not really sure what building this
-            # surface came from. Making assumptions is OK for now, but we need
-            # the headsets to be aware of the location_id when they send
-            # surfaces.
-            if location_id is None:
-                location = incident.Location.find_newest()
-            else:
-                location = incident.Location.find_by_id(location_id)
+        layers = location.Layer.find(type="generated")
+        if len(layers) == 0:
+            layer = location.Layer(id=None, name="Division 0", type="generated", contentType="image/svg+xml")
+            layer.contentType = "image/svg+xml"
+            layer.imageUrl = "/locations/{}/layers/{}/image".format(location.id, layer.id)
+            layer.save()
+        else:
+            # TODO: different layers for the floors of a building
+            layer = layers[0]
 
-            layers = location.Layer.find(type="generated")
-            if len(layers) == 0:
-                layer = location.Layer(id=None, name="Division 0", type="generated", contentType="image/svg+xml")
-                layer.contentType = "image/svg+xml"
-                layer.imageUrl = "/locations/{}/layers/{}/image".format(location.id, layer.id)
-                layer.save()
-            else:
-                layer = layers[0]
+        layer.imagePath = os.path.join(layer.get_dir(), "floor_plan.svg")
+        json_file = os.path.join(layer.get_dir(), "floor_plan.json")
+        floorplanner = Floorplanner(surface_files, json_data_path=json_file)
 
-            layer.imagePath = os.path.join(layer.get_dir(), "floor_plan.svg")
-            json_file = os.path.join(layer.get_dir(), "floor_plan.json")
-            floorplanner = Floorplanner(files, json_data_path=json_file)
-
-            changes = floorplanner.update_lines(initialize=False)
-            if changes > 0:
-                layer.viewBox = floorplanner.write_image(layer.imagePath)
-                layer.ready = True
-                layer.save()
+        changes = floorplanner.update_lines(initialize=False)
+        if changes > 0:
+            layer.viewBox = floorplanner.write_image(layer.imagePath)
+            layer.ready = True
+            layer.save()
 
     def run(self):
         while self.running:
-            incident_id = self.work_queue.get()
+            incident_id, location_id = self.work_queue.get()
 
             try:
-                self.process_task(incident_id)
+                self.process_task(incident_id, location_id)
             except Exception as e:
                 print("Error in mapping thread: {}".format(e))
                 traceback.print_tb(e.__traceback__)

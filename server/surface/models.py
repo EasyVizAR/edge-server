@@ -38,8 +38,6 @@ class SurfaceModel(JsonResource):
     """
     id: str
 
-    locationId: str = field(default=None)
-
     filePath:   str = field(default=None)
     fileUrl:    str = field(default=None)
     uploadedBy: str = field(default=None)
