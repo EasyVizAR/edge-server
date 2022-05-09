@@ -22,10 +22,18 @@ class MappingThread(threading.Thread):
         self.work_queue = queue.Queue()
 
     def enqueue_task(self, incident_id, location_id):
+        """
+        Notify the worker thread of a location with updated surfaces.
+        """
         item = (incident_id, location_id)
         self.work_queue.put(item, block=False)
 
     def process_task(self, incident_id, location_id):
+        """
+        Rebuild the map for a location from updated surfaces.
+
+        This should be called from the mapping thread.
+        """
         incident = Incident.find_by_id(incident_id)
         location = incident.Location.find_by_id(location_id)
         surfaces = location.Surface.find()
