@@ -44,24 +44,20 @@ function NewLayer(props) {
         fetch(url, requestData)
             .then(response => response.json())
             .then(data => {
-                props.getLayers();
-                e.target.form.elements.formLayerName.value = ""
-                props.setTab('layer-view');
-
                 const url =  `http://${host}:${port}/locations/${selectedLocation}/layers/${data.id}/image`;
                 const formData = new FormData();
                 formData.append('image', file);
                 const config = {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'image/svg+xml'
-                    },
                     body: formData
                 };
                 fetch(url, config)
                     .then(response => response.json())
                     .then(data => {
                         console.log("done");
+                        props.getLayers();
+                        e.target.form.elements.formLayerName.value = ""
+                        props.setTab('layer-view');
                     });
             });
     }

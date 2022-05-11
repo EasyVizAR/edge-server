@@ -330,6 +330,13 @@ async def upload_layer_image(location_id, layer_id):
     request_files = await request.files
     if 'image' in request_files:
         await save_image(layer.imagePath, request_files['image'])
+        if layer.contentType == "image/svg+xml":
+            from svgelements import SVG
+            vb = SVG.parse(layer.imagePath).viewbox
+            layer.viewBox.left = vb.x
+            layer.viewBox.top = vb.y
+            layer.viewBox.width = vb.width
+            layer.viewBox.height = vb.height
     else:
         body = await request.get_data()
         with open(layer.imagePath, "wb") as output:
