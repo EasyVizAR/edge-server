@@ -59,6 +59,20 @@ async def create_feature(location_id):
     ---
     post:
         summary: Create feature
+        description: |-
+            Create a new map feature, which can be one of many kinds of digital
+            information attached to a physical space.
+
+            The following example creates a marker at a specific point:
+
+                POST /headsets
+                Content-Type: application/json
+                {
+                    "name": "Main Stairwell",
+                    "type": "stairs",
+                    "position": {"x": 0, "y": 0, "z": 0},
+                    "style": {"placement": "point"}
+                }
         tags:
          - features
         requestBody:

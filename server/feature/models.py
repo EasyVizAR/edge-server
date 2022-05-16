@@ -1,8 +1,6 @@
 import time
 
-from dataclasses import field
-from marshmallow_dataclass import dataclass
-
+from server.resources.dataclasses import dataclass, field
 from server.resources.jsonresource import JsonCollection, JsonResource
 from server.resources.geometry import Vector3f
 
@@ -36,15 +34,34 @@ class FeatureModel(JsonResource):
         "surface" - the marker should be rendered on a physical surface such as
                     a wall, at a fixed position relative to the top-left corner
                     of the surface
+
+    Feature types:
+        ambulance
+        door
+        elevator
+        extinguisher
+        fire
+        headset
+        injury
+        message
+        object
+        stairs
+        user
+        warning
     """
     id: int
 
-    name:           str = field(default="New Feature")
-    position:       Vector3f = field(default_factory=Vector3f)
-    type:           str = field(default="object")
-    style:          FeatureDisplayStyle = field(default_factory=FeatureDisplayStyle)
+    name:           str = field(default="New Feature",
+                                description="Name for the feature")
+    position:       Vector3f = field(default_factory=Vector3f,
+                                description="Position in world coordinates")
+    type:           str = field(default="object",
+                                description="Feature type (ambulance|door|elevator|extinguisher|fire|headset|injury|message|object|stairs|user|warning)")
+    style:          FeatureDisplayStyle = field(default_factory=FeatureDisplayStyle,
+                                description="Style information for rendering the feature in AR")
 
-    createdBy:      str = field(default=None)
+    createdBy:      str = field(default=None,
+                                description="User or headset that created the feature")
 
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)
