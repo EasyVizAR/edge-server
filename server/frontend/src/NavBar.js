@@ -11,12 +11,12 @@ function NavBar(props){
     <Navbar bg="dark" variant="dark">
         <div className="nav">
           <Container className="header">
-              <Navbar.Brand>Easy Viz AR Admin</Navbar.Brand>
+              <Navbar.Brand>EasyVizAR Edge</Navbar.Brand>
               <Navbar.Toggle aria-controls="basic-navbar-nav"/>
           </Container>
           <div class="vl"></div>
           <Link className="links" to="/">Home</Link>
-          <Link className="links" to="/workitems">Work Items</Link>
+          <Link className="links" to="/workitems">Image Processing</Link>
         </div>
         <UserInfo port={port}/>
     </Navbar>

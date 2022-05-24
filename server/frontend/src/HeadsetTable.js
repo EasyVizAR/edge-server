@@ -161,7 +161,7 @@ function HeadsetTable(props){
             <th rowSpan='2'>Location ID</th>
             <th rowSpan='2'>Last Update</th>
             <th colSpan='3'>Position</th>
-            <th colSpan='3'>Orientation</th>
+            <th colSpan='4'>Orientation</th>
             <th colSpan='1'></th>
           </tr>
           <tr>
@@ -171,6 +171,7 @@ function HeadsetTable(props){
             <th>X</th>
             <th>Y</th>
             <th>Z</th>
+            <th>W</th>
             <th></th>
           </tr>
         </thead>
@@ -197,12 +198,13 @@ function HeadsetTable(props){
                   </td>
                   <td>{e.locationId}</td>
                   <td>{moment.unix(e.updated).fromNow()}</td>
-                  <td>{e.positionX}</td>
-                  <td>{e.positionY}</td>
-                  <td>{e.positionZ}</td>
-                  <td>{e.orientationX}</td>
-                  <td>{e.orientationY}</td>
-                  <td>{e.orientationZ}</td>
+                  <td>{e.positionX.toFixed(3)}</td>
+                  <td>{e.positionY.toFixed(3)}</td>
+                  <td>{e.positionZ.toFixed(3)}</td>
+                  <td>{e.orientationX.toFixed(3)}</td>
+                  <td>{e.orientationY.toFixed(3)}</td>
+                  <td>{e.orientationZ.toFixed(3)}</td>
+                  <td>{e.orientationW.toFixed(3)}</td>
                   <td>
                     {
                       (inEditModeHeadset.status && inEditModeHeadset.rowKey === index) ? (

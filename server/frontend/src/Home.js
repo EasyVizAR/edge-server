@@ -77,7 +77,7 @@ function Home(props) {
     const [cursor, setCursor] = useState('auto');
     const [clickCount, setClickCount] = useState(0);
     const [iconIndex, setIconIndex] = useState(null);
-    const [headsetsChecked, setHeadsetsChecked] = useState(false);
+    const [headsetsChecked, setHeadsetsChecked] = useState(true);
     const [featuresChecked, setFeaturesChecked] = useState(false);
     const [sliderValue, setSliderValue] = useState(0);
     const [currLocationName, setCurrLocationName] = useState('');
@@ -204,6 +204,7 @@ function Home(props) {
                       'orientationX': v.orientation.x,
                       'orientationY': v.orientation.y,
                       'orientationZ': v.orientation.z,
+                      'orientationW': v.orientation.w,
                       'positionX': v.position.x,
                       'positionY': v.position.y,
                       'positionZ': v.position.z
@@ -236,10 +237,10 @@ function Home(props) {
         // setSelectedLocation(getDefaultLocationSelection());
     }
 
-    function updateIncidentInfo(){
-      if (currentIncident.get() != -1 && (incidentName.get() == '' || incidentName.get() == null)){
+    function updateIncidentInfo() {
+      if (currentIncident.get() != -1 && (incidentName.get() == '' || incidentName.get() == null)) {
         incidentInfo.set(currentIncident.get())
-      }else{
+      } else {
         incidentInfo.set(incidentName.get());
       }
     }
@@ -275,7 +276,7 @@ function Home(props) {
           }
         }
         setFeaturesChecked(false);
-        setHeadsetsChecked(false);
+        setHeadsetsChecked(true);
     }
 
     const getDefaultLocationSelection = () => {
@@ -403,25 +404,12 @@ function Home(props) {
         setCrossHairIcon(v);
     }
 
-    function getCurrentIncident(){
-      const requestData = {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json'
-            }
-      };
-      fetch(`http://${host}:${port}/incidents/`, requestData)
-        .then(response => {
-          if (response.ok) {
-            return response.json();
-          }
-        }).then(data => {
-          if(data['incident_number'] != '' && data['incident_number'] != null){
-            currentIncident.set(data['incident_number']);
-          }
-          if (data['incident_name'] != '' && data['incident_name'] != null){
-            incidentName.set(data['incident_name']);
-          }
+    function getCurrentIncident() {
+      fetch(`http://${host}:${port}/incidents/active`)
+        .then(response => response.json())
+        .then(data => {
+          currentIncident.set(data['id']);
+          incidentName.set(data['name']);
           updateIncidentInfo();
         });
     }
@@ -442,7 +430,7 @@ function Home(props) {
     return (
         <div className="Home">
             <Helmet>
-              <title>EasyViz AR</title>
+              <title>EasyVizAR Edge</title>
             </Helmet>
             <div className="home-body">
                 <Tabs activeKey={tab} className="mb-3 tabs" onSelect={(t) => setTab(t)}>
@@ -477,12 +465,14 @@ function Home(props) {
 
                       <div style={{textAlign: 'left', marginBottom: '15px'}}>
                         <div style={{display: 'inline-block'}}>
-                          <p className="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Location Name</p>
-                          <h4 style={{marginTop: '0px'}}>{currLocationName != '' ? (currLocationName) : ('No Location Selected')}</h4>
+                          <p className="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Current Incident</p>
+                          <h4 style={{marginTop: '0px'}}>{incidentInfo.get()}</h4>
+                          <h5>{currentIncident.get()}</h5>
                         </div>
                         <div style={{marginLeft: '15px', display: 'inline-block'}}>
-                          <p className="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Incident Name</p>
-                          <h4 style={{marginTop: '0px'}}>{incidentInfo.get()}</h4>
+                          <p className="text-muted" style={{fontSize:'0.875em', marginBottom: '0px'}}>Current Location</p>
+                          <h4 style={{marginTop: '0px'}}>{currLocationName != '' ? (currLocationName) : ('No Location Selected')}</h4>
+                          <h5>{currLocationName != '' ? selectedLocation : ''}</h5>
                         </div>
                       </div>
                         <LayerContainer id="map-container" port={port} features={features}

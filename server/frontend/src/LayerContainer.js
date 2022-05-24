@@ -288,6 +288,7 @@ function LayerContainer(props) {
                 })}
             </div>
             <Form className='layer-radio-form'>
+                <h5>Layers</h5>
                 {props.layers.map((layer, idx) => {
                     return <FormCheck
                         name="layer-radios"

@@ -84,7 +84,7 @@ function WorkItems(props){
       return(
         <div>
           <a target="_blank" href={url}>
-            <img className="work-items-images" src={url} alt="Work Items Image" />
+            <img className="work-items-images" src={url} alt="Photo" />
           </a>
         </div>
       );
@@ -97,7 +97,7 @@ function WorkItems(props){
       return(
         <div className="image-parent">
           <a target="_blank" href={url}>
-            <img className="work-items-images" src={url} alt="Work Items Image" />
+            <img className="work-items-images" src={url} alt="Photo" />
           </a>
           <div className='imageBorderDiv' style={{top: topOffset + "%", left: leftOffset + "%", width: divWidth + "%", height: divHeight + "%"}}></div>
         </div>
@@ -108,9 +108,9 @@ function WorkItems(props){
   return (
     <div className="WorkItems">
       <Helmet>
-        <title>Work Items</title>
+        <title>EasyVizAR Edge - Image Processing</title>
       </Helmet>
-      <h1 className="main-header">Work Items</h1>
+      <h1 className="main-header">Image Processing - Work Items</h1>
       <Table className="work-items-table" striped bordered hover>
         <thead>
             <tr>
