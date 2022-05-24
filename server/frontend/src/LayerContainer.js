@@ -197,6 +197,7 @@ function LayerContainer(props) {
                           'orientationX': v.orientation.x,
                           'orientationY': v.orientation.y,
                           'orientationZ': v.orientation.z,
+                          'orientationW': v.orientation.w,
                           'positionX': v.position.x,
                           'positionY': v.position.y,
                           'positionZ': v.position.z,
