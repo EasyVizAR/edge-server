@@ -158,7 +158,7 @@ function HeadsetTable(props){
           <tr>
             <th rowSpan='2'>Headset ID</th>
             <th rowSpan='2'>Name</th>
-            <th rowSpan='2'>Location ID</th>
+            <th rowSpan='2'>Location</th>
             <th rowSpan='2'>Last Update</th>
             <th colSpan='3'>Position</th>
             <th colSpan='4'>Orientation</th>
@@ -196,7 +196,7 @@ function HeadsetTable(props){
                       )
                     }
                   </td>
-                  <td>{e.locationId}</td>
+                  <td>{props.locations[e.locationId] ? props.locations[e.locationId]['name'] : 'Unknown'}</td>
                   <td>{moment.unix(e.updated).fromNow()}</td>
                   <td>{e.positionX.toFixed(3)}</td>
                   <td>{e.positionY.toFixed(3)}</td>

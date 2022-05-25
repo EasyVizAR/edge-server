@@ -67,7 +67,7 @@ function Home(props) {
     const [features, setFeatures] = useState([]);
     const [headsets, setHeadsets] = useState([]);
     const [combinedMapObjects, setCombinedMapObjects] = useState([]);
-    const [locations, setLocations] = useState([]);
+    const [locations, setLocations] = useState({}); // object indexed by locationId
     const [showNewFeature, displayNewFeature] = useState(false);
     const [layers, setLayers] = useState([]);
     const [selectedLayerId, setSelectedLayerId] = useState(-1);
@@ -107,7 +107,7 @@ function Home(props) {
     }, [headsets, setHeadsets])
 
     useEffect(() => {
-        if (selectedLocation == '' && locations.length > 0)
+        if (selectedLocation == '' && Object.keys(locations).length > 0)
             setSelectedLocation(getDefaultLocationSelection());
     }, [locations, setLocations]);
 
@@ -217,21 +217,16 @@ function Home(props) {
 
     // gets list of locations from server
     function get_locations() {
-        setLocations([]);
+        setLocations({});
 
         fetch(`http://${host}:${port}/locations`)
             .then(response => response.json())
             .then(data => {
-                var location_list = [];
-                // var fetchedMaps = [];
+                var temp_locations = {};
                 for (var key in data) {
-                    // fetchedMaps.push({'id': data[key]['id'], 'name': data[key]['name'], 'image': data[key]['image'], 'viewBox': data[key]['viewBox']});
-                    location_list.push({
-                        'id': data[key]['id'],
-                        'name': data[key]['name'],
-                    });
+                    temp_locations[data[key]['id']] = data[key];
                 }
-                setLocations(location_list);
+                setLocations(temp_locations);
                 // setSelectedLocation(getDefaultLocationSelection());
             });
         // setSelectedLocation(getDefaultLocationSelection());
@@ -245,49 +240,19 @@ function Home(props) {
       }
     }
 
-    const getMapImage = (locationId) => {
-        var map = null;
-        for (var i = 0; i < locations.length; i++) {
-            if (locations[i].id == locationId) {
-                map = locations[i];
-                break;
-            }
-        }
-        if (map == null)
-            return '';
-
-        return `http://${host}:${port}/${map['image']}`;
-        // return "http://pages.cs.wisc.edu/~hartung/easyvizar/seventhfloor.png";
-        // if ("2e1a03e6-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
-        //     return `http://${host}:${port}/uploads/seventhfloor.png`;
-        // } else if ("0a820028-3d9d-11ec-a64a-0237d8a5e2fd" === mapId) {
-        //     return "https://media.istockphoto.com/photos/dramatic-sunset-over-a-quiet-lake-picture-id1192051826?k=20&m=1192051826&s=612x612&w=0&h=9HyN74dQTBcTZXB7g-BZp6mXV3upTgSvIav0x7hLm-I=";
-        // } else {
-        //     return "http://pages.cs.wisc.edu/~hartung/easyvizar/seventhfloor.png";
-        // }
-    }
-
     const handleLocationSelection = (e, o) => {
         setSelectedLocation(e);
-
-        for (var x in locations){
-          if (locations[x]['id'] == e){
-            setCurrLocationName(locations[x]['name']);
-          }
-        }
+        setCurrLocationName(locations[e]['name']);
         setFeaturesChecked(false);
         setHeadsetsChecked(true);
     }
 
     const getDefaultLocationSelection = () => {
-        if (locations.length == 0)
+        if (Object.keys(locations).length == 0)
             return 'NULL';
-        setCurrLocationName(locations[0]['name']);
-        return locations[0]['id'];
-    }
-
-    const getDefaultMapImage = () => {
-        return getMapImage(getDefaultLocationSelection());
+        var id = Object.keys(locations)[0];
+        setCurrLocationName(locations[id]['name']);
+        return id;
     }
 
     const convertVector2Scaled = (x, yy) => {
@@ -359,6 +324,7 @@ function Home(props) {
 
     // onchange handler for updating Location image
     const updateImage = (e) => {
+        /*
         var newLocations = [];
         var prefix = "mapImage";
         var image_id = e.target.id.substring(prefix.length, e.target.id.length);
@@ -370,6 +336,7 @@ function Home(props) {
             //newLocations.push(locations[x]);
         }
         //setLocations(newLocations);
+        */
     }
 
     // checks if an image associated with a map already exists
@@ -440,8 +407,8 @@ function Home(props) {
                           <DropdownButton id="location-dropdown" title="Select Location" onSelect={handleLocationSelection}
                                           defaultValue={getDefaultLocationSelection}>
                               {
-                                  locations.map((e, index) => {
-                                      return <Dropdown.Item eventKey={e.id}>{e.name}</Dropdown.Item>
+                                  Object.entries(locations).map(([id, loc]) => {
+                                      return <Dropdown.Item eventKey={id}>{loc.name}</Dropdown.Item>
                                   })
                               }
                           </DropdownButton>
@@ -506,7 +473,7 @@ function Home(props) {
                           </Form>
                       </div>
                       <HeadsetTable port={port} headsets={headsets} getHeadsets={getHeadsets}
-                                    setHeadsets={setHeadsets}/>
+                                    setHeadsets={setHeadsets} locations={locations}/>
                       <LocationTable port={port} locations={locations} getLocations={get_locations}
                                      setLocations={setLocations}/>
                     </div>
@@ -526,7 +493,7 @@ function Home(props) {
                                      getLocations={get_locations} getHeadsets={getHeadsets} getCurrentIncident={getCurrentIncident}/>
                   </Tab>
                   <Tab eventKey="all-headsets" title="All Headsets">
-                    <AllHeadsets port={port} getLocationHeadsets={getHeadsets} />
+                    <AllHeadsets port={port} getLocationHeadsets={getHeadsets} locations={locations}/>
                   </Tab>
                     <Tab eventKey="create-layer" title="Create Layer">
                         <NewLayer port={port} getHeadsets={getHeadsets} getLayers={getLayers} setTab={setTab} locations={locations}/>

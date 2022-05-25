@@ -11,13 +11,13 @@ function LocationTable(props){
   const [changedLocation, setChangedLocation] = useState(null);
   const [inEditModeLocation, setInEditModeLocation] = useState({
     status: false,
-    rowKey: null
+    locationId: null
   });
 
   // checks if a Location name already exists
-  function checkLocationName(name, id) {
-    for (var x in props.locations) {
-      if (props.locations[x]['name'] === name && props.locations[x]['id'] != id) {
+  function checkLocationName(name, targetId) {
+    for (const [id, loc] of Object.entries(props.locations)) {
+      if (id != targetId && loc['name'] === name) {
         return true;
       }
     }
@@ -26,7 +26,7 @@ function LocationTable(props){
 
   // turns on Location editing
   const onEditLocation = (e, id) => {
-    if (inEditModeLocation.status == true && inEditModeLocation.rowKey != null) {
+    if (inEditModeLocation.status == true && inEditModeLocation.locationId != null) {
       alert("Please save or cancel edit on other location before editing another location");
       return;
     }
@@ -35,77 +35,62 @@ function LocationTable(props){
 
     setInEditModeLocation({
       status: true,
-      rowKey: id
+      locationId: id
     });
   }
 
   // saves the Location data
-  const saveLocation = (e, index) => {
-    const id = e.target.id.substring(12, e.target.id.length);
+  const saveLocation = (e, id) => {
     const url = `http://${host}:${port}/locations/${id}`;
-    var i = 0;
-    for (var x in props.locations) {
-      if (props.locations[x]['id'] == id) {
-        var dup_name = checkLocationName(props.locations[i]['name'], props.locations[x]['id']);
-        if (dup_name) {
-          var conf = window.confirm('There is another location with the same name. Are you sure you want to continue?');
-          if (!conf) {
-            return;
-          }
-        }
+    const targetLocation = props.locations[id];
 
-        const requestData = {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            'name': props.locations[x]['name']
-          })
-        };
-
-        fetch(url, requestData).then(response => {
-          setChangedLocation(props.locations[x]['name']);
-          onCancelLocation(index);
-          props.getLocations();
-        });
-        break;
+    const is_dup = checkLocationName(targetLocation['name'], id);
+    if (is_dup) {
+      var conf = window.confirm('There is another location with the same name. Are you sure you want to continue?');
+      if (!conf) {
+        return;
       }
-      i = i + 1
     }
+
+    const requestData = {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        'name': targetLocation['name']
+      })
+    };
+
+    fetch(url, requestData).then(response => {
+      setChangedLocation(targetLocation['name']);
+      onCancelLocation(id);
+      props.getLocations();
+    });
   }
 
   // cancels Location editing
-  const onCancelLocation = (index) => {
-    for (var x in props.locations){
-      if (x == index){
-        props.locations[x]['name'] = changedLocation;
-        break;
-      }
-    }
-
+  const onCancelLocation = (id) => {
+    props.locations[id]['name'] = changedLocation;
     setChangedLocation(null);
 
     // reset the inEditMode state value
     setInEditModeLocation({
       status: false,
-      rowKey: null
+      locationId: null
     });
   }
 
   // on change handler for updating Location name
-  const updateLocationName = (e) => {
-    var newLocations = [];
-    var prefix = "locationName";
-    var location_id = e.target.id.substring(prefix.length, e.target.id.length);
+  const updateLocationName = (ev, id) => {
+    props.locations[id]['name'] = ev.target.value;
 
+    /*
     for (var x in props.locations) {
-      if (props.locations[x]['id'] == location_id) {
-        props.locations[x]['name'] = e.target.value;
-      }
       newLocations.push(props.locations[x]);
     }
     props.setLocations(newLocations);
+    */
   }
 
   function deleteLocation(id, name) {
@@ -123,11 +108,7 @@ function LocationTable(props){
     };
 
     fetch(url, requestData).then(response => {
-      for (var x in props.locations) {
-        if (props.locations[x]['id'] == id) {
-          props.locations.pop(props.locations[x]);
-        }
-      }
+      delete props.locations[id];
       props.getLocations();
     });
   }
@@ -160,40 +141,40 @@ function LocationTable(props){
         </thead>
         <tbody>
           {
-            props.locations.length > 0 ? (
-              props.locations.map((e, index) => {
+            Object.keys(props.locations).length > 0 ? (
+              Object.entries(props.locations).map(([id, loc]) => {
                 return <tr>
-                  <td>{e.id}</td>
+                  <td>{id}</td>
                   <td>
                     {
-                      inEditModeLocation.status && inEditModeLocation.rowKey === index ? (
+                      inEditModeLocation.status && inEditModeLocation.locationId === id ? (
                         <input
                           placeholder="Edit Location Name"
                           name="input"
                           type="text"
-                          id={'locationName' + e.id}
-                          onChange={updateLocationName}
-                          value={props.locations[index]['name']}/>
+                          id={'locationName' + id}
+                          onChange={(ev) => updateLocationName(ev, id)}
+                          value={loc['name']}/>
                       ) : (
-                        e.name
+                        loc.name
                       )
                     }
                   </td>
                   <td>
                     {
-                      (inEditModeLocation.status && inEditModeLocation.rowKey === index) ? (
+                      (inEditModeLocation.status && inEditModeLocation.locationId === id) ? (
                         <React.Fragment>
                           <Button
                             className={"btn-success table-btns"}
-                            id={'locationsbtn' + e.id}
-                            onClick={(e) => saveLocation(e, index)}
+                            id={'locationsbtn' + id}
+                            onClick={(e) => saveLocation(e, id)}
                             title='Save'>
                             Save
                           </Button>
                           <Button
                             className={"btn-secondary table-btns"}
                             style={{marginLeft: 8}}
-                            onClick={() => onCancelLocation(index)}
+                            onClick={() => onCancelLocation(id)}
                             title='Cancel'>
                             Cancel
                           </Button>
@@ -201,7 +182,7 @@ function LocationTable(props){
                       ) : (
                         <Button
                           className={"btn-primary table-btns"}
-                          onClick={(e) => onEditLocation(e, index)}
+                          onClick={(e) => onEditLocation(e, id)}
                           title='Edit'>
                           Edit
                         </Button>
@@ -210,7 +191,7 @@ function LocationTable(props){
                   </td>
                   <td>
                     <div>
-                      <TrashIcon item='location' id={e.id} name={e.name}/>
+                      <TrashIcon item='location' id={id} name={loc.name}/>
                     </div>
                   </td>
                 </tr>

@@ -104,8 +104,8 @@ function NewLayer(props) {
                                 className="mb-3" controlId="layer-name">
                         <DropdownButton id="location-dropdown" title="Select Location" onSelect={handleLocationSelection}>
                             {
-                                props.locations.map((e, index) => {
-                                    return <Dropdown.Item eventKey={e.id}>{e.name}</Dropdown.Item>
+                                Object.entries(props.locations).map(([id, loc]) => {
+                                    return <Dropdown.Item eventKey={id}>{loc.name}</Dropdown.Item>
                                 })
                             }
                         </DropdownButton>
