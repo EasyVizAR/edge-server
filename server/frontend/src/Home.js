@@ -92,7 +92,6 @@ function Home(props) {
     useEffect(() => {
         get_locations();
         getCurrentIncident();
-        getHeadsets();
     }, []);
 
     useEffect(() => {
@@ -112,6 +111,10 @@ function Home(props) {
     }, [locations, setLocations]);
 
     useEffect(() => {
+        // If selectedLocation changed, immediately reload list of headsets at
+        // the new location.
+        getHeadsets();
+
         if (selectedLocation != '') {
             getLayers();
         }

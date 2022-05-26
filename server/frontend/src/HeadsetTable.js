@@ -8,6 +8,15 @@ import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.m
 function HeadsetTable(props){
   const host = window.location.hostname;
   const port = props.port;
+
+  // Only one row can be open for editing at a time. A reference is used to
+  // query the value of the input field when the user clicks Save. The
+  // performance is much better than using an onChange handler for every
+  // key press.
+  const formReferences = {
+    name: React.createRef()
+  };
+
   const [changedHeadsetName, setChangedHeadsetName] = useState(null);
   const [inEditModeHeadset, setInEditModeHeadset] = useState({
     status: false,
@@ -44,10 +53,12 @@ function HeadsetTable(props){
     const headset = null;
     const id = e.target.id.substring(7, e.target.id.length);
     const url = `http://${host}:${port}/headsets/${id}`;
+
+    const newName = formReferences.name.current.value;
+
     for (var x in props.headsets) {
       if (props.headsets[x]['id'] == id) {
-
-        var dup = checkHeadsetName(props.headsets[x]['name'], props.headsets[x]['id']);
+        var dup = checkHeadsetName(newName, props.headsets[x]['id']);
         if (dup) {
           var conf = window.confirm('There is another headset with the same name. Are you sure you want to continue?');
           if (!conf) {
@@ -61,11 +72,12 @@ function HeadsetTable(props){
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            'name': props.headsets[x]['name']
+            'name': newName
           })
         };
 
         fetch(url, requestData).then(response => {
+          props.headsets[x]['name'] = newName;
           setChangedHeadsetName(props.headsets[x]['name']);
           onCancelHeadset(null, index);
           props.getHeadsets();
@@ -185,11 +197,11 @@ function HeadsetTable(props){
                     {
                       inEditModeHeadset.status && inEditModeHeadset.rowKey === index ? (
                         <input
-                          value={props.headsets[index]['name']}
+                          defaultValue={props.headsets[index]['name']}
                           placeholder="Edit Headset Name"
-                          onChange={updateHeadsetName}
                           name={"headsetinput" + e.id}
                           type="text"
+                          ref={formReferences.name}
                           id={'headsetName' + e.id}/>
                       ) : (
                         e.name

@@ -8,6 +8,15 @@ import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.m
 function LocationTable(props){
   const host = window.location.hostname;
   const port = props.port;
+
+  // Only one row can be open for editing at a time. A reference is used to
+  // query the value of the input field when the user clicks Save. The
+  // performance is much better than using an onChange handler for every
+  // key press.
+  const formReferences = {
+    locationName: React.createRef()
+  }
+
   const [changedLocation, setChangedLocation] = useState(null);
   const [inEditModeLocation, setInEditModeLocation] = useState({
     status: false,
@@ -43,8 +52,10 @@ function LocationTable(props){
   const saveLocation = (e, id) => {
     const url = `http://${host}:${port}/locations/${id}`;
     const targetLocation = props.locations[id];
+    console.log(e.target);
+    const newName = formReferences.locationName.current.value;
 
-    const is_dup = checkLocationName(targetLocation['name'], id);
+    const is_dup = checkLocationName(newName, id);
     if (is_dup) {
       var conf = window.confirm('There is another location with the same name. Are you sure you want to continue?');
       if (!conf) {
@@ -58,11 +69,12 @@ function LocationTable(props){
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        'name': targetLocation['name']
+        'name': newName
       })
     };
 
     fetch(url, requestData).then(response => {
+      targetLocation['name'] = newName;
       setChangedLocation(targetLocation['name']);
       onCancelLocation(id);
       props.getLocations();
@@ -147,14 +159,14 @@ function LocationTable(props){
                   <td>{id}</td>
                   <td>
                     {
-                      inEditModeLocation.status && inEditModeLocation.locationId === id ? (
+                      (inEditModeLocation.locationId === id) ? (
                         <input
                           placeholder="Edit Location Name"
                           name="input"
                           type="text"
                           id={'locationName' + id}
-                          onChange={(ev) => updateLocationName(ev, id)}
-                          value={loc['name']}/>
+                          defaultValue={loc.name}
+                          ref={formReferences.locationName}/>
                       ) : (
                         loc.name
                       )
@@ -162,7 +174,7 @@ function LocationTable(props){
                   </td>
                   <td>
                     {
-                      (inEditModeLocation.status && inEditModeLocation.locationId === id) ? (
+                      (inEditModeLocation.locationId === id) ? (
                         <React.Fragment>
                           <Button
                             className={"btn-success table-btns"}

@@ -9,6 +9,16 @@ function AllHeadsets(props){
   const host = window.location.hostname;
   const port = props.port;
   const headsets = useStateSynchronous([]);
+
+  // Only one row can be open for editing at a time. A reference is used to
+  // query the value of the input field when the user clicks Save. The
+  // performance is much better than using an onChange handler for every
+  // key press.
+  const formReferences = {
+    name: React.createRef(),
+    locationId: React.createRef()
+  }
+
   const [changedHeadsetName, setChangedHeadsetName] = useState(null);
   const [inEditModeHeadset, setInEditModeHeadset] = useState({
       status: false,
@@ -91,10 +101,13 @@ function AllHeadsets(props){
       const headset = null;
       const id = e.target.id.substring(7, e.target.id.length);
       const url = `http://${host}:${port}/headsets/${id}`;
+
+      const newName = formReferences.name.current.value;
+      const newLocationId = formReferences.locationId.current.value;
+
       for (var x in headsets.get()) {
           if (headsets.get()[x]['id'] === id) {
-
-              var dup = checkHeadsetName(headsets.get()[x]['name'], headsets.get()[x]['id']);
+              var dup = checkHeadsetName(newName, headsets.get()[x]['id']);
               if (dup) {
                   var conf = window.confirm('There is another headset with the same name. Are you sure you want to continue?');
                   if (!conf) {
@@ -108,12 +121,17 @@ function AllHeadsets(props){
                       'Content-Type': 'application/json'
                   },
                   body: JSON.stringify({
-                      'name': headsets.get()[x]['name']
+                      'name': newName,
+                      'location_id': newLocationId
                   })
               };
 
               fetch(url, requestData).then(response => {
-                setChangedHeadsetName(headsets.get()[x]['name']);
+                var headset = headsets.get()[x];
+                headset['name'] = newName;
+                headset['locationId'] = newLocationId;
+
+                setChangedHeadsetName(headset);
                 onCancelHeadset(null, index);
                 getAllHeadsets();
               });
@@ -213,18 +231,36 @@ function AllHeadsets(props){
                     {
                       inEditModeHeadset.status && inEditModeHeadset.rowKey === index ? (
                         <input
-                          value={headsets.get()[index]['name']}
+                          defaultValue={headsets.get()[index]['name']}
                           placeholder="Edit Headset Name"
-                          onChange={updateHeadsetName}
                           name={"headsetinput" + e.id}
                           type="text"
+                          ref={formReferences.name}
                           id={'headsetName' + e.id}/>
                       ) : (
                         e.name
                       )
                     }
                   </td>
-                  <td>{props.locations[e.locationId] ? props.locations[e.locationId]['name'] : 'Unknown' }</td>
+                  <td>
+                    {
+                      (inEditModeHeadset.rowKey === index) ? (
+                        <select
+                          id="headset-location-dropdown"
+                          title="Change Location"
+                          defaultValue={e.locationId}
+                          ref={formReferences.locationId}>
+                          {
+                            Object.entries(props.locations).map(([locationId, loc]) => {
+                              return <option value={locationId}>{loc.name}</option>
+                            })
+                          }
+                          </select>
+                      ) : (
+                        props.locations[e.locationId] ? props.locations[e.locationId]['name'] : 'Unknown'
+                      )
+                    }
+                  </td>
                   <td>{moment.unix(e.updated).fromNow()}</td>
                   <td>{e.positionX.toFixed(3)}</td>
                   <td>{e.positionY.toFixed(3)}</td>
