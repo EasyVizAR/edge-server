@@ -43,6 +43,10 @@ parts:
   server:
     plugin: python
     source: .
+    build-packages:
+      - cairo
+      - python3-dev
+      - libffi-dev
     stage-packages:
       - python3
     requirements:

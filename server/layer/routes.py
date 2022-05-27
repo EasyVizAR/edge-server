@@ -7,6 +7,7 @@ from quart import Blueprint, g, jsonify, request, send_from_directory
 from werkzeug import exceptions
 
 from server.resources.csvresource import CsvCollection
+from server.utils.images import try_send_image
 from server.utils.utils import save_image
 
 from .models import LayerModel
@@ -279,9 +280,46 @@ async def get_layer_file(location_id, layer_id):
     Get a layer data file
     ---
     get:
-        summary: Get a layer data file
+        summary: Get a layer image file
+        description: |-
+            Get the image file associated with a layer. Typically, this will be
+            a map image.
+
+            Layers that are automatically generated (type="generated") by the
+            server from environment meshes are stored as SVG. The server can
+            convert an SVG source to a PNG file if desired. To request a PNG
+            file instead, the caller should set the Accept and Width headers.
+            Note that while SVG files have no fixed size, when converting to a
+            raster format such as PNG, the size of the output image becomes
+            very important for visual quality. Refer to the example below.
+
+                GET /locations/03f68b3c-0aa2-42c8-9e1b-077465f66eb9/layers/1/image
+                Accept: image/png
+                Width: 900
         tags:
           - layers
+        parameters:
+          - name: Accept
+            in: header
+            required: false
+            schema:
+                type: str
+            description: |-
+                Request a specific content type, e.g. "image/png".
+
+                Not all conversions are supported, and the server will simply
+                return an error if the request cannot be satisfied. Converting
+                from SVG to PNG is supported, however.
+          - name: Width
+            in: header
+            required: false
+            schema:
+                type: int
+            description: |-
+                Request a specific image size (in pixels, default: 900).
+
+                This header value will only be used if a conversion from SVG is performed
+                such as when the image is stored as SVG and a PNG is requested.
         responses:
             200:
                 description: The image or other data file.
@@ -298,7 +336,7 @@ async def get_layer_file(location_id, layer_id):
     if layer is None:
         raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
 
-    return await send_from_directory(layer.get_dir(), os.path.basename(layer.imagePath))
+    return await try_send_image(layer.imagePath, layer.contentType, request.headers)
 
 
 @layers.route('/locations/<location_id>/layers/<layer_id>/image', methods=['PUT'])
