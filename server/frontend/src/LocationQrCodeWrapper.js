@@ -65,7 +65,7 @@ function LocationQrCodeWrapper(props){
 
         <div className="row">
           <div className="col">
-            <p>{"vizar://" + host + ":" + port + "/locations" + location_id}</p>
+            <p>{"vizar://" + host + ":" + port + "/locations/" + location_id}</p>
           </div>
         </div>
       </div>
