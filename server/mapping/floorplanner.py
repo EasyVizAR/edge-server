@@ -161,6 +161,16 @@ class Floorplanner:
         if isinstance(self.ply_path_or_list, str):
             self.ply_path_or_list = glob.glob(self.ply_path_or_list)
 
+        # Detect surface files that have been deleted and stop using line
+        # segments that were created from them.
+        deleted = []
+        for path in self.data.keys():
+            if not os.path.exists(path):
+                deleted.append(path)
+        for path in deleted:
+            self.data.pop(path)
+            changes += 1
+
         for i, path in enumerate(self.ply_path_or_list):
             time_of_prev_mod = os.path.getmtime(path)
             update_lines_at_path = path not in self.data or self.data[path]["last_modified"] < time_of_prev_mod
