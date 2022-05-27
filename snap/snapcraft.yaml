@@ -44,10 +44,10 @@ parts:
     plugin: python
     source: .
     build-packages:
-      - cairo
-      - python3-dev
       - libffi-dev
+      - python3-dev
     stage-packages:
+      - libcairo2
       - python3
     requirements:
       - requirements.txt
