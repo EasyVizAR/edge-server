@@ -45,6 +45,7 @@ parts:
     source: .
     build-packages:
       - libffi-dev
+      - libjpeg-dev
       - python3-dev
     stage-packages:
       - libcairo2
