@@ -289,6 +289,29 @@ function Home(props) {
         displayNewFeature(showNewFeature ? false : true);
     }
 
+    const resetSurfaces = (e) => {
+        const del = window.confirm("This will delete all surfaces that have been collected by headsets in the location. Are you sure?");
+        if (!del) {
+            return;
+        }
+
+        const requestData = {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+        };
+
+        const surfaces_url = `http://${host}:${port}/locations/` + selectedLocation + "/surfaces";
+        fetch(surfaces_url)
+            .then(response => response.json())
+            .then(data => {
+                for (var key in data) {
+                    fetch(surfaces_url + "/" + data[key]['id'], requestData);
+                }
+            });
+    }
+
     function sort_list(arr){
        for(let i = 0; i < arr.length; i++){
           for(let j = 0; j < arr.length - i - 1; j++){
@@ -425,6 +448,11 @@ function Home(props) {
 
                       <div className="QR-code-btn header-button">
                         <Link className="btn btn-secondary" role="button" to={"/locations/" + selectedLocation + "/qrcode"}>Location QR Code</Link>
+                      </div>
+
+                      <div className="header-button">
+                          <Button variant="secondary" title="Reset Surfaces" value="Reset Surfaces"
+                                  onClick={(e) => resetSurfaces(e)}>Reset Surfaces</Button>
                       </div>
                     </div>
 
