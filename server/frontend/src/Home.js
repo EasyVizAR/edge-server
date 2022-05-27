@@ -14,6 +14,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 import {Helmet} from 'react-helmet';
 import useStateSynchronous from './useStateSynchronous.js';
+import {Link} from "react-router-dom";
 
 import fontawesome from '@fortawesome/fontawesome'
 import {
@@ -423,7 +424,7 @@ function Home(props) {
                       </div>
 
                       <div className="QR-code-btn header-button">
-                        <Button title="Location QR Code" variant="secondary" href={"/locations/" + selectedLocation + "/qrcode"} target="_blank">Location QR Code</Button>
+                        <Link className="btn btn-secondary" role="button" to={"/locations/" + selectedLocation + "/qrcode"}>Location QR Code</Link>
                       </div>
                     </div>
 

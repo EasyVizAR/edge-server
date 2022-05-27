@@ -11,7 +11,6 @@ function LocationQrCodeWrapper(props){
   const[location, setLocation] = useState(null);
 
   useEffect(() => {
-    getQrCode();
     getLocationInfo();
   }, []);
 
@@ -29,26 +28,6 @@ function LocationQrCodeWrapper(props){
       }
     }).then(data => {
       setLocation(data);
-    }).catch(err => {
-      // Do something for an error here
-      console.log("Error Reading data " + err);
-    });
-  }
-
-  function getQrCode(){
-    const requestData = {
-        method: 'GET',
-        headers: {
-            'Accept': 'image/svg+xml'
-        }
-    };
-
-    fetch(`http://${host}:${port}/locations/` + location_id + `/qrcode`, requestData).then(response => {
-      if(response.ok){
-        return response.json();
-      }
-    }).then(data => {
-      setQrCode(data)
     }).catch(err => {
       // Do something for an error here
       console.log("Error Reading data " + err);
@@ -74,16 +53,20 @@ function LocationQrCodeWrapper(props){
         <title>Location QR Code</title>
       </Helmet>
 
-      <div className="data">
-        <div className="svg-image">
-          {qr != null ? (
-            <p dangerouslySetInnerHTML={{ __html: qr }} />
-          ) : (
-            <p>Could not load location QR code. Make sure there is a location selected on the home page.</p>
-          )}
+      <div className="container-lg">
+        <div className="row align-items-center">
+          <div className="col-lg-8">
+            <img src={`http://${host}:${port}/locations/` + location_id + "/qrcode"}/>
+          </div>
+          <div className="col-lg-4">
+            <LocationInfo/>
+          </div>
         </div>
-        <div className="location-info">
-          <LocationInfo/>
+
+        <div className="row">
+          <div className="col">
+            <p>{"vizar://" + host + ":" + port + "/locations" + location_id}</p>
+          </div>
         </div>
       </div>
     </div>
