@@ -7,6 +7,7 @@ import IncidentHistory from './IncidentHistory.js';
 import AllHeadsets from './AllHeadsets.js';
 import LocationTable from './LocationTable.js';
 import HeadsetTable from './HeadsetTable.js';
+import FeatureTable from './FeatureTable.js';
 import 'reactjs-popup/dist/index.css';
 import React, {useState, useEffect} from 'react';
 import moment from 'moment';
@@ -506,6 +507,7 @@ function Home(props) {
                       </div>
                       <HeadsetTable port={port} headsets={headsets} getHeadsets={getHeadsets}
                                     setHeadsets={setHeadsets} locations={locations}/>
+                      <FeatureTable port={port} features={features} locationId={selectedLocation}/>
                       <LocationTable port={port} locations={locations} getLocations={get_locations}
                                      setLocations={setLocations}/>
                     </div>

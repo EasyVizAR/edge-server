@@ -65,7 +65,7 @@ async def create_feature(location_id):
 
             The following example creates a marker at a specific point:
 
-                POST /headsets
+                POST /locations/<location_id>/features
                 Content-Type: application/json
                 {
                     "name": "Main Stairwell",

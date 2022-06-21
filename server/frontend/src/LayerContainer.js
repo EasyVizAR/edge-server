@@ -176,7 +176,8 @@ function LayerContainer(props) {
                         'positionZ': v.position.z,
                         'iconValue': v.type,
                         'radius': v.style.radius,
-                        'placement': v.style.placement
+                        'placement': v.style.placement,
+                        'updated': v.updated
                     });
                 }
             }
