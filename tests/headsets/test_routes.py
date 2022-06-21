@@ -1,4 +1,5 @@
 import os
+import time
 
 from http import HTTPStatus
 
@@ -51,6 +52,14 @@ async def test_headset_routes():
         headset2 = await response.get_json()
         assert headset2['id'] == headset['id']
         assert headset2[test_field] == headset[test_field]
+
+        # Test query by name
+        response = await client.get(headsets_url + "?name={}".format(headset['name']))
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        result = await response.get_json()
+        assert isinstance(result, list)
+        assert len(result) > 0
 
         # Test changing the name
         response = await client.patch(headset_url, json={"id": "bad", test_field: "bar"})
@@ -333,3 +342,51 @@ async def test_headset_incidents_tracking():
         # Clean up
         await client.delete(headset_url)
         await client.delete("/incidents/{}".format(incident['id']))
+
+
+@pytest.mark.asyncio
+async def test_headset_long_polling():
+    """
+    Test headset long polling
+    """
+    async with app.test_client() as client:
+        headsets_url = "/headsets"
+        start_time = time.time()
+
+        # Initial list of headsets should be empty
+        response = await client.get(headsets_url + "?since={}".format(start_time))
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        headsets = await response.get_json()
+        assert isinstance(headsets, list)
+        assert len(headsets) == 0
+
+        # A short wait should timeout with no results
+        response = await client.get(headsets_url + "?since={}&wait=0.001".format(start_time))
+        assert response.status_code == HTTPStatus.NO_CONTENT
+        assert response.is_json
+        headsets = await response.get_json()
+        assert isinstance(headsets, list)
+        assert len(headsets) == 0
+
+        # Set up a listener
+        listener = client.get(headsets_url + "?since={}&wait=5".format(start_time))
+
+        # Create an object
+        response = await client.post(headsets_url, json=dict(name="Longpolling Tester"))
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        headset = await response.get_json()
+        assert isinstance(headset, dict)
+        assert headset['id'] is not None
+
+        # The listener should have received the same object
+        response2 = await listener
+        assert response2.status_code == HTTPStatus.OK
+        assert response2.is_json
+        headset2 = await response2.get_json()
+        assert isinstance(headset2, list)
+        assert headset2[0] == headset
+
+        # Clean up
+        await client.delete("/headsets/{}".format(headset['id']))

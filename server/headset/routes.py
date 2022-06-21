@@ -49,6 +49,41 @@ async def list_headsets():
             schema:
                 type: str
             description: Only show headsets present in a given location or unknown location if set to "none".
+          - name: name
+            in: query
+            required: false
+            schema:
+                type: str
+            description: >-
+                Filter items based on name.
+
+                Wildcards (*) and single character matching (?) are supported.
+                For example, a query of "Test Headset *" would match "Test
+                Headset 1" and "Test Headset 20".
+          - name: since
+            in: query
+            required: false
+            schema:
+                type: float
+            description: Only show items that were created or updated since this time.
+          - name: until
+            in: query
+            required: false
+            schema:
+                type: float
+            description: Only show items that were created or updated before this time.
+          - name: wait
+            in: query
+            required: false
+            schema:
+                type: float
+            description: >-
+                Request that the server wait a time limit (in seconds) for a
+                new result if none are immediately available. The server will
+                return one or more results as soon as they are available, or if
+                the time limit has passed, the server will return a No Content
+                204 result indicating timeout. A time limit of 30-60 seconds is
+                recommended.
         responses:
             200:
                 description: A list of headsets.
@@ -58,22 +93,38 @@ async def list_headsets():
                             type: array
                             items: Headset
     """
-
     filt = Filter()
     if "location_id" in request.args:
         location_id = request.args.get("location_id").lower()
         if location_id in ["", "none", "null"]:
             location_id = None
         filt.target_equal_to("location_id", location_id)
+    if "name" in request.args:
+        filt.target_string_match("name", request.args.get("name"))
+    if "since" in request.args:
+        filt.target_greater_than("updated", float(request.args.get("since")))
+    if "until" in request.args:
+        filt.target_less_than("updated", float(request.args.get("until")))
 
-    headsets = g.Headset.find(filt=filt)
+    items = g.Headset.find(filt=filt)
 
-    # Wrap the maps list if the caller requested an envelope.
+    # Wait for new objects if the query returned no results and the caller
+    # specified a wait timeout. If there are still no results, we return a 204
+    # No Content code.
+    wait = float(request.args.get("wait", 0))
+    if len(items) == 0 and wait > 0:
+        try:
+            item = await asyncio.wait_for(g.Headset.wait_for(filt=filt), timeout=wait)
+            items.append(item)
+        except asyncio.TimeoutError:
+            return jsonify([]), HTTPStatus.NO_CONTENT
+
+    # Wrap the results list if the caller requested an envelope.
     query = request.args
     if "envelope" in query:
-        result = {query.get("envelope"): headsets}
+        result = {query.get("envelope"): items}
     else:
-        result = headsets
+        result = items
 
     return jsonify(result), HTTPStatus.OK
 

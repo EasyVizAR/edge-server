@@ -1,3 +1,4 @@
+import fnmatch
 import operator
 
 
@@ -18,6 +19,12 @@ class Filter:
 
     def target_equal_to(self, field, value):
         self.add(field, value, operator.eq)
+
+    def target_string_match(self, field, value):
+        """
+        Filter strings with basic wildcard matching provided by fnmatch.
+        """
+        self.add(field, value, fnmatch.fnmatch)
 
     def target_greater_than(self, field, value):
         self.add(field, value, operator.gt)
