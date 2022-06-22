@@ -44,6 +44,18 @@ from server.resources.filter import Filter
 class JsonResource(AbstractResource):
     on_update = []
 
+    def __getstate__(self):
+        d = dict(self.__dict__)
+
+        # This is hacky, but the _collection object makes instances of the
+        # JsonResource not able to be pickled.  I am not sure we actually use
+        # the _collection attribute, but simply dropping it makes the objects
+        # picklable, which allows us to transfer them to worker processes.
+        if '_collection' in d:
+            del d['_collection']
+
+        return d
+
     def delete(self):
         shutil.rmtree(self._storage_dir, ignore_errors=True)
 

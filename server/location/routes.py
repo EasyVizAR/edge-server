@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 from http import HTTPStatus
@@ -8,6 +9,7 @@ from quart import Blueprint, current_app, g, jsonify, request, send_from_directo
 from werkzeug import exceptions
 
 from server.incidents.models import Incident
+from server.mapping.obj_file import ObjFileMaker
 from server.resources.csvresource import CsvCollection
 
 from .models import LocationModel
@@ -253,3 +255,37 @@ async def get_location_qrcode(location_id):
         code.svg(image_path, title=url, scale=16)
 
     return await send_from_directory(location.get_dir(), "qrcode.svg")
+
+
+@locations.route('/locations/<location_id>/model', methods=['GET'])
+async def get_location_model(location_id):
+    """
+    Get a 3D model for the location.
+    ---
+    get:
+        description: Get a 3D model for the location.
+        tags:
+          - locations
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Location ID
+        responses:
+            200:
+                description: An object model file.
+                content:
+                    model/obj: {}
+    """
+    location = g.active_incident.Location.find_by_id(location_id)
+    if location is None:
+        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+
+    obj_path = os.path.join(location.get_dir(), "model.obj")
+
+    surfaces = location.Surface.find()
+    obj_maker = ObjFileMaker(surfaces)
+    future = current_app.mapping_pool.submit(obj_maker.make_obj, obj_path)
+    await asyncio.wrap_future(future)
+
+    return await send_from_directory(location.get_dir(), "model.obj")

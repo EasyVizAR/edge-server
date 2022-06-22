@@ -1,5 +1,7 @@
 import os
 
+from concurrent.futures import ProcessPoolExecutor
+
 from quart import Quart, g
 from quart_cors import cors
 
@@ -73,6 +75,11 @@ def before_first_request():
 
     app.mapping_thread = MappingThread()
     app.mapping_thread.start()
+
+    # We should migrate the mapping_thread code to mapping_pool. It gives
+    # better isolation between the mapping process and main process, and also
+    # plays nicely with asyncio.
+    app.mapping_pool = ProcessPoolExecutor(1)
 
 
 @app.before_request
