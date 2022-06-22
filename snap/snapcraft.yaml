@@ -36,6 +36,8 @@ parts:
       - on amd64:
         - gcc-multilib
         - g++-multilib
+    stage-packages:
+      - lib32stdc++6
 
   frontend:
     plugin: nil
@@ -57,6 +59,7 @@ parts:
       - python3-dev
     stage-packages:
       - libcairo2
+      - libjpeg-turbo8
       - python3
     requirements:
       - requirements.txt
