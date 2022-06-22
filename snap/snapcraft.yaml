@@ -13,10 +13,11 @@ confinement: strict
 
 apps:
   server:
-    command: bin/snapcraft-preload $SNAP/bin/server
+    command: bin/server
     daemon: simple
     environment:
       APPLICATION_CONFIG: $SNAP_DATA/server.conf
+      LD_PRELOAD: $SNAP/usr/lib/libsnapcraft-preload.so
       VIZAR_DATA_DIR: $SNAP_DATA
       VIZAR_STATIC_FOLDER: $SNAP/frontend/build
       VIZAR_HOST: 0.0.0.0
@@ -32,12 +33,15 @@ parts:
   snapcraft-preload:
     source: https://github.com/sergiusens/snapcraft-preload.git
     plugin: cmake
+    cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr
     build-packages:
       - on amd64:
         - gcc-multilib
         - g++-multilib
     stage-packages:
-      - lib32stdc++6
+      - on amd64:
+        - lib32stdc++6
 
   frontend:
     plugin: nil
