@@ -288,4 +288,5 @@ async def get_location_model(location_id):
     future = current_app.mapping_pool.submit(obj_maker.make_obj, obj_path)
     await asyncio.wrap_future(future)
 
-    return await send_from_directory(location.get_dir(), "model.obj")
+    return await send_from_directory(location.get_dir(), "model.obj",
+            as_attachment=True, attachment_filename="model.obj")

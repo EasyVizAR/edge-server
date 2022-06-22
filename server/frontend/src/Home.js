@@ -452,6 +452,10 @@ function Home(props) {
                       </div>
 
                       <div className="header-button">
+                        <a class="btn btn-secondary" href={"/locations/" + selectedLocation + "/model"}>Location 3D Model</a>
+                      </div>
+
+                      <div className="header-button">
                           <Button variant="secondary" title="Reset Surfaces" value="Reset Surfaces"
                                   onClick={(e) => resetSurfaces(e)}>Reset Surfaces</Button>
                       </div>
