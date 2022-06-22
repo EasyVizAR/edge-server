@@ -13,7 +13,7 @@ confinement: strict
 
 apps:
   server:
-    command: bin/server
+    command: bin/snapcraft-preload $SNAP/bin/server
     daemon: simple
     environment:
       APPLICATION_CONFIG: $SNAP_DATA/server.conf
@@ -29,6 +29,14 @@ hooks:
     plugs: []
 
 parts:
+  snapcraft-preload:
+    source: https://github.com/sergiusens/snapcraft-preload.git
+    plugin: cmake
+    build-packages:
+      - on amd64:
+        - gcc-multilib
+        - g++-multilib
+
   frontend:
     plugin: nil
     source: server/frontend
