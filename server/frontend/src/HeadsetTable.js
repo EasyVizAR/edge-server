@@ -14,7 +14,8 @@ function HeadsetTable(props){
   // performance is much better than using an onChange handler for every
   // key press.
   const formReferences = {
-    name: React.createRef()
+    name: React.createRef(),
+    color: React.createRef()
   };
 
   const [changedHeadsetName, setChangedHeadsetName] = useState(null);
@@ -55,6 +56,7 @@ function HeadsetTable(props){
     const url = `http://${host}:${port}/headsets/${id}`;
 
     const newName = formReferences.name.current.value;
+    const newColor = formReferences.color.current.value;
 
     for (var x in props.headsets) {
       if (props.headsets[x]['id'] == id) {
@@ -72,12 +74,14 @@ function HeadsetTable(props){
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            'name': newName
+            'name': newName,
+            'color': newColor
           })
         };
 
         fetch(url, requestData).then(response => {
           props.headsets[x]['name'] = newName;
+          props.headsets[x]['color'] = newColor;
           setChangedHeadsetName(props.headsets[x]['name']);
           onCancelHeadset(null, index);
           props.getHeadsets();
@@ -170,6 +174,7 @@ function HeadsetTable(props){
           <tr>
             <th rowSpan='2'>Headset ID</th>
             <th rowSpan='2'>Name</th>
+            <th rowSpan='2'>Icon / Color</th>
             <th rowSpan='2'>Location</th>
             <th rowSpan='2'>Last Update</th>
             <th colSpan='3'>Position</th>
@@ -205,6 +210,21 @@ function HeadsetTable(props){
                           id={'headsetName' + e.id}/>
                       ) : (
                         e.name
+                      )
+                    }
+                  </td>
+                  <td>
+                    {
+                      inEditModeHeadset.status && inEditModeHeadset.rowKey === index ? (
+                        <input
+                          defaultValue={props.headsets[index]['color']}
+                          placeholder="Edit Headset Color"
+                          name={"headset-color-" + e.id}
+                          type="color"
+                          ref={formReferences.color}
+                          id={"headset-color-" + e.id}/>
+                      ) : (
+                        <FontAwesomeIcon icon={solid('headset')} size="lg" color={e.color}/>
                       )
                     }
                   </td>

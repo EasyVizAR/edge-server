@@ -184,6 +184,7 @@ function AllHeadsets(props){
           'updated': v.updated,
           'locationId': v.location_id,
           'name': v.name,
+          'color': v.color,
           'orientationX': v.orientation.x,
           'orientationY': v.orientation.y,
           'orientationZ': v.orientation.z,

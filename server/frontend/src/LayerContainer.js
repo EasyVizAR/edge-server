@@ -171,6 +171,7 @@ function LayerContainer(props) {
                         'id': v.id,
                         'locationId': props.selectedLocation,
                         'name': v.name,
+                        'color': v.color,
                         'positionX': v.position.x,
                         'positionY': v.position.y,
                         'positionZ': v.position.z,
@@ -195,6 +196,7 @@ function LayerContainer(props) {
                           'updated': v.updated,
                           'locationId': v.location_id,
                           'name': v.name,
+                          'color': v.color,
                           'orientationX': v.orientation.x,
                           'orientationY': v.orientation.y,
                           'orientationZ': v.orientation.z,
@@ -238,7 +240,7 @@ function LayerContainer(props) {
                     return f.placement == 'floating' && f.editing == 'true' ?
                         <div>
                             <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
-                                             alt={f.name} style={{
+                                             alt={f.name} color={f.color} style={{
                                 left: props.combinedMapObjects[index].scaledX,
                                 top: props.combinedMapObjects[index].scaledY,
                                 height: mapIconSize + "%",
@@ -260,7 +262,7 @@ function LayerContainer(props) {
                         : f.placement == 'floating' ?
                             <div>
                                 <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
-                                                 alt={f.name} style={{
+                                                 alt={f.name} color={f.color} style={{
                                     left: props.combinedMapObjects[index].scaledX,
                                     top: props.combinedMapObjects[index].scaledY,
                                     height: mapIconSize + "%",
@@ -280,7 +282,7 @@ function LayerContainer(props) {
                                 </svg>
                             </div>
                             : <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
-                                               alt={f.name}
+                                               alt={f.name} color={f.color}
                                                style={{
                                                    left: props.combinedMapObjects[index].scaledX,
                                                    top: props.combinedMapObjects[index].scaledY,

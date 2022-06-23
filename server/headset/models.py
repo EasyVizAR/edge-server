@@ -25,6 +25,9 @@ class HeadsetModel(JsonResource):
     id:     str
     name:   str = field(default="New Headset", description="Name of the headset")
 
+    color:  str = field(default="#4477aa",
+                        description="Suggested display color for the headset as a seven-character HTML color code.")
+
     location_id:    str = field(default=None,
                                 description="Current location or NULL if unknown or inactive")
 

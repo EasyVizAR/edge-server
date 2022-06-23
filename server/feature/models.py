@@ -53,6 +53,8 @@ class FeatureModel(JsonResource):
 
     name:           str = field(default="New Feature",
                                 description="Name for the feature")
+    color:          str = field(default="#cc6677",
+                                description="Suggested display color for the feature as a seven-character HTML color code.")
     position:       Vector3f = field(default_factory=Vector3f,
                                 description="Position in world coordinates")
     type:           str = field(default="object",

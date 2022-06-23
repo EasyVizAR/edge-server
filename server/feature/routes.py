@@ -13,6 +13,20 @@ from .models import FeatureModel
 features = Blueprint("features", __name__)
 
 
+# Color palette for features.  This is the Tol muted palette, which is
+# distinguishable for colorblind vision.
+default_color_palette = [
+    "#cc6677",
+    "#332288",
+    "#ddcc77",
+    "#117733",
+    "#88ccee",
+    "#44aa99",
+    "#999933",
+    "#aa4499"
+]
+
+
 @features.route('/locations/<location_id>/features', methods=['GET'])
 async def list_features(location_id):
     """
@@ -92,6 +106,12 @@ async def create_feature(location_id):
     location = g.active_incident.Location.find_by_id(location_id)
     if location is None:
         raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+
+    # Choose a color for the feature by cycling through the palette.
+    if "color" not in body:
+        features = location.Feature.find()
+        count = len(features)
+        body['color'] = default_color_palette[count % len(default_color_palette)]
 
     feature = location.Feature.load(body, replace_id=True)
     feature.save()

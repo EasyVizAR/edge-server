@@ -18,6 +18,19 @@ from server.utils.utils import GenericJsonEncoder, save_image
 headsets = Blueprint('headsets', __name__)
 
 
+# Color palette for headsets.  This is the Tol palette, which is
+# distinguishable for colorblind vision.
+default_color_palette = [
+    "#4477aa",
+    "#ee6677",
+    "#228833",
+    "#ccbb44",
+    "#66ccee",
+    "#aa3377",
+    "#bbbbbb"
+]
+
+
 @headsets.route('/headsets', methods=['GET'])
 async def list_headsets():
     """
@@ -186,6 +199,12 @@ async def create_headset():
     body = await request.get_json()
     if body is None:
         body = {}
+
+    # Choose a color for the headset by cycling through the palette.
+    if "color" not in body:
+        headsets = g.active_incident.Headset.find()
+        n = len(headsets)
+        body['color'] = default_color_palette[n % len(default_color_palette)]
 
     # TODO: Finalize authentication method
 

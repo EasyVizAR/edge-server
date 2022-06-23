@@ -30,12 +30,27 @@ function FeatureTable(props){
   const host = window.location.hostname;
   const port = props.port;
 
+  const icons = {
+    fire: solid('fire'),
+    warning: solid('triangle-exclamation'),
+    injury: solid('bandage'),
+    door: solid('door-closed'),
+    elevator: solid('elevator'),
+    stairs: solid('stairs'),
+    user: solid('user'),
+    object: solid('square'),
+    extinguisher: solid('fire-extinguisher'),
+    message: solid('message'),
+    headset: solid('headset'),
+  }
+
   // Only one row can be open for editing at a time. A reference is used to
   // query the value of the input field when the user clicks Save. The
   // performance is much better than using an onChange handler for every
   // key press.
   const formReferences = {
     name: React.createRef(),
+    color: React.createRef(),
     type: React.createRef(),
     placement: React.createRef()
   };
@@ -70,6 +85,7 @@ function FeatureTable(props){
     const url = `http://${host}:${port}/locations/${props.locationId}/features/${id}`;
 
     const newName = formReferences.name.current.value;
+    const newColor = formReferences.color.current.value;
     const newType = formReferences.type.current.value;
     const newPlacement = formReferences.placement.current.value;
 
@@ -80,6 +96,7 @@ function FeatureTable(props){
       },
       body: JSON.stringify({
         'name': newName,
+        'color': newColor,
         'type': newType,
         'style.placement': newPlacement
       })
@@ -87,6 +104,7 @@ function FeatureTable(props){
 
     fetch(url, requestData).then(response => {
       props.features[index]['name'] = newName;
+      props.features[index]['color'] = newColor;
       props.features[index]['iconValue'] = newType;
       props.features[index]['placement'] = newPlacement;
       cancelEditMode(null, index);
@@ -139,6 +157,7 @@ function FeatureTable(props){
           <tr>
             <th rowSpan='2'>Feature ID</th>
             <th rowSpan='2'>Name</th>
+            <th rowSpan='2'>Icon / Color</th>
             <th rowSpan='2'>Type</th>
             <th rowSpan='2'>Last Update</th>
             <th colSpan='3'>Position</th>
@@ -174,6 +193,21 @@ function FeatureTable(props){
                           id={'headsetName' + e.id}/>
                       ) : (
                         e.name
+                      )
+                    }
+                  </td>
+                  <td>
+                    {
+                      editMode.status && editMode.rowIndex === index ? (
+                        <input
+                          defaultValue={props.features[index]['color']}
+                          placeholder="Edit Feature Color"
+                          name={"feature-color-" + e.id}
+                          type="color"
+                          ref={formReferences.color}
+                          id={"feature-color-" + e.id}/>
+                      ) : (
+                        <FontAwesomeIcon icon={icons[e.iconValue]['iconName']} size="lg" color={e.color}/>
                       )
                     }
                   </td>
