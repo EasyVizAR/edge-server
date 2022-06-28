@@ -3,7 +3,7 @@ import time
 
 from http import HTTPStatus
 
-from quart import Blueprint, g, jsonify, request
+from quart import Blueprint, current_app, g, jsonify, request
 from werkzeug import exceptions
 from werkzeug.utils import secure_filename
 
@@ -63,6 +63,7 @@ async def list_features(location_id):
     else:
         result = features
 
+    await current_app.dispatcher.dispatch_event("features:viewed", "/locations/{}/features".format(location_id))
     return jsonify(result), HTTPStatus.OK
 
 
@@ -116,6 +117,9 @@ async def create_feature(location_id):
     feature = location.Feature.load(body, replace_id=True)
     feature.save()
 
+    await current_app.dispatcher.dispatch_event("features:created",
+            "/locations/{}/features/{}".format(location_id, feature.id),
+            current=feature)
     return jsonify(feature), HTTPStatus.CREATED
 
 
@@ -151,6 +155,9 @@ async def delete_feature(location_id, feature_id):
 
     feature.delete()
 
+    await current_app.dispatcher.dispatch_event("features:deleted",
+            "/locations/{}/features/{}".format(location_id, feature.id),
+            previous=feature)
     return jsonify(feature), HTTPStatus.OK
 
 
@@ -183,6 +190,9 @@ async def get_feature(location_id, feature_id):
     if feature is None:
         raise exceptions.NotFound(description="Feature {} was not found".format(feature_id))
 
+    await current_app.dispatcher.dispatch_event("features:viewed",
+            "/locations/{}/features/{}".format(location_id, feature.id),
+            current=feature)
     return jsonify(feature), HTTPStatus.OK
 
 
@@ -223,8 +233,14 @@ async def replace_feature(location_id, feature_id):
     created = feature.save()
 
     if created:
+        await current_app.dispatcher.dispatch_event("features:created",
+                "/locations/{}/features/{}".format(location_id, feature.id),
+                current=feature)
         return jsonify(feature), HTTPStatus.CREATED
     else:
+        await current_app.dispatcher.dispatch_event("features:updated",
+                "/locations/{}/features/{}".format(location_id, feature.id),
+                current=feature)
         return jsonify(feature), HTTPStatus.OK
 
 
@@ -273,4 +289,7 @@ async def update_feature(location_id, feature_id):
     feature.update(body)
     feature.save()
 
+    await current_app.dispatcher.dispatch_event("features:updated",
+            "/locations/{}/features/{}".format(location_id, feature.id),
+            current=feature)
     return jsonify(feature), HTTPStatus.OK
