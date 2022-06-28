@@ -18,6 +18,7 @@ from server.location import routes as locations
 from server.photo import routes as photos
 from server.pose_changes import routes as pose_changes
 from server.surface import routes as surfaces
+from server import routes as other
 
 from server.annotation.models import AnnotationModel
 from server.feature.models import FeatureModel
@@ -133,6 +134,8 @@ async def create_openapi_spec(app):
         spec.path(view=surfaces.update_surface)
         spec.path(view=surfaces.get_surface_file)
         spec.path(view=surfaces.upload_surface_file)
+
+        spec.path(view=other.ws)
 
     return spec
 

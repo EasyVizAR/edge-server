@@ -40,5 +40,40 @@ async def list_icons():
 
 @routes.websocket('/ws')
 async def ws():
+    """
+    Open websocket connection
+    ---
+    get:
+        summary: Open websocket connection
+        description: |-
+            Commands:
+            - subscribe (resource:event) [uri filter]
+
+                Subscribe to event notifications of a certain type specified by
+                an event string and optional URI filter.
+
+                The event type is a string that specifies the resource type and
+                event outcome separated by a colon, e.g. "headsets:created"
+                occurs when a headset is created.
+
+                Supported resource types: headsets, features
+                Supported event outcomes: created, deleted, updated, viewed
+
+                The URI filter can be used to limit the event notifications
+                to specific subcollections or individual items. The wildcard
+                character (*) can be used throughout the URI.
+
+                Examples:
+
+                    subscribe headsets:created
+                    subscribe headsets:updated /headsets/*
+                    subscribe features:created /locations/*/features
+                    subscribe features:updated /locations/123/features
+
+            - unsubscribe <event> [uri filter]
+
+                Unsubscribe from event notifications of a certain type following
+                the same syntax as the subscribe event.
+    """
     handler = WebsocketHandler(current_app.dispatcher, websocket.receive, websocket.send)
     await asyncio.create_task(handler.listen())
