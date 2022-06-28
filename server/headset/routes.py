@@ -218,7 +218,8 @@ async def create_headset():
         change = folder.PoseChange.load(body)
         folder.PoseChange.add(change)
 
-    await current_app.dispatcher.dispatch_event("headsets:created", "/headsets/"+headset.id, current=headset)
+    await current_app.dispatcher.dispatch_event("headsets:created",
+            "/headsets/"+headset.id, current=headset)
     return jsonify(headset), HTTPStatus.CREATED
 
 
@@ -333,13 +334,16 @@ async def replace_headset(headsetId):
         change = incident_folder.PoseChange.load(body)
         incident_folder.PoseChange.add(change)
 
+    previous = g.Headset.find_by_id(headsetId)
     created = headset.save()
 
     if created:
-        await current_app.dispatcher.dispatch_event("headsets:created", "/headsets/"+headset.id, current=headset)
+        await current_app.dispatcher.dispatch_event("headsets:created",
+                "/headsets/"+headset.id, current=headset, previous=previous)
         return jsonify(headset), HTTPStatus.CREATED
     else:
-        await current_app.dispatcher.dispatch_event("headsets:updated", "/headsets/"+headset.id, current=headset)
+        await current_app.dispatcher.dispatch_event("headsets:updated",
+                "/headsets/"+headset.id, current=headset, previous=previous)
         return jsonify(headset), HTTPStatus.OK
 
 
@@ -411,9 +415,11 @@ async def update_headset(headset_id):
         change = folder.PoseChange.load(body)
         folder.PoseChange.add(change)
 
+    previous = g.Headset.find_by_id(headset_id)
     headset.save()
 
-    await current_app.dispatcher.dispatch_event("headsets:updated", "/headsets/"+headset.id, current=headset)
+    await current_app.dispatcher.dispatch_event("headsets:updated",
+            "/headsets/"+headset.id, current=headset, previous=previous)
     return jsonify(headset), HTTPStatus.OK
 
 

@@ -230,17 +230,18 @@ async def replace_feature(location_id, feature_id):
         raise exceptions.NotFound(description="Location {} was not found".format(location_id))
 
     feature = location.Feature.load(body)
+    previous = location.Feature.find_by_id(feature_id)
     created = feature.save()
 
     if created:
         await current_app.dispatcher.dispatch_event("features:created",
                 "/locations/{}/features/{}".format(location_id, feature.id),
-                current=feature)
+                current=feature, previous=previous)
         return jsonify(feature), HTTPStatus.CREATED
     else:
         await current_app.dispatcher.dispatch_event("features:updated",
                 "/locations/{}/features/{}".format(location_id, feature.id),
-                current=feature)
+                current=feature, previous=previous)
         return jsonify(feature), HTTPStatus.OK
 
 
@@ -287,9 +288,10 @@ async def update_feature(location_id, feature_id):
         del body['id']
 
     feature.update(body)
+    previous = location.Feature.find_by_id(feature_id)
     feature.save()
 
     await current_app.dispatcher.dispatch_event("features:updated",
             "/locations/{}/features/{}".format(location_id, feature.id),
-            current=feature)
+            current=feature, previous=previous)
     return jsonify(feature), HTTPStatus.OK
