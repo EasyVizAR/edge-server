@@ -139,6 +139,7 @@ async def list_headsets():
     else:
         result = items
 
+    await current_app.dispatcher.dispatch_event("headsets:viewed", "/headsets")
     return jsonify(result), HTTPStatus.OK
 
 
@@ -217,6 +218,7 @@ async def create_headset():
         change = folder.PoseChange.load(body)
         folder.PoseChange.add(change)
 
+    await current_app.dispatcher.dispatch_event("headsets:created", "/headsets/"+headset.id, current=headset)
     return jsonify(headset), HTTPStatus.CREATED
 
 
@@ -254,6 +256,7 @@ async def delete_headset(headset_id):
     if folder is not None:
         folder.delete()
 
+    await current_app.dispatcher.dispatch_event("headsets:deleted", "/headsets/"+headset.id, previous=headset)
     return jsonify(headset), HTTPStatus.OK
 
 
@@ -282,6 +285,7 @@ async def get_headset(id):
     if headset is None:
         raise exceptions.NotFound(description="Headset {} was not found".format(id))
 
+    await current_app.dispatcher.dispatch_event("headsets:viewed", "/headsets/"+headset.id, current=headset)
     return jsonify(headset), HTTPStatus.OK
 
 
@@ -332,8 +336,10 @@ async def replace_headset(headsetId):
     created = headset.save()
 
     if created:
+        await current_app.dispatcher.dispatch_event("headsets:created", "/headsets/"+headset.id, current=headset)
         return jsonify(headset), HTTPStatus.CREATED
     else:
+        await current_app.dispatcher.dispatch_event("headsets:updated", "/headsets/"+headset.id, current=headset)
         return jsonify(headset), HTTPStatus.OK
 
 
@@ -407,6 +413,7 @@ async def update_headset(headset_id):
 
     headset.save()
 
+    await current_app.dispatcher.dispatch_event("headsets:updated", "/headsets/"+headset.id, current=headset)
     return jsonify(headset), HTTPStatus.OK
 
 

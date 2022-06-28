@@ -19,6 +19,7 @@ from server.surface.routes import surfaces
 from server.utils.utils import GenericJsonEncoder
 from server.work_items.routes import work_items
 
+from server.events import EventDispatcher
 from server.headset.models import Headset
 from server.incidents.models import Incident
 from server.mapping.mapping_thread import MappingThread
@@ -72,6 +73,8 @@ def before_first_request():
 
     # Initialize maps storage and create the first map if there is not one.
     initialize_maps(app)
+
+    app.dispatcher = EventDispatcher()
 
     app.mapping_thread = MappingThread()
     app.mapping_thread.start()

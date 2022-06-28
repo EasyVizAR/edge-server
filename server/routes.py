@@ -1,8 +1,11 @@
+import asyncio
 import os
+
 from http import HTTPStatus
-from quart import Blueprint, current_app, make_response, jsonify
+from quart import Blueprint, current_app, make_response, jsonify, websocket
 
 from .apispec import create_openapi_spec
+from .websocket import WebsocketHandler
 
 
 routes = Blueprint('routes', __name__)
@@ -33,3 +36,9 @@ async def list_icons():
 
     return await make_response(jsonify({"file_paths": totalFiles}),
                                HTTPStatus.OK)
+
+
+@routes.websocket('/ws')
+async def ws():
+    handler = WebsocketHandler(current_app.dispatcher, websocket.receive, websocket.send)
+    await asyncio.create_task(handler.listen())
