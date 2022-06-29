@@ -14,18 +14,31 @@ class WebsocketHandler:
     action. For example, if the client sends a subscribe command, the
     WebsocketHandler forwards this to the event dispatcher.
     """
-    def __init__(self, dispatcher, websocket_receive, websocket_send):
+    def __init__(self, dispatcher, websocket_receive, websocket_send, subprotocol="json"):
         self.dispatcher = dispatcher
         self.websocket_receive = websocket_receive
         self.websocket_send = websocket_send
+        self.subprotocol = subprotocol
 
     async def _send_event_notification(self, event, uri, *args, **kwargs):
-        msg = kwargs
-        msg['event'] = event
-        msg['uri'] = uri
+        obj = kwargs
 
-        data = json.dumps(msg, cls=GenericJsonEncoder)
-        await self.websocket_send(data)
+        # For "json" protocol, include event information in the JSON-encoded object.
+        if self.subprotocol == "json":
+            obj['event'] = event
+            obj['uri'] = uri
+
+        body = json.dumps(obj, cls=GenericJsonEncoder)
+
+        # For "json-with-header", the event information appears before the
+        # JSON-encoded object.  This gives the receiver a chance to decide how
+        # to deserialize the message body.
+        if self.subprotocol == "json-with-header":
+            payload = "{} {} ".format(event, uri) + body
+        else:
+            payload = body
+
+        await self.websocket_send(payload)
 
     async def listen(self):
         try:

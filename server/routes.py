@@ -75,5 +75,10 @@ async def ws():
                 Unsubscribe from event notifications of a certain type following
                 the same syntax as the subscribe event.
     """
-    handler = WebsocketHandler(current_app.dispatcher, websocket.receive, websocket.send)
+    chosen_subprotocol = "json"
+    if "json-with-header" in websocket.requested_subprotocols:
+        chosen_subprotocol = "json-with-header"
+
+    handler = WebsocketHandler(current_app.dispatcher, websocket.receive,
+            websocket.send, subprotocol=chosen_subprotocol)
     await asyncio.create_task(handler.listen())
