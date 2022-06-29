@@ -29,7 +29,16 @@ from server.resources.abstractresource import AbstractCollection
 static_folder = os.environ.get("VIZAR_STATIC_FOLDER", "./frontend/build/")
 
 app = Quart(__name__, static_folder=static_folder, static_url_path='/')
-app = cors(app)
+
+# CORS seems to be breaking websocket connections but only when they set a
+# specific header value.
+#
+# Connection: Upgrade -> broken
+# Connection: keep-alive, Upgrade -> seems fine
+#
+# Unfortunately, we may not be able to change the websocket client
+# implementation.
+#app = cors(app)
 
 app.json_encoder = GenericJsonEncoder
 
