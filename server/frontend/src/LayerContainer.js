@@ -125,9 +125,9 @@ function LayerContainer(props) {
         if (props.clickCount > 0)
             f.pop();
         f.push({
-            id: 'fire-1',
+            id: 'undefined',
             mapId: props.selectedLayerId,
-            name: 'Fire',
+            name: '(editing in map)',
             position: {
               x: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[0],
               y: 0,
@@ -136,7 +136,7 @@ function LayerContainer(props) {
             scaledX: e.clientX - e.target.getBoundingClientRect().left,
             scaledY: e.clientY - e.target.getBoundingClientRect().top,
             icon: props.crossHairIcon,
-            type: icons[props.iconIndex].iconName,
+            type: props.iconIndex,
             editing: 'true',
             style: {
               placement: props.placementType
