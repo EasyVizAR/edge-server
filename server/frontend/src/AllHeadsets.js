@@ -16,7 +16,7 @@ function AllHeadsets(props){
   // key press.
   const formReferences = {
     name: React.createRef(),
-    locationId: React.createRef()
+    location_id: React.createRef()
   }
 
   const [inEditModeHeadset, setInEditModeHeadset] = useState({
@@ -80,7 +80,7 @@ function AllHeadsets(props){
       const url = `http://${host}:${port}/headsets/${id}`;
 
       const newName = formReferences.name.current.value;
-      const newLocationId = formReferences.locationId.current.value;
+      const newLocationId = formReferences.location_id.current.value;
 
       var dup = checkHeadsetName(newName, id);
       if (dup) {
@@ -103,7 +103,7 @@ function AllHeadsets(props){
 
       fetch(url, requestData).then(response => {
         headset.name = newName;
-        headset.locationId = newLocationId;
+        headset.location_id = newLocationId;
 
         onCancelHeadset(null, id);
         getAllHeadsets();
@@ -196,16 +196,16 @@ function AllHeadsets(props){
                         <select
                           id="headset-location-dropdown"
                           title="Change Location"
-                          defaultValue={headset.locationId}
-                          ref={formReferences.locationId}>
+                          defaultValue={headset.location_id}
+                          ref={formReferences.location_id}>
                           {
-                            Object.entries(props.locations).map(([locationId, loc]) => {
-                              return <option value={locationId}>{loc.name}</option>
+                            Object.entries(props.locations).map(([location_id, loc]) => {
+                              return <option value={location_id}>{loc.name}</option>
                             })
                           }
                           </select>
                       ) : (
-                        props.locations[headset.locationId] ? props.locations[headset.locationId]['name'] : 'Unknown'
+                        props.locations[headset.location_id] ? props.locations[headset.location_id]['name'] : 'Unknown'
                       )
                     }
                   </td>

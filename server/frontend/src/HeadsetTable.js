@@ -188,7 +188,7 @@ function HeadsetTable(props){
                       )
                     }
                   </td>
-                  <td>{props.locations[headset.locationId] ? props.locations[headset.locationId]['name'] : 'Unknown'}</td>
+                  <td>{props.locations[headset.location_id] ? props.locations[headset.location_id]['name'] : 'Unknown'}</td>
                   <td>{moment.unix(headset.updated).fromNow()}</td>
                   <td>{headset.position.x.toFixed(3)}</td>
                   <td>{headset.position.y.toFixed(3)}</td>
