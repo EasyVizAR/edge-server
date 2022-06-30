@@ -439,17 +439,23 @@ function Home(props) {
       ws.onmessage = (event) => {
           const message = JSON.parse(event.data);
           if (message.event === "headsets:created") {
-            let newHeadsets = { ...headsets };
-            newHeadsets[message.current.id] = message.current;
-            setHeadsets(newHeadsets);
+            setHeadsets(prevHeadsets => {
+              let newHeadsets = Object.assign({}, prevHeadsets);
+              newHeadsets[message.current.id] = message.current;
+              return newHeadsets;
+            });
           } else if (message.event === "headsets:updated") {
-            let newHeadsets = { ...headsets };
-            newHeadsets[message.current.id] = message.current;
-            setHeadsets(newHeadsets);
+            setHeadsets(prevHeadsets => {
+              let newHeadsets = Object.assign({}, prevHeadsets);
+              newHeadsets[message.current.id] = message.current;
+              return newHeadsets;
+            });
           } else if (message.event === "headsets:deleted") {
-            let newHeadsets = { ...headsets };
-            delete newHeadsets[message.previous.id];
-            setHeadsets(newHeadsets);
+            setHeadsets(prevHeadsets => {
+              let newHeadsets = Object.assign({}, prevHeadsets);
+              delete newHeadsets[message.previous.id];
+              return newHeadsets;
+            });
           } else if (message.event === "features:created") {
 
           } else if (message.event === "features:updated") {
