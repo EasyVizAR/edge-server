@@ -13,17 +13,18 @@ function LayerContainer(props) {
     const [selectedImage, setSelectedImage] = useState('');
 
     const icons = {
-        fire: solid('fire'),
-        warning: solid('triangle-exclamation'),
-        injury: solid('bandage'),
+        ambulance: solid('truck-medical'),
         door: solid('door-closed'),
         elevator: solid('elevator'),
+        extinguisher: solid('fire-extinguisher'),
+        fire: solid('fire'),
+        headset: solid('headset'),
+        injury: solid('bandage'),
+        message: solid('message'),
+        object: solid('square'),
         stairs: solid('stairs'),
         user: solid('user'),
-        object: solid('square'),
-        extinguisher: solid('fire-extinguisher'),
-        message: solid('message'),
-        headset: solid('headset'),
+        warning: solid('triangle-exclamation'),
     }
 
     useEffect(() => {
@@ -127,15 +128,19 @@ function LayerContainer(props) {
             id: 'fire-1',
             mapId: props.selectedLayerId,
             name: 'Fire',
-            positionX: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[0],
-            positionY: 0,
-            positionZ: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[1],
+            position: {
+              x: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[0],
+              y: 0,
+              z: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[1]
+            },
             scaledX: e.clientX - e.target.getBoundingClientRect().left,
             scaledY: e.clientY - e.target.getBoundingClientRect().top,
             icon: props.crossHairIcon,
-            iconValue: icons[props.iconIndex].iconName,
+            type: icons[props.iconIndex].iconName,
             editing: 'true',
-            placement: props.placementType
+            style: {
+              placement: props.placementType
+            }
         });
 
         props.setFeatures(f);
@@ -165,21 +170,8 @@ function LayerContainer(props) {
             if (data == undefined || data == null || data[0] === undefined) {
                 console.log(`No features data for locationId ${props.selectedLocation}`);
             } else {
-                for (let i in data) {
-                    let v = data[i];
-                    fetchedFeatures.push({
-                        'id': v.id,
-                        'locationId': props.selectedLocation,
-                        'name': v.name,
-                        'color': v.color,
-                        'positionX': v.position.x,
-                        'positionY': v.position.y,
-                        'positionZ': v.position.z,
-                        'iconValue': v.type,
-                        'radius': v.style.radius,
-                        'placement': v.style.placement,
-                        'updated': v.updated
-                    });
+                for (var f of data) {
+                    fetchedFeatures.push(f);
                 }
             }
             props.setFeatures(fetchedFeatures);
@@ -222,9 +214,10 @@ function LayerContainer(props) {
                 <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
                      onClick={onMouseClick} style={{cursor: props.cursor}}/>
                 {props.combinedMapObjects.map((f, index) => {
-                    return f.placement == 'floating' && f.editing == 'true' ?
+                    return f.style?.placement == 'floating' && f.editing == 'true' ?
                         <div>
-                            <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
+                            <FontAwesomeIcon icon={icons?.[f.type]?.['iconName'] || "bug"}
+                                             className="features" id={f.id}
                                              alt={f.name} color={f.color} style={{
                                 left: props.combinedMapObjects[index].scaledX,
                                 top: props.combinedMapObjects[index].scaledY,
@@ -246,7 +239,8 @@ function LayerContainer(props) {
                         </div>
                         : f.placement == 'floating' ?
                             <div>
-                                <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
+                                <FontAwesomeIcon icon={icons?.[f.type]?.['iconName'] || "bug"}
+                                                 className="features" id={f.id}
                                                  alt={f.name} color={f.color} style={{
                                     left: props.combinedMapObjects[index].scaledX,
                                     top: props.combinedMapObjects[index].scaledY,
@@ -254,19 +248,20 @@ function LayerContainer(props) {
                                     pointerEvents: "none"
                                 }}/>
                                 <svg className="features"
-                                     width={getCircleSvgSize(f.radius)}
-                                     height={getCircleSvgSize(f.radius)}
+                                     width={getCircleSvgSize(f.style?.radius || 1.0)}
+                                     height={getCircleSvgSize(f.style?.radius || 1.0)}
                                      style={{
-                                         left: props.combinedMapObjects[index].scaledX - getCircleSvgShift(f.radius),
-                                         top: props.combinedMapObjects[index].scaledY - getCircleSvgShift(f.radius),
+                                         left: props.combinedMapObjects[index].scaledX - getCircleSvgShift(f.style?.radius || 1.0),
+                                         top: props.combinedMapObjects[index].scaledY - getCircleSvgShift(f.style?.radius || 1.0),
                                          pointerEvents: "none"
                                      }}>
-                                    <circle style={{pointerEvents: "none"}} cx={getCircleSvgSize(f.radius) / 2}
-                                            cy={getCircleSvgSize(f.radius) / 2}
-                                            r={convert2Pixel(f.radius)} fill-opacity="0.3" fill="#0000FF"/>
+                                    <circle style={{pointerEvents: "none"}} cx={getCircleSvgSize(f.style?.radius || 1.0) / 2}
+                                            cy={getCircleSvgSize(f.style?.radius || 1.0) / 2}
+                                            r={convert2Pixel(f.style.radius)} fill-opacity="0.3" fill="#0000FF"/>
                                 </svg>
                             </div>
-                            : <FontAwesomeIcon icon={icons[f.iconValue]['iconName']} className="features" id={f.id}
+                            : <FontAwesomeIcon icon={icons?.[f.type]?.['iconName'] || "bug"}
+                                               className="features" id={f.id}
                                                alt={f.name} color={f.color}
                                                style={{
                                                    left: props.combinedMapObjects[index].scaledX,

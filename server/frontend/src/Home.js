@@ -20,6 +20,7 @@ import {Link} from "react-router-dom";
 import fontawesome from '@fortawesome/fontawesome'
 import {
     faBandage,
+    faBug,
     faDoorClosed,
     faElevator,
     faExclamationTriangle,
@@ -35,7 +36,7 @@ import {
 import LayerContainer from "./LayerContainer";
 import NewLayer from "./NewLayer";
 
-fontawesome.library.add(faBandage, faDoorClosed, faElevator,
+fontawesome.library.add(faBandage, faBug, faDoorClosed, faElevator,
     faExclamationTriangle, faFire, faFireExtinguisher, faHeadset, faMessage,
     faSquare, faStairs, faTruckMedical, faUser);
 
@@ -45,17 +46,18 @@ function Home(props) {
 
     // Map feature type -> FA icon
     const icons = {
-        fire: solid('fire'),
-        warning: solid('triangle-exclamation'),
-        injury: solid('bandage'),
+        ambulance: solid('truck-medical'),
         door: solid('door-closed'),
         elevator: solid('elevator'),
+        extinguisher: solid('fire-extinguisher'),
+        fire: solid('fire'),
+        headset: solid('headset'),
+        injury: solid('bandage'),
+        message: solid('message'),
+        object: solid('square'),
         stairs: solid('stairs'),
         user: solid('user'),
-        object: solid('square'),
-        extinguisher: solid('fire-extinguisher'),
-        message: solid('message'),
-        headset: solid('headset'),
+        warning: solid('triangle-exclamation')
     }
 
     const buttonStyle = {
@@ -168,9 +170,9 @@ function Home(props) {
                     'locationId': v.locationId,
                     'name': v.name,
                     'color': v.color,
-                    'scaledX': convertVector2Scaled(v.positionX, v.positionZ)[0],
-                    'scaledY': convertVector2Scaled(v.positionX, v.positionZ)[1],
-                    'iconValue': v.iconValue,
+                    'scaledX': convertVector2Scaled(v.position.x, v.position.z)[0],
+                    'scaledY': convertVector2Scaled(v.position.x, v.position.z)[1],
+                    'type': v.type,
                     'radius': v.radius,
                     'placement': v.placement,
                     'editing': v.editing
@@ -188,8 +190,8 @@ function Home(props) {
                     'name': headset.name,
                     'color': headset.color,
                     'scaledX': convertVector2Scaled(headset.position.x, headset.position.z)[0],
-                    'scaledY': convertVector2Scaled(headset.position.y, headset.position.z)[1],
-                    'iconValue': 'headset',
+                    'scaledY': convertVector2Scaled(headset.position.x, headset.position.z)[1],
+                    'type': 'headset',
                     'placement': 'headset'
                 });
             }
@@ -437,26 +439,17 @@ function Home(props) {
       ws.onmessage = (event) => {
           const message = JSON.parse(event.data);
           if (message.event === "headsets:created") {
-            if (message.current) {
-              headsets[message.current.id] = message.current;
-            } else {
-              headsets[message.data.id] = message.data;
-            }
-            setHeadsets(headsets => headsets);
+            let newHeadsets = { ...headsets };
+            newHeadsets[message.current.id] = message.current;
+            setHeadsets(newHeadsets);
           } else if (message.event === "headsets:updated") {
-            if (message.current) {
-              headsets[message.current.id] = message.current;
-            } else {
-              headsets[message.data.id] = message.data;
-            }
-            setHeadsets(headsets => headsets);
+            let newHeadsets = { ...headsets };
+            newHeadsets[message.current.id] = message.current;
+            setHeadsets(newHeadsets);
           } else if (message.event === "headsets:deleted") {
-            if (message.previous) {
-              delete headsets[message.previous.id];
-            } else {
-              delete headsets[message.data.id];
-            }
-            setHeadsets(headsets => headsets);
+            let newHeadsets = { ...headsets };
+            delete newHeadsets[message.previous.id];
+            setHeadsets(newHeadsets);
           } else if (message.event === "features:created") {
 
           } else if (message.event === "features:updated") {

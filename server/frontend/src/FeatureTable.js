@@ -1,9 +1,9 @@
 import './Tables.css';
-import {Container, Table, Button} from 'react-bootstrap';
-import React, {useState, useEffect} from 'react';
+import {Table, Button} from 'react-bootstrap';
+import React, {useState} from 'react';
 import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
-import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
+import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
 
 const featureTypes = [
   "ambulance",
@@ -31,17 +31,18 @@ function FeatureTable(props){
   const port = props.port;
 
   const icons = {
-    fire: solid('fire'),
-    warning: solid('triangle-exclamation'),
-    injury: solid('bandage'),
+    ambulance: solid('truck-medical'),
     door: solid('door-closed'),
     elevator: solid('elevator'),
+    extinguisher: solid('fire-extinguisher'),
+    fire: solid('fire'),
+    headset: solid('headset'),
+    injury: solid('bandage'),
+    message: solid('message'),
+    object: solid('square'),
     stairs: solid('stairs'),
     user: solid('user'),
-    object: solid('square'),
-    extinguisher: solid('fire-extinguisher'),
-    message: solid('message'),
-    headset: solid('headset'),
+    warning: solid('triangle-exclamation'),
   }
 
   // Only one row can be open for editing at a time. A reference is used to
@@ -105,7 +106,7 @@ function FeatureTable(props){
     fetch(url, requestData).then(response => {
       props.features[index]['name'] = newName;
       props.features[index]['color'] = newColor;
-      props.features[index]['iconValue'] = newType;
+      props.features[index]['type'] = newType;
       props.features[index]['placement'] = newPlacement;
       cancelEditMode(null, index);
       props.getFeatures();
@@ -207,7 +208,10 @@ function FeatureTable(props){
                           ref={formReferences.color}
                           id={"feature-color-" + e.id}/>
                       ) : (
-                        <FontAwesomeIcon icon={icons[e.iconValue]['iconName']} size="lg" color={e.color}/>
+                        /* If the feature type is missing or unrecognized, show a bug icon. */
+                        icons?.[e.type]?.['iconName'] ?
+                          <FontAwesomeIcon icon={icons[e.type]['iconName']} size="lg" color={e.color}/> :
+                          <FontAwesomeIcon icon="bug" size="lg" color={e.color}/>
                       )
                     }
                   </td>
@@ -217,7 +221,7 @@ function FeatureTable(props){
                         <select
                           id="feature-type-dropdown"
                           title="Change Type"
-                          defaultValue={e.iconValue}
+                          defaultValue={e.type || "fire"}
                           ref={formReferences.type}>
                           {
                             featureTypes.map((name, index) => {
@@ -226,21 +230,21 @@ function FeatureTable(props){
                           }
                           </select>
                       ) : (
-                        e.iconValue
+                        e.type
                       )
                     }
                   </td>
                   <td>{moment.unix(e.updated).fromNow()}</td>
-                  <td>{e.positionX.toFixed(3)}</td>
-                  <td>{e.positionY.toFixed(3)}</td>
-                  <td>{e.positionZ.toFixed(3)}</td>
+                  <td>{e.position.x.toFixed(3)}</td>
+                  <td>{e.position.y.toFixed(3)}</td>
+                  <td>{e.position.z.toFixed(3)}</td>
                   <td>
                     {
                       editMode.status && editMode.rowIndex === index ? (
                         <select
                           id="feature-placement-dropdown"
                           title="Change Placement"
-                          defaultValue={e.placement}
+                          defaultValue={e.style?.placement || "point"}
                           ref={formReferences.placement}>
                           {
                             placementTypes.map((name, index) => {
@@ -249,7 +253,9 @@ function FeatureTable(props){
                           }
                           </select>
                       ) : (
-                        e.placement
+                        /* If style.placement is undefined, show a bug icon. */
+                        e.style?.placement ?
+                          e.style.placement : <FontAwesomeIcon icon="bug" size="lg" />
                       )
                     }
                   </td>
