@@ -188,27 +188,12 @@ function LayerContainer(props) {
                 .then(response => {
                     return response.json()
                 }).then(data => {
-                let fetchedHeadsets = []
-                for (let k in data) {
-                    let v = data[k];
-                      fetchedHeadsets.push({
-                          'id': v.id,
-                          'updated': v.updated,
-                          'locationId': v.location_id,
-                          'name': v.name,
-                          'color': v.color,
-                          'orientationX': v.orientation.x,
-                          'orientationY': v.orientation.y,
-                          'orientationZ': v.orientation.z,
-                          'orientationW': v.orientation.w,
-                          'positionX': v.position.x,
-                          'positionY': v.position.y,
-                          'positionZ': v.position.z,
-                          'iconValue': 'user'
-                      });
-                }
-                props.setHeadsets(fetchedHeadsets);
-            });
+                    var headsets = {};
+                    for (var h of data) {
+                      headsets[h.id] = h;
+                    }
+                    props.setHeadsets(headsets);
+                });
 
         });
 

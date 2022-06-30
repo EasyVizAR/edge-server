@@ -18,7 +18,6 @@ function HeadsetTable(props){
     color: React.createRef()
   };
 
-  const [changedHeadsetName, setChangedHeadsetName] = useState(null);
   const [inEditModeHeadset, setInEditModeHeadset] = useState({
     status: false,
     rowKey: null
@@ -41,8 +40,6 @@ function HeadsetTable(props){
       return;
     }
 
-    setChangedHeadsetName(props.headsets[id]['name']);
-
     setInEditModeHeadset({
         status: true,
         rowKey: id
@@ -50,79 +47,46 @@ function HeadsetTable(props){
   }
 
   // saves the headset data
-  const onSaveHeadsets = (e, index) => {
-    const headset = null;
-    const id = e.target.id.substring(7, e.target.id.length);
+  const onSaveHeadsets = (e, id) => {
+    const headset = props.headsets[id];
     const url = `http://${host}:${port}/headsets/${id}`;
 
     const newName = formReferences.name.current.value;
     const newColor = formReferences.color.current.value;
 
-    for (var x in props.headsets) {
-      if (props.headsets[x]['id'] == id) {
-        var dup = checkHeadsetName(newName, props.headsets[x]['id']);
-        if (dup) {
-          var conf = window.confirm('There is another headset with the same name. Are you sure you want to continue?');
-          if (!conf) {
-            return;
-          }
-        }
-
-        const requestData = {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            'name': newName,
-            'color': newColor
-          })
-        };
-
-        fetch(url, requestData).then(response => {
-          props.headsets[x]['name'] = newName;
-          props.headsets[x]['color'] = newColor;
-          setChangedHeadsetName(props.headsets[x]['name']);
-          onCancelHeadset(null, index);
-          props.getHeadsets();
-        });
-        break;
+    var dup = checkHeadsetName(newName, id);
+    if (dup) {
+      var conf = window.confirm('There is another headset with the same name. Are you sure you want to continue?');
+      if (!conf) {
+        return;
       }
     }
-    console.log("headset updated");
+
+    const requestData = {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        'name': newName,
+        'color': newColor
+      })
+    };
+
+    fetch(url, requestData).then(response => {
+      headset.name = newName;
+      headset.color = newColor;
+      onCancelHeadset(null, id);
+      props.getHeadsets();
+    });
   }
 
   // turns off headset editing
-  const onCancelHeadset = (element, index) => {
-
-    for (var x in props.headsets){
-      if (x == index){
-        props.headsets[x]['name'] = changedHeadsetName;
-        break;
-      }
-    }
-
-    setChangedHeadsetName(null);
-
+  const onCancelHeadset = (element, id) => {
     setInEditModeHeadset({
       status: false,
       rowKey: null
     });
-  }
-
-  // onchange handler for updating headset name
-  const updateHeadsetName = (e) => {
-    var newHeadsets = [];
-    var prefix = "headsetName";
-    var headset_id = e.target.id.substring(prefix.length, e.target.id.length);
-
-    for (var x in props.headsets) {
-      if (props.headsets[x]['id'] == headset_id) {
-        props.headsets[x]['name'] = e.target.value;
-      }
-      newHeadsets.push(props.headsets[x]);
-    }
-    props.setHeadsets(newHeadsets);
   }
 
   // deletes headset with the id and name
@@ -141,11 +105,7 @@ function HeadsetTable(props){
     };
 
     fetch(url, requestData).then(response => {
-      for (var x in props.headsets) {
-        if (props.headsets[x]['id'] == id) {
-          props.headsets.pop(props.headsets[x]);
-        }
-      }
+      delete props.headsets[id];
       props.getHeadsets();
     });
   }
@@ -194,64 +154,64 @@ function HeadsetTable(props){
         </thead>
         <tbody>
           {
-            props.headsets.length > 0 ? (
-              props.headsets.map((e, index) => (
-                <tr>
-                  <td>{e.id}</td>
-                  <td id={"headsetName" + index}>
+            Object.keys(props.headsets).length > 0 ? (
+              Object.entries(props.headsets).map(([id, headset]) => {
+                return <tr>
+                  <td>{id}</td>
+                  <td id={"headsetName" + id}>
                     {
-                      inEditModeHeadset.status && inEditModeHeadset.rowKey === index ? (
+                      inEditModeHeadset.status && inEditModeHeadset.rowKey === id ? (
                         <input
-                          defaultValue={props.headsets[index]['name']}
+                          defaultValue={headset.name}
                           placeholder="Edit Headset Name"
-                          name={"headsetinput" + e.id}
+                          name={"headsetinput" + id}
                           type="text"
                           ref={formReferences.name}
-                          id={'headsetName' + e.id}/>
+                          id={'headsetName' + id}/>
                       ) : (
-                        e.name
+                        headset.name
                       )
                     }
                   </td>
                   <td>
                     {
-                      inEditModeHeadset.status && inEditModeHeadset.rowKey === index ? (
+                      inEditModeHeadset.status && inEditModeHeadset.rowKey === id ? (
                         <input
-                          defaultValue={props.headsets[index]['color']}
+                          defaultValue={headset.color}
                           placeholder="Edit Headset Color"
-                          name={"headset-color-" + e.id}
+                          name={"headset-color-" + id}
                           type="color"
                           ref={formReferences.color}
-                          id={"headset-color-" + e.id}/>
+                          id={"headset-color-" + id}/>
                       ) : (
-                        <FontAwesomeIcon icon={solid('headset')} size="lg" color={e.color}/>
+                        <FontAwesomeIcon icon={solid('headset')} size="lg" color={headset.color}/>
                       )
                     }
                   </td>
-                  <td>{props.locations[e.locationId] ? props.locations[e.locationId]['name'] : 'Unknown'}</td>
-                  <td>{moment.unix(e.updated).fromNow()}</td>
-                  <td>{e.positionX.toFixed(3)}</td>
-                  <td>{e.positionY.toFixed(3)}</td>
-                  <td>{e.positionZ.toFixed(3)}</td>
-                  <td>{e.orientationX.toFixed(3)}</td>
-                  <td>{e.orientationY.toFixed(3)}</td>
-                  <td>{e.orientationZ.toFixed(3)}</td>
-                  <td>{e.orientationW.toFixed(3)}</td>
+                  <td>{props.locations[headset.locationId] ? props.locations[headset.locationId]['name'] : 'Unknown'}</td>
+                  <td>{moment.unix(headset.updated).fromNow()}</td>
+                  <td>{headset.position.x.toFixed(3)}</td>
+                  <td>{headset.position.y.toFixed(3)}</td>
+                  <td>{headset.position.z.toFixed(3)}</td>
+                  <td>{headset.orientation.x.toFixed(3)}</td>
+                  <td>{headset.orientation.y.toFixed(3)}</td>
+                  <td>{headset.orientation.z.toFixed(3)}</td>
+                  <td>{headset.orientation.w.toFixed(3)}</td>
                   <td>
                     {
-                      (inEditModeHeadset.status && inEditModeHeadset.rowKey === index) ? (
+                      (inEditModeHeadset.status && inEditModeHeadset.rowKey === id) ? (
                         <React.Fragment>
                           <Button
                             className={"btn-success table-btns"}
-                            id={'savebtn' + e.id}
-                            onClick={(e) => onSaveHeadsets(e, index)}
+                            id={'savebtn' + id}
+                            onClick={(e) => onSaveHeadsets(e, id)}
                             title='Save'>
                             Save
                           </Button>
                           <Button
                             className={"btn-secondary table-btns"}
                             style={{marginLeft: 8}}
-                            onClick={(event) => onCancelHeadset(event, index)}
+                            onClick={(event) => onCancelHeadset(event, id)}
                             title='Cancel'>
                             Cancel
                           </Button>
@@ -259,7 +219,7 @@ function HeadsetTable(props){
                       ) : (
                         <Button
                           className={"btn-primary table-btns"}
-                          onClick={(e) => onEditHeadset(e, index)}
+                          onClick={(e) => onEditHeadset(e, id)}
                           title='Edit'>
                           Edit
                         </Button>
@@ -268,11 +228,11 @@ function HeadsetTable(props){
                   </td>
                   <td>
                     <div>
-                      <TrashIcon id={e.id} name={e.name}/>
+                      <TrashIcon id={id} name={headset.name}/>
                     </div>
                   </td>
                 </tr>
-              ))
+              })
             ) : (
               <tr><td colspan="100%">No Headsets</td></tr>
             )

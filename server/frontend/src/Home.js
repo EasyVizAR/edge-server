@@ -9,7 +9,7 @@ import LocationTable from './LocationTable.js';
 import HeadsetTable from './HeadsetTable.js';
 import FeatureTable from './FeatureTable.js';
 import 'reactjs-popup/dist/index.css';
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
@@ -67,7 +67,7 @@ function Home(props) {
 
     const [selectedLocation, setSelectedLocation] = useState('');
     const [features, setFeatures] = useState([]);
-    const [headsets, setHeadsets] = useState([]);
+    const [headsets, setHeadsets] = useState({}); // object indexed by headset.id
     const [combinedMapObjects, setCombinedMapObjects] = useState([]);
     const [locations, setLocations] = useState({}); // object indexed by locationId
     const [showNewFeature, displayNewFeature] = useState(false);
@@ -91,9 +91,12 @@ function Home(props) {
     const incidentName = useStateSynchronous('');
     const currentIncident = useStateSynchronous(-1);
 
+    const webSocket = useRef(null);
+
     useEffect(() => {
         get_locations();
         getCurrentIncident();
+        openWebSocket();
     }, []);
 
     useEffect(() => {
@@ -105,7 +108,7 @@ function Home(props) {
 
     useEffect(() => {
         combineMapObjects();
-    }, [headsets, setHeadsets])
+    }, [headsets])
 
     useEffect(() => {
         if (selectedLocation == '' && Object.keys(locations).length > 0)
@@ -123,10 +126,10 @@ function Home(props) {
     }, [selectedLocation]);
 
     // time goes off every 10 seconds to refresh headset data
-    useEffect(() => {
-        const timer = setTimeout(() => getHeadsets(), 1e4)
-        return () => clearTimeout(timer)
-    });
+//    useEffect(() => {
+//        const timer = setTimeout(() => getHeadsets(), 1e4)
+//        return () => clearTimeout(timer)
+//    });
 
     useEffect(() => {
         combineMapObjects();
@@ -175,17 +178,17 @@ function Home(props) {
             }
 
         if (headsetsChecked)
-            for (const i in headsets) {
-                const v = headsets[i];
-                if (selectedLocation != v.locationId)
+            for (const id in headsets) {
+                const headset = headsets[id];
+                if (headset.location_id != selectedLocation)
                     continue;
                 combinedMapObjectList.push({
-                    'id': v.id,
-                    'locationId': v.locationId,
-                    'name': v.name,
-                    'color': v.color,
-                    'scaledX': convertVector2Scaled(v.positionX, v.positionZ)[0],
-                    'scaledY': convertVector2Scaled(v.positionY, v.positionZ)[1],
+                    'id': headset.id,
+                    'locationId': headset.locationId,
+                    'name': headset.name,
+                    'color': headset.color,
+                    'scaledX': convertVector2Scaled(headset.position.x, headset.position.z)[0],
+                    'scaledY': convertVector2Scaled(headset.position.y, headset.position.z)[1],
                     'iconValue': 'headset',
                     'placement': 'headset'
                 });
@@ -200,28 +203,13 @@ function Home(props) {
             .then(response => {
                 return response.json()
             }).then(data => {
-              var fetchedHeadsets = []
-              for (var k in data) {
-                  const v = data[k];
-                  fetchedHeadsets.push({
-                      'id': v.id,
-                      'updated': v.updated,
-                      'locationId': v.location_id,
-                      'name': v.name,
-                      'color': v.color,
-                      'orientationX': v.orientation.x,
-                      'orientationY': v.orientation.y,
-                      'orientationZ': v.orientation.z,
-                      'orientationW': v.orientation.w,
-                      'positionX': v.position.x,
-                      'positionY': v.position.y,
-                      'positionZ': v.position.z
-                  });
+              var headsets = {};
+              for (var h of data) {
+                headsets[h.id] = h;
               }
-              setHeadsets(fetchedHeadsets);
+              setHeadsets(headsets);
             });
     }
-
 
     // gets list of locations from server
     function get_locations() {
@@ -425,6 +413,60 @@ function Home(props) {
             });
     }
 
+    function openWebSocket() {
+      // I thought useEffect should only be called once, but this seems to be
+      // called many times. Something is not quite right. The easy fix is to
+      // back out of the function if webSocket.current is already initialized.
+      if (webSocket.current) {
+        return;
+      }
+
+      webSocket.current = new WebSocket(`ws://${host}:${port}/ws`);
+
+      const ws = webSocket.current;
+
+      ws.onopen = (event) => {
+          ws.send("subscribe headsets:created");
+          ws.send("subscribe headsets:updated");
+          ws.send("subscribe headsets:deleted");
+          ws.send("subscribe features:created");
+          ws.send("subscribe features:updated");
+          ws.send("subscribe features:deleted");
+      };
+
+      ws.onmessage = (event) => {
+          const message = JSON.parse(event.data);
+          if (message.event === "headsets:created") {
+            if (message.current) {
+              headsets[message.current.id] = message.current;
+            } else {
+              headsets[message.data.id] = message.data;
+            }
+            setHeadsets(headsets => headsets);
+          } else if (message.event === "headsets:updated") {
+            if (message.current) {
+              headsets[message.current.id] = message.current;
+            } else {
+              headsets[message.data.id] = message.data;
+            }
+            setHeadsets(headsets => headsets);
+          } else if (message.event === "headsets:deleted") {
+            if (message.previous) {
+              delete headsets[message.previous.id];
+            } else {
+              delete headsets[message.data.id];
+            }
+            setHeadsets(headsets => headsets);
+          } else if (message.event === "features:created") {
+
+          } else if (message.event === "features:updated") {
+
+          } else if (message.event === "features:deleted") {
+
+          }
+      };
+    }
+
     return (
         <div className="Home">
             <Helmet>
@@ -512,6 +554,7 @@ function Home(props) {
                               />
                           </Form>
                       </div>
+
                       <HeadsetTable port={port} headsets={headsets} getHeadsets={getHeadsets}
                                     setHeadsets={setHeadsets} locations={locations}/>
                       <FeatureTable port={port} features={features} locationId={selectedLocation}/>

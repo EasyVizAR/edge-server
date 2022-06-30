@@ -2,13 +2,13 @@ import { Button, Table } from 'react-bootstrap';
 import React, { useState, useEffect } from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
-import useStateSynchronous from './useStateSynchronous.js';
 import moment from 'moment';
 
 function AllHeadsets(props){
   const host = window.location.hostname;
   const port = props.port;
-  const headsets = useStateSynchronous([]);
+
+  const [headsets, setHeadsets] = useState({});
 
   // Only one row can be open for editing at a time. A reference is used to
   // query the value of the input field when the user clicks Save. The
@@ -19,7 +19,6 @@ function AllHeadsets(props){
     locationId: React.createRef()
   }
 
-  const [changedHeadsetName, setChangedHeadsetName] = useState(null);
   const [inEditModeHeadset, setInEditModeHeadset] = useState({
       status: false,
       rowKey: null
@@ -29,24 +28,10 @@ function AllHeadsets(props){
       getAllHeadsets();
   }, []);
 
-  // onchange handler for updating headset name
-  const updateHeadsetName = (e) => {
-      var newHeadsets = [];
-      var prefix = "headsetName";
-      var headset_id = e.target.id.substring(prefix.length, e.target.id.length);
-      for (var x in headsets.get()) {
-          if (headsets.get()[x]['id'] === headset_id) {
-              headsets.get()[x]['name'] = e.target.value;
-          }
-          newHeadsets.push(headsets.get()[x]);
-      }
-      headsets.set(newHeadsets);
-  }
-
   // check if a headset name already exists
   function checkHeadsetName(name, id) {
-      for (var x in headsets.get()) {
-          if (headsets.get()[x]['name'] === name && headsets.get()[x]['id'] !== id) {
+      for (var i in headsets) {
+          if (headsets[i].name === name && i !== id) {
               return true;
           }
       }
@@ -70,11 +55,7 @@ function AllHeadsets(props){
 
       fetch(url, requestData)
           .then(response => {
-              for (var x in headsets.get()) {
-                  if (headsets.get()[x]['id'] === id) {
-                      headsets.get().pop(headsets.get()[x]);
-                  }
-              }
+              delete headsets[id];
               getAllHeadsets();
               props.getLocationHeadsets();
           });
@@ -87,62 +68,50 @@ function AllHeadsets(props){
           return;
       }
 
-      setChangedHeadsetName(headsets.get()[id]['name']);
-
       setInEditModeHeadset({
           status: true,
-          rowKey: id,
-          headset_name: headsets.get()[id]['name']
+          rowKey: id
       });
   }
 
   // saves the headset data
-  const onSaveHeadsets = (e, index) => {
-      const headset = null;
-      const id = e.target.id.substring(7, e.target.id.length);
+  const onSaveHeadsets = (e, id) => {
+      const headset = headsets[id];
       const url = `http://${host}:${port}/headsets/${id}`;
 
       const newName = formReferences.name.current.value;
       const newLocationId = formReferences.locationId.current.value;
 
-      for (var x in headsets.get()) {
-          if (headsets.get()[x]['id'] === id) {
-              var dup = checkHeadsetName(newName, headsets.get()[x]['id']);
-              if (dup) {
-                  var conf = window.confirm('There is another headset with the same name. Are you sure you want to continue?');
-                  if (!conf) {
-                      return;
-                  }
-              }
-
-              const requestData = {
-                  method: 'PATCH',
-                  headers: {
-                      'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                      'name': newName,
-                      'location_id': newLocationId
-                  })
-              };
-
-              fetch(url, requestData).then(response => {
-                var headset = headsets.get()[x];
-                headset['name'] = newName;
-                headset['locationId'] = newLocationId;
-
-                setChangedHeadsetName(headset);
-                onCancelHeadset(null, index);
-                getAllHeadsets();
-              });
-              break;
-          }
+      var dup = checkHeadsetName(newName, id);
+      if (dup) {
+        var conf = window.confirm('There is another headset with the same name. Are you sure you want to continue?');
+        if (!conf) {
+          return;
+        }
       }
+
+      const requestData = {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          'name': newName,
+          'location_id': newLocationId
+        })
+      };
+
+      fetch(url, requestData).then(response => {
+        headset.name = newName;
+        headset.locationId = newLocationId;
+
+        onCancelHeadset(null, id);
+        getAllHeadsets();
+      });
   }
 
   // code that creates the trash icons
   function TrashIcon(props) {
-      const item = props.item;
       const itemId = props.id;
       const itemName = props.name;
 
@@ -156,15 +125,7 @@ function AllHeadsets(props){
   }
 
   // turns off headset editing
-  const onCancelHeadset = (element, index) => {
-      for (var x in headsets.get()){
-        if (x == index){
-          headsets.get()[x]['name'] = changedHeadsetName;
-          break;
-        }
-      }
-      setChangedHeadsetName(null);
-
+  const onCancelHeadset = (element, id) => {
       setInEditModeHeadset({
           status: false,
           rowKey: null
@@ -176,25 +137,11 @@ function AllHeadsets(props){
     .then(response => {
       return response.json()
     }).then(data => {
-      var fetchedHeadsets = []
-      for (var k in data) {
-        var v = data[k];
-        fetchedHeadsets.push({
-          'id': v.id,
-          'updated': v.updated,
-          'locationId': v.location_id,
-          'name': v.name,
-          'color': v.color,
-          'orientationX': v.orientation.x,
-          'orientationY': v.orientation.y,
-          'orientationZ': v.orientation.z,
-          'orientationW': v.orientation.w,
-          'positionX': v.position.x,
-          'positionY': v.position.y,
-          'positionZ': v.position.z
-        });
+      var headsets = {};
+      for (var h of data) {
+        headsets[h.id] = h;
       }
-      headsets.set(fetchedHeadsets);
+      setHeadsets(headsets);
     });
   }
 
@@ -224,32 +171,32 @@ function AllHeadsets(props){
         </thead>
         <tbody>
           {
-            headsets.get().length > 0 ? (
-              headsets.get().map((e, index) => (
-                <tr>
-                  <td>{e.id}</td>
-                  <td id={"headsetName" + index}>
+            Object.keys(headsets).length > 0 ? (
+              Object.entries(headsets).map(([id, headset]) => {
+                return <tr>
+                  <td>{id}</td>
+                  <td id={"headsetName" + id}>
                     {
-                      inEditModeHeadset.status && inEditModeHeadset.rowKey === index ? (
+                      inEditModeHeadset.status && inEditModeHeadset.rowKey === id ? (
                         <input
-                          defaultValue={headsets.get()[index]['name']}
+                          defaultValue={headset.name}
                           placeholder="Edit Headset Name"
-                          name={"headsetinput" + e.id}
+                          name={"headsetinput" + id}
                           type="text"
                           ref={formReferences.name}
-                          id={'headsetName' + e.id}/>
+                          id={'headsetName' + id}/>
                       ) : (
-                        e.name
+                        headset.name
                       )
                     }
                   </td>
                   <td>
                     {
-                      (inEditModeHeadset.rowKey === index) ? (
+                      (inEditModeHeadset.rowKey === id) ? (
                         <select
                           id="headset-location-dropdown"
                           title="Change Location"
-                          defaultValue={e.locationId}
+                          defaultValue={headset.locationId}
                           ref={formReferences.locationId}>
                           {
                             Object.entries(props.locations).map(([locationId, loc]) => {
@@ -258,26 +205,26 @@ function AllHeadsets(props){
                           }
                           </select>
                       ) : (
-                        props.locations[e.locationId] ? props.locations[e.locationId]['name'] : 'Unknown'
+                        props.locations[headset.locationId] ? props.locations[headset.locationId]['name'] : 'Unknown'
                       )
                     }
                   </td>
-                  <td>{moment.unix(e.updated).fromNow()}</td>
-                  <td>{e.positionX.toFixed(3)}</td>
-                  <td>{e.positionY.toFixed(3)}</td>
-                  <td>{e.positionZ.toFixed(3)}</td>
-                  <td>{e.orientationX.toFixed(3)}</td>
-                  <td>{e.orientationY.toFixed(3)}</td>
-                  <td>{e.orientationZ.toFixed(3)}</td>
-                  <td>{e.orientationW.toFixed(3)}</td>
+                  <td>{moment.unix(headset.updated).fromNow()}</td>
+                  <td>{headset.position.x.toFixed(3)}</td>
+                  <td>{headset.position.y.toFixed(3)}</td>
+                  <td>{headset.position.z.toFixed(3)}</td>
+                  <td>{headset.orientation.x.toFixed(3)}</td>
+                  <td>{headset.orientation.y.toFixed(3)}</td>
+                  <td>{headset.orientation.z.toFixed(3)}</td>
+                  <td>{headset.orientation.w.toFixed(3)}</td>
                   <td>
                     {
-                      (inEditModeHeadset.status && inEditModeHeadset.rowKey === index) ? (
+                      (inEditModeHeadset.status && inEditModeHeadset.rowKey === id) ? (
                         <React.Fragment>
                           <Button
                             className={"btn-success table-btns"}
-                            id={'savebtn' + e.id}
-                            onClick={(e) => onSaveHeadsets(e, index)}
+                            id={'savebtn' + id}
+                            onClick={(e) => onSaveHeadsets(e, id)}
                             title='Save'>
                               Save
                           </Button>
@@ -285,7 +232,7 @@ function AllHeadsets(props){
                           <Button
                             className={"btn-secondary table-btns"}
                             style={{marginLeft: 8}}
-                            onClick={(event) => onCancelHeadset(event, index)}
+                            onClick={(event) => onCancelHeadset(event, id)}
                             title='Cancel'>
                               Cancel
                           </Button>
@@ -293,7 +240,7 @@ function AllHeadsets(props){
                       ) : (
                         <Button
                           className={"btn-primary table-btns"}
-                          onClick={(e) => onEditHeadset(e, index)}
+                          onClick={(e) => onEditHeadset(e, id)}
                           title='Edit'>
                             Edit
                           </Button>
@@ -302,11 +249,11 @@ function AllHeadsets(props){
                   </td>
                   <td>
                     <div>
-                      <TrashIcon item='headset' id={e.id} name={e.name}/>
+                      <TrashIcon item='headset' id={id} name={headset.name}/>
                     </div>
                   </td>
                 </tr>
-              ))
+              })
             ) : (
               <tr><td colspan="100%">No Headsets</td></tr>
             )
