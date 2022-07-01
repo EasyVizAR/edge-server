@@ -7,41 +7,28 @@ class ObjFileMaker:
         self.precision = precision
 
     def make_obj(self, output_path):
-        surface_data = dict()
-        vertex_count = 0
-        for surface in self.surfaces:
-            ply = read_ply_file(surface.filePath)
-            surface_data[surface.id] = {
-                "vertices": ply.vertices,
-                "faces": ply.triangles,
-                "voffset": vertex_count + 1
-            }
-            vertex_count += len(ply.vertices)
-
         with open(output_path, "w") as out:
-            self.write_header(out, surface_data)
-            self.write_vertices(out, surface_data)
-            self.write_faces(out, surface_data)
+            vertex_count = 0
+            for surface in self.surfaces:
+                vertex_count += self.write_surface(out, surface, voffset=vertex_count)
 
-    def write_header(self, out, surface_data):
-        for surface in self.surfaces:
-            data = surface_data[surface.id]
-            out.write("# Surface {}, updated {}, by {}\n".format(surface.id, surface.updated, surface.uploadedBy))
+    def write_surface(self, out, surface, voffset=0):
+        ply = read_ply_file(surface.filePath)
 
-    def write_vertices(self, out, surface_data):
+        if len(ply.vertices) == 0 or len(ply.triangles) == 0:
+            return 0
+
+        # The OBJ file format supports group/object designations, but the
+        # interpretation is up to the loading application.  Unity seems to use
+        # the group line, while Blender seems to use the object line.
+        out.write("g {} {}\n".format(surface.label, surface.id))
+        out.write("o {}\n".format(surface.id))
+
         vertex_line = "v {{:0.0{0}f}} {{:0.0{0}f}} {{:0.0{0}f}}\n".format(self.precision)
-        for surface in self.surfaces:
-            out.write("# Vertices for surface {}\n".format(surface.id))
+        for v in ply.vertices:
+            out.write(vertex_line.format(v[0], v[1], v[2]))
 
-            data = surface_data[surface.id]
-            for v in data['vertices']:
-                out.write(vertex_line.format(v[0], v[1], v[2]))
+        for f in ply.triangles:
+            out.write("f {} {} {}\n".format(f[0]+voffset+1, f[1]+voffset+1, f[2]+voffset+1))
 
-    def write_faces(self, out, surface_data):
-        for surface in self.surfaces:
-            out.write("# Faces for surface {}\n".format(surface.id))
-
-            data = surface_data[surface.id]
-            voffset = data['voffset']
-            for f in data['faces']:
-                out.write("f {} {} {}\n".format(f[0]+voffset, f[1]+voffset, f[2]+voffset))
+        return len(ply.vertices)

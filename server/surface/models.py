@@ -1,8 +1,6 @@
 import time
 
-from dataclasses import field
-from marshmallow_dataclass import dataclass
-
+from server.resources.dataclasses import dataclass, field
 from server.resources.jsonresource import JsonCollection, JsonResource
 from server.resources.geometry import Box
 
@@ -41,6 +39,9 @@ class SurfaceModel(JsonResource):
     filePath:   str = field(default=None)
     fileUrl:    str = field(default=None)
     uploadedBy: str = field(default=None)
+
+    label:      str = field(default="unknown",
+                            description="Label from scene understanding (unknown|floor|wall|ceiling|...)")
 
     created:    float = field(default_factory=time.time)
     updated:    float = field(default_factory=time.time)
