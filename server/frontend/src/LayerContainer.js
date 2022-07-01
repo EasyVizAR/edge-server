@@ -58,12 +58,15 @@ function LayerContainer(props) {
     }, [props.layers, props.setLayers]);
 
     useEffect(() => {
+        var url = "";
         for (var layer of props.layers) {
             if (layer.id === props.selectedLayer && layer.ready) {
-                setLayerImage(layer.imageUrl);
+                url = layer.imageUrl;
                 break;
             }
         }
+        setLayerLoaded(false);
+        setLayerImage(url);
     }, [props.selectedLayer]);
 
 //    useEffect(() => {
