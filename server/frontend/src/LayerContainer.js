@@ -16,8 +16,8 @@ function LayerContainer(props) {
       xscale: 1,
       yscale: 1
     });
+    const [layerImage, setLayerImage] = useState(null);
     const [layerLoaded, setLayerLoaded] = useState(false);
-    const [selectedImage, setSelectedImage] = useState('');
 
     const icons = {
         ambulance: solid('truck-medical'),
@@ -34,18 +34,14 @@ function LayerContainer(props) {
         warning: solid('triangle-exclamation'),
     }
 
-    useEffect(() => {
-        const imgUrl = selectedImage.split("?")[0] + "?" + Math.floor(Math.random() * 100);
-        const timer = setTimeout(() => {
-            if (props.cursor != 'crosshair') // trigger only if not in on Location edit mode
-                setSelectedImage(imgUrl)
-        }, 6e4) // 60 secs
-        return () => clearTimeout(timer)
-    });
-
-    useEffect(() => {
-        setSelectedImage(getMapImage());
-    }, [props.selectedLayer]);
+//    useEffect(() => {
+//        const imgUrl = selectedImage.split("?")[0] + "?" + Math.floor(Math.random() * 100);
+//        const timer = setTimeout(() => {
+//            if (props.cursor != 'crosshair') // trigger only if not in on Location edit mode
+//                setSelectedImage(imgUrl)
+//        }, 6e4) // 60 secs
+//        return () => clearTimeout(timer)
+//    });
 
     useEffect(() => {
         var selectedLayerIsValid = false;
@@ -62,13 +58,22 @@ function LayerContainer(props) {
     }, [props.layers, props.setLayers]);
 
     useEffect(() => {
-        const imgUrl = selectedImage.split("?")[0] + "?" + Math.floor(Math.random() * 100);
-        const timer = setTimeout(() => {
-            if (props.cursor != 'crosshair') // trigger only if not in on Location edit mode
-                setSelectedImage(imgUrl)
-        }, 6e3) // 60 secs
-        return () => clearTimeout(timer)
-    });
+        for (var layer of props.layers) {
+            if (layer.id === props.selectedLayer && layer.ready) {
+                setLayerImage(layer.imageUrl);
+                break;
+            }
+        }
+    }, [props.selectedLayer]);
+
+//    useEffect(() => {
+//        const imgUrl = selectedImage.split("?")[0] + "?" + Math.floor(Math.random() * 100);
+//        const timer = setTimeout(() => {
+//            if (props.cursor != 'crosshair') // trigger only if not in on Location edit mode
+//                setSelectedImage(imgUrl)
+//        }, 6e3) // 60 secs
+//        return () => clearTimeout(timer)
+//    });
 
     const getMapImage = () => {
         if (!props.selectedLayer)
@@ -224,7 +229,7 @@ function LayerContainer(props) {
     return (
         <div className="map-layer-container">
             <div className="map-image-container">
-                <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
+                <img id="map-image" src={layerImage} alt="Map of the environment" onLoad={onMapLoad}
                      onClick={onMouseClick} style={{cursor: props.cursor}}/>
                 {
                   layerLoaded && props.headsetsChecked && Object.keys(props.headsets).length > 0 &&
