@@ -67,15 +67,15 @@ function Home(props) {
     const mapIconSize = 7;
     const circleSvgIconSize = 11;
 
-    const [selectedLocation, setSelectedLocation] = useState('');
-    const [features, setFeatures] = useState([]);
+    const [selectedLocation, setSelectedLocation] = useState(null);
+    const [selectedLayer, setSelectedLayer] = useState(null);
+    const selectedLocationRef = useRef(null);
+
+    const [features, setFeatures] = useState({}); // object indexed by feature.id
     const [headsets, setHeadsets] = useState({}); // object indexed by headset.id
-    const [combinedMapObjects, setCombinedMapObjects] = useState([]);
     const [locations, setLocations] = useState({}); // object indexed by locationId
     const [showNewFeature, displayNewFeature] = useState(false);
     const [layers, setLayers] = useState([]);
-    const [selectedLayerId, setSelectedLayerId] = useState(-1);
-    const [layerLoaded, setLayerLoaded] = useState(false);
     const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
     const [pointCoordinates, setPointCoordinates] = useState([]);
     const [cursor, setCursor] = useState('auto');
@@ -102,29 +102,24 @@ function Home(props) {
     }, []);
 
     useEffect(() => {
-        combineMapObjects();
-    }, [features, setFeatures]);
-
-    useEffect(() => {
-    }, [combinedMapObjects, setCombinedMapObjects]);
-
-    useEffect(() => {
-        combineMapObjects();
-    }, [headsets])
-
-    useEffect(() => {
-        if (selectedLocation == '' && Object.keys(locations).length > 0)
-            setSelectedLocation(getDefaultLocationSelection());
+      if (!(selectedLocation in locations)) {
+        setSelectedLocation(getDefaultLocationSelection());
+      }
     }, [locations, setLocations]);
 
     useEffect(() => {
-        // If selectedLocation changed, immediately reload list of headsets at
-        // the new location.
-        getHeadsets();
+      // If selected location changed, immediately reload list of headsets and
+      // features at the new location.
+      getHeadsets();
+      getFeatures();
 
-        if (selectedLocation != '') {
-            getLayers();
-        }
+      if (selectedLocation) {
+          getLayers();
+      }
+
+      // Updated the reference variable. This is mainly for the websocket
+      // event handler.
+      selectedLocationRef.current = selectedLocation;
     }, [selectedLocation]);
 
     // time goes off every 10 seconds to refresh headset data
@@ -132,14 +127,6 @@ function Home(props) {
 //        const timer = setTimeout(() => getHeadsets(), 1e4)
 //        return () => clearTimeout(timer)
 //    });
-
-    useEffect(() => {
-        combineMapObjects();
-    }, [featuresChecked, setFeaturesChecked]);
-
-    useEffect(() => {
-        combineMapObjects();
-    }, [headsetsChecked, setHeadsetsChecked]);
 
     const changeMapObjects = (e, v) => {
 
@@ -152,65 +139,39 @@ function Home(props) {
         if (e.target.id == 'headsets-switch') {
             setHeadsetsChecked(e.target.checked);
         }
-        console.log(e);
     };
-
-    const combineMapObjects = () => {
-        if (!layerLoaded)
-            return;
-        var combinedMapObjectList = [];
-
-        if (featuresChecked)
-            for (const i in features) {
-                const v = features[i];
-                // if (selectedLocation != v.mapId)
-                //     continue;
-                combinedMapObjectList.push({
-                    'id': v.id,
-                    'locationId': v.locationId,
-                    'name': v.name,
-                    'color': v.color,
-                    'scaledX': convertVector2Scaled(v.position.x, v.position.z)[0],
-                    'scaledY': convertVector2Scaled(v.position.x, v.position.z)[1],
-                    'type': v.type,
-                    'radius': v.radius,
-                    'placement': v.placement,
-                    'editing': v.editing
-                });
-            }
-
-        if (headsetsChecked)
-            for (const id in headsets) {
-                const headset = headsets[id];
-                if (headset.location_id != selectedLocation)
-                    continue;
-                combinedMapObjectList.push({
-                    'id': headset.id,
-                    'locationId': headset.locationId,
-                    'name': headset.name,
-                    'color': headset.color,
-                    'scaledX': convertVector2Scaled(headset.position.x, headset.position.z)[0],
-                    'scaledY': convertVector2Scaled(headset.position.x, headset.position.z)[1],
-                    'type': 'headset',
-                    'placement': 'headset'
-                });
-            }
-
-        setCombinedMapObjects(combinedMapObjectList);
-    }
 
     // function that sends request to server to get headset data
     function getHeadsets() {
-        fetch(`http://${host}:${port}/headsets?location_id=${selectedLocation}`)
-            .then(response => {
-                return response.json()
-            }).then(data => {
-              var headsets = {};
-              for (var h of data) {
-                headsets[h.id] = h;
-              }
-              setHeadsets(headsets);
-            });
+      if (!selectedLocation)
+        return;
+
+      fetch(`http://${host}:${port}/headsets?location_id=${selectedLocation}`)
+        .then(response => {
+          return response.json()
+        }).then(data => {
+          let headsets = {};
+          for (var h of data) {
+            headsets[h.id] = h;
+          }
+          setHeadsets(headsets);
+        });
+    }
+
+    function getFeatures() {
+      if (!selectedLocation)
+        return;
+
+      fetch(`http://${host}:${port}/locations/${selectedLocation}/features`)
+        .then(response => {
+          return response.json()
+        }).then(data => {
+          let features = [];
+          for (var f of data) {
+            features[f.id] = f;
+          }
+          setFeatures(features);
+        });
     }
 
     // gets list of locations from server
@@ -225,9 +186,7 @@ function Home(props) {
                     temp_locations[data[key]['id']] = data[key];
                 }
                 setLocations(temp_locations);
-                // setSelectedLocation(getDefaultLocationSelection());
             });
-        // setSelectedLocation(getDefaultLocationSelection());
     }
 
     function updateIncidentInfo() {
@@ -247,29 +206,10 @@ function Home(props) {
 
     const getDefaultLocationSelection = () => {
         if (Object.keys(locations).length == 0)
-            return 'NULL';
+            return null;
         var id = Object.keys(locations)[0];
         setCurrLocationName(locations[id]['name']);
         return id;
-    }
-
-    const convertVector2Scaled = (x, yy) => {
-        var list = [];
-        var map = {};
-        for (var i = 0; i < layers.length; i++) {
-            if (layers[i]['id'] == selectedLayerId)
-                map = layers[i];
-        }
-        if (Object.keys(map).length === 0 || !layerLoaded)
-            return [0, 0];
-        const xmin = map['viewBox']['left'];
-        const ymin = map['viewBox']['top'];
-        const width = map['viewBox']['width'];
-        const height = map['viewBox']['height'];
-        list.push(document.getElementById('map-image').offsetWidth / width * (x - xmin));
-        list.push(document.getElementById('map-image').offsetHeight / height * (yy - ymin));
-
-        return list;
     }
 
     const changePointValue = (value, idx) => {
@@ -437,32 +377,59 @@ function Home(props) {
       };
 
       ws.onmessage = (event) => {
-          const message = JSON.parse(event.data);
-          if (message.event === "headsets:created") {
-            setHeadsets(prevHeadsets => {
-              let newHeadsets = Object.assign({}, prevHeadsets);
-              newHeadsets[message.current.id] = message.current;
-              return newHeadsets;
-            });
-          } else if (message.event === "headsets:updated") {
-            setHeadsets(prevHeadsets => {
-              let newHeadsets = Object.assign({}, prevHeadsets);
-              newHeadsets[message.current.id] = message.current;
-              return newHeadsets;
-            });
-          } else if (message.event === "headsets:deleted") {
-            setHeadsets(prevHeadsets => {
-              let newHeadsets = Object.assign({}, prevHeadsets);
-              delete newHeadsets[message.previous.id];
-              return newHeadsets;
-            });
-          } else if (message.event === "features:created") {
+        const selectedLocation = selectedLocationRef.current;
 
-          } else if (message.event === "features:updated") {
-
-          } else if (message.event === "features:deleted") {
-
-          }
+        console.log("Parse: " + event.data);
+        const message = JSON.parse(event.data);
+        if (message.event === "headsets:created") {
+          if (message.current.location_id !== selectedLocation)
+            return;
+          setHeadsets(prevHeadsets => {
+            let newHeadsets = Object.assign({}, prevHeadsets);
+            newHeadsets[message.current.id] = message.current;
+            return newHeadsets;
+          });
+        } else if (message.event === "headsets:updated") {
+          if (message.current.location_id !== selectedLocation)
+            return;
+          setHeadsets(prevHeadsets => {
+            let newHeadsets = Object.assign({}, prevHeadsets);
+            newHeadsets[message.current.id] = message.current;
+            return newHeadsets;
+          });
+        } else if (message.event === "headsets:deleted") {
+          if (message.previous.location_id !== selectedLocation)
+            return;
+          setHeadsets(prevHeadsets => {
+            let newHeadsets = Object.assign({}, prevHeadsets);
+            delete newHeadsets[message.previous.id];
+            return newHeadsets;
+          });
+        } else if (message.event === "features:created") {
+          if (!message.uri.includes(selectedLocation))
+            return;
+          setFeatures(prevFeatures => {
+            let newFeatures = Object.assign({}, prevFeatures);
+            newFeatures[message.current.id] = message.current;
+            return newFeatures;
+          });
+        } else if (message.event === "features:updated") {
+          if (!message.uri.includes(selectedLocation))
+            return;
+          setFeatures(prevFeatures => {
+            let newFeatures = Object.assign({}, prevFeatures);
+            newFeatures[message.current.id] = message.current;
+            return newFeatures;
+          });
+        } else if (message.event === "features:deleted") {
+          if (!message.uri.includes(selectedLocation))
+            return;
+          setFeatures(prevFeatures => {
+            let newFeatures = Object.assign({}, prevFeatures);
+            delete newFeatures[message.previous.id];
+            return newFeatures;
+          });
+        }
       };
     }
 
@@ -523,17 +490,18 @@ function Home(props) {
                           <h5>{currLocationName != '' ? selectedLocation : ''}</h5>
                         </div>
                       </div>
-                        <LayerContainer id="map-container" port={port} features={features}
-                                        setFeatures={setFeatures} setHeadsets={setHeadsets} cursor={cursor} setClickCount={setClickCount}
+                        <LayerContainer id="map-container" port={port}
+                                        headsets={headsets} headsetsChecked={headsetsChecked}
+                                        features={features} featuresChecked={featuresChecked}
+                                        setFeatures={setFeatures} setHeadsets={setHeadsets}
+                                        cursor={cursor} setClickCount={setClickCount}
                                         clickCount={clickCount} placementType={placementType} iconIndex={iconIndex}
-                                        setPointCoordinates={setPointCoordinates} headsetsChecked={headsetsChecked}
-                                        featuresChecked={featuresChecked} sliderValue={sliderValue}
-                                        combinedMapObjects={combinedMapObjects} selectedLocation={selectedLocation}
-                                        convertVector2Scaled = {convertVector2Scaled} crossHairIcon={crossHairIcon}
-                                        layerLoaded={layerLoaded} setLayerLoaded={setLayerLoaded}
-                                        layers={layers} setLayers={setLayers} selectedLayerId={selectedLayerId}
-                                        setSelectedLayerId={setSelectedLayerId}
-                                      // selectedMap={selectedMap} maps={maps} setMapLoaded={setMapLoaded} mapLoaded ={mapLoaded} selectedImage={selectedImage}
+                                        setPointCoordinates={setPointCoordinates}
+                                        sliderValue={sliderValue}
+                                        crossHairIcon={crossHairIcon}
+                                        layers={layers} setLayers={setLayers}
+                                        selectedLocation={selectedLocation}
+                                        selectedLayer={selectedLayer} setSelectedLayer={setSelectedLayer}
                         />
                       <div style={{width: 'max-content'}}>
                           <Form onChange={changeMapObjectsContainer}>

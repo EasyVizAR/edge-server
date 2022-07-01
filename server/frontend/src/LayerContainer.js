@@ -10,6 +10,13 @@ function LayerContainer(props) {
     const mapIconSize = 7;
     const circleSvgIconSize = 11;
 
+    const [mapShape, setMapShape] = useState({
+      xmin: 0,
+      ymin: 0,
+      xscale: 1,
+      yscale: 1
+    });
+    const [layerLoaded, setLayerLoaded] = useState(false);
     const [selectedImage, setSelectedImage] = useState('');
 
     const icons = {
@@ -38,14 +45,19 @@ function LayerContainer(props) {
 
     useEffect(() => {
         setSelectedImage(getMapImage());
-    }, [props.selectedLayerId]);
+    }, [props.selectedLayer]);
 
     useEffect(() => {
-        if (props.selectedLayerId == undefined || props.selectedLayerId == -1) {
-            if (props.layers.length > 0)
-                props.setSelectedLayerId(getDefaultLayerId());
-        } else {
-            props.setSelectedLayerId(-1);
+        var selectedLayerIsValid = false;
+        for (var layer of props.layers) {
+            if (layer.id === props.selectedLayer) {
+                selectedLayerIsValid = true;
+                break;
+            }
+        }
+
+        if (!selectedLayerIsValid) {
+            props.setSelectedLayer(getDefaultLayerId());
         }
     }, [props.layers, props.setLayers]);
 
@@ -59,11 +71,11 @@ function LayerContainer(props) {
     });
 
     const getMapImage = () => {
-        if (props.selectedLayerId == undefined || props.selectedLayerId == -1)
+        if (!props.selectedLayer)
             return '';
         var map = null;
         for (var i = 0; i < props.layers.length; i++) {
-            if (props.layers[i].id == props.selectedLayerId) {
+            if (props.layers[i].id == props.selectedLayer) {
                 map = props.layers[i];
                 break;
             }
@@ -73,22 +85,22 @@ function LayerContainer(props) {
         if (map.viewBox == null || map.viewBox.height == 0 || map.viewBox.width == 0)
             return '';
 
-        return `http://${host}:${port}/locations/${props.selectedLocation}/layers/${props.selectedLayerId}/image`;
+        return `http://${host}:${port}/locations/${props.selectedLocation}/layers/${props.selectedLayer}/image`;
     }
 
     const getDefaultLayerId = () => {
         if (props.layers.length == 0)
-            return -1;
+            return null;
         return props.layers[0]['id'];
     }
 
     const convert2Pixel = (r) => {
         var map = {};
         for (var i = 0; i < props.layers.length; i++) {
-            if (props.layers[i]['id'] == props.selectedLayerId)
+            if (props.layers[i]['id'] == props.selectedLayer)
                 map = props.layers[i];
         }
-        if (Object.keys(map).length === 0 || !props.layerLoaded)
+        if (Object.keys(map).length === 0 || !layerLoaded)
             return 0;
         const width = map['viewBox']['width'];
         return document.getElementById('map-image').offsetWidth / width * r;
@@ -98,10 +110,10 @@ function LayerContainer(props) {
         var list = [];
         var map = {};
         for (var i = 0; i < props.layers.length; i++) {
-            if (props.layers[i]['id'] == props.selectedLayerId)
+            if (props.layers[i]['id'] == props.selectedLayer)
                 map = props.layers[i];
         }
-        if (Object.keys(map).length === 0 || !props.layerLoaded)
+        if (Object.keys(map).length === 0 || !layerLoaded)
             return [0, 0];
 
         const xmin = map['viewBox']['left'];
@@ -126,7 +138,7 @@ function LayerContainer(props) {
             f.pop();
         f.push({
             id: 'undefined',
-            mapId: props.selectedLayerId,
+            mapId: props.selectedLayer,
             name: '(editing in map)',
             position: {
               x: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[0],
@@ -143,7 +155,6 @@ function LayerContainer(props) {
             }
         });
 
-        props.setFeatures(f);
         props.setPointCoordinates([convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left,
             e.clientY - e.target.getBoundingClientRect().top)[0],
             0,
@@ -154,41 +165,24 @@ function LayerContainer(props) {
     }
 
     const onMapLoad = () => {
-        if (props.selectedLayerId == -1)
-            return;
+        var layer = null;
+        for (var v of props.layers) {
+          if (v.id === props.selectedLayer) {
+            layer = v;
+            break;
+          }
+        }
+        if (!layer)
+          return
 
-        props.setLayerLoaded(true);
+        setLayerLoaded(true);
 
-        fetch(`http://${host}:${port}/locations/${props.selectedLocation}/features`)
-            .then(response => {
-                if (response.ok) {
-                    return response.json();
-                }
-            }).then(data => {
-
-            let fetchedFeatures = []
-            if (data == undefined || data == null || data[0] === undefined) {
-                console.log(`No features data for locationId ${props.selectedLocation}`);
-            } else {
-                for (var f of data) {
-                    fetchedFeatures.push(f);
-                }
-            }
-            props.setFeatures(fetchedFeatures);
-
-            fetch(`http://${host}:${port}/headsets?location_id=${props.selectedLocation}`)
-                .then(response => {
-                    return response.json()
-                }).then(data => {
-                    var headsets = {};
-                    for (var h of data) {
-                      headsets[h.id] = h;
-                    }
-                    props.setHeadsets(headsets);
-                });
-
+        setMapShape({
+          xmin: layer['viewBox']['left'],
+          ymin: layer['viewBox']['top'],
+          xscale: document.getElementById('map-image').offsetWidth / layer['viewBox']['width'],
+          yscale: document.getElementById('map-image').offsetHeight / layer['viewBox']['height']
         });
-
     }
 
     const getCircleSvgSize = (r) => {
@@ -203,9 +197,28 @@ function LayerContainer(props) {
     const onLayerRadioChange = (e) => {
         for (const i in props.layers) {
             if (props.layers[i].id == e.target.id) {
-                props.setSelectedLayerId(props.layers[i].id);
+                props.setSelectedLayer(props.layers[i].id);
+                break;
             }
         }
+    }
+
+    const convertVector2Scaled = (x, yy) => {
+      var list = [];
+      var map = {};
+      for (var i = 0; i < props.layers.length; i++) {
+        if (props.layers[i]['id'] === props.selectedLayer)
+          map = props.layers[i];
+      }
+      if (Object.keys(map).length === 0 || !layerLoaded)
+        return [0, 0];
+      const xmin = map['viewBox']['left'];
+      const ymin = map['viewBox']['top'];
+      const width = map['viewBox']['width'];
+      const height = map['viewBox']['height'];
+      list.push(document.getElementById('map-image').offsetWidth / width * (x - xmin));
+      list.push(document.getElementById('map-image').offsetHeight / height * (yy - ymin));
+      return list;
     }
 
     return (
@@ -213,63 +226,63 @@ function LayerContainer(props) {
             <div className="map-image-container">
                 <img id="map-image" src={selectedImage} alt="Map of the environment" onLoad={onMapLoad}
                      onClick={onMouseClick} style={{cursor: props.cursor}}/>
-                {props.combinedMapObjects.map((f, index) => {
-                    return f.style?.placement == 'floating' && f.editing == 'true' ?
-                        <div>
-                            <FontAwesomeIcon icon={icons?.[f.type]?.['iconName'] || "bug"}
-                                             className="features" id={f.id}
-                                             alt={f.name} color={f.color} style={{
-                                left: props.combinedMapObjects[index].scaledX,
-                                top: props.combinedMapObjects[index].scaledY,
-                                height: mapIconSize + "%",
-                                pointerEvents: "none"
-                            }}/>
-                            <svg className="features"
-                                 width={getCircleSvgSize(props.sliderValue)}
-                                 height={getCircleSvgSize(props.sliderValue)}
-                                 style={{
-                                     left: props.combinedMapObjects[index].scaledX - getCircleSvgShift(props.sliderValue),
-                                     top: props.combinedMapObjects[index].scaledY - getCircleSvgShift(props.sliderValue),
-                                     pointerEvents: "none"
-                                 }}>
-                                <circle style={{pointerEvents: "none"}} cx={getCircleSvgSize(props.sliderValue) / 2}
-                                        cy={getCircleSvgSize(props.sliderValue) / 2}
-                                        r={convert2Pixel(props.sliderValue)} fill-opacity="0.3" fill="#0000FF"/>
-                            </svg>
-                        </div>
-                        : f.placement == 'floating' ?
-                            <div>
-                                <FontAwesomeIcon icon={icons?.[f.type]?.['iconName'] || "bug"}
-                                                 className="features" id={f.id}
-                                                 alt={f.name} color={f.color} style={{
-                                    left: props.combinedMapObjects[index].scaledX,
-                                    top: props.combinedMapObjects[index].scaledY,
+                {
+                  layerLoaded && props.headsetsChecked && Object.keys(props.headsets).length > 0 &&
+                    Object.entries(props.headsets).map(([id, item]) => {
+                      const x = mapShape.xscale * (item.position.x - mapShape.xmin);
+                      const y = mapShape.yscale * (item.position.z - mapShape.ymin);
+                      return <FontAwesomeIcon icon={icons['headset']['iconName']}
+                                              className="features" id={item.id}
+                                              alt={item.name} color={item.color}
+                                              style={{
+                                                  left: x,
+                                                  top: y,
+                                                  height: mapIconSize + "%",
+                                                  pointerEvents: "none"
+                                              }}/>
+                    })
+                }
+                {
+                  layerLoaded && props.featuresChecked && Object.keys(props.features).length > 0 &&
+                    Object.entries(props.features).map(([id, item]) => {
+                      const x = mapShape.xscale * (item.position.x - mapShape.xmin);
+                      const y = mapShape.yscale * (item.position.z - mapShape.ymin);
+                      if (item.style?.placement == "floating") {
+                        return <div>
+                                <FontAwesomeIcon icon={icons?.[item.type]?.['iconName'] || "bug"}
+                                                 className="features" id={item.id}
+                                                 alt={item.name} color={item.color} style={{
+                                    left: x,
+                                    top: y,
                                     height: mapIconSize + "%",
                                     pointerEvents: "none"
                                 }}/>
                                 <svg className="features"
-                                     width={getCircleSvgSize(f.style?.radius || 1.0)}
-                                     height={getCircleSvgSize(f.style?.radius || 1.0)}
+                                     width={getCircleSvgSize(item.style?.radius || 1.0)}
+                                     height={getCircleSvgSize(item.style?.radius || 1.0)}
                                      style={{
-                                         left: props.combinedMapObjects[index].scaledX - getCircleSvgShift(f.style?.radius || 1.0),
-                                         top: props.combinedMapObjects[index].scaledY - getCircleSvgShift(f.style?.radius || 1.0),
+                                         left: x - getCircleSvgShift(item.style?.radius || 1.0),
+                                         top: y - getCircleSvgShift(item.style?.radius || 1.0),
                                          pointerEvents: "none"
                                      }}>
-                                    <circle style={{pointerEvents: "none"}} cx={getCircleSvgSize(f.style?.radius || 1.0) / 2}
-                                            cy={getCircleSvgSize(f.style?.radius || 1.0) / 2}
-                                            r={convert2Pixel(f.style.radius)} fill-opacity="0.3" fill="#0000FF"/>
+                                    <circle style={{pointerEvents: "none"}} cx={getCircleSvgSize(item.style?.radius || 1.0) / 2}
+                                            cy={getCircleSvgSize(item.style?.radius || 1.0) / 2}
+                                            r={convert2Pixel(item.style.radius)} fill-opacity="0.3" fill="#0000FF"/>
                                 </svg>
                             </div>
-                            : <FontAwesomeIcon icon={icons?.[f.type]?.['iconName'] || "bug"}
-                                               className="features" id={f.id}
-                                               alt={f.name} color={f.color}
-                                               style={{
-                                                   left: props.combinedMapObjects[index].scaledX,
-                                                   top: props.combinedMapObjects[index].scaledY,
-                                                   height: mapIconSize + "%",
-                                                   pointerEvents: "none"
-                                               }}/>
-                })}
+                      } else {
+                        return <FontAwesomeIcon icon={icons?.[item.type]?.['iconName'] || "bug"}
+                                                className="features" id={item.id}
+                                                alt={item.name} color={item.color}
+                                                style={{
+                                                    left: x,
+                                                    top: y,
+                                                    height: mapIconSize + "%",
+                                                    pointerEvents: "none"
+                                                }}/>
+                      }
+                    })
+                }
             </div>
             <Form className='layer-radio-form'>
                 <h5>Layers</h5>
@@ -281,7 +294,7 @@ function LayerContainer(props) {
                         type="radio"
                         value={layer.name}
                         onChange={onLayerRadioChange}
-                        checked={layer.id == props.selectedLayerId}
+                        checked={layer.id === props.selectedLayer}
                     />
                 })}
             </Form>

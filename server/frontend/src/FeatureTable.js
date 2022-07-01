@@ -58,10 +58,10 @@ function FeatureTable(props){
 
   const [editMode, setEditMode] = useState({
     enabled: false,
-    rowIndex: null
+    featureId: null
   });
 
-  const enableEditMode = (e, index) => {
+  const enableEditMode = (e, id) => {
     if (editMode.status) {
       alert("Only one row can be open for editing at a time. Please save or cancel the currently open row.");
       return;
@@ -69,20 +69,19 @@ function FeatureTable(props){
 
     setEditMode({
       status: true,
-      rowIndex: index
+      featureId: id
     });
   }
 
-  const cancelEditMode = (e, index) => {
+  const cancelEditMode = (e, id) => {
     setEditMode({
       status: false,
-      rowIndex: null
+      featureId: null
     });
   }
 
   // saves the headset data
-  const saveFeature = (e, index) => {
-    const id = props.features[index]['id'];
+  const saveFeature = (e, id) => {
     const url = `http://${host}:${port}/locations/${props.locationId}/features/${id}`;
 
     const newName = formReferences.name.current.value;
@@ -104,17 +103,17 @@ function FeatureTable(props){
     };
 
     fetch(url, requestData).then(response => {
-      props.features[index]['name'] = newName;
-      props.features[index]['color'] = newColor;
-      props.features[index]['type'] = newType;
-      props.features[index]['placement'] = newPlacement;
-      cancelEditMode(null, index);
+      props.features[id]['name'] = newName;
+      props.features[id]['color'] = newColor;
+      props.features[id]['type'] = newType;
+      props.features[id]['placement'] = newPlacement;
+      cancelEditMode(null, id);
       props.getFeatures();
     });
   }
 
   // deletes item with the id and name
-  function deleteFeature(index, id, name) {
+  function deleteFeature(id, name) {
     const del = window.confirm("Are you sure you want to delete '" + name + "'?");
     if (!del) {
       return;
@@ -135,13 +134,12 @@ function FeatureTable(props){
 
   // code that creates the trash icons
   function TrashIcon(props) {
-    const index = props.index;
     const itemId = props.id;
     const itemName = props.name;
 
     return (
       <Button style={{width: "30px", height: "30px"}} className='btn-danger table-btns'
-        onClick={(e) => deleteFeature(index, itemId, itemName)} title="Delete Feature">
+        onClick={(e) => deleteFeature(itemId, itemName)} title="Delete Feature">
 
         <FontAwesomeIcon icon={solid('trash-can')} size="lg" style={{position: 'relative', right: '0px', top: '-1px'}}/>
       </Button>
@@ -178,50 +176,50 @@ function FeatureTable(props){
         </thead>
         <tbody>
           {
-            props.features.length > 0 ? (
-              props.features.map((e, index) => (
-                <tr>
-                  <td>{e.id}</td>
-                  <td id={"headsetName" + index}>
+            Object.keys(props.features).length > 0 ? (
+              Object.entries(props.features).map(([id, feature]) => {
+                return <tr>
+                  <td>{id}</td>
+                  <td id={"featureName" + id}>
                     {
-                      editMode.status && editMode.rowIndex === index ? (
+                      editMode.status && editMode.featureId === id ? (
                         <input
-                          defaultValue={props.features[index]['name']}
+                          defaultValue={feature.name}
                           placeholder="Edit Feature Name"
-                          name={"headsetinput" + e.id}
+                          name={"feature-name-input" + id}
                           type="text"
                           ref={formReferences.name}
-                          id={'headsetName' + e.id}/>
+                          id={'feature-name-input' + id}/>
                       ) : (
-                        e.name
+                        feature.name
                       )
                     }
                   </td>
                   <td>
                     {
-                      editMode.status && editMode.rowIndex === index ? (
+                      editMode.status && editMode.featureId === id ? (
                         <input
-                          defaultValue={props.features[index]['color']}
+                          defaultValue={feature.color}
                           placeholder="Edit Feature Color"
-                          name={"feature-color-" + e.id}
+                          name={"feature-color-" + id}
                           type="color"
                           ref={formReferences.color}
-                          id={"feature-color-" + e.id}/>
+                          id={"feature-color-" + id}/>
                       ) : (
                         /* If the feature type is missing or unrecognized, show a bug icon. */
-                        icons?.[e.type]?.['iconName'] ?
-                          <FontAwesomeIcon icon={icons[e.type]['iconName']} size="lg" color={e.color}/> :
-                          <FontAwesomeIcon icon="bug" size="lg" color={e.color}/>
+                        icons?.[feature.type]?.['iconName'] ?
+                          <FontAwesomeIcon icon={icons[feature.type]['iconName']} size="lg" color={feature.color}/> :
+                          <FontAwesomeIcon icon="bug" size="lg" color={feature.color}/>
                       )
                     }
                   </td>
                   <td>
                     {
-                      editMode.status && editMode.rowIndex === index ? (
+                      editMode.status && editMode.featureId === id ? (
                         <select
                           id="feature-type-dropdown"
                           title="Change Type"
-                          defaultValue={e.type || "fire"}
+                          defaultValue={feature.type || "fire"}
                           ref={formReferences.type}>
                           {
                             featureTypes.map((name, index) => {
@@ -230,21 +228,21 @@ function FeatureTable(props){
                           }
                           </select>
                       ) : (
-                        e.type
+                        feature.type
                       )
                     }
                   </td>
-                  <td>{moment.unix(e.updated).fromNow()}</td>
-                  <td>{e.position.x.toFixed(3)}</td>
-                  <td>{e.position.y.toFixed(3)}</td>
-                  <td>{e.position.z.toFixed(3)}</td>
+                  <td>{moment.unix(feature.updated).fromNow()}</td>
+                  <td>{feature.position.x.toFixed(3)}</td>
+                  <td>{feature.position.y.toFixed(3)}</td>
+                  <td>{feature.position.z.toFixed(3)}</td>
                   <td>
                     {
-                      editMode.status && editMode.rowIndex === index ? (
+                      editMode.status && editMode.featureId === id ? (
                         <select
                           id="feature-placement-dropdown"
                           title="Change Placement"
-                          defaultValue={e.style?.placement || "point"}
+                          defaultValue={feature.style?.placement || "point"}
                           ref={formReferences.placement}>
                           {
                             placementTypes.map((name, index) => {
@@ -254,29 +252,29 @@ function FeatureTable(props){
                           </select>
                       ) : (
                         /* If style.placement is undefined, show a bug icon. */
-                        e.style?.placement ?
-                          e.style.placement : <FontAwesomeIcon icon="bug" size="lg" />
+                        feature.style?.placement ?
+                          feature.style.placement : <FontAwesomeIcon icon="bug" size="lg" />
                       )
                     }
                   </td>
-                  <td>{e.radius}</td>
-                  <td>N/A</td>
-                  <td>N/A</td>
+                  <td>{feature.style?.radius}</td>
+                  <td>{feature.style?.leftOffset}</td>
+                  <td>{feature.style?.topOffset}</td>
                   <td>
                     {
-                      (editMode.status && editMode.rowIndex === index) ? (
+                      (editMode.status && editMode.featureId === id) ? (
                         <React.Fragment>
                           <Button
                             className={"btn-success table-btns"}
-                            id={'savebtn' + e.id}
-                            onClick={(e) => saveFeature(e, index)}
+                            id={'savebtn' + id}
+                            onClick={(e) => saveFeature(e, id)}
                             title='Save'>
                             Save
                           </Button>
                           <Button
                             className={"btn-secondary table-btns"}
                             style={{marginLeft: 8}}
-                            onClick={(event) => cancelEditMode(event, index)}
+                            onClick={(event) => cancelEditMode(event, id)}
                             title='Cancel'>
                             Cancel
                           </Button>
@@ -284,7 +282,7 @@ function FeatureTable(props){
                       ) : (
                         <Button
                           className={"btn-primary table-btns"}
-                          onClick={(e) => enableEditMode(e, index)}
+                          onClick={(e) => enableEditMode(e, id)}
                           title='Edit'>
                           Edit
                         </Button>
@@ -293,11 +291,11 @@ function FeatureTable(props){
                   </td>
                   <td>
                     <div>
-                      <TrashIcon index={index} id={e.id} name={e.name}/>
+                      <TrashIcon id={id} name={feature.name}/>
                     </div>
                   </td>
                 </tr>
-              ))
+              })
             ) : (
               <tr><td colspan="100%">No Features</td></tr>
             )
