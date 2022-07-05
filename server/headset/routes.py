@@ -201,7 +201,7 @@ async def create_headset():
         body = {}
 
     # Choose a color for the headset by cycling through the palette.
-    if "color" not in body:
+    if body.get("color") in [None, ""]:
         headsets = g.active_incident.Headset.find()
         n = len(headsets)
         body['color'] = default_color_palette[n % len(default_color_palette)]

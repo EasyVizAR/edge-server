@@ -109,7 +109,7 @@ async def create_feature(location_id):
         raise exceptions.NotFound(description="Location {} was not found".format(location_id))
 
     # Choose a color for the feature by cycling through the palette.
-    if "color" not in body:
+    if body.get("color") in [None, ""]:
         features = location.Feature.find()
         count = len(features)
         body['color'] = default_color_palette[count % len(default_color_palette)]
