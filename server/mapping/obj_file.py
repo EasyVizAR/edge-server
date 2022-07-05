@@ -1,13 +1,18 @@
+import os
+
 from .plyutil import read_ply_file
+
+from server.incidents.models import Incident
 
 
 class ObjFileMaker:
-    def __init__(self, surfaces, precision=3):
+    def __init__(self, surfaces, output_path, precision=3):
         self.surfaces = surfaces
+        self.output_path = output_path
         self.precision = precision
 
-    def make_obj(self, output_path):
-        with open(output_path, "w") as out:
+    def make_obj(self):
+        with open(self.output_path, "w") as out:
             vertex_count = 0
             for surface in self.surfaces:
                 vertex_count += self.write_surface(out, surface, voffset=vertex_count)
@@ -32,3 +37,18 @@ class ObjFileMaker:
             out.write("f {} {} {}\n".format(f[0]+voffset+1, f[1]+voffset+1, f[2]+voffset+1))
 
         return len(ply.vertices)
+
+    @classmethod
+    def build_maker(cls, incident_id, location_id):
+        """
+        Build an ObjFileMaker instance.
+
+        This should be called from the main thread.
+        """
+        incident = Incident.find_by_id(incident_id)
+        location = incident.Location.find_by_id(location_id)
+        surfaces = location.Surface.find()
+
+        output_path = os.path.join(location.get_dir(), "model.obj")
+
+        return ObjFileMaker(surfaces, output_path)

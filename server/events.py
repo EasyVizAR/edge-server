@@ -55,3 +55,4 @@ class EventDispatcher:
         for uri_filter, listener in self.events[event]:
             if fnmatch.fnmatch(uri, uri_filter):
                 await listener(event, uri, *args, **kwargs)
+

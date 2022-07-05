@@ -1,11 +1,9 @@
 import time
 
-from dataclasses import field
-from marshmallow_dataclass import dataclass
-
 from server.feature.models import FeatureModel
 from server.layer.models import LayerModel
 from server.surface.models import SurfaceModel
+from server.resources.dataclasses import dataclass, field
 from server.resources.jsonresource import JsonCollection, JsonResource
 
 
@@ -23,6 +21,9 @@ class LocationModel(JsonResource):
     """
     id:     str
     name:   str
+
+    model_path: str = field(default=None)
+    model_url:  str = field(default=None)
 
     def on_ready(self):
         self.Feature = JsonCollection(FeatureModel, "feature", parent=self)

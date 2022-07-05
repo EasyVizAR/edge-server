@@ -1,8 +1,6 @@
 import time
 
-from dataclasses import field
-from marshmallow_dataclass import dataclass
-
+from server.resources.dataclasses import dataclass, field
 from server.resources.jsonresource import JsonCollection, JsonResource
 from server.resources.geometry import Box
 
@@ -29,6 +27,8 @@ class LayerModel(JsonResource):
     name:           str = field(default="New Layer")
     type:           str = field(default="generated")
     ready:          bool = field(default=False)
+    version:        int = field(default=0,
+                                description="Counter that indicates the current image version.")
 
     contentType:    str = field(default="image/jpeg")
     imagePath:      str = field(default=None)

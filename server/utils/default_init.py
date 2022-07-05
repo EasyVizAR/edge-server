@@ -1,7 +1,3 @@
-from server.headset.headsetrepository import get_headset_repository
-from server.maps.maprepository import get_map_repository
-
-
 def create_dummy_objects():
     mapRepo = get_map_repository()
     headsetRepo = get_headset_repository()

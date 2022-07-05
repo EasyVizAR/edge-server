@@ -1,3 +1,4 @@
+import asyncio
 import os
 import time
 
@@ -6,6 +7,8 @@ from http import HTTPStatus
 from quart import Blueprint, current_app, g, jsonify, request, send_from_directory
 from werkzeug import exceptions
 
+from server.mapping.obj_file import ObjFileMaker
+from server.mapping.map_maker import MapMaker
 from server.resources.csvresource import CsvCollection
 
 
@@ -302,7 +305,56 @@ async def upload_surface_file(location_id, surface_id):
     surface.updated = time.time()
     surface.save()
 
-    current_app.mapping_thread.enqueue_task(g.active_incident.id, location_id)
+    # Variables required for the callbacks below:
+    loop = asyncio.get_event_loop()
+    dispatcher = current_app.dispatcher
+    mapping_limiter = current_app.mapping_limiter
+    modeling_limiter = current_app.modeling_limiter
+    Location = g.active_incident.Location
+
+    # The pool limiter helps us batch multiple surface updates. If there is
+    # already a mapping task pending for this location, then we do not schedule
+    # another. This is not a perfect solution, as we may delay or miss
+    # processing the last updates.
+    if mapping_limiter.try_submit(location_id):
+        map_maker = MapMaker.build_maker(g.active_incident.id, location_id)
+        future = current_app.mapping_pool.submit(map_maker.make_map)
+
+        def map_ready(future):
+            mapping_limiter.finished(location_id)
+
+            result = future.result()
+            if result.changes > 0:
+                layer = location.Layer.find_by_id(result.layer_id)
+                layer.imagePath = result.image_path
+                layer.ready = True
+                layer.version += 1
+                layer.viewBox = result.view_box
+                layer.save()
+
+                layer_uri = "/locations/{}/layers/{}".format(location_id, layer.id)
+                asyncio.run_coroutine_threadsafe(dispatcher.dispatch_event("layers:updated", layer_uri, current=layer), loop=loop)
+
+        future.add_done_callback(map_ready)
+
+    if modeling_limiter.try_submit(location_id):
+        obj_maker = ObjFileMaker.build_maker(g.active_incident.id, location_id)
+        future = current_app.modeling_pool.submit(obj_maker.make_obj)
+
+        def model_ready(future):
+            modeling_limiter.finished(location_id)
+
+            result = future.result()
+
+            location = Location.find_by_id(location_id)
+            location.model_path = obj_maker.output_path
+            location.model_url = "/locations/{}/model".format(location_id)
+            location.save()
+
+            location_uri = "/locations/{}".format(location_id)
+            asyncio.run_coroutine_threadsafe(dispatcher.dispatch_event("locations:updated", location_uri, current=location), loop=loop)
+
+        future.add_done_callback(model_ready)
 
     if created:
         return jsonify(surface), HTTPStatus.CREATED

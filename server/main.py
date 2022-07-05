@@ -11,18 +11,17 @@ from server.headset.routes import headsets
 from server.incidents.routes import initialize_incidents, incidents
 from server.layer.routes import layers
 from server.location.routes import locations
-from server.maps.maps_routes import initialize_maps, maps
 from server.photo.routes import photos
 from server.pose_changes.routes import pose_changes
 from server.routes import routes
 from server.surface.routes import surfaces
+from server.utils.pool_limiter import PoolLimiter
 from server.utils.utils import GenericJsonEncoder
 from server.work_items.routes import work_items
 
 from server.events import EventDispatcher
 from server.headset.models import Headset
 from server.incidents.models import Incident
-from server.mapping.mapping_thread import MappingThread
 
 from server.resources.abstractresource import AbstractCollection
 
@@ -66,7 +65,6 @@ app.register_blueprint(headsets)
 app.register_blueprint(incidents)
 app.register_blueprint(layers)
 app.register_blueprint(locations)
-app.register_blueprint(maps)
 app.register_blueprint(photos)
 app.register_blueprint(pose_changes)
 app.register_blueprint(routes)
@@ -76,22 +74,15 @@ app.register_blueprint(work_items)
 
 @app.before_first_request
 def before_first_request():
-    # Make sure an active incident exists before initialize_maps is called.
-    # This can be removed after we migrate to locations and layers.
-    initialize_incidents(app)
-
-    # Initialize maps storage and create the first map if there is not one.
-    initialize_maps(app)
-
     app.dispatcher = EventDispatcher()
 
-    app.mapping_thread = MappingThread()
-    app.mapping_thread.start()
-
-    # We should migrate the mapping_thread code to mapping_pool. It gives
-    # better isolation between the mapping process and main process, and also
-    # plays nicely with asyncio.
+    # Use a separate process pool for mapping and 3D modeling tasks so they can
+    # run in parallel.
     app.mapping_pool = ProcessPoolExecutor(1)
+    app.mapping_limiter = PoolLimiter()
+
+    app.modeling_pool = ProcessPoolExecutor(1)
+    app.modeling_limiter = PoolLimiter()
 
 
 @app.before_request

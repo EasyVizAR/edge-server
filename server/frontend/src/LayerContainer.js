@@ -45,29 +45,28 @@ function LayerContainer(props) {
 
     useEffect(() => {
         var selectedLayerIsValid = false;
+        var url = "";
         for (var layer of props.layers) {
-            if (layer.id === props.selectedLayer) {
-                selectedLayerIsValid = true;
-                break;
+            if (layer.id === props.selectedLayer && layer.ready) {
+              if (layer.ready && layer.imageUrl) {
+                if (layer.imageUrl.startsWith("http")) {
+                  url = layer.imageUrl;
+                } else {
+                  url = `http://${host}:${port}${layer.imageUrl}?v=${layer.version}`;
+                }
+              }
+              selectedLayerIsValid = true;
+              break;
             }
         }
 
         if (!selectedLayerIsValid) {
             props.setSelectedLayer(getDefaultLayerId());
         }
-    }, [props.layers, props.setLayers]);
 
-    useEffect(() => {
-        var url = "";
-        for (var layer of props.layers) {
-            if (layer.id === props.selectedLayer && layer.ready) {
-                url = layer.imageUrl;
-                break;
-            }
-        }
         setLayerLoaded(false);
         setLayerImage(url);
-    }, [props.selectedLayer]);
+    }, [props.layers, props.selectedLayer]);
 
 //    useEffect(() => {
 //        const imgUrl = selectedImage.split("?")[0] + "?" + Math.floor(Math.random() * 100);
@@ -77,24 +76,6 @@ function LayerContainer(props) {
 //        }, 6e3) // 60 secs
 //        return () => clearTimeout(timer)
 //    });
-
-    const getMapImage = () => {
-        if (!props.selectedLayer)
-            return '';
-        var map = null;
-        for (var i = 0; i < props.layers.length; i++) {
-            if (props.layers[i].id == props.selectedLayer) {
-                map = props.layers[i];
-                break;
-            }
-        }
-        if (map == null)
-            return '';
-        if (map.viewBox == null || map.viewBox.height == 0 || map.viewBox.width == 0)
-            return '';
-
-        return `http://${host}:${port}/locations/${props.selectedLocation}/layers/${props.selectedLayer}/image`;
-    }
 
     const getDefaultLayerId = () => {
         if (props.layers.length == 0)

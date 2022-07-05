@@ -282,11 +282,14 @@ async def get_location_model(location_id):
         raise exceptions.NotFound(description="Location {} was not found".format(location_id))
 
     obj_path = os.path.join(location.get_dir(), "model.obj")
+    if not os.path.exists(obj_path):
+        obj_maker = ObjFileMaker.build_maker(g.active_incident.id, location_id)
+        future = current_app.modeling_pool.submit(obj_maker.make_obj)
+        await asyncio.wrap_future(future)
 
-    surfaces = location.Surface.find()
-    obj_maker = ObjFileMaker(surfaces)
-    future = current_app.mapping_pool.submit(obj_maker.make_obj, obj_path)
-    await asyncio.wrap_future(future)
+        location.model_path = obj_path
+        location.model_url = "/locations/{}/model".format(location_id)
+        location.save()
 
     return await send_from_directory(location.get_dir(), "model.obj",
             as_attachment=True, attachment_filename="model.obj")

@@ -383,6 +383,7 @@ async def upload_layer_image(location_id, layer_id):
     layer.imageUrl = "/locations/{}/layers/{}/image".format(location_id, layer_id)
     layer.ready = True
     layer.updated = time.time()
+    layer.version += 1
     layer.save()
 
     if created:

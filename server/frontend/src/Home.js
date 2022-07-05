@@ -117,6 +117,8 @@ function Home(props) {
           getLayers();
       }
 
+      changeSubscriptions(selectedLocationRef.current, selectedLocation);
+
       // Updated the reference variable. This is mainly for the websocket
       // event handler.
       selectedLocationRef.current = selectedLocation;
@@ -371,15 +373,16 @@ function Home(props) {
           ws.send("subscribe headsets:created");
           ws.send("subscribe headsets:updated");
           ws.send("subscribe headsets:deleted");
-          ws.send("subscribe features:created");
-          ws.send("subscribe features:updated");
-          ws.send("subscribe features:deleted");
+
+          const selectedLocation = selectedLocationRef.current;
+          if (selectedLocation) {
+            changeSubscriptions(null, selectedLocation);
+          }
       };
 
       ws.onmessage = (event) => {
         const selectedLocation = selectedLocationRef.current;
 
-        console.log("Parse: " + event.data);
         const message = JSON.parse(event.data);
         if (message.event === "headsets:created") {
           if (message.current.location_id !== selectedLocation)
@@ -429,8 +432,51 @@ function Home(props) {
             delete newFeatures[message.previous.id];
             return newFeatures;
           });
+        } else if (message.event === "layers:updated") {
+          if (!message.uri.includes(selectedLocation))
+            return;
+          setLayers(prevLayers => {
+            let newLayers = [];
+            for (var layer of prevLayers) {
+              if (layer.id === message.current.id) {
+                newLayers.push(message.current);
+              } else {
+                newLayers.push(layer);
+              }
+            }
+            return newLayers;
+          });
+        } else {
+          console.log("Unhandled event: " + message);
         }
       };
+    }
+
+    function changeSubscriptions(previousLocation, currentLocation) {
+      const ws = webSocket.current;
+      if (!ws || ws.readyState === 0) {
+        return;
+      }
+
+      const events = [
+        "features:created",
+        "features:updated",
+        "features:deleted",
+        "layers:updated",
+        "locations:updated"
+      ];
+
+      if (previousLocation) {
+        let filter1 = " /locations/" + previousLocation + "*";
+        for (var ev of events) {
+          ws.send("unsubscribe " + ev + filter1);
+        }
+      }
+
+      let filter2 = " /locations/" + currentLocation + "*";
+      for (var ev of events) {
+        ws.send("subscribe " + ev + filter2);
+      }
     }
 
     return (
