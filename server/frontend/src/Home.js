@@ -19,26 +19,51 @@ import {Link} from "react-router-dom";
 
 import fontawesome from '@fortawesome/fontawesome'
 import {
-    faBandage,
-    faBug,
-    faDoorClosed,
-    faElevator,
-    faExclamationTriangle,
-    faFire,
-    faFireExtinguisher,
-    faHeadset,
-    faMessage,
-    faSquare,
-    faStairs,
-    faTruckMedical,
-    faUser,
+  faBandage,
+  faBiohazard,
+  faBug,
+  faCirclePlay,
+  faDoorClosed,
+  faElevator,
+  faExclamationTriangle,
+  faFire,
+  faFireExtinguisher,
+  faHeadset,
+  faLocationDot,
+  faMessage,
+  faPerson,
+  faRadiation,
+  faRightFromBracket,
+  faSkull,
+  faSquare,
+  faStairs,
+  faTruckMedical,
+  faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import LayerContainer from "./LayerContainer";
 import NewLayer from "./NewLayer";
 
-fontawesome.library.add(faBandage, faBug, faDoorClosed, faElevator,
-    faExclamationTriangle, faFire, faFireExtinguisher, faHeadset, faMessage,
-    faSquare, faStairs, faTruckMedical, faUser);
+fontawesome.library.add(
+  faBandage,
+  faBiohazard,
+  faBug,
+  faCirclePlay,
+  faDoorClosed,
+  faElevator,
+  faExclamationTriangle,
+  faFire,
+  faFireExtinguisher,
+  faHeadset,
+  faLocationDot,
+  faMessage,
+  faPerson,
+  faRadiation,
+  faRightFromBracket,
+  faSkull,
+  faSquare,
+  faStairs,
+  faTruckMedical,
+  faUser);
 
 function Home(props) {
     const host = window.location.hostname;
@@ -47,17 +72,24 @@ function Home(props) {
     // Map feature type -> FA icon
     const icons = {
         ambulance: solid('truck-medical'),
+        audio: solid('circle-play'),
+        'bad-person': solid('skull'),
+        biohazard: solid('biohazard'),
         door: solid('door-closed'),
         elevator: solid('elevator'),
+        exit: solid('right-from-bracket'),
         extinguisher: solid('fire-extinguisher'),
         fire: solid('fire'),
         headset: solid('headset'),
         injury: solid('bandage'),
         message: solid('message'),
         object: solid('square'),
+        person: solid('person'),
+        radiation: solid('radiation'),
         stairs: solid('stairs'),
         user: solid('user'),
-        warning: solid('triangle-exclamation')
+        warning: solid('triangle-exclamation'),
+        waypoint: solid('location-dot')
     }
 
     const buttonStyle = {
@@ -519,10 +551,13 @@ function Home(props) {
                     </div>
 
                     <div className='home-content'>
-                      <NewFeature port={port} showNewFeature={showNewFeature} changeCursor={toggleCursor} changeIcon={changeIcon}
-                                  pointCoordinates={pointCoordinates} changePointValue={changePointValue} mapID={selectedLocation}
-                                  setIconIndex={setIconIndex} sliderValue={sliderValue} setSliderValue={setSliderValue}
-                                  setPlacementType={setPlacementType} placementType={placementType}/>
+                      <NewFeature port={port} icons={icons}
+                                  showNewFeature={showNewFeature} changeCursor={toggleCursor}
+                                  changeIcon={changeIcon} pointCoordinates={pointCoordinates}
+                                  changePointValue={changePointValue} mapID={selectedLocation}
+                                  setIconIndex={setIconIndex} sliderValue={sliderValue}
+                                  setSliderValue={setSliderValue} setPlacementType={setPlacementType}
+                                  placementType={placementType}/>
 
                       <div style={{textAlign: 'left', marginBottom: '15px'}}>
                         <div style={{display: 'inline-block'}}>
@@ -536,7 +571,7 @@ function Home(props) {
                           <h5>{currLocationName != '' ? selectedLocation : ''}</h5>
                         </div>
                       </div>
-                        <LayerContainer id="map-container" port={port}
+                        <LayerContainer id="map-container" port={port} icons={icons}
                                         headsets={headsets} headsetsChecked={headsetsChecked}
                                         features={features} featuresChecked={featuresChecked}
                                         setFeatures={setFeatures} setHeadsets={setHeadsets}
@@ -570,7 +605,7 @@ function Home(props) {
 
                       <HeadsetTable port={port} headsets={headsets} getHeadsets={getHeadsets}
                                     setHeadsets={setHeadsets} locations={locations}/>
-                      <FeatureTable port={port} features={features} locationId={selectedLocation}/>
+                      <FeatureTable port={port} icons={icons} features={features} locationId={selectedLocation}/>
                       <LocationTable port={port} locations={locations} getLocations={get_locations}
                                      setLocations={setLocations}/>
                     </div>

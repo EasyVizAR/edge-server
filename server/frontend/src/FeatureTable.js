@@ -29,21 +29,7 @@ const placementTypes = [
 function FeatureTable(props){
   const host = window.location.hostname;
   const port = props.port;
-
-  const icons = {
-    ambulance: solid('truck-medical'),
-    door: solid('door-closed'),
-    elevator: solid('elevator'),
-    extinguisher: solid('fire-extinguisher'),
-    fire: solid('fire'),
-    headset: solid('headset'),
-    injury: solid('bandage'),
-    message: solid('message'),
-    object: solid('square'),
-    stairs: solid('stairs'),
-    user: solid('user'),
-    warning: solid('triangle-exclamation'),
-  }
+  const icons = props.icons;
 
   // Only one row can be open for editing at a time. A reference is used to
   // query the value of the input field when the user clicks Save. The
@@ -222,7 +208,7 @@ function FeatureTable(props){
                           defaultValue={feature.type || "fire"}
                           ref={formReferences.type}>
                           {
-                            featureTypes.map((name, index) => {
+                            Object.entries(props.icons).map(([name, icon]) => {
                               return <option style={{textTransform: 'capitalize'}} value={name}>{name}</option>
                             })
                           }

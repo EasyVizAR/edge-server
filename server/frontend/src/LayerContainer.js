@@ -7,6 +7,7 @@ import {Form, FormCheck} from "react-bootstrap";
 function LayerContainer(props) {
     const host = window.location.hostname;
     const port = props.port;
+    const icons = props.icons;
     const mapIconSize = 7;
     const circleSvgIconSize = 11;
 
@@ -18,21 +19,6 @@ function LayerContainer(props) {
     });
     const [layerImage, setLayerImage] = useState(null);
     const [layerLoaded, setLayerLoaded] = useState(false);
-
-    const icons = {
-        ambulance: solid('truck-medical'),
-        door: solid('door-closed'),
-        elevator: solid('elevator'),
-        extinguisher: solid('fire-extinguisher'),
-        fire: solid('fire'),
-        headset: solid('headset'),
-        injury: solid('bandage'),
-        message: solid('message'),
-        object: solid('square'),
-        stairs: solid('stairs'),
-        user: solid('user'),
-        warning: solid('triangle-exclamation'),
-    }
 
 //    useEffect(() => {
 //        const imgUrl = selectedImage.split("?")[0] + "?" + Math.floor(Math.random() * 100);

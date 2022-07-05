@@ -37,14 +37,20 @@ class FeatureModel(JsonResource):
 
     Feature types:
         ambulance
+        audio
+        bad-person
+        biohazard
         door
         elevator
+        exit
         extinguisher
         fire
         headset
         injury
         message
         object
+        person
+        radiation
         stairs
         user
         warning

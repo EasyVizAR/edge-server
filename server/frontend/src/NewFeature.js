@@ -9,20 +9,7 @@ import RangeSlider from 'react-bootstrap-range-slider';
 
 function NewFeature(props) {
     const port = props.port;
-    const icons = {
-        fire: solid('fire'),
-        warning: solid('triangle-exclamation'),
-        injury: solid('bandage'),
-        door: solid('door-closed'),
-        elevator: solid('elevator'),
-        stairs: solid('stairs'),
-        user: solid('user'),
-        object: solid('square'),
-        extinguisher: solid('fire-extinguisher'),
-        message: solid('message'),
-        headset: solid('headset'),
-        ambulance: solid('truck-medical'),
-    }
+    const icons = props.icons;
 
     const state = {
         feature_name: "",
