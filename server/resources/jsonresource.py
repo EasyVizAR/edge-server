@@ -39,6 +39,7 @@ import marshmallow
 
 from server.resources.abstractresource import AbstractResource, AbstractCollection
 from server.resources.filter import Filter
+from server.utils.patch import patch_object
 
 
 class JsonResource(AbstractResource):
@@ -111,8 +112,7 @@ class JsonResource(AbstractResource):
         return created
 
     def update(self, other):
-        for key, value in other.items():
-            setattr(self, key, value)
+        patch_object(self, other)
 
     @classmethod
     async def wait_for(cls, filt=None):
