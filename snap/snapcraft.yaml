@@ -67,3 +67,13 @@ parts:
       - python3
     requirements:
       - requirements.txt
+
+# The read-only data slot allows other snaps on the system to read the
+# VIZAR_DATA directory directly. This may be useful for image processing
+# modules. Changes should go through the API.
+slots:
+  data:
+    interface: content
+    content: data
+    read:
+      - $SNAP_DATA
