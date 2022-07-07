@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table } from 'react-bootstrap';
 import './WorkItems.css';
 import {Helmet} from 'react-helmet';
+import {Link} from "react-router-dom";
 import moment from 'moment';
 
 function WorkItems(props){
@@ -98,9 +99,9 @@ function WorkItems(props){
 
       return(
         <div className="image-parent">
-          <a target="_blank" href={url}>
+          <Link to={"/photos/" + props.e.id}>
             <img className="work-items-images" src={url} alt="Photo" />
-          </a>
+          </Link>
           <div className='imageBorderDiv' style={{top: topOffset + "%", left: leftOffset + "%", width: divWidth + "%", height: divHeight + "%"}}></div>
         </div>
       );
