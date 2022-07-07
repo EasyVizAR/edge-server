@@ -30,11 +30,13 @@ function WorkItems(props){
       for (var x in data){
 
         var boundaryIndex = -1;
+        var maxConfidence = 0;
 
-        if(data[x]['annotations'].length != 0){
-          for(var y in data[x]['annotations']){
-            if (data[x]['annotations'][y]['boundary'] != null){
+        if (data[x]['annotations'].length > 0) {
+          for(var y in data[x]['annotations']) {
+            if (data[x]['annotations'][y]?.confidence > maxConfidence) {
               boundaryIndex = y;
+              maxConfidence = data[x]['annotations'][y].confidence;
             }
           }
         }
