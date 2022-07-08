@@ -67,6 +67,8 @@ function WorkItems(props){
         }
       }
 
+      temp_data.sort((photo1, photo2) => (photo1.created < photo2.created) ? 1 : -1);
+
       setWorkItems(temp_data);
     });
   }
@@ -129,7 +131,11 @@ function WorkItems(props){
               (workItems.length > 0) ? (
                 workItems.map((e, index) => {
                   return <tr>
-                    <td>{e.id}</td>
+                    <td>
+                      <Link to={"/photos/" + e.id}>
+                        {e.id}
+                      </Link>
+                    </td>
                     <td>{moment.unix(e.created).fromNow()}</td>
                     <td>{e.contentType}</td>
                     <td>{(e.ready) ? ('Yes') : ('No')}</td>
