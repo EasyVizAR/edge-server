@@ -1,11 +1,13 @@
+import asyncio
 import os
 import time
 
 from http import HTTPStatus
 
-from quart import Blueprint, g, jsonify, request, send_from_directory
+from quart import Blueprint, current_app, g, jsonify, request, send_from_directory
 from werkzeug import exceptions
 
+from server.mapping.map_maker import MapMaker
 from server.resources.csvresource import CsvCollection
 from server.utils.images import try_send_image
 from server.utils.utils import save_image
@@ -320,6 +322,12 @@ async def get_layer_file(location_id, layer_id):
 
                 This header value will only be used if a conversion from SVG is performed
                 such as when the image is stored as SVG and a PNG is requested.
+          - name: headsets
+            in: query
+            required: false
+            schema:
+                type: bool
+            description: Overlay icons for headsets
         responses:
             200:
                 description: The image or other data file.
@@ -336,7 +344,15 @@ async def get_layer_file(location_id, layer_id):
     if layer is None:
         raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
 
-    return await try_send_image(layer.imagePath, layer.contentType, request.headers)
+    if "headsets" in request.args or request.headers.get("Accept") == "image/png":
+        # This custom map generation code will overlay markers for the positions of headsets.
+        map_maker = MapMaker.build_maker(g.active_incident.id, location_id, show_headsets=True)
+        future = current_app.mapping_pool.submit(map_maker.make_map)
+        result = await asyncio.wrap_future(future)
+        return await try_send_image(result.image_path, layer.contentType, request.headers)
+
+    else:
+        return await try_send_image(layer.imagePath, layer.contentType, request.headers)
 
 
 @layers.route('/locations/<location_id>/layers/<layer_id>/image', methods=['PUT'])

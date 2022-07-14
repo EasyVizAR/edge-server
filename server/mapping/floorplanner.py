@@ -63,12 +63,13 @@ def lp_intersect(p0, p1, p_co, p_no, epsilon=1e-6):
 
 class Floorplanner:
 
-    def __init__(self, ply_path_or_list, image_scale=1, json_data_path=None):
+    def __init__(self, ply_path_or_list, image_scale=1, json_data_path=None, headsets=None):
         self.ply_path_or_list = ply_path_or_list
         self.image_scale = image_scale
         self.json_data_path = json_data_path
         self.data = {}
         self.first_load_json = json_data_path is not None
+        self.headsets = headsets
 
     def calculate_intersections(self, mesh, headset_position=[0, 0, 0], vector_normal=[0, 1, 0], json_serialize=False):
         points = np.asarray(mesh.vertices)
@@ -223,6 +224,19 @@ class Floorplanner:
                 dwg.add(dwg.polyline(
                     points=[(x[0], x[2]) for x in polyline],
                     stroke='black', stroke_width=0.1, fill="none"))
+
+        # If floorplanner was configured with a headset list, draw some simple
+        # markers over the map. This should ideally be a lot more configurable.
+        if self.headsets is not None:
+            for headset in self.headsets:
+                dwg.add(dwg.circle(center=(headset.position.x, headset.position.z),
+                    fill=headset.color,
+                    fill_opacity=0.25,
+                    r=1.0,
+                    stroke=headset.color,
+                    stroke_width=0.35
+                ))
+
         dwg.save()
 
         return dict(left=scale*minx, top=scale*minz, width=image_width, height=image_height)

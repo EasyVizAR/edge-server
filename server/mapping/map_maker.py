@@ -8,6 +8,7 @@ import traceback
 
 from dataclasses import dataclass
 
+from server.headset.models import Headset
 from server.incidents.models import Incident
 from server.mapping.floorplanner import Floorplanner
 
@@ -21,11 +22,12 @@ class MapMakerResult:
 
 
 class MapMaker:
-    def __init__(self, layer, surfaces, mapping_state_path, output_path):
+    def __init__(self, layer, surfaces, mapping_state_path, output_path, headsets=None):
         self.layer = layer
         self.surfaces = surfaces
         self.mapping_state_path = mapping_state_path
         self.output_path = output_path
+        self.headsets = headsets
 
     def make_map(self):
         """
@@ -35,11 +37,11 @@ class MapMaker:
         """
         surface_files = [surface.filePath for surface in self.surfaces]
 
-        floorplanner = Floorplanner(surface_files, json_data_path=self.mapping_state_path)
+        floorplanner = Floorplanner(surface_files, json_data_path=self.mapping_state_path, headsets=self.headsets)
         changes = floorplanner.update_lines(initialize=False)
 
         result = MapMakerResult(self.layer.id, self.output_path, changes=changes)
-        if changes > 0:
+        if changes > 0 or self.headsets is not None:
             result.layer_id = self.layer.id
             result.view_box = floorplanner.write_image(self.output_path)
             result.changes = changes
@@ -48,7 +50,7 @@ class MapMaker:
         return result
 
     @classmethod
-    def build_maker(cls, incident_id, location_id):
+    def build_maker(cls, incident_id, location_id, show_headsets=False):
         """
         Build a MapMaker instance.
 
@@ -68,7 +70,13 @@ class MapMaker:
             # TODO: different layers for the floors of a building
             layer = layers[0]
 
-        mapping_state_path = os.path.join(layer.get_dir(), "floor_plan.json")
-        output_path = os.path.join(layer.get_dir(), "floor_plan.svg")
+        if show_headsets:
+            output_path = os.path.join(layer.get_dir(), "floor_plan_headsets.svg")
+            headsets = Headset.find(location_id=location_id)
+        else:
+            output_path = os.path.join(layer.get_dir(), "floor_plan.svg")
+            headsets = None
 
-        return MapMaker(layer, surfaces, mapping_state_path, output_path)
+        mapping_state_path = os.path.join(layer.get_dir(), "floor_plan.json")
+
+        return MapMaker(layer, surfaces, mapping_state_path, output_path, headsets=headsets)
