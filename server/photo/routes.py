@@ -56,6 +56,12 @@ async def list_photos():
             schema:
                 type: float
             description: Only show items that were created or updated since this time.
+          - name: status
+            in: query
+            required: false
+            schema:
+                type: str
+            description: Only show items with specified status.
           - name: until
             in: query
             required: false
@@ -88,6 +94,8 @@ async def list_photos():
         filt.target_equal_to("ready", True)
     if "since" in request.args:
         filt.target_greater_than("updated", float(request.args.get("since")))
+    if "status" in request.args:
+        filt.target_equal_to("status", request.args.get("status"))
     if "until" in request.args:
         filt.target_less_than("updated", float(request.args.get("until")))
 
@@ -149,6 +157,7 @@ async def create_photo():
                     "id": "53c08f93-93b6-4f7c-b9a4-676b5e37b744",
                     "imageUrl": "/photos/53c08f93-93b6-4f7c-b9a4-676b5e37b744/image.jpeg",
                     "ready": false,
+                    "status": "created",
                     ...
                 }
 
@@ -183,9 +192,11 @@ async def create_photo():
         photo.imagePath = os.path.join(photo.get_dir(), upload_file_name)
         photo.imageUrl = "/photos/{}/image".format(photo.id)
         photo.ready = False
+        photo.status = "created"
 
     else:
         photo.ready = True
+        photo.status = "ready"
 
     photo.save()
 
@@ -415,6 +426,7 @@ async def upload_photo_file(photo_id):
 
     photo.imageUrl = "/photos/{}/image".format(photo_id)
     photo.ready = True
+    photo.status = "ready"
     photo.updated = time.time()
     photo.save()
 

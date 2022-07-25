@@ -107,6 +107,7 @@ async def test_photo_upload():
         photo = await response.get_json()
         assert isinstance(photo, dict)
         assert photo['ready'] is False
+        assert photo['status'] == "created"
 
         photo_url = "/photos/{}".format(photo['id'])
 
@@ -119,6 +120,7 @@ async def test_photo_upload():
         assert photo2['id'] == photo['id']
         assert photo2['ready'] is True
         assert photo2['updated'] > photo['updated']
+        assert photo2['status'] == "ready"
 
         # Test downloading the file
         response = await client.get(photo['imageUrl'])
@@ -151,6 +153,7 @@ async def test_photo_annotations():
         assert photo['ready'] is False
         assert isinstance(photo['annotations'], list)
         assert len(photo['annotations']) == 0
+        assert photo['status'] == "created"
 
         photo_url = "/photos/{}".format(photo['id'])
 
@@ -158,6 +161,7 @@ async def test_photo_annotations():
         update = {
             "width": 640,
             "height": 480,
+            "status": "done",
             "annotations": [{
                 "label": "extinguisher",
                 "boundary": {
@@ -175,6 +179,7 @@ async def test_photo_annotations():
         assert photo2['id'] == photo['id']
         assert photo2['width'] == 640
         assert photo2['height'] == 480
+        assert photo2['status'] == "done"
         assert isinstance(photo2['annotations'], list)
         assert len(photo2['annotations']) == 1
         assert photo2['annotations'][0]['label'] == "extinguisher"

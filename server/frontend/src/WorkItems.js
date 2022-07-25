@@ -47,6 +47,7 @@ function WorkItems(props){
             'id': data[x]['id'],
             'created': data[x]['created'],
             'ready': Boolean(data[x]['ready']),
+            'status': data[x]['status'],
             'imageUrl': data[x]['imageUrl'],
             'contentType': data[x]['contentType'],
             'hasBoundary': true,
@@ -60,6 +61,7 @@ function WorkItems(props){
             'id': data[x]['id'],
             'created': data[x]['created'],
             'ready': Boolean(data[x]['ready']),
+            'status': data[x]['status'],
             'imageUrl': data[x]['imageUrl'],
             'contentType': data[x]['contentType'],
             'hasBoundary': false
@@ -122,7 +124,7 @@ function WorkItems(props){
               <th>ID</th>
               <th>Date Created</th>
               <th>Content Type</th>
-              <th>Ready</th>
+              <th>Status</th>
               <th>Image URL</th>
             </tr>
           </thead>
@@ -138,7 +140,7 @@ function WorkItems(props){
                     </td>
                     <td>{moment.unix(e.created).fromNow()}</td>
                     <td>{e.contentType}</td>
-                    <td>{(e.ready) ? ('Yes') : ('No')}</td>
+                    <td>{e.status}</td>
                     <td>
                       <div>
                         <Photos e={e}/>

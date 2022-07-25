@@ -43,6 +43,10 @@ class PhotoModel(JsonResource):
                                 description="Either a fully-specified URL (https://...) or a local path on the server (/photos/...)")
     ready:          bool = field(default=False,
                                  description="Indicates imageUrl is valid and ready and presumably readable")
+    status:         str = field(default="unknown",
+                                description="Status of the image (created|ready|done)")
+    priority:       int = field(default=0,
+                                description="Priority for image processing, (suggested 1=real-time, 0=normal, -1=background)")
 
     height:         int = field(default=None)
     width:          int = field(default=None)
