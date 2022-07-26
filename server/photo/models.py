@@ -52,10 +52,15 @@ class PhotoModel(JsonResource):
     width:          int = field(default=None)
 
     retention:      str = field(default="auto")
-    createdBy:      str = field(default=None)
 
-    cameraPosition:     Vector3f = field(default=None)
-    cameraOrientation:  Vector4f = field(default=None)
+    created_by:         str = field(default=None,
+                                    description="Headset ID that submitted the photo")
+    camera_location_id: str = field(default=None,
+                                    description="Location ID where the photo was taken")
+    camera_position:    Vector3f = field(default=None,
+                                         description="Position of the camera in world coordinates")
+    camera_orientation: Vector3f = field(default=None,
+                                         description="Orientation of the camera (quaternion)")
 
     annotations:    List[Annotation] = field(default_factory=list)
 

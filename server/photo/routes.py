@@ -4,7 +4,7 @@ import time
 
 from http import HTTPStatus
 
-from quart import Blueprint, g, jsonify, request, send_from_directory
+from quart import Blueprint, current_app, g, jsonify, request, send_from_directory
 from werkzeug import exceptions
 from werkzeug.utils import secure_filename
 
@@ -118,6 +118,7 @@ async def list_photos():
     else:
         result = items
 
+    await current_app.dispatcher.dispatch_event("photos:viewed", "/photos")
     return jsonify(result), HTTPStatus.OK
 
 
@@ -143,8 +144,9 @@ async def create_photo():
                     "contentType": "image/jpeg",
                     "width": 640,
                     "height": 480,
-                    "cameraPosition": {"x": 0, "y": 0, "z": 0},
-                    "cameraOrientation": {"x": 0, "y": 0, "z": 0, "w": 0}
+                    "camera_location_id": "66a4e9f2-e978-4405-988e-e168a9429030",
+                    "camera_position": {"x": 0, "y": 0, "z": 0},
+                    "camera_orientation": {"x": 0, "y": 0, "z": 0, "w": 0}
                 }
 
             The server responds with the new photo record, which most importantly,
@@ -200,6 +202,8 @@ async def create_photo():
 
     photo.save()
 
+    await current_app.dispatcher.dispatch_event("photos:created",
+            "/photos/"+photo.id, current=photo)
     return jsonify(photo), HTTPStatus.CREATED
 
 
@@ -231,6 +235,8 @@ async def delete_photo(photo_id):
 
     photo.delete()
 
+    await current_app.dispatcher.dispatch_event("photos:deleted",
+            "/photos/"+photo.id, previous=photo)
     return jsonify(photo), HTTPStatus.OK
 
 
@@ -259,6 +265,8 @@ async def get_photo(photo_id):
     if photo is None:
         raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
+    await current_app.dispatcher.dispatch_event("photos:viewed",
+            "/photos/"+photo.id, current=photo)
     return jsonify(photo), HTTPStatus.OK
 
 
@@ -291,12 +299,17 @@ async def replace_photo(photo_id):
     body = await request.get_json()
     body['id'] = photo_id
 
+    previous = g.active_incident.Photo.find_by_id(photo_id)
     photo = g.active_incident.Photo.load(body)
     created = photo.save()
 
     if created:
+        await current_app.dispatcher.dispatch_event("photos:created",
+                "/photos/"+photo.id, current=photo)
         return jsonify(photo), HTTPStatus.CREATED
     else:
+        await current_app.dispatcher.dispatch_event("photos:updated",
+                "/photos/"+photo.id, current=photo, previous=previous)
         return jsonify(photo), HTTPStatus.OK
 
 
@@ -361,9 +374,12 @@ async def update_photo(photo_id):
     if 'id' in body:
         del body['id']
 
+    previous = g.active_incident.Photo.find_by_id(photo_id)
     photo.update(body)
     photo.save()
 
+    await current_app.dispatcher.dispatch_event("photos:updated",
+            "/photos/"+photo.id, current=photo, previous=previous)
     return jsonify(photo), HTTPStatus.OK
 
 
@@ -424,6 +440,7 @@ async def upload_photo_file(photo_id):
         with open(photo.imagePath, "wb") as output:
             output.write(body)
 
+    previous = g.active_incident.Photo.find_by_id(photo_id)
     photo.imageUrl = "/photos/{}/image".format(photo_id)
     photo.ready = True
     photo.status = "ready"
@@ -431,6 +448,10 @@ async def upload_photo_file(photo_id):
     photo.save()
 
     if created:
+        await current_app.dispatcher.dispatch_event("photos:created",
+                "/photos/"+photo.id, current=photo)
         return jsonify(photo), HTTPStatus.CREATED
     else:
+        await current_app.dispatcher.dispatch_event("photos:updated",
+                "/photos/"+photo.id, current=photo, previous=previous)
         return jsonify(photo), HTTPStatus.OK
