@@ -38,6 +38,18 @@ async def list_photos():
         tags:
          - photos
         parameters:
+          - name: camera_location_id
+            in: query
+            required: false
+            schema:
+                type: str
+            description: Only show items with the specified location ID.
+          - name: created_by
+            in: query
+            required: false
+            schema:
+                type: str
+            description: Only show items created by the specified headset ID.
           - name: envelope
             in: query
             required: false
@@ -90,6 +102,10 @@ async def list_photos():
                             items: Photo
     """
     filt = Filter()
+    if "camera_location_id" in request.args:
+        filt.target_equal_to("camera_location_id", request.args.get("camera_location_id"))
+    if "created_by" in request.args:
+        filt.target_equal_to("created_by", request.args.get("created_by"))
     if "ready" in request.args:
         filt.target_equal_to("ready", True)
     if "since" in request.args:
