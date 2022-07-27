@@ -184,6 +184,9 @@ async def test_photo_annotations():
         assert len(photo2['annotations']) == 1
         assert photo2['annotations'][0]['label'] == "extinguisher"
 
+        # Clean up
+        await client.delete(photo_url)
+
 
 @pytest.mark.asyncio
 async def test_photo_long_polling():
@@ -253,3 +256,46 @@ async def test_photo_empty_url():
         assert photo['ready'] is False
         assert photo['imageUrl'].startswith('/photos')
         assert photo['imagePath'].endswith('.png')
+
+
+@pytest.mark.asyncio
+async def test_photo_status_change_long_polling():
+    """
+    Test photo status change long polling
+    """
+    async with app.test_client() as client:
+        photos_url = "/photos"
+        start_time = time.time()
+
+        # Create an object
+        response = await client.post(photos_url, json=dict(imageUrl="/foo"))
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        photo = await response.get_json()
+        assert isinstance(photo, dict)
+        assert photo['id'] is not None
+        assert photo['imageUrl'] == "/foo"
+        assert photo['status'] == "ready"
+
+        # Set up a listener
+        photo_url = "/photos/{}".format(photo['id'])
+        listener = client.get(photo_url + "?status=done&wait=5")
+
+        # Change the photo status
+        response2 = await client.patch(photo_url, json=dict(status="done"))
+        assert response2.status_code == HTTPStatus.OK
+        assert response2.is_json
+        photo2 = await response2.get_json()
+        assert photo2['id'] == photo['id']
+        assert photo2['status'] == "done"
+
+        # The listener should have received the same object
+        response3 = await listener
+        assert response3.status_code == HTTPStatus.OK
+        assert response3.is_json
+        photo3 = await response3.get_json()
+        assert photo3['id'] == photo['id']
+        assert photo3['status'] == "done"
+
+        # Clean up
+        await client.delete(photo_url)

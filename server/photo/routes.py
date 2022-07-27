@@ -270,6 +270,25 @@ async def get_photo(photo_id):
             in: path
             required: true
             description: Object ID
+          - name: status
+            in: query
+            required: false
+            schema:
+                type: str
+            description: Only return when the status matches this value
+          - name: wait
+            in: query
+            required: false
+            schema:
+                type: float
+            description: >-
+                Request that the server wait a time limit (in seconds) for the
+                result if it is not ready. This can be used to wait until a
+                photo is done processing by also requesting status=done. If the
+                time limit has passed without a result, the server will return
+                a No Content 204 result. A time limit of 30-60 seconds is
+                recommended in order to work reliably with any other timeouts
+                that may apply.
         responses:
             200:
                 description: The requested object
@@ -280,6 +299,21 @@ async def get_photo(photo_id):
     photo = g.active_incident.Photo.find_by_id(photo_id)
     if photo is None:
         raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+
+    filt = Filter()
+    filt.target_equal_to("id", photo_id)
+    if "status" in request.args:
+        filt.target_equal_to("status", request.args.get("status"))
+
+    # Wait for new objects if the query returned no results and the caller
+    # specified a wait timeout. If there are still no results, we return a 204
+    # No Content code.
+    wait = float(request.args.get("wait", 0))
+    if not filt.matches(photo) and wait > 0:
+        try:
+            photo = await asyncio.wait_for(g.active_incident.Photo.wait_for(filt=filt), timeout=wait)
+        except asyncio.TimeoutError:
+            return jsonify([]), HTTPStatus.NO_CONTENT
 
     await current_app.dispatcher.dispatch_event("photos:viewed",
             "/photos/"+photo.id, current=photo)
