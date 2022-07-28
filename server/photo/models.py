@@ -16,6 +16,20 @@ class Annotation:
 
 
 @dataclass
+class Detector:
+    model_repo:     str
+    model_name:     str
+
+    torch_version:          str
+    torchvision_version:    str
+    cuda_enabled:           bool
+
+    preprocess_duration:    float
+    inference_duration:     float
+    nms_duration:           float
+
+
+@dataclass
 class PhotoModel(JsonResource):
     """
     A photo uploaded by a headset.
@@ -63,6 +77,8 @@ class PhotoModel(JsonResource):
                                          description="Orientation of the camera (quaternion)")
 
     annotations:    List[Annotation] = field(default_factory=list)
+    detector:       Detector = field(default=None,
+                                     description="Information about the object detector that was used")
 
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)

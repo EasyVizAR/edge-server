@@ -89,6 +89,58 @@ function PhotoWrapper(props) {
     );
   }
 
+  function DetectorInfo() {
+    if (!photo) {
+      return <p>The photo information is not ready or could not be found.</p>;
+    }
+
+    if (!photo.detector) {
+      return <p>The photo has no detector information to show.</p>;
+    }
+
+    return (
+      <div>
+        <Table striped bordered hover>
+          <tbody>
+            <tr>
+              <td>Model Repo</td>
+              <td>{ photo.detector.model_repo }</td>
+            </tr>
+            <tr>
+              <td>Model Name</td>
+              <td>{ photo.detector.model_name }</td>
+            </tr>
+            <tr>
+              <td>PyTorch Version</td>
+              <td>{ photo.detector.torch_version }</td>
+            </tr>
+            <tr>
+              <td>Torch Vision Version</td>
+              <td>{ photo.detector.torchvision_version }</td>
+            </tr>
+            <tr>
+              <td>Cuda Enabled</td>
+              <td>{ photo.detector.cuda_enabled }</td>
+            </tr>
+            <tr>
+              <td>Preprocessing Duration (s)</td>
+              <td>{ photo.detector.preprocess_duration }</td>
+            </tr>
+            <tr>
+              <td>Inference Duration (s)</td>
+              <td>{ photo.detector.inference_duration }</td>
+            </tr>
+            <tr>
+              <td>Non-maximum Suppression (NMS) Duration (s)</td>
+              <td>{ photo.detector.nms_duration }</td>
+            </tr>
+          </tbody>
+        </Table>
+        <p>Mouse over a row to highlight that object in the image.</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <Helmet>
@@ -97,11 +149,14 @@ function PhotoWrapper(props) {
 
       <div className="container-lg">
         <div className="row align-items-center">
-          <div className="col-lg-8">
+          <div className="col-lg-6">
             <Photo />
           </div>
-          <div className="col-lg-4">
+          <div className="col-lg-3">
             <PhotoInfo />
+          </div>
+          <div className="col-lg-3">
+            <DetectorInfo />
           </div>
         </div>
 
