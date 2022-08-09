@@ -43,7 +43,7 @@ from server.utils.patch import patch_object
 
 
 class JsonResource(AbstractResource):
-    on_update = []
+    on_update = None
 
     def __getstate__(self):
         d = dict(self.__dict__)
@@ -76,14 +76,19 @@ class JsonResource(AbstractResource):
         return self._storage_path
 
     def notify_listeners(self, created):
+        # If the class variable on_update is still set to None,
+        # then there are no listeners for this class.
+        if self.__class__.on_update is None:
+            return
+
         # TODO possibly distinguish create and update events
-        for i, listener in enumerate(JsonResource.on_update):
+        for i, listener in enumerate(self.on_update):
             future, filt = listener
             if future.cancelled():
-                JsonResource.on_update.pop(i)
+                self.on_update.pop(i)
             elif filt.matches(self):
                 future.set_result(self)
-                JsonResource.on_update.pop(i)
+                self.on_update.pop(i)
 
     def on_ready(self):
         """
@@ -116,6 +121,10 @@ class JsonResource(AbstractResource):
 
     @classmethod
     async def wait_for(cls, filt=None):
+        # Initialize a separate list for each subclass that ends up using this
+        # functionality, e.g. PhotoModel or FeatureModel.
+        if cls.on_update is None:
+            cls.on_update = list()
         if filt is None:
             filt = Filter()
         future = asyncio.get_event_loop().create_future()
