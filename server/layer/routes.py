@@ -351,6 +351,15 @@ async def get_layer_file(location_id, layer_id):
         result = await asyncio.wrap_future(future)
         return await try_send_image(result.image_path, layer.contentType, request.headers)
 
+    elif "slices" in request.args:
+        # Experimental mode: caller specifies a list of cutting plane levels,
+        # e.g. "-1,-0.75,-0.5,-0.25,0,0.25,0.5"
+        slices = [float(v) for v in request.args.get("slices")]
+        map_maker = MapMaker.build_maker(g.active_incident.id, location_id, slices=slices)
+        future = current_app.mapping_pool.submit(map_maker.make_map)
+        result = await asyncio.wrap_future(future)
+        return await try_send_image(result.image_path, layer.contentType, request.headers)
+
     else:
         return await try_send_image(layer.imagePath, layer.contentType, request.headers)
 

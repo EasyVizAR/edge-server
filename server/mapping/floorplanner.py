@@ -63,13 +63,14 @@ def lp_intersect(p0, p1, p_co, p_no, epsilon=1e-6):
 
 class Floorplanner:
 
-    def __init__(self, ply_path_or_list, image_scale=1, json_data_path=None, headsets=None):
+    def __init__(self, ply_path_or_list, image_scale=1, json_data_path=None, headsets=None, slices=None):
         self.ply_path_or_list = ply_path_or_list
         self.image_scale = image_scale
         self.json_data_path = json_data_path
         self.data = {}
         self.first_load_json = json_data_path is not None
         self.headsets = headsets
+        self.slices = slices
 
     def calculate_intersections(self, mesh, headset_position=[0, 0, 0], vector_normal=[0, 1, 0], json_serialize=False):
         points = np.asarray(mesh.vertices)
@@ -177,8 +178,17 @@ class Floorplanner:
             update_lines_at_path = path not in self.data or self.data[path]["last_modified"] < time_of_prev_mod
             if initialize or update_lines_at_path:
                 mesh = read_ply_file(path)
-                zplane = self.calculate_intersections(mesh, json_serialize=True)
-                self.data[path] = {"last_modified": time_of_prev_mod, "polylines": zplane}
+
+                if self.slices is None:
+                    zplane = self.calculate_intersections(mesh, json_serialize=True)
+                    self.data[path] = {"last_modified": time_of_prev_mod, "polylines": zplane}
+                else:
+                    self.data[path] = {"last_modified": time_of_prev_mod, "slices": []}
+                    for level in self.slices:
+                        headset_position = [0, level, 0]
+                        zplane = self.calculate_intersections(mesh, headset_position=headset_position, json_serialize=True)
+                        self.data[path]['slices'].append(zplane)
+
                 changes += 1
 
         if (initialize or changes > 0) and self.json_data_path is not None:
@@ -208,9 +218,29 @@ class Floorplanner:
                     minz = min(point[2], minz)
                     maxz = max(point[2], maxz)
 
+            for layer in self.data[path].get("slices", []):
+                for polyline in layer:
+                    for point in polyline:
+                        minx = min(point[0], minx)
+                        maxx = max(point[0], maxx)
+                        minz = min(point[2], minz)
+                        maxz = max(point[2], maxz)
+
         scale = self.image_scale
         image_width = scale * (maxx - minx)
         image_height = scale * (maxz - minz)
+
+
+        if self.slices is None or len(self.slices) == 1:
+            colors = ["black"]
+        else:
+            steps = len(self.slices)
+            step_size = int(256 / steps)
+            colors = []
+            for i in range(steps):
+                # Floor is white (255), and each layer going up is
+                # progressively darker, ending with black (0).
+                colors.append("rgb({0:d},{0:d},{0:d})".format(256-(i+1)*step_size))
 
         dwg = svgwrite.Drawing(svg_destination_path, profile='tiny',
                 viewBox="{} {} {} {}".format(scale*minx, scale*minz, image_width, image_height))
@@ -224,6 +254,13 @@ class Floorplanner:
                 dwg.add(dwg.polyline(
                     points=[(x[0], x[2]) for x in polyline],
                     stroke='black', stroke_width=0.1, fill="none"))
+
+            for layer, polylines in enumerate(self.data[path].get("slices", [])):
+                for polyline in polylines:
+                    dwg.add(dwg.polyline(
+                        points=[(x[0], x[2]) for x in polyline],
+                        stroke=colors[layer], stroke_width=0.1, fill="none"))
+
 
         # If floorplanner was configured with a headset list, draw some simple
         # markers over the map. This should ideally be a lot more configurable.
