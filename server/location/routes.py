@@ -293,3 +293,73 @@ async def get_location_model(location_id):
 
     return await send_from_directory(location.get_dir(), "model.obj",
             as_attachment=True, attachment_filename="model.obj")
+
+
+@locations.route('/locations/<location_id>/route', methods=['GET'])
+async def get_location_route(location_id):
+    """
+    Get a route between two points.
+    ---
+    get:
+        summary: Get a route between two points.
+        description: |-
+            This method uses the location map to find a path between two
+            points.
+
+            The following example queries for a path from coordinate (-2, 0, 7.5) to (22, 0, 9.5).
+
+                GET /locations/224c17c4-dd9a-4d62-a075-61f57438a209/route?from=-2,0,7.5&to=22,0,9.5
+
+            The response will be a list of waypoints that make up a route,
+            which might look like the following.
+
+                200 OK
+                Content-Type: application/json
+                [
+                    [-2.0, 0.0, 7.5],
+                    [22.0, 0.0, 9.5]
+                ]
+        tags:
+          - locations
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Location ID
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
+          - name: from
+            in: query
+            required: false
+            description: Starting point in comma-separated format (x,y,z)
+          - name: to
+            in: query
+            required: false
+            description: Ending point in comma-separated format (x,y,z)
+    """
+    location = g.active_incident.Location.find_by_id(location_id)
+    if location is None:
+        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+
+    query = request.args
+
+    def get_vector_from_query(name):
+        value = query.get(name, "0,0,0")
+        parts = value.split(",")
+        return [float(v) for v in parts]
+
+    start = get_vector_from_query("from")
+    end = get_vector_from_query("to")
+
+    # TODO: Add navigation code here.
+    path = [start, end]
+
+    # Wrap the list if the caller requested an envelope.
+    if "envelope" in query:
+        result = {query.get("envelope"): path}
+    else:
+        result = path
+
+    return jsonify(result), HTTPStatus.OK
