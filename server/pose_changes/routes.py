@@ -2,7 +2,7 @@ import time
 
 from http import HTTPStatus
 
-from quart import Blueprint, g, jsonify, request
+from quart import Blueprint, g, jsonify, request, send_from_directory
 from werkzeug import exceptions
 
 from server.resources.csvresource import CsvCollection
@@ -49,6 +49,31 @@ async def list_pose_changes(headset_id):
         result = items
 
     return jsonify(result), HTTPStatus.OK
+
+
+@pose_changes.route('/headsets/<headset_id>/pose-changes.csv', methods=['GET'])
+async def list_pose_changes_csv(headset_id):
+    """
+    List headset pose changes (CSV file)
+    ---
+    get:
+        summary: List headset pose changes (CSV file)
+        tags:
+         - pose-changes
+        responses:
+            200:
+                description: A list of pose changes in CSV
+                content:
+                    text/csv
+    """
+
+    headset = g.active_incident.Headset.find_by_id(headset_id)
+    if headset is None:
+        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
+
+    # Pose changes are stored in a CSV file, so send the file directly without
+    # processing.
+    return await send_from_directory(headset.PoseChange.base_directory, headset.PoseChange.collection_filename)
 
 
 @pose_changes.route('/headsets/<headset_id>/pose-changes', methods=['POST'])
