@@ -16,6 +16,7 @@ import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.m
 import {Helmet} from 'react-helmet';
 import useStateSynchronous from './useStateSynchronous.js';
 import {Link} from "react-router-dom";
+import {useParams} from "react-router";
 
 import fontawesome from '@fortawesome/fontawesome'
 import {
@@ -65,9 +66,10 @@ fontawesome.library.add(
   faTruckMedical,
   faUser);
 
-function Home(props) {
+function Location(props) {
     const host = window.location.hostname;
     const port = props.port;
+    const {location_id} = useParams();
 
     // Map feature type -> FA icon
     const icons = {
@@ -242,9 +244,8 @@ function Home(props) {
     const getDefaultLocationSelection = () => {
         if (Object.keys(locations).length == 0)
             return null;
-        var id = Object.keys(locations)[0];
-        setCurrLocationName(locations[id]['name']);
-        return id;
+        setCurrLocationName(locations[location_id]['name']);
+        return location_id;
     }
 
     const changePointValue = (value, idx) => {
@@ -607,13 +608,13 @@ function Home(props) {
                       <HeadsetTable port={port} headsets={headsets} getHeadsets={getHeadsets}
                                     setHeadsets={setHeadsets} locations={locations}/>
                       <FeatureTable port={port} icons={icons} features={features} locationId={selectedLocation}/>
-                      <LocationTable port={port} locations={locations} getLocations={get_locations}
-                                     setLocations={setLocations}/>
+                      {/* <LocationTable port={port} locations={locations} getLocations={get_locations}
+                                     setLocations={setLocations}/> */}
                     </div>
                   </Tab>
-                  <Tab eventKey="create-location" title="Create Location">
+                  {/* <Tab eventKey="create-location" title="Create Location">
                     <NewLocation port={port} getHeadsets={getHeadsets} getLocations={get_locations} setTab={setTab}/>
-                  </Tab>
+                  </Tab> */}
                   <Tab eventKey="create-incident" title="Create Incident">
                     <NewIncidentModal port={port} getHeadsets={getHeadsets} setLocations={setLocations}
                                       getCurrentIncident={getCurrentIncident} currentIncident={currentIncident} incidentName={incidentName}
@@ -625,9 +626,9 @@ function Home(props) {
                                      setHistoryData={setHistoryData} getIncidentHistory={getIncidentHistory}
                                      getLocations={get_locations} getHeadsets={getHeadsets} getCurrentIncident={getCurrentIncident}/>
                   </Tab>
-                  <Tab eventKey="all-headsets" title="All Headsets">
+                  {/* <Tab eventKey="all-headsets" title="All Headsets">
                     <AllHeadsets port={port} getLocationHeadsets={getHeadsets} locations={locations}/>
-                  </Tab>
+                  </Tab> */}
                     <Tab eventKey="create-layer" title="Create Layer">
                         <NewLayer port={port} getHeadsets={getHeadsets} getLayers={getLayers} setTab={setTab} locations={locations}/>
                     </Tab>
@@ -637,4 +638,4 @@ function Home(props) {
     );
 }
 
-export default Home;
+export default Location;
