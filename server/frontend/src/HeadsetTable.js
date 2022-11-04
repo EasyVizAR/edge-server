@@ -157,7 +157,7 @@ function HeadsetTable(props){
             Object.keys(props.headsets).length > 0 ? (
               Object.entries(props.headsets).map(([id, headset]) => {
                 return <tr>
-                  <td>{id}</td>
+                  <td><a href={`/#/locations/${headset.location_id}/${id}`}>{id}</a></td>
                   <td id={"headsetName" + id}>
                     {
                       inEditModeHeadset.status && inEditModeHeadset.rowKey === id ? (

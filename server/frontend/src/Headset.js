@@ -66,10 +66,11 @@ fontawesome.library.add(
   faTruckMedical,
   faUser);
 
-function Location(props) {
+function Headset(props) {
   const host = window.location.hostname;
   const port = props.port;
   const { location_id } = useParams();
+  const { headset_id } = useParams();
 
   // Map feature type -> FA icon
   const icons = {
@@ -146,7 +147,7 @@ function Location(props) {
     // If selected location changed, immediately reload list of headsets and
     // features at the new location.
     getHeadsets();
-    // getHistories();
+    // getHistories(headsets[headset_id]);
     getFeatures();
 
     if (selectedLocation) {
@@ -193,7 +194,8 @@ function Location(props) {
           headsets[h.id] = h;
         }
         setHeadsets(headsets);
-      });
+        getHistories(headsets[headset_id]);
+      })
   }
 
   function getFeatures() {
@@ -212,46 +214,33 @@ function Location(props) {
       });
   }
 
-  // // gets pose changes from the server
-  // function getHistories() {
-  //   console.log(headsets);
-  //   for (var h in headsets) {
-  //     let id = h; // h changes before the promise is resolved, so the id has to be saved
-  //     fetch(`http://${host}:${port}/headsets/${h}/pose-changes`)
-  //       .then(response => {
-  //         return response.json()
-  //       }).then(data => {
-  //         setHistories(prevState => {
-  //           prevState[id] = data;
-  //           return prevState;
-  //         });
-  //         console.log(histories);
-  //       }
-  //       ).then(
-  //         () => {
-  //           // console.log("test");
-  //           // console.log(histories);
-  //           // console.log(Object.keys(histories));
-  //           for (var h of Object.keys(histories)) {
-  //             for (var pt of histories[h]) {
-  //               setFeatures(prevState => {
-  //                 prevState.push({
-  //                   id: h+pt.time,
-  //                   time: pt.time,
-  //                   type: 'circle',
-  //                   color: 'black',
-  //                   position: pt.position,
-  //                 });
-  //                 console.log(prevState);
-  //                 return prevState;
-  //               });
-  //               // console.log(features);
-  //             }
-  //           }
-  //         }
-  //       );
-  //   }
-  // }
+  // gets pose changes from the server
+  function getHistories(hset) {
+    fetch(`http://${host}:${port}/headsets/${headset_id}/pose-changes`)
+    .then(response => {
+        return response.json()
+    }).then(
+        (data) => {
+        var num = data.length;
+        var i = 0
+        for (var pt of data) {
+            i += 1;
+            setFeatures(prevState => {
+                prevState.push({
+                id: headset_id+pt.time,
+                time: pt.time,
+                type: "headset",
+                color: hset.color + Math.round(128 * (i / num) + 16).toString(16),
+                position: pt.position,
+                });
+                // console.log(prevState);
+                return prevState;
+            });
+            // console.log(features);
+        }
+        }
+    );
+  }
 
   // gets list of locations from server
   function get_locations() {
@@ -682,4 +671,4 @@ function Location(props) {
   );
 }
 
-export default Location;
+export default Headset;
