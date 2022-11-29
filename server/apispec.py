@@ -29,7 +29,7 @@ from server.layer.models import LayerModel
 from server.location.models import LocationModel
 from server.photo.models import PhotoModel
 from server.pose_changes.models import PoseChangeModel
-from server.scene.models import SceneModel
+from server.scene.models import SceneDescriptor, SceneModel
 from server.surface.models import SurfaceModel
 
 
@@ -55,6 +55,7 @@ async def create_openapi_spec(app):
     spec.components.schema("Location", schema=LocationModel.Schema())
     spec.components.schema("Photo", schema=PhotoModel.Schema())
     spec.components.schema("PoseChange", schema=PoseChangeModel.Schema())
+    spec.components.schema("SceneDescriptor", schema=SceneDescriptor.Schema())
     spec.components.schema("Surface", schema=SurfaceModel.Schema())
 
     spec.tag(dict(name="annotations", description=AnnotationModel.__doc__))
