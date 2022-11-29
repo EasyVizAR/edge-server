@@ -17,6 +17,7 @@ from server.layer import routes as layers
 from server.location import routes as locations
 from server.photo import routes as photos
 from server.pose_changes import routes as pose_changes
+from server.scene import routes as scenes
 from server.surface import routes as surfaces
 from server import routes as other
 
@@ -28,6 +29,7 @@ from server.layer.models import LayerModel
 from server.location.models import LocationModel
 from server.photo.models import PhotoModel
 from server.pose_changes.models import PoseChangeModel
+from server.scene.models import SceneModel
 from server.surface.models import SurfaceModel
 
 
@@ -63,6 +65,7 @@ async def create_openapi_spec(app):
     spec.tag(dict(name="locations", description=LocationModel.__doc__))
     spec.tag(dict(name="photos", description=PhotoModel.__doc__))
     spec.tag(dict(name="pose-changes", description=PoseChangeModel.__doc__))
+    spec.tag(dict(name="scenes", description=SceneModel.__doc__))
     spec.tag(dict(name="surfaces", description=SurfaceModel.__doc__))
 
     async with app.test_request_context("/"):
@@ -127,6 +130,10 @@ async def create_openapi_spec(app):
 
         spec.path(view=pose_changes.list_pose_changes)
         spec.path(view=pose_changes.create_pose_change)
+
+        spec.path(view=scenes.list_scenes)
+        spec.path(view=scenes.get_scene)
+        spec.path(view=scenes.replace_scene)
 
         spec.path(view=surfaces.list_surfaces)
         spec.path(view=surfaces.create_surface)

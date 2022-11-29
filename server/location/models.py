@@ -2,8 +2,10 @@ import time
 
 from server.feature.models import FeatureModel
 from server.layer.models import LayerModel
+from server.scene.models import SceneModel
 from server.surface.models import SurfaceModel
 from server.resources.dataclasses import dataclass, field
+from server.resources.dictresource import DictResource, DictCollection
 from server.resources.jsonresource import JsonCollection, JsonResource
 
 
@@ -28,4 +30,5 @@ class LocationModel(JsonResource):
     def on_ready(self):
         self.Feature = JsonCollection(FeatureModel, "feature", parent=self)
         self.Layer = JsonCollection(LayerModel, "layer", parent=self)
+        self.Scene = DictCollection(SceneModel, "scenes", id_type="uuid", parent=self)
         self.Surface = JsonCollection(SurfaceModel, "surface", id_type="uuid", parent=self)

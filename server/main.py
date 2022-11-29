@@ -14,6 +14,7 @@ from server.location.routes import locations
 from server.photo.routes import photos
 from server.pose_changes.routes import pose_changes
 from server.routes import routes
+from server.scene.routes import scenes
 from server.surface.routes import surfaces
 from server.utils.pool_limiter import PoolLimiter
 from server.utils.utils import GenericJsonEncoder
@@ -68,6 +69,7 @@ app.register_blueprint(locations)
 app.register_blueprint(photos)
 app.register_blueprint(pose_changes)
 app.register_blueprint(routes)
+app.register_blueprint(scenes)
 app.register_blueprint(surfaces)
 app.register_blueprint(work_items)
 
