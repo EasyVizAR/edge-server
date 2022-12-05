@@ -73,8 +73,10 @@ class PhotoModel(JsonResource):
                                     description="Location ID where the photo was taken")
     camera_position:    Vector3f = field(default=None,
                                          description="Position of the camera in world coordinates")
-    camera_orientation: Vector3f = field(default=None,
+    camera_orientation: Vector4f = field(default=None,
                                          description="Orientation of the camera (quaternion)")
+    related_feature_id: str = field(default=None,
+                                    description="Associated feature ID (if set) for a marker on the map where the photo was taken")
 
     annotations:    List[Annotation] = field(default_factory=list)
     detector:       Detector = field(default=None,
