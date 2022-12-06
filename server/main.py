@@ -20,6 +20,7 @@ from server.utils.pool_limiter import PoolLimiter
 from server.utils.utils import GenericJsonEncoder
 from server.work_items.routes import work_items
 
+from server.auth import Authenticator
 from server.events import EventDispatcher
 from server.headset.models import Headset
 from server.incidents.models import Incident
@@ -76,6 +77,8 @@ app.register_blueprint(work_items)
 
 @app.before_first_request
 def before_first_request():
+    app.authenticator = Authenticator.build_authenticator(data_dir)
+
     app.dispatcher = EventDispatcher()
 
     # Use a separate process pool for mapping and 3D modeling tasks so they can
@@ -89,6 +92,9 @@ def before_first_request():
 
 @app.before_request
 def before_request():
+    g.authenticator = app.authenticator
+    g.authenticator.authenticate_request()
+
     g.Headset = Headset
     g.Incident = Incident
 

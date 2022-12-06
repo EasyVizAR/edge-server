@@ -42,6 +42,7 @@ async def test_headset_routes():
         assert isinstance(headset, dict)
         assert headset['id'] is not None
         assert headset[test_field] == "foo"
+        assert headset['token'] is not None
 
         headset_url = "{}/{}".format(headsets_url, headset['id'])
 
@@ -386,7 +387,7 @@ async def test_headset_long_polling():
         assert response2.is_json
         headset2 = await response2.get_json()
         assert isinstance(headset2, list)
-        assert headset2[0] == headset
+        assert headset2[0]['name'] == headset['name']
 
         # Clean up
         await client.delete("/headsets/{}".format(headset['id']))

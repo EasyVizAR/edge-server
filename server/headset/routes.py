@@ -14,6 +14,8 @@ from server.incidents.models import Incident
 from server.resources.filter import Filter
 from server.utils.utils import GenericJsonEncoder, save_image
 
+from .models import RegisteredHeadsetModel
+
 headsets = Blueprint('headsets', __name__)
 
 
@@ -194,7 +196,7 @@ async def create_headset():
                 description: A headset
                 content:
                     application/json:
-                        schema: Headset
+                        schema: RegisteredHeadset
     """
     body = await request.get_json()
     if body is None:
@@ -211,6 +213,12 @@ async def create_headset():
     headset = g.Headset.load(body, replace_id=True)
     headset.save()
 
+    tmp = headset.Schema().dump(headset)
+    rheadset = RegisteredHeadsetModel.Schema().load(tmp)
+
+    rheadset.token = g.authenticator.create_headset_token(headset.id)
+    g.authenticator.save()
+
     folder = g.active_incident.Headset.add(headset.id)
 
     if 'position' in body or 'orientation' in body:
@@ -219,7 +227,7 @@ async def create_headset():
 
     await current_app.dispatcher.dispatch_event("headsets:created",
             "/headsets/"+headset.id, current=headset)
-    return jsonify(headset), HTTPStatus.CREATED
+    return jsonify(rheadset), HTTPStatus.CREATED
 
 
 @headsets.route('/headsets/<headset_id>', methods=['DELETE'])

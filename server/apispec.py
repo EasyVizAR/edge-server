@@ -23,7 +23,7 @@ from server import routes as other
 
 from server.annotation.models import AnnotationModel
 from server.feature.models import FeatureModel
-from server.headset.models import HeadsetModel
+from server.headset.models import HeadsetModel, RegisteredHeadsetModel
 from server.incidents.models import IncidentModel
 from server.layer.models import LayerModel
 from server.location.models import LocationModel
@@ -50,6 +50,7 @@ async def create_openapi_spec(app):
     spec.components.schema("Annotation", schema=AnnotationModel.Schema())
     spec.components.schema("Feature", schema=FeatureModel.Schema())
     spec.components.schema("Headset", schema=HeadsetModel.Schema())
+    spec.components.schema("RegisteredHeadset", schema=RegisteredHeadsetModel.Schema())
     spec.components.schema("Incident", schema=IncidentModel.Schema())
     spec.components.schema("Layer", schema=LayerModel.Schema())
     spec.components.schema("Location", schema=LocationModel.Schema())

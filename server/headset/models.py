@@ -43,6 +43,11 @@ class HeadsetModel(JsonResource):
     updated:        float = field(default_factory=time.time)
 
 
+@dataclass
+class RegisteredHeadsetModel(HeadsetModel):
+    token: str = field(default=None, description="Authentication token")
+
+
 # This is the top-level collection of headset data.  Import this and use
 # Headset.find(), or other methods to query headsets, create headsets, and so
 # on.
