@@ -8,28 +8,26 @@ from quart import g, request
 class Authenticator:
     def __init__(self):
         self.tokens = []
-        self.headset_tokens = dict()
+        self.headsets = dict()
         self.path = "auth.json"
 
     def authenticate_request(self):
         auth = request.headers.get("Authorization", "")
         parts = auth.split()
         if len(parts) >= 2 and parts[0] == "Bearer":
-            g.headset_id = self.lookup(parts[1])
-            print("Request has headset_id: {}".format(g.headset_id))
+            entry = self.headsets.get(parts[1])
+            if entry is not None:
+                g.headset_id = entry['id']
 
     def create_headset_token(self, headset_id):
         token = secrets.token_urlsafe(16)
-        self.headset_tokens[headset_id] = token
-        self.tokens.append({
+        self.headsets[token] = {
             "type": "headset",
             "id": headset_id,
             "token": token
-        })
+        }
+        self.tokens.append(self.headsets[token])
         return token
-
-    def lookup(self, token):
-        return self.headset_tokens.get(token)
 
     def save(self):
         with open(self.path, "w") as output:
@@ -46,7 +44,7 @@ class Authenticator:
                 for item in data:
                     auth.tokens.append(item)
                     if item['type'] == 'headset':
-                        auth.headset_tokens[item['id']] = item['token']
+                        auth.headsets[item['token']] = item
         except Exception as error:
             print("Warning: failed to load {} ({})".format(auth.path, error))
 
