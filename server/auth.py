@@ -2,7 +2,10 @@ import json
 import os
 import secrets
 
+from functools import wraps
+
 from quart import g, request
+from werkzeug.exceptions import Unauthorized
 
 
 class Authenticator:
@@ -49,3 +52,23 @@ class Authenticator:
             print("Warning: failed to load {} ({})".format(auth.path, error))
 
         return auth
+
+
+def requires_own_headset_id(func):
+    """
+    Decorate an API call that only be called by the owning headset.
+
+    Example: POST /headsets/{x}/check-ins may only be called by headset x or
+    perhaps an administrator but importantly, no other headsets.
+    """
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        g.authenticator.authenticate_request()
+
+        required_headset_id = kwargs.get('headset_id')
+        if required_headset_id is not None and required_headset_id != g.headset_id:
+            raise Unauthorized("Only headset {} may make this request".format(required_headset_id))
+
+        return await func(*args, **kwargs)
+
+    return wrapper

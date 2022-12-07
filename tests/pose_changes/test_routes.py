@@ -13,7 +13,7 @@ async def test_pose_change_routes():
     async with app.test_client() as client:
         position = dict(x=0, y=0, z=0)
 
-        response = await client.post("/headsets", json=dict(name="Test", position=position))
+        response = await client.post("/headsets", json=dict(name="Test", position=position, location_id="location"))
         assert response.status_code == 201
         assert response.is_json
         headset = await response.get_json()

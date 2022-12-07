@@ -30,6 +30,8 @@ class HeadsetModel(JsonResource):
 
     location_id:    str = field(default=None,
                                 description="Current location or NULL if unknown or inactive")
+    last_check_in_id: int = field(default=None,
+                                description="Most recent check-in or NULL if unknown")
 
     # mapId is deprecated and should be removed after transition to location and layer system
     mapId:  str = field(default=None, description="deprecated")

@@ -213,17 +213,26 @@ async def create_headset():
     headset = g.Headset.load(body, replace_id=True)
     headset.save()
 
+    folder = g.active_incident.Headset.add(headset.id)
+
+    # If the headset is created with location_id set, we can automatically
+    # create a check-in record for the headset at that location.
+    if headset.location_id is not None:
+        checkin = folder.CheckIn.load({'location_id': headset.location_id}, replace_id=True)
+        checkin.save()
+
+        headset.last_check_in_id = checkin.id
+        headset.save()
+
+        if 'position' in body or 'orientation' in body:
+            change = checkin.PoseChange.load(body)
+            checkin.PoseChange.add(change)
+
     tmp = headset.Schema().dump(headset)
     rheadset = RegisteredHeadsetModel.Schema().load(tmp)
 
     rheadset.token = g.authenticator.create_headset_token(headset.id)
     g.authenticator.save()
-
-    folder = g.active_incident.Headset.add(headset.id)
-
-    if 'position' in body or 'orientation' in body:
-        change = folder.PoseChange.load(body)
-        folder.PoseChange.add(change)
 
     await current_app.dispatcher.dispatch_event("headsets:created",
             "/headsets/"+headset.id, current=headset)
@@ -297,6 +306,17 @@ async def get_headset(id):
     return jsonify(headset), HTTPStatus.OK
 
 
+def valid_check_in_or_none(headset, incident_folder):
+    if headset.last_check_in_id is None:
+        return None
+
+    checkin = incident_folder.CheckIn.find_by_id(headset.last_check_in_id)
+    if checkin is None or checkin.location_id != headset.location_id:
+        return None
+
+    return checkin
+
+
 @headsets.route('/headsets/<headsetId>', methods=['PUT'])
 async def replace_headset(headsetId):
     """
@@ -333,15 +353,25 @@ async def replace_headset(headsetId):
     headset = g.Headset.load(body)
     headset.updated = time.time()
 
+    previous = g.Headset.find_by_id(headsetId)
+
     incident_folder = g.active_incident.Headset.find_by_id(headsetId)
     if incident_folder is None:
         incident_folder = g.active_incident.Headset.add(headset.id)
 
-    if 'position' in body or 'orientation' in body:
-        change = incident_folder.PoseChange.load(body)
-        incident_folder.PoseChange.add(change)
+    checkin = valid_check_in_or_none(headset, incident_folder)
 
-    previous = g.Headset.find_by_id(headsetId)
+    # Automatically create a check-in record for this headset
+    if checkin is None and headset.location_id != None:
+        checkin = incident_folder.CheckIn.load({'location_id': headset.location_id}, replace_id=True)
+        checkin.save()
+
+        headset.last_check_in_id = checkin.id
+
+    if checkin is not None and ('position' in body or 'orientation' in body):
+        change = checkin.PoseChange.load(body)
+        checkin.PoseChange.add(change)
+
     created = headset.save()
 
     if created:
@@ -405,6 +435,8 @@ async def update_headset(headset_id):
     if headset is None:
         raise exceptions.NotFound(description="Headset {} was not found".format(id))
 
+    previous = g.Headset.find_by_id(headset_id)
+
     body = await request.get_json()
 
     # Do not allow changing the object's ID
@@ -414,15 +446,24 @@ async def update_headset(headset_id):
     headset.update(body)
     headset.updated = time.time()
 
-    if 'position' in body or 'orientation' in body:
-        folder = g.active_incident.Headset.find_by_id(headset_id)
-        if folder is None:
-            # This is the first time the headset appears under the current incident.
-            folder = g.active_incident.Headset.add(headset.id)
-        change = folder.PoseChange.load(body)
-        folder.PoseChange.add(change)
+    folder = g.active_incident.Headset.find_by_id(headset_id)
+    if folder is None:
+        # This is the first time the headset appears under the current incident.
+        folder = g.active_incident.Headset.add(headset.id)
 
-    previous = g.Headset.find_by_id(headset_id)
+    checkin = valid_check_in_or_none(headset, folder)
+
+    # Automatically create a check-in record for this headset
+    if checkin is None and headset.location_id != None:
+        checkin = folder.CheckIn.load({'location_id': headset.location_id}, replace_id=True)
+        checkin.save()
+
+        headset.last_check_in_id = checkin.id
+
+    if checkin is not None and ('position' in body or 'orientation' in body):
+        change = checkin.PoseChange.load(body)
+        checkin.PoseChange.add(change)
+
     headset.save()
 
     await current_app.dispatcher.dispatch_event("headsets:updated",

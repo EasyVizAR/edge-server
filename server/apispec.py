@@ -10,6 +10,7 @@ from apispec_webframeworks.flask import FlaskPlugin
 from marshmallow import Schema, fields
 
 from server.annotation import routes as annotations
+from server.check_in import routes as check_ins
 from server.feature import routes as features
 from server.headset import routes as headsets
 from server.incidents import routes as incidents
@@ -22,6 +23,7 @@ from server.surface import routes as surfaces
 from server import routes as other
 
 from server.annotation.models import AnnotationModel
+from server.check_in.models import CheckInModel
 from server.feature.models import FeatureModel
 from server.headset.models import HeadsetModel, RegisteredHeadsetModel
 from server.incidents.models import IncidentModel
@@ -48,6 +50,7 @@ async def create_openapi_spec(app):
     )
 
     spec.components.schema("Annotation", schema=AnnotationModel.Schema())
+    spec.components.schema("CheckIn", schema=CheckInModel.Schema())
     spec.components.schema("Feature", schema=FeatureModel.Schema())
     spec.components.schema("Headset", schema=HeadsetModel.Schema())
     spec.components.schema("RegisteredHeadset", schema=RegisteredHeadsetModel.Schema())
@@ -60,6 +63,7 @@ async def create_openapi_spec(app):
     spec.components.schema("Surface", schema=SurfaceModel.Schema())
 
     spec.tag(dict(name="annotations", description=AnnotationModel.__doc__))
+    spec.tag(dict(name="check-ins", description=CheckInModel.__doc__))
     spec.tag(dict(name="features", description=FeatureModel.__doc__))
     spec.tag(dict(name="headsets", description=HeadsetModel.__doc__))
     spec.tag(dict(name="incidents", description=IncidentModel.__doc__))
@@ -77,6 +81,9 @@ async def create_openapi_spec(app):
         spec.path(view=annotations.get_annotation)
         spec.path(view=annotations.replace_annotation)
         spec.path(view=annotations.update_annotation)
+
+        spec.path(view=check_ins.list_check_ins)
+        spec.path(view=check_ins.create_check_in)
 
         spec.path(view=features.list_features)
         spec.path(view=features.create_feature)

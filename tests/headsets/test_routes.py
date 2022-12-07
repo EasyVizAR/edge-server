@@ -123,7 +123,7 @@ async def test_headset_put_updates():
         headsets_url = "/headsets"
 
         # Create an object
-        response = await client.post(headsets_url, json=dict(name="Test PUT"))
+        response = await client.post(headsets_url, json=dict(name="Test PUT", location_id="location"))
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         headset = await response.get_json()
@@ -214,7 +214,7 @@ async def test_headset_patch_updates():
         headsets_url = "/headsets"
 
         # Create an object
-        response = await client.post(headsets_url, json=dict(name="Test PATCH"))
+        response = await client.post(headsets_url, json=dict(name="Test PATCH", location_id="location"))
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         headset = await response.get_json()

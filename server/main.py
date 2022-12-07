@@ -6,6 +6,7 @@ from quart import Quart, g
 from quart_cors import cors
 
 from server.annotation.routes import annotations
+from server.check_in.routes import check_ins
 from server.feature.routes import features
 from server.headset.routes import headsets
 from server.incidents.routes import initialize_incidents, incidents
@@ -62,6 +63,7 @@ data_dir = app.config.get('VIZAR_DATA_DIR', 'data')
 AbstractCollection.data_directory = data_dir
 
 app.register_blueprint(annotations)
+app.register_blueprint(check_ins)
 app.register_blueprint(features)
 app.register_blueprint(headsets)
 app.register_blueprint(incidents)
