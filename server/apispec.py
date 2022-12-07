@@ -138,6 +138,7 @@ async def create_openapi_spec(app):
         spec.path(view=photos.upload_photo_file)
 
         spec.path(view=pose_changes.list_pose_changes)
+        spec.path(view=pose_changes.list_check_in_pose_changes)
         spec.path(view=pose_changes.create_pose_change)
 
         spec.path(view=scenes.list_scenes)

@@ -56,6 +56,46 @@ async def list_pose_changes(headset_id):
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
 
+@pose_changes.route('/headsets/<headset_id>/check-ins/<check_in_id>/pose-changes', methods=['GET'])
+async def list_check_in_pose_changes(headset_id, check_in_id):
+    """
+    List headset pose changes for a specified check-in
+    ---
+    get:
+        summary: List headset pose changes for a specified check-in
+        tags:
+         - pose-changes
+        parameters:
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
+        responses:
+            200:
+                description: A list of objects.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: PoseChange
+    """
+    headset = g.Headset.find_by_id(headset_id)
+    if headset is None:
+        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
+
+    incident_folder = g.active_incident.Headset.find_by_id(headset_id)
+    if incident_folder is None:
+        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
+
+    checkin = incident_folder.CheckIn.find_by_id(check_in_id)
+    if checkin is None:
+        raise exceptions.NotFound(description="Headset {} check-in record was not found".format(headset_id))
+
+    items = checkin.PoseChange.find()
+
+    return jsonify(maybe_wrap(items)), HTTPStatus.OK
+
+
 @pose_changes.route('/headsets/<headset_id>/pose-changes.csv', methods=['GET'])
 async def list_pose_changes_csv(headset_id):
     """
