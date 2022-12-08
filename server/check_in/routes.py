@@ -89,3 +89,47 @@ async def create_check_in(headset_id):
     headset.save()
 
     return jsonify(checkin), HTTPStatus.CREATED
+
+
+@check_ins.route('/headsets/<headset_id>/check-ins/<check_in_id>', methods=['DELETE'])
+async def delete_headset(headset_id, check_in_id):
+    """
+    Delete a headset check-in
+    ---
+    delete:
+        description: Delete a headset check-in
+        tags:
+          - check-ins
+        parameters:
+          - name: headset_id
+            in: path
+            required: true
+            description: Headset ID
+          - name: check_in_id
+            in: path
+            required: true
+            description: Headset check-in ID
+        responses:
+            200:
+                description: Headset check-in deleted
+                content:
+                    application/json:
+                        schema: CheckIn
+    """
+
+    headset = g.Headset.find_by_id(headset_id)
+    if headset is None:
+        raise exceptions.NotFound(description="Headset {} was not found".format(headset_id))
+
+    incident_folder = g.active_incident.Headset.find_by_id(headset_id)
+    if incident_folder is None:
+        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
+
+    checkin = incident_folder.CheckIn.find_by_id(check_in_id)
+    if checkin is None:
+        raise exceptions.NotFound(description="Headset {} check-in was not found".format(headset_id))
+
+    checkin.delete()
+
+    return jsonify(checkin), HTTPStatus.OK
+

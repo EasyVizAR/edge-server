@@ -6,6 +6,7 @@ import NewIncidentModal from './NewIncidentModal.js';
 import IncidentHistory from './IncidentHistory.js';
 import AllHeadsets from './AllHeadsets.js';
 import LocationTable from './LocationTable.js';
+import CheckInTable from './CheckInTable.js';
 import HeadsetTable from './HeadsetTable.js';
 import FeatureTable from './FeatureTable.js';
 import 'reactjs-popup/dist/index.css';
@@ -30,6 +31,7 @@ import {
   faFire,
   faFireExtinguisher,
   faHeadset,
+  faImage,
   faLocationDot,
   faMessage,
   faPerson,
@@ -55,6 +57,7 @@ fontawesome.library.add(
   faFire,
   faFireExtinguisher,
   faHeadset,
+  faImage,
   faLocationDot,
   faMessage,
   faPerson,
@@ -88,6 +91,7 @@ function Headset(props) {
     message: solid('message'),
     object: solid('square'),
     person: solid('person'),
+    photo: solid('image'),
     radiation: solid('radiation'),
     stairs: solid('stairs'),
     user: solid('user'),
@@ -637,6 +641,8 @@ function Headset(props) {
                   />
                 </Form>
               </div>
+
+              <CheckInTable port={port} locations={locations} headsetId={headset_id} />
 
               <HeadsetTable port={port} headsets={headsets} getHeadsets={getHeadsets}
                 setHeadsets={setHeadsets} locations={locations} />

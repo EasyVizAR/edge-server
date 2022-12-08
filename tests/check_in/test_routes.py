@@ -60,6 +60,13 @@ async def test_check_in_routes():
         assert headset2['location_id'] == "place"
         assert headset2['last_check_in_id'] == data['id']
 
+        item_url = "{}/{}".format(check_ins_url, data['id'])
+        response = await client.delete(item_url, headers=headers)
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        data = await response.get_json()
+        assert isinstance(data, dict)
+
 
 @pytest.mark.asyncio
 async def test_automatic_check_in():
