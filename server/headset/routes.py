@@ -306,12 +306,16 @@ async def get_headset(id):
     return jsonify(headset), HTTPStatus.OK
 
 
-def valid_check_in_or_none(headset, incident_folder):
-    if headset.last_check_in_id is None:
+def valid_check_in_or_none(incident_folder, previous, current):
+    if current.last_check_in_id is None:
         return None
 
-    checkin = incident_folder.CheckIn.find_by_id(headset.last_check_in_id)
-    if checkin is None or checkin.location_id != headset.location_id:
+    # Triggers a new check-in if the headset left its location and returned
+    if previous.location_id is None:
+        return None
+
+    checkin = incident_folder.CheckIn.find_by_id(current.last_check_in_id)
+    if checkin is None or checkin.location_id != current.location_id:
         return None
 
     return checkin
@@ -359,7 +363,7 @@ async def replace_headset(headsetId):
     if incident_folder is None:
         incident_folder = g.active_incident.Headset.add(headset.id)
 
-    checkin = valid_check_in_or_none(headset, incident_folder)
+    checkin = valid_check_in_or_none(incident_folder, previous, headset)
 
     # Automatically create a check-in record for this headset
     if checkin is None and headset.location_id != None:
@@ -451,7 +455,7 @@ async def update_headset(headset_id):
         # This is the first time the headset appears under the current incident.
         folder = g.active_incident.Headset.add(headset.id)
 
-    checkin = valid_check_in_or_none(headset, folder)
+    checkin = valid_check_in_or_none(folder, previous, headset)
 
     # Automatically create a check-in record for this headset
     if checkin is None and headset.location_id != None:
