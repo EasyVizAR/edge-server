@@ -220,6 +220,9 @@ function LayerContainer(props) {
                 {
                   layerLoaded && props.photosChecked && Object.keys(props.photos).length > 0 &&
                     Object.entries(props.photos).map(([id, item]) => {
+                      if (!item.camera_position) {
+                        return null;
+                      }
                       const x = mapShape.xscale * (item.camera_position.x - mapShape.xmin);
                       const y = mapShape.yscale * (item.camera_position.z - mapShape.ymin);
                       return <FontAwesomeIcon icon={icons['photo']['iconName']}
