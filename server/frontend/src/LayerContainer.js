@@ -1,7 +1,7 @@
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import React, {useEffect, useState} from "react";
 import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
-import "./MapContainer.css"
+import "./LayerContainer.css"
 import {Form, FormCheck} from "react-bootstrap";
 
 function LayerContainer(props) {
@@ -19,6 +19,7 @@ function LayerContainer(props) {
     });
     const [layerImage, setLayerImage] = useState(null);
     const [layerLoaded, setLayerLoaded] = useState(false);
+    const [thumbnailImage, setThumbnailImage] = useState(null);
 
 //    useEffect(() => {
 //        const imgUrl = selectedImage.split("?")[0] + "?" + Math.floor(Math.random() * 100);
@@ -196,24 +197,40 @@ function LayerContainer(props) {
       return list;
     }
 
+    const handleMouseOverPhoto = (ev, photo) => {
+      const x = mapShape.xscale * (photo.camera_position.x - mapShape.xmin);
+      const y = mapShape.yscale * (photo.camera_position.z - mapShape.ymin);
+
+      // Bounding rect for the icon.
+      // Use this to center the corner of the photo within the icon.
+      const rect = ev.target.getBoundingClientRect();
+
+      setThumbnailImage({
+        url: photo.imageUrl,
+        left: x + 0.5*rect.width,
+        top: y + 0.5*rect.height
+      })
+    }
+
     return (
         <div className="map-layer-container">
             <div className="map-image-container">
                 <img id="map-image" src={layerImage} alt="Map of the environment" onLoad={onMapLoad}
                      onClick={onMouseClick} style={{cursor: props.cursor}}/>
                 {
-                  layerLoaded && props.headsetsChecked && Object.keys(props.headsets).length > 0 &&
-                    Object.entries(props.headsets).map(([id, item]) => {
-                      const x = mapShape.xscale * (item.position.x - mapShape.xmin);
-                      const y = mapShape.yscale * (item.position.z - mapShape.ymin);
-                      return <FontAwesomeIcon icon={icons['headset']['iconName']}
-                                              className="features" id={item.id}
-                                              alt={item.name} color={item.color}
+                  layerLoaded && props.photosChecked && Object.keys(props.photos).length > 0 &&
+                    Object.entries(props.photos).map(([id, item]) => {
+                      const x = mapShape.xscale * (item.camera_position.x - mapShape.xmin);
+                      const y = mapShape.yscale * (item.camera_position.z - mapShape.ymin);
+                      return <FontAwesomeIcon icon={icons['photo']['iconName']}
+                                              className="features" id={"photo-" + item.id}
+                                              alt={item.imageUrl} color="#808080"
+                                              onMouseEnter={(e) => handleMouseOverPhoto(e, item)}
+                                              onMouseLeave={() => setThumbnailImage(null)}
                                               style={{
                                                   left: x,
                                                   top: y,
-                                                  height: mapIconSize + "%",
-                                                  pointerEvents: "none"
+                                                  height: mapIconSize + "%"
                                               }}/>
                     })
                 }
@@ -257,6 +274,30 @@ function LayerContainer(props) {
                                                 }}/>
                       }
                     })
+                }
+                {
+                  layerLoaded && props.headsetsChecked && Object.keys(props.headsets).length > 0 &&
+                    Object.entries(props.headsets).map(([id, item]) => {
+                      const x = mapShape.xscale * (item.position.x - mapShape.xmin);
+                      const y = mapShape.yscale * (item.position.z - mapShape.ymin);
+                      return <FontAwesomeIcon icon={icons['headset']['iconName']}
+                                              className="features" id={item.id}
+                                              alt={item.name} color={item.color}
+                                              style={{
+                                                  left: x,
+                                                  top: y,
+                                                  height: mapIconSize + "%",
+                                                  pointerEvents: "none"
+                                              }}/>
+                    })
+                }
+                {
+                  thumbnailImage && <img class="thumbnail-image" src={thumbnailImage.url} style={{
+                    width: "33%",
+                    left: thumbnailImage.left,
+                    top: thumbnailImage.top,
+                    pointerEvents: "none"
+                  }}/>
                 }
             </div>
             <Form className='layer-radio-form'>

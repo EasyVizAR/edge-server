@@ -112,6 +112,7 @@ function Location(props) {
   const [features, setFeatures] = useState({}); // object indexed by feature.id
   const [headsets, setHeadsets] = useState({}); // object indexed by headset.id
   const [locations, setLocations] = useState({}); // object indexed by locationId
+  const [photos, setPhotos] = useState({});
   const [showNewFeature, displayNewFeature] = useState(false);
   const [layers, setLayers] = useState([]);
   const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
@@ -121,6 +122,7 @@ function Location(props) {
   const [iconIndex, setIconIndex] = useState(null);
   const [headsetsChecked, setHeadsetsChecked] = useState(true);
   const [featuresChecked, setFeaturesChecked] = useState(false);
+  const [photosChecked, setPhotosChecked] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
   const [currLocationName, setCurrLocationName] = useState('');
   const [placementType, setPlacementType] = useState('');
@@ -163,24 +165,17 @@ function Location(props) {
     selectedLocationRef.current = selectedLocation;
   }, [selectedLocation]);
 
+  useEffect(() => {
+    if (photosChecked) {
+      getPhotos();
+    }
+  }, [photosChecked, selectedLocation]);
+
   // time goes off every 10 seconds to refresh headset data
   //    useEffect(() => {
   //        const timer = setTimeout(() => getHeadsets(), 1e4)
   //        return () => clearTimeout(timer)
   //    });
-
-  const changeMapObjects = (e, v) => {
-
-  };
-
-  const changeMapObjectsContainer = (e) => {
-    if (e.target.id == 'features-switch') {
-      setFeaturesChecked(e.target.checked);
-    }
-    if (e.target.id == 'headsets-switch') {
-      setHeadsetsChecked(e.target.checked);
-    }
-  };
 
   // function that sends request to server to get headset data
   function getHeadsets() {
@@ -269,6 +264,21 @@ function Location(props) {
         }
         setLocations(temp_locations);
       });
+  }
+
+  function getPhotos() {
+    if (!selectedLocation)
+      return;
+
+    fetch(`http://${host}:${port}/photos?camera_location_id=${selectedLocation}`)
+      .then(response => response.json())
+      .then(data => {
+        var temp = {};
+        for (var photo of data) {
+          temp[photo.id] = photo;
+        }
+        setPhotos(temp);
+      })
   }
 
   function updateIncidentInfo() {
@@ -622,6 +632,7 @@ function Location(props) {
               <LayerContainer id="map-container" port={port} icons={icons}
                 headsets={headsets} headsetsChecked={headsetsChecked}
                 features={features} featuresChecked={featuresChecked}
+                photos={photos} photosChecked={photosChecked}
                 histories={histories} setHistories={setHistories}
                 setFeatures={setFeatures} setHeadsets={setHeadsets}
                 cursor={cursor} setClickCount={setClickCount}
@@ -634,20 +645,27 @@ function Location(props) {
                 selectedLayer={selectedLayer} setSelectedLayer={setSelectedLayer}
               />
               <div style={{ width: 'max-content' }}>
-                <Form onChange={changeMapObjectsContainer}>
+                <Form>
                   <Form.Check
-                    onClick={changeMapObjects(this, 'headsets')}
+                    onChange={(e) => setHeadsetsChecked(e.target.checked)}
                     type="switch"
                     id="headsets-switch"
                     label="Headsets"
                     checked={headsetsChecked}
                   />
                   <Form.Check
-                    onChange={changeMapObjects(this, 'features')}
+                    onChange={(e) => setFeaturesChecked(e.target.checked)}
                     type="switch"
                     id="features-switch"
                     label="Features"
                     checked={featuresChecked}
+                  />
+                  <Form.Check
+                    onChange={(e) => setPhotosChecked(e.target.checked)}
+                    type="switch"
+                    id="photos-switch"
+                    label="Photos"
+                    checked={photosChecked}
                   />
                 </Form>
               </div>
