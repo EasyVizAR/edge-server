@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table } from 'react-bootstrap';
+import { Button, Table } from 'react-bootstrap';
 import './WorkItems.css';
 import {Helmet} from 'react-helmet';
 import {Link} from "react-router-dom";
@@ -13,6 +13,20 @@ function WorkItems(props){
   useEffect(() => {
     getWorkItems();
   }, []);
+
+  const handleDeleteClicked = (id) => {
+    const url = `http://${host}:${port}/photos/${id}`;
+    const requestData = {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+    fetch(url, requestData).then(response => {
+      setWorkItems(workItems.filter(item => item.id !== id));
+    });
+  }
 
   function getWorkItems(){
     const requestData = {
@@ -126,6 +140,7 @@ function WorkItems(props){
               <th>Content Type</th>
               <th>Status</th>
               <th>Image URL</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -145,6 +160,14 @@ function WorkItems(props){
                       <div>
                         <Photos e={e}/>
                       </div>
+                    </td>
+                    <td>
+                      <Button
+                        variant="danger" size="sm"
+                        onClick={() => handleDeleteClicked(e.id)}
+                        title="Delete photo">
+                        Delete
+                      </Button>
                     </td>
                   </tr>
                 })
