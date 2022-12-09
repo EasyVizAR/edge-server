@@ -223,11 +223,14 @@ function LayerContainer(props) {
                       if (!item.camera_position) {
                         return null;
                       }
+
                       const x = mapShape.xscale * (item.camera_position.x - mapShape.xmin);
                       const y = mapShape.yscale * (item.camera_position.z - mapShape.ymin);
+                      const color = (item.created_by && props.headsets[item.created_by]) ? props.headsets[item.created_by].color : "#808080";
                       return <FontAwesomeIcon icon={icons['photo']['iconName']}
                                               className="features" id={"photo-" + item.id}
-                                              alt={item.imageUrl} color="#808080"
+                                              alt="Photo taken by a headset"
+                                              color={color}
                                               onMouseEnter={(e) => handleMouseOverPhoto(e, item)}
                                               onMouseLeave={() => setThumbnailImage(null)}
                                               style={{
