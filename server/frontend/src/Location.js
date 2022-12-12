@@ -8,6 +8,7 @@ import AllHeadsets from './AllHeadsets.js';
 import LocationTable from './LocationTable.js';
 import HeadsetTable from './HeadsetTable.js';
 import FeatureTable from './FeatureTable.js';
+import PhotoTable from './PhotoTable.js';
 import 'reactjs-popup/dist/index.css';
 import React, { useState, useEffect, useRef } from 'react';
 import moment from 'moment';
@@ -156,6 +157,7 @@ function Location(props) {
 
     if (selectedLocation) {
       getLayers();
+      getPhotos();
     }
 
     changeSubscriptions(selectedLocationRef.current, selectedLocation);
@@ -164,12 +166,6 @@ function Location(props) {
     // event handler.
     selectedLocationRef.current = selectedLocation;
   }, [selectedLocation]);
-
-  useEffect(() => {
-    if (photosChecked) {
-      getPhotos();
-    }
-  }, [photosChecked, selectedLocation]);
 
   // time goes off every 10 seconds to refresh headset data
   //    useEffect(() => {
@@ -463,6 +459,9 @@ function Location(props) {
       ws.send("subscribe headsets:created");
       ws.send("subscribe headsets:updated");
       ws.send("subscribe headsets:deleted");
+      ws.send("subscribe photos:created");
+      ws.send("subscribe photos:updated");
+      ws.send("subscribe photos:deleted");
 
       const selectedLocation = selectedLocationRef.current;
       if (selectedLocation) {
@@ -521,6 +520,30 @@ function Location(props) {
           let newFeatures = Object.assign({}, prevFeatures);
           delete newFeatures[message.previous.id];
           return newFeatures;
+        });
+      } else if (message.event === "photos:created") {
+        if (message.current.camera_location_id !== selectedLocation)
+          return;
+        setPhotos(prevPhotos => {
+          let newPhotos = Object.assign({}, prevPhotos);
+          newPhotos[message.current.id] = message.current;
+          return newPhotos;
+        });
+      } else if (message.event === "photos:updated") {
+        if (message.current.camera_location_id !== selectedLocation)
+          return;
+        setPhotos(prevPhotos => {
+          let newPhotos = Object.assign({}, prevPhotos);
+          newPhotos[message.current.id] = message.current;
+          return newPhotos;
+        });
+      } else if (message.event === "photos:deleted") {
+        if (message.previous.camera_location_id !== selectedLocation)
+          return;
+        setPhotos(prevPhotos => {
+          let newPhotos = Object.assign({}, prevPhotos);
+          delete newPhotos[message.previous.id];
+          return newPhotos;
         });
       } else if (message.event === "layers:updated") {
         if (!message.uri.includes(selectedLocation))
@@ -675,6 +698,8 @@ function Location(props) {
               <FeatureTable port={port} icons={icons} features={features} locationId={selectedLocation} />
               {/* <LocationTable port={port} locations={locations} getLocations={get_locations}
                                      setLocations={setLocations}/> */}
+
+              <PhotoTable port={port} photos={photos} setPhotos={setPhotos} />
             </div>
           </Tab>
           {/* <Tab eventKey="create-location" title="Create Location">
