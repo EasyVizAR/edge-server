@@ -91,11 +91,13 @@ function WorkItems(props){
 
   function Photos(props){
     var url = '';
+    var full_url = props.e.imageUrl;
     if (props.e.imageUrl != null){
       if (props.e.imageUrl.includes('http')){
         url = props.e.imageUrl;
       }else{
-        url = `http://${host}:${port}` + `${props.e.imageUrl}`;
+        url = `http://${host}:${port}/photos/${props.e.id}/thumbnail`;
+        full_url = `http://${host}:${port}${props.e.imageUrl}`;
       }
     }else{
       return(<p style={{color: 'black'}}>No Image Yet</p>);
@@ -104,7 +106,7 @@ function WorkItems(props){
     if (props.e.hasBoundary == false){
       return(
         <div>
-          <a target="_blank" href={url}>
+          <a target="_blank" href={full_url}>
             <img className="work-items-images" src={url} alt="Photo" />
           </a>
         </div>

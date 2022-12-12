@@ -8,6 +8,8 @@ from quart import Blueprint, current_app, g, jsonify, request, send_from_directo
 from werkzeug import exceptions
 from werkzeug.utils import secure_filename
 
+from PIL import Image
+
 from server.resources.csvresource import CsvCollection
 from server.resources.filter import Filter
 from server.utils.utils import save_image
@@ -16,6 +18,8 @@ from .models import PhotoModel
 
 
 photos = Blueprint("photos", __name__)
+
+thumbnail_max_size = (320, 320)
 
 
 def get_photo_extension(photo):
@@ -454,6 +458,37 @@ async def get_photo_file(photo_id):
         raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
     return await send_from_directory(photo.get_dir(), os.path.basename(photo.imagePath))
+
+
+@photos.route('/photos/<photo_id>/thumbnail', methods=['GET'])
+async def get_photo_thumbnail(photo_id):
+    """
+    Get a photo thumbnail file
+    ---
+    get:
+        summary: Get a photo thumbnail file
+        tags:
+          - photos
+        responses:
+            200:
+                description: The image or other data file.
+                content:
+                    image/jpeg: {}
+                    image/png: {}
+    """
+    photo = g.active_incident.Photo.find_by_id(photo_id)
+    if photo is None:
+        raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+
+    thumbnail_file = "thumbnail."+get_photo_extension(photo)
+    thumbnail_path = os.path.join(photo.get_dir(), thumbnail_file)
+    if not os.path.exists(thumbnail_path):
+        original_path = os.path.join(photo.get_dir(), "image."+get_photo_extension(photo))
+        with Image.open(original_path) as im:
+            im.thumbnail(thumbnail_max_size)
+            im.save(thumbnail_path, im.format)
+
+    return await send_from_directory(photo.get_dir(), os.path.basename(thumbnail_file))
 
 
 @photos.route('/photos/<photo_id>/image', methods=['PUT'])

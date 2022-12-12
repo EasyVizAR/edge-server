@@ -39,7 +39,7 @@ function PhotoTable(props) {
       if (props.url.startsWith('http')) {
         url = props.url;
       } else {
-        url = `http://${host}:${port}${props.url}`;
+        url = `http://${host}:${port}/photos/${props.id}/thumbnail`;
       }
     } else {
       return <p style={{color: 'black'}}>No image</p>;
