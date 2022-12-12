@@ -205,8 +205,13 @@ function LayerContainer(props) {
       // Use this to center the corner of the photo within the icon.
       const rect = ev.target.getBoundingClientRect();
 
+      var url = photo.imageUrl;
+      if (!url.startsWith('http')) {
+        url = `http://${host}:${port}/photos/${photo.id}/thumbnail`;
+      }
+
       setThumbnailImage({
-        url: photo.imageUrl,
+        url: url,
         left: x + 0.5*rect.width,
         top: y + 0.5*rect.height
       })
@@ -220,7 +225,7 @@ function LayerContainer(props) {
                 {
                   layerLoaded && props.photosChecked && Object.keys(props.photos).length > 0 &&
                     Object.entries(props.photos).map(([id, item]) => {
-                      if (!item.camera_position) {
+                      if (!item.camera_position || !item.ready) {
                         return null;
                       }
 
