@@ -1,5 +1,5 @@
 import './Home.css';
-import { Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button, Tab, Tabs } from 'react-bootstrap';
+import { Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button, Tab, Tabs, Row, Col } from 'react-bootstrap';
 import NewLocation from './NewLocation.js';
 import NewFeature from './NewFeature.js';
 import NewIncidentModal from './NewIncidentModal.js';
@@ -9,6 +9,7 @@ import LocationTable from './LocationTable.js';
 import HeadsetTable from './HeadsetTable.js';
 import FeatureTable from './FeatureTable.js';
 import PhotoTable from './PhotoTable.js';
+import ClickToEdit from './ClickToEdit.js';
 import 'reactjs-popup/dist/index.css';
 import React, { useState, useEffect, useRef } from 'react';
 import moment from 'moment';
@@ -125,7 +126,7 @@ function Location(props) {
   const [featuresChecked, setFeaturesChecked] = useState(false);
   const [photosChecked, setPhotosChecked] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
-  const [currLocationName, setCurrLocationName] = useState('');
+  const [currentLocation, setCurrentLocation] = useState(null);
   const [placementType, setPlacementType] = useState('');
   const [tab, setTab] = useState('location-view');
   const [historyData, setHistoryData] = useState([]);
@@ -288,7 +289,7 @@ function Location(props) {
   const handleLocationSelection = (e, o) => {
     window.location.href = `http://${host}:${port}/#/locations/${e}`;
     setSelectedLocation(e);
-    setCurrLocationName(locations[e]['name']);
+    setCurrentLocation(locations[e]);
     setFeaturesChecked(false);
     setHeadsetsChecked(true);
   }
@@ -296,7 +297,7 @@ function Location(props) {
   const getDefaultLocationSelection = () => {
     if (Object.keys(locations).length == 0)
       return null;
-    setCurrLocationName(locations[location_id]['name']);
+    setCurrentLocation(locations[location_id]);
     return location_id;
   }
 
@@ -443,6 +444,35 @@ function Location(props) {
       });
   }
 
+  const saveLocationFieldChange = (fieldName, newValue) => {
+    if (!currentLocation)
+      return;
+
+    const url = `http://${host}:${port}/locations/${currentLocation.id}`;
+    const requestData = {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        [fieldName]: newValue
+      })
+    };
+
+    fetch(url, requestData)
+      .then(response => {
+        return response.json()
+      }).then(data => {
+        setCurrentLocation(data);
+
+        setLocations(current => {
+          const copy = {...current};
+          copy[data.id] = data;
+          return copy;
+        });
+      });
+  }
+
   function openWebSocket() {
     // I thought useEffect should only be called once, but this seems to be
     // called many times. Something is not quite right. The easy fix is to
@@ -565,7 +595,7 @@ function Location(props) {
     };
   }
 
-  function changeSubscriptions(previousLocation, currentLocation) {
+  function changeSubscriptions(previousLocationId, currentLocationId) {
     const ws = webSocket.current;
     if (!ws || ws.readyState === 0) {
       return;
@@ -579,14 +609,14 @@ function Location(props) {
       "locations:updated"
     ];
 
-    if (previousLocation) {
-      let filter1 = " /locations/" + previousLocation + "*";
+    if (previousLocationId) {
+      let filter1 = " /locations/" + previousLocationId + "*";
       for (var ev of events) {
         ws.send("unsubscribe " + ev + filter1);
       }
     }
 
-    let filter2 = " /locations/" + currentLocation + "*";
+    let filter2 = " /locations/" + currentLocationId + "*";
     for (var ev of events) {
       ws.send("subscribe " + ev + filter2);
     }
@@ -631,7 +661,7 @@ function Location(props) {
               </div>
             </div>
 
-            <div className='home-content'>
+            <Container fluid>
               <NewFeature port={port} icons={icons}
                 showNewFeature={showNewFeature} changeCursor={toggleCursor}
                 changeIcon={changeIcon} pointCoordinates={pointCoordinates}
@@ -640,18 +670,48 @@ function Location(props) {
                 setSliderValue={setSliderValue} setPlacementType={setPlacementType}
                 placementType={placementType} />
 
-              <div style={{ textAlign: 'left', marginBottom: '15px' }}>
-                <div style={{ display: 'inline-block' }}>
+              <Row className="location-header">
+                <Col>
                   <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Current Incident</p>
                   <h4 style={{ marginTop: '0px' }}>{incidentInfo.get()}</h4>
                   <h5>{currentIncident.get()}</h5>
-                </div>
-                <div style={{ marginLeft: '15px', display: 'inline-block' }}>
+                </Col>
+                <Col>
                   <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Current Location</p>
-                  <h4 style={{ marginTop: '0px' }}>{currLocationName != '' ? (currLocationName) : ('No Location Selected')}</h4>
-                  <h5>{currLocationName != '' ? selectedLocation : ''}</h5>
-                </div>
-              </div>
+                  {
+                    currentLocation ? (
+                      <>
+                        <ClickToEdit
+                          tag='h4'
+                          initialValue={currentLocation.name}
+                          placeholder='Location name'
+                          onSave={(newValue) => saveLocationFieldChange('name', newValue)} />
+                        <h5>{currentLocation ? selectedLocation : ''}</h5>
+                      </>
+                    ) : (
+                      <h4>No Location Selected</h4>
+                    )
+                  }
+                </Col>
+                <Col xs={5}>
+                  {
+                    currentLocation ? (
+                      <>
+                        <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Description</p>
+                        <ClickToEdit
+                          textarea
+                          tag='p'
+                          initialValue={currentLocation.description}
+                          placeholder='Description'
+                          onSave={(newValue) => saveLocationFieldChange('description', newValue)} />
+                      </>
+                    ) : (
+                      null
+                    )
+                  }
+                </Col>
+              </Row>
+
               <LayerContainer id="map-container" port={port} icons={icons}
                 headsets={headsets} headsetsChecked={headsetsChecked}
                 features={features} featuresChecked={featuresChecked}
@@ -700,7 +760,7 @@ function Location(props) {
                                      setLocations={setLocations}/> */}
 
               <PhotoTable port={port} photos={photos} setPhotos={setPhotos} />
-            </div>
+            </Container>
           </Tab>
           {/* <Tab eventKey="create-location" title="Create Location">
                     <NewLocation port={port} getHeadsets={getHeadsets} getLocations={get_locations} setTab={setTab}/>

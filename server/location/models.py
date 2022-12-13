@@ -24,6 +24,9 @@ class LocationModel(JsonResource):
     id:     str
     name:   str
 
+    description: str = field(default=None,
+                             description="Location description or notes to be displayed on the dashboard")
+
     model_path: str = field(default=None)
     model_url:  str = field(default=None)
 
