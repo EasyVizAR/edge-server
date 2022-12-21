@@ -51,6 +51,7 @@ class FeatureModel(JsonResource):
         object
         person
         photo
+        point
         radiation
         stairs
         user
@@ -65,7 +66,7 @@ class FeatureModel(JsonResource):
     position:       Vector3f = field(default_factory=Vector3f,
                                 description="Position in world coordinates")
     type:           str = field(default="object",
-                                description="Feature type (ambulance|door|elevator|extinguisher|fire|headset|injury|message|object|photo|stairs|user|warning)")
+                                description="Feature type (ambulance|door|elevator|extinguisher|fire|headset|injury|message|object|photo|point|stairs|user|warning)")
     style:          FeatureDisplayStyle = field(default_factory=FeatureDisplayStyle,
                                 description="Style information for rendering the feature in AR")
 

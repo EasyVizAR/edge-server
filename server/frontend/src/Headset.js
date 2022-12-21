@@ -24,6 +24,7 @@ import {
   faBandage,
   faBiohazard,
   faBug,
+  faCircle,
   faCirclePlay,
   faDoorClosed,
   faElevator,
@@ -50,6 +51,7 @@ fontawesome.library.add(
   faBandage,
   faBiohazard,
   faBug,
+  faCircle,
   faCirclePlay,
   faDoorClosed,
   faElevator,
@@ -92,6 +94,7 @@ function Headset(props) {
     object: solid('square'),
     person: solid('person'),
     photo: solid('image'),
+    point: solid('circle'),
     radiation: solid('radiation'),
     stairs: solid('stairs'),
     user: solid('user'),
@@ -233,7 +236,7 @@ function Headset(props) {
                 prevState.push({
                 id: headset_id+pt.time,
                 time: pt.time,
-                type: "headset",
+                type: "point",
                 color: hset.color + Math.round(128 * (i / num) + 16).toString(16),
                 position: pt.position,
                 });

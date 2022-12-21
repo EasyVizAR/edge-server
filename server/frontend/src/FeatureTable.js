@@ -5,21 +5,6 @@ import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
 
-const featureTypes = [
-  "ambulance",
-  "door",
-  "elevator",
-  "extinguisher",
-  "fire",
-  "headset",
-  "injury",
-  "message",
-  "object",
-  "stairs",
-  "user",
-  "warning"
-]
-
 const placementTypes = [
   "point",
   "floating",
