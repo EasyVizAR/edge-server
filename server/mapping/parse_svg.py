@@ -4,6 +4,8 @@ import math
 import numpy as np
 import time
 import sys
+#from searcher import Searcher
+import heapq
 
 plt.rcParams['figure.dpi'] = 500
 plt.rcParams['savefig.dpi'] = 500
@@ -58,6 +60,19 @@ class Grid:
 					continue
 				l.append( ( point[0] + i * (1/self.granularity), point[1] + j * (1/self.granularity) ) )
 		return l
+	
+	def getUnOccupiedNeighbors(self, point):
+		l = []
+		point = self.getGridBoxCoordinates(point)
+		for i in range(-1, 2):
+			for j in range(-1, 2):
+				if (i == 0 and j == 0):
+					continue
+				#neighbor = ( point[0] + i * (1/self.granularity), point[1] + j * (1/self.granularity) )
+				neighbor = (point[0] + i, point[1] + j)
+				if neighbor not in self.grid:
+					l.append( self.getRealBoxCoordinates(neighbor) )
+		return l
 
 	def getGridBoxCoordinates(self, point):
 		nudge = 0.0000001
@@ -69,8 +84,8 @@ class Grid:
 	def getRealBoxCoordinates(self, point):
 		nudge = 0.0000001
 		return (
-			math.floor(point[0]*self.granularity + nudge)/self.granularity,
-			math.floor(point[1]*self.granularity + nudge)/self.granularity
+			math.floor(point[0] + nudge)/self.granularity,
+			math.floor(point[1] + nudge)/self.granularity
 		)
 
 	def nudge(self, value):
@@ -277,8 +292,10 @@ class Parser:
 
 			for i in range(len(path) - 1):
 				self.box_intersections((path[i], path[i+1]))
+		
+		return self.grid
 
-	def plotPathsAndBoxes(self, filename):
+	def plotWallsAndBoxes(self, filename):
 		# plot svg paths
 		for path in self.paths:
 			plt.plot([point[0] for point in path], [point[1]
@@ -298,7 +315,104 @@ class Parser:
 					 markerfacecolor="red", markersize=1)
 		# """
 		plt.savefig(filename)
+	
+	def plotWallsBoxesRoutes(self, filename, route):
+		# plot svg paths
+		for path in self.paths:
+			plt.plot([point[0] for point in path], [point[1]
+					 for point in path], 'k-')
 
+		# plot boxes with points
+		# """
+		for box in self.grid.getOccupiedBoxes():
+			#box_x = [box[0], box[0] + 1/granularity, box[0] + 1/granularity, box[0], box[0]]
+			#box_y = [box[1], box[1], box[1] + 1/granularity, box[1] + 1/granularity, box[1]]
+
+			box_x = [box[0] + 1/(granularity*2)]
+			box_y = [box[1] + 1/(granularity*2)]
+
+			#plt.plot(box_x, box_y, 'r-')
+			plt.plot(box_x, box_y, marker="s",
+					 markerfacecolor="red", markersize=1)
+		# """
+		
+		# plot route
+		plt.plot([p[0] for p in route], [p[1] for p in route], 'b-', markersize = 1)
+
+		for point in route:
+			plt.plot(point[0], point[1], 'r.', markersize = 2)
+
+		plt.savefig(filename)
+
+class Map:
+	def __init__(self, gridWalls: Grid):
+		self.gridWalls = gridWalls
+	
+	def calculatePath(self, start, destination):
+		path = self.aStarSearch(start, destination, self.hEuclidean)
+		return path
+	
+	def hDiagonal(self, start, destination):
+		dx = abs(start[0] - destination[0])
+		dy = abs(start[1] - destination[1])
+		return (dx + dy) + (-1) * min(dx, dy)
+	
+	def hEuclidean(self, start, destination):
+		return math.sqrt(math.pow(start[0] - destination[0], 2) + math.pow(start[1] - destination[1], 2))
+	
+	def aStarSearch(self, start, destination, h):
+		# First, is get neighbors implemented? Yes, although won't tell if neighbor is in the grid
+
+		#openSet = {start}
+		openSet = []
+
+		cameFrom = {}
+		gscore = {start: 0}			# Default value of infinity
+		fscore = {start: h(start, destination)}	# Default value of infinity
+
+		def getGScore(point):
+			if point in gscore:
+				return gscore[point]
+			else:
+				return float('inf')
+
+		heapq.heappush(openSet, (h(start, destination), start))
+
+		while len(openSet) != 0:
+			# Get node with lowest fscore value
+			current_f, current = heapq.heappop(openSet)
+
+			if current == destination:
+				print("YAHOOOO!!!")
+				print(cameFrom)
+				return self.reconstructPath(cameFrom, current)
+			
+			print("Length of OpenSet: {}".format(len(openSet)))
+			neighbors = self.gridWalls.getUnOccupiedNeighbors(current)
+			print("{} -> {}".format(current, neighbors))
+			for neighbor in neighbors:
+				if neighbor not in self.gridWalls:
+					tentativeGScore = getGScore(current) + 1
+					if tentativeGScore < getGScore(neighbor):
+						# Better path to destination is found, record it
+						cameFrom[neighbor] = current
+						gscore[neighbor] = tentativeGScore
+						fscore[neighbor] = tentativeGScore + h(neighbor, destination)
+						#print(" - neighbor {} in openSet? {}".format(neighbor, neighbor not in openSet))
+						if (neighbor not in openSet):
+							heapq.heappush(openSet, (h(neighbor, destination), neighbor))
+							print(len(openSet))
+
+	def reconstructPath(self, cameFrom, current):
+		#print("Current node {} in cameFrom? {}".format(current, current in cameFrom))
+		total_path = [current]
+		while current in cameFrom:
+			current = cameFrom[current]
+			total_path.append(current)
+		total_path.reverse()
+		return total_path
+	
+	#def calculatePath(self, )
 
 granularity = GRANULARITY
 
@@ -349,14 +463,15 @@ plotPathsAndBoxes(paths, filled_spaces, "test_intersections.png")"""
 
 if __name__ == "__main__":
 	parser = Parser()
+	#s = Searcher()
 	test = 0
 	TEST_LINE_INTERSECTION = 1
 	TEST_EXAMPLE_SVG = 2
 
-	if (sys.argv[1] == "-t"):
+	if (len(sys.argv) <= 2):
+		test = 3
+	elif (sys.argv[1] == "-t"):
 		test = int(sys.argv[2])
-	else:
-		test = 2
 
 	# test 0
 	if (test == 1):
@@ -369,7 +484,21 @@ if __name__ == "__main__":
 	if (test == 2):
 		parser.setPathsFromSvg("image.svg")
 		parser.calculateOccupiedBoxes()
-		parser.plotPathsAndBoxes("test_intersections.png")
+		parser.plotWallsAndBoxes("test_intersections.png")
+	
+	if (test == 3):
+		parser.setPathsFromSvg("image.svg")
+		parser.calculateOccupiedBoxes()
+		#parser.plotWallsBoxesRoutes("test_intersections.png", [(0, 0), (1, 1), (2, 2)])
+
+		#neighbors = parser.grid.getUnOccupiedNeighbors((0, 0))
+		#print(neighbors)
+		map = Map(parser.grid)
+		path = map.calculatePath((0, -2.5), (20, 10))
+		print(path)
+		parser.plotWallsBoxesRoutes("test_intersections.png", path)
+		
+
 
 	# print(parser.grid.getOccupiedBoxes())
 
