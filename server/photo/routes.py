@@ -14,7 +14,7 @@ from server.resources.csvresource import CsvCollection
 from server.resources.filter import Filter
 from server.utils.utils import save_image
 
-from .models import PhotoModel
+from .models import PhotoFile, PhotoModel
 
 
 photos = Blueprint("photos", __name__)
@@ -483,12 +483,35 @@ async def get_photo_thumbnail(photo_id):
     thumbnail_file = "thumbnail."+get_photo_extension(photo)
     thumbnail_path = os.path.join(photo.get_dir(), thumbnail_file)
     if not os.path.exists(thumbnail_path):
-        original_path = os.path.join(photo.get_dir(), "image."+get_photo_extension(photo))
+        original_path = os.path.join(photo.imagePath)
         with Image.open(original_path) as im:
             im.thumbnail(thumbnail_max_size)
             im.save(thumbnail_path, im.format)
 
     return await send_from_directory(photo.get_dir(), os.path.basename(thumbnail_file))
+
+
+@photos.route('/photos/<photo_id>/<filename>', methods=['GET'])
+async def get_photo_file_by_name(photo_id, filename):
+    """
+    Get a photo file by name
+    ---
+    get:
+        summary: Get a photo file by name
+        tags:
+          - photos
+        responses:
+            200:
+                description: The image or other data file.
+                content:
+                    image/jpeg: {}
+                    image/png: {}
+    """
+    photo = g.active_incident.Photo.find_by_id(photo_id)
+    if photo is None:
+        raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+
+    return await send_from_directory(photo.get_dir(), secure_filename(filename))
 
 
 @photos.route('/photos/<photo_id>/image', methods=['PUT'])
@@ -525,10 +548,119 @@ async def upload_photo_file(photo_id):
         with open(photo.imagePath, "wb") as output:
             output.write(body)
 
+    with Image.open(photo.imagePath) as image:
+        photo.width = image.width
+        photo.height = image.height
+        photo.contentType = "image/{}".format(image.format.lower())
+
+        photo.files.append(PhotoFile(upload_file_name, "photo",
+            width = photo.width,
+            height = photo.height,
+            content_type = photo.contentType
+        ))
+
+        # If the photo exceeds the thumbnail size, then generate a smaller
+        # thumbnail version.  Otherwise, there is no need to make a thumbnail.
+        if photo.width > thumbnail_max_size[0] or photo.height > thumbnail_max_size[1]:
+            thumbnail_file = "thumbnail."+get_photo_extension(photo)
+            thumbnail_path = os.path.join(photo.get_dir(), thumbnail_file)
+            image.thumbnail(thumbnail_max_size)
+            image.save(thumbnail_path, image.format)
+
+            photo.files.append(PhotoFile(thumbnail_file, "thumbnail",
+                width = image.width,
+                height = image.height,
+                content_type = photo.contentType
+            ))
+
     previous = g.active_incident.Photo.find_by_id(photo_id)
     photo.imageUrl = "/photos/{}/image".format(photo_id)
     photo.ready = True
     photo.status = "ready"
+    photo.updated = time.time()
+    photo.save()
+
+    if created:
+        await current_app.dispatcher.dispatch_event("photos:created",
+                "/photos/"+photo.id, current=photo)
+        return jsonify(photo), HTTPStatus.CREATED
+    else:
+        await current_app.dispatcher.dispatch_event("photos:updated",
+                "/photos/"+photo.id, current=photo, previous=previous)
+        return jsonify(photo), HTTPStatus.OK
+
+
+@photos.route('/photos/<photo_id>/<filename>', methods=['PUT'])
+async def upload_photo_file_by_name(photo_id, filename):
+    """
+    Upload a photo file by name
+    ---
+    put:
+        summary: Upload a photo file by name
+        description: |-
+            This method may be used to upload primary and secondary image
+            files.  Here, primary refers to an ordinary color camera image.
+            Secondary files may be thumbnail images, view space geometry
+            images, thermal images, etc. The filename in the path should match
+            one of the supported use cases (photo|depth|geometry|thermal|thumbnail).
+            This currently assumes that only one of each type will be uploaded.
+
+            Example:
+
+                PUT /photos/5b737da7-1363-4072-9bc3-c96faf974b1a/photo.png
+                    -> upload a primary photo
+
+                PUT /photos/5b737da7-1363-4072-9bc3-c96faf974b1a/geometry.png
+                    -> upload a geometry image
+        tags:
+          - photos
+        requestBody:
+            required: true
+            content:
+                image/jpeg: {}
+                image/png: {}
+    """
+    photo = g.active_incident.Photo.find_by_id(photo_id)
+    if photo is None:
+        raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+
+    # In case the image path was not set correctly or even was set maliciously,
+    # reconstruct it here before writing the file.
+    upload_file_name = secure_filename(filename)
+    upload_file_path = os.path.join(photo.get_dir(), upload_file_name)
+    file_purpose, file_ext = os.path.splitext(upload_file_name)
+    file_purpose = file_purpose.lower()
+
+    created = not os.path.exists(photo.imagePath)
+
+    request_files = await request.files
+    if 'image' in request_files:
+        await save_image(upload_file_path, request_files['image'])
+    else:
+        body = await request.get_data()
+        with open(upload_file_path, "wb") as output:
+            output.write(body)
+
+    with Image.open(upload_file_path) as image:
+        content_type = "image/{}".format(image.format.lower())
+
+        if file_purpose == "photo":
+            photo.imagePath = upload_file_path
+            photo.width = image.width
+            photo.height = image.height
+            photo.contentType = content_type
+
+        photo.files.append(PhotoFile(upload_file_name, file_purpose,
+            width = photo.width,
+            height = photo.height,
+            content_type = content_type
+        ))
+
+    previous = g.active_incident.Photo.find_by_id(photo_id)
+    photo.imageUrl = "/photos/{}/image".format(photo_id)
+    if file_purpose == "photo":
+        photo.ready = True
+        photo.status = "ready"
     photo.updated = time.time()
     photo.save()
 

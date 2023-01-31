@@ -30,6 +30,21 @@ class Detector:
 
 
 @dataclass
+class PhotoFile:
+    name:   str
+
+    purpose:        str = field(default="photo",
+                                description="Meaning of the data in the file (photo|depth|geometry|thermal|thumbnail)")
+
+    content_type:   str = field(default=None,
+                                description="File MIME type (detected during creation)")
+    height:         int = field(default=None,
+                                description="Photo height in pixels (detected during creation)")
+    width:          int = field(default=None,
+                                description="Photo width in pixels (detected during creation)")
+
+
+@dataclass
 class PhotoModel(JsonResource):
     """
     A photo uploaded by a headset.
@@ -81,6 +96,9 @@ class PhotoModel(JsonResource):
     annotations:    List[Annotation] = field(default_factory=list)
     detector:       Detector = field(default=None,
                                      description="Information about the object detector that was used")
+
+    files:          List[PhotoFile] = field(default_factory=list,
+                                            description="List of files associated with this photo")
 
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)
