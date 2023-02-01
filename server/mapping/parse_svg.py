@@ -6,6 +6,7 @@ import time
 import sys
 #from searcher import Searcher
 import heapq
+import csv
 
 plt.rcParams['figure.dpi'] = 500
 plt.rcParams['savefig.dpi'] = 500
@@ -131,9 +132,23 @@ class Parser:
 
 		doc.unlink()
 		self.paths = paths
+		return paths
 
 	def setPaths(self, paths):
 		self.paths = paths
+
+	def getUserLocations(self, filepath):
+		points = []
+		with open(filepath, newline='') as csvFile:
+			csvReader = csv.reader(csvFile, delimiter=',')
+			headerRead = False
+			for row in csvReader:
+				# Skip heaer
+				if not headerRead:
+					headerRead = True
+					continue
+				points.append((float(row[1]), float(row[3])))
+		return points
 
 	def getGridOfBoxesWithPoints(self):
 		for path in self.paths:
@@ -144,6 +159,26 @@ class Parser:
 				self.grid.put(point)
 
 		# return self.grid
+	
+	def getPathApproximations(self):
+		approximatePaths = []
+		for path in self.paths:
+			numSegments = 2
+			if len(path) <= numSegments:
+				approximatePaths.append([path[0], path[-1]])
+				continue
+
+			# Path is longer than a single segment, break up path
+			#approximatePaths.append([path[0], path[len(path)/2]])
+			#approximatePaths.append([path[len(path)/2], path[-1]])
+
+			previous = 0
+			length = math.floor(len(path)/numSegments)
+			for i in range(1, numSegments):
+				approximatePaths.append([path[previous], path[length * i]])
+				previous = length * i
+			approximatePaths.append([path[previous], path[-1]])
+		return approximatePaths
 
 	# Line format = ( (x1, y1), (y1, y2) )
 	def line_intersection(self, line1, line2):
@@ -162,6 +197,11 @@ class Parser:
 		d = (det(*line1), det(*line2))
 		x = det(d, xdiff) / div
 		y = det(d, ydiff) / div
+
+		"""if x > 30:
+			print("line1: {},\nline2: {},\nxdiff: {},\nydiff: {},\ndiv: {},\nd: {}"
+			.format(line1, line2, xdiff, ydiff, div, d))"""
+
 		return x, y
 
 	def box_intersections(self, line):
@@ -213,6 +253,7 @@ class Parser:
 		#print("Horizontal line intersections")
 		# Check vertical line intersections (inclusive over grid lines)
 		# for y in np.arange(miny, maxy + 1/self.grid.granularity, 1/self.grid.granularity):
+		count = 0
 		for y in np.arange(miny, maxy, 1/self.grid.granularity):
 			grid_line = ((maxx, y), (minx, y))
 			intersection = self.line_intersection(line, grid_line)
@@ -220,13 +261,16 @@ class Parser:
 				continue
 			#print("Line: {},\n\tGridline: {},\n\tIntersection: {}".format(line, grid_line, intersection))
 			# intersections.append((intersection))
+			count += 1
+			if (intersection[0] > 30):
+				print("Gotem: {}, count: {}".format(intersection, count))
 			intersections.append((HORIZONTAL_GRIDLINE, intersection))
 
 		for intersection in intersections:
 			# Check if intersection is none, why would this happen?
-			if (intersection[1][1] > 150):
+			if (intersection[1][0] > 30):
 				print("Gotem: {}".format(intersection[1]))
-				continue
+				#continue
 
 			if intersection[1] == None:
 				print("What's goign on?")
@@ -314,6 +358,16 @@ class Parser:
 			plt.plot(box_x, box_y, marker="s",
 					 markerfacecolor="red", markersize=1)
 		# """
+
+		# Plot wall path approximations
+		approximatePaths = self.getPathApproximations()
+		for path in approximatePaths:
+			plt.plot([p[0] for p in path], [p[1] for p in path], 'b-', markersize = 1)
+		
+		# Plot user positions
+		locations = self.getUserLocations('samples/direct-route.csv')
+		plt.plot([p[0] for p in locations], [p[1] for p in locations], 'r.', markersize = 2)
+
 		plt.savefig(filename)
 	
 	def plotWallsBoxesRoutes(self, filename, route):
@@ -344,12 +398,38 @@ class Parser:
 
 		plt.savefig(filename)
 
+# Line format = ( (x1, y1), (y1, y2) )
+def line_intersection_alpha(line1, line2):
+	# What happens if the two lines are on top of each other? Does the code crash? How to handle?
+	xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
+	ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
+
+	def det(a, b):
+		return a[0] * b[1] - a[1] * b[0]
+
+	div = det(xdiff, ydiff)
+	if div == 0:
+		return None
+
+	d = (det(*line1), det(*line2))
+	x = det(d, xdiff) / div
+	y = det(d, ydiff) / div
+
+	"""if x > 30:
+		print("line1: {},\nline2: {},\nxdiff: {},\nydiff: {},\ndiv: {},\nd: {}"
+		.format(line1, line2, xdiff, ydiff, div, d))"""
+
+	return x, y
+
+def hEuclidean(start, destination):
+	return math.sqrt(math.pow(start[0] - destination[0], 2) + math.pow(start[1] - destination[1], 2))
+
 class Map:
 	def __init__(self, gridWalls: Grid):
 		self.gridWalls = gridWalls
 	
 	def calculatePath(self, start, destination):
-		path = self.aStarSearch(start, destination, self.hEuclidean)
+		path = self.aStarSearch(start, destination, hEuclidean)
 		return path
 	
 	def hDiagonal(self, start, destination):
@@ -357,8 +437,6 @@ class Map:
 		dy = abs(start[1] - destination[1])
 		return (dx + dy) + (-1) * min(dx, dy)
 	
-	def hEuclidean(self, start, destination):
-		return math.sqrt(math.pow(start[0] - destination[0], 2) + math.pow(start[1] - destination[1], 2))
 	
 	def aStarSearch(self, start, destination, h):
 		# First, is get neighbors implemented? Yes, although won't tell if neighbor is in the grid
@@ -383,13 +461,13 @@ class Map:
 			current_f, current = heapq.heappop(openSet)
 
 			if current == destination:
-				print("YAHOOOO!!!")
-				print(cameFrom)
+				#print("YAHOOOO!!!")
+				#print(cameFrom)
 				return self.reconstructPath(cameFrom, current)
 			
-			print("Length of OpenSet: {}".format(len(openSet)))
+			#print("Length of OpenSet: {}".format(len(openSet)))
 			neighbors = self.gridWalls.getUnOccupiedNeighbors(current)
-			print("{} -> {}".format(current, neighbors))
+			#print("{} -> {}".format(current, neighbors))
 			for neighbor in neighbors:
 				if neighbor not in self.gridWalls:
 					tentativeGScore = getGScore(current) + 1
@@ -401,7 +479,7 @@ class Map:
 						#print(" - neighbor {} in openSet? {}".format(neighbor, neighbor not in openSet))
 						if (neighbor not in openSet):
 							heapq.heappush(openSet, (h(neighbor, destination), neighbor))
-							print(len(openSet))
+							#print(len(openSet))
 
 	def reconstructPath(self, cameFrom, current):
 		#print("Current node {} in cameFrom? {}".format(current, current in cameFrom))
@@ -414,17 +492,123 @@ class Map:
 	
 	#def calculatePath(self, )
 
+	# Weighted A-star search
+	# Is this just multiplying the g-score by the weight?
+	# I can probably figure this out and intuit it if I watch more videos about how A-star works and
+	# just look it up
+
+	# What about something simpler, that might require less effort?
+	# I am talking about creating a graph between user locations as a web of waypoints
+	# I can whip up an implementation of this in like 10-15 minutes.
+
+	# If given a graph with distances, search through them (Dijkstra's should be good enough here)
+	# If given a start point and end point, identify closest waypoints in the graph and path plan
+
+class Rectangle:
+	def __init__(self, x, y, w, h):
+		self.x = x
+		self.y = y
+		self.w = w
+		self.h = h
+
+	def intersects(self, rectangle):
+		# First check intersection, then rect within rect?
+		# check to see if sides overlap?
+		# |  | |  | Here, r1's right side is in front of r2's left
+		# |__|_|  | but r2's right side is behind r1's left
+		#    |____| Same check for bottom and top
+		# ^r1  ^r2
+		thisleft = self.x - self.w
+		thisright = self.x + self.w
+		thisup = self.y - self.h
+		thisdown = self.y + self.h
+
+		rectleft = rectangle.x - rectangle.w
+		rectright = rectangle.x + rectangle.w
+		rectup = rectangle.y - rectangle.h
+		rectdown = rectangle.y + rectangle.h
+
+		return not (thisleft > rectright or
+			thisright < rectleft or
+			thisup > rectdown or
+			thisdown < rectup)
+
+class Node:
+	def __init__(self):
+		self.boundary = None
+
+class QuadTree:
+	def __init__(self):
+		self.head = None
+
+class RoadGraph:
+	def __init__(self, vertices, boundaries):
+		self.vertices = vertices
+		self.boundaries = boundaries
+		self.edges = {}
+	
+	def roadBoundaryIntersection(self, road):
+		for boundary in self.boundaries:
+			"""l1 = LineString(road)
+			l2 = LineString(boundary)
+			if l1.intersects(l2):
+				return True"""
+			
+			if line_intersection_alpha(road, boundary):
+				return True
+
+		return False
+	
+	def calculateEdges(self):
+		if len(self.vertices) < 2:
+			return None
+		
+		for i in range(len(self.vertices)):
+		# for each vertex
+			print(i)
+			for j in range(i+1, len(self.vertices)):
+			# for every other vertex
+				v1 = self.vertices[i]
+				v2 = self.vertices[j]
+				#l1 = LineString([self.vertices[i], self.vertices[j]])
+				# check if line between them intersects with boundary
+				if not self.roadBoundaryIntersection([v1, v2]):
+					# put edge between these points
+					dist = hEuclidean(v1, v2)
+					self.edges[v1] = (v2, dist)
+					self.edges[v2] = (v1, dist)
+		
+		return self.edges
+
+	def plotGraph(self, filename):
+		# plot boundaries
+		for boundary in self.boundaries:
+			plt.plot([point[0] for point in boundary],
+					 [point[1] for point in boundary], 'k-')
+		
+		# plot edges
+		for v1 in self.edges:
+			v2 = self.edges[v1][0]
+			plt.plot([v[0] for v in [v1, v2]], [v[1] for v in [v1, v2]], 'r-', markersize = 1)
+
+		#plt.plot([p[0] for p in route], [p[1] for p in route], 'r-', markersize = 1)
+
+		for v in self.vertices:
+			plt.plot(v[0], v[1], 'r.', markersize = 2)
+
+		plt.savefig(filename)
+
+
 granularity = GRANULARITY
 
 
-def plotPathsAndBoxes(paths, filled_spaces, filename):
+"""def plotPathsAndBoxes(paths, filled_spaces, filename):
 	# plot svg paths
 	for path in paths:
 		plt.plot([point[0] for point in path], [point[1]
 				 for point in path], 'k-')
 
 	# plot boxes with points
-	# """
 	for box in filled_spaces:
 		box_x = [box[0], box[0] + 1/granularity,
 				 box[0] + 1/granularity, box[0], box[0]]
@@ -433,8 +617,8 @@ def plotPathsAndBoxes(paths, filled_spaces, filename):
 		#box_x = [ box[0] + 1/(granularity*2) ]
 		#box_y = [ box[1] + 1/(granularity*2) ]
 		plt.plot(box_x, box_y, 'r-')
-	# """
-	plt.savefig(filename)
+
+	plt.savefig(filename)"""
 
 
 """
@@ -469,7 +653,7 @@ if __name__ == "__main__":
 	TEST_EXAMPLE_SVG = 2
 
 	if (len(sys.argv) <= 2):
-		test = 3
+		test = 2
 	elif (sys.argv[1] == "-t"):
 		test = int(sys.argv[2])
 
@@ -482,9 +666,27 @@ if __name__ == "__main__":
 						  "test_line_intersection.png")
 
 	if (test == 2):
-		parser.setPathsFromSvg("image.svg")
+		print("Getting paths from svg...")
+		boundaries = parser.setPathsFromSvg("image.svg")
+
+		print("Creating grid...")
 		parser.calculateOccupiedBoxes()
-		parser.plotWallsAndBoxes("test_intersections.png")
+
+		#print("Plotting Grid...")
+		#parser.plotWallsAndBoxes("test_grid.png")
+
+		print("Getting user positions...")
+		points = parser.getUserLocations('samples/direct-route.csv')
+
+		print("Creating waypoint map...")
+		#print(boundaries)
+		approximate_boundaries = parser.getPathApproximations()
+		graph = RoadGraph(points, approximate_boundaries)
+		graphEdges = graph.calculateEdges()
+
+		#print("Plotting Graph...")
+		#graph.plotGraph("test_graph_approx_bounds.png")
+		
 	
 	if (test == 3):
 		parser.setPathsFromSvg("image.svg")
@@ -495,10 +697,18 @@ if __name__ == "__main__":
 		#print(neighbors)
 		map = Map(parser.grid)
 		path = map.calculatePath((0, -2.5), (20, 10))
-		print(path)
-		parser.plotWallsBoxesRoutes("test_intersections.png", path)
-		
+		#print(path)
+		#parser.plotWallsBoxesRoutes("test_intersections.png", path)
+	
+	# Test QuadTree
+	if (test == 4):
+		r1 = Rectangle(0, 0, 100, 100)
+		r2 = Rectangle(0, 50, 100, 100)
+		r3 = Rectangle(0, 150, 100, 100)
 
+		print(r1.intersects(r2))
+		print(r1.intersects(r3))
+		print(r2.intersects(r3))
 
 	# print(parser.grid.getOccupiedBoxes())
 
