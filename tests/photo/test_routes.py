@@ -2,6 +2,7 @@ import os
 import time
 
 from http import HTTPStatus
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -299,3 +300,36 @@ async def test_photo_status_change_long_polling():
 
         # Clean up
         await client.delete(photo_url)
+
+
+@patch('server.photo.routes.Image')
+def test_process_uploaded_photo_file(Image):
+    from server.photo.routes import process_uploaded_photo_file
+
+    photo = MagicMock()
+    photo.files = []
+
+    image = MagicMock()
+    image.width = 640
+    image.height = 480
+    image.format = "PNG"
+    Image.open.return_value.__enter__.return_value = image
+
+    process_uploaded_photo_file(photo, "test.png", "test.png", "photo")
+
+    # The function should modify these attributes based on the fake uploaded file.
+    # It should add a photo entry and a thumbnail entry to the file list.
+    assert photo.width == image.width
+    assert photo.height == image.height
+    assert len(photo.files) == 2
+
+    image.width = 333
+    image.height = 333
+
+    process_uploaded_photo_file(photo, "other.png", "other.png", "test")
+
+    # This should not change the attributes in the photo object because it is
+    # not a primary photo, but it should still append to the file list.
+    assert photo.width != image.width
+    assert photo.height != image.height
+    assert len(photo.files) == 3

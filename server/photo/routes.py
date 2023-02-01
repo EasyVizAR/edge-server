@@ -514,6 +514,37 @@ async def get_photo_file_by_name(photo_id, filename):
     return await send_from_directory(photo.get_dir(), secure_filename(filename))
 
 
+def process_uploaded_photo_file(photo, upload_file_path, upload_file_name, file_purpose):
+    with Image.open(upload_file_path) as image:
+        content_type = "image/{}".format(image.format.lower())
+
+        photo.files.append(PhotoFile(upload_file_name, file_purpose,
+            width = image.width,
+            height = image.height,
+            content_type = content_type
+        ))
+
+        if file_purpose == "photo":
+            photo.imagePath = upload_file_path
+            photo.width = image.width
+            photo.height = image.height
+            photo.contentType = content_type
+
+            # If the photo exceeds the thumbnail size, then generate a smaller
+            # thumbnail version.  Otherwise, there is no need to make a thumbnail.
+            if photo.width > thumbnail_max_size[0] or photo.height > thumbnail_max_size[1]:
+                thumbnail_file = "thumbnail."+get_photo_extension(photo)
+                thumbnail_path = os.path.join(photo.get_dir(), thumbnail_file)
+                image.thumbnail(thumbnail_max_size)
+                image.save(thumbnail_path, image.format)
+
+                photo.files.append(PhotoFile(thumbnail_file, "thumbnail",
+                    width = image.width,
+                    height = image.height,
+                    content_type = photo.contentType
+                ))
+
+
 @photos.route('/photos/<photo_id>/image', methods=['PUT'])
 async def upload_photo_file(photo_id):
     """
@@ -548,30 +579,10 @@ async def upload_photo_file(photo_id):
         with open(photo.imagePath, "wb") as output:
             output.write(body)
 
-    with Image.open(photo.imagePath) as image:
-        photo.width = image.width
-        photo.height = image.height
-        photo.contentType = "image/{}".format(image.format.lower())
-
-        photo.files.append(PhotoFile(upload_file_name, "photo",
-            width = photo.width,
-            height = photo.height,
-            content_type = photo.contentType
-        ))
-
-        # If the photo exceeds the thumbnail size, then generate a smaller
-        # thumbnail version.  Otherwise, there is no need to make a thumbnail.
-        if photo.width > thumbnail_max_size[0] or photo.height > thumbnail_max_size[1]:
-            thumbnail_file = "thumbnail."+get_photo_extension(photo)
-            thumbnail_path = os.path.join(photo.get_dir(), thumbnail_file)
-            image.thumbnail(thumbnail_max_size)
-            image.save(thumbnail_path, image.format)
-
-            photo.files.append(PhotoFile(thumbnail_file, "thumbnail",
-                width = image.width,
-                height = image.height,
-                content_type = photo.contentType
-            ))
+    try:
+        process_uploaded_photo_file(photo, photo.imagePath, upload_file_name, "photo")
+    except:
+        pass
 
     previous = g.active_incident.Photo.find_by_id(photo_id)
     photo.imageUrl = "/photos/{}/image".format(photo_id)
@@ -641,20 +652,10 @@ async def upload_photo_file_by_name(photo_id, filename):
         with open(upload_file_path, "wb") as output:
             output.write(body)
 
-    with Image.open(upload_file_path) as image:
-        content_type = "image/{}".format(image.format.lower())
-
-        if file_purpose == "photo":
-            photo.imagePath = upload_file_path
-            photo.width = image.width
-            photo.height = image.height
-            photo.contentType = content_type
-
-        photo.files.append(PhotoFile(upload_file_name, file_purpose,
-            width = photo.width,
-            height = photo.height,
-            content_type = content_type
-        ))
+    try:
+        process_uploaded_photo_file(photo, upload_file_path, upload_file_name, file_purpose)
+    except:
+        pass
 
     previous = g.active_incident.Photo.find_by_id(photo_id)
     photo.imageUrl = "/photos/{}/image".format(photo_id)
