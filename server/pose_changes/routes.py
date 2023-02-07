@@ -7,6 +7,7 @@ from werkzeug import exceptions
 
 from server.resources.csvresource import CsvCollection
 
+from server.utils.rate_limiter import rate_limit_expensive
 from server.utils.response import maybe_wrap
 
 
@@ -14,6 +15,7 @@ pose_changes = Blueprint('pose-changes', __name__)
 
 
 @pose_changes.route('/headsets/<headset_id>/pose-changes', methods=['GET'])
+@rate_limit_expensive
 async def list_pose_changes(headset_id):
     """
     List headset pose changes

@@ -3,7 +3,6 @@ import os
 from concurrent.futures import ProcessPoolExecutor
 
 from quart import Quart, g
-from quart_cors import cors
 
 from server.annotation.routes import annotations
 from server.check_in.routes import check_ins
@@ -18,6 +17,7 @@ from server.routes import routes
 from server.scene.routes import scenes
 from server.surface.routes import surfaces
 from server.utils.pool_limiter import PoolLimiter
+from server.utils.rate_limiter import main_rate_limiter
 from server.utils.utils import GenericJsonEncoder
 from server.work_items.routes import work_items
 
@@ -31,6 +31,8 @@ from server.resources.abstractresource import AbstractCollection
 static_folder = os.environ.get("VIZAR_STATIC_FOLDER", "./frontend/build/")
 
 app = Quart(__name__, static_folder=static_folder, static_url_path='/')
+
+main_rate_limiter.init_app(app)
 
 # CORS seems to be breaking websocket connections but only when they set a
 # specific header value.
@@ -62,19 +64,24 @@ if 'APPLICATION_CONFIG' in os.environ:
 data_dir = app.config.get('VIZAR_DATA_DIR', 'data')
 AbstractCollection.data_directory = data_dir
 
-app.register_blueprint(annotations)
-app.register_blueprint(check_ins)
-app.register_blueprint(features)
-app.register_blueprint(headsets)
-app.register_blueprint(incidents)
-app.register_blueprint(layers)
-app.register_blueprint(locations)
-app.register_blueprint(photos)
-app.register_blueprint(pose_changes)
-app.register_blueprint(routes)
-app.register_blueprint(scenes)
-app.register_blueprint(surfaces)
-app.register_blueprint(work_items)
+blueprints = [
+    annotations,
+    check_ins,
+    features,
+    headsets,
+    incidents,
+    layers,
+    locations,
+    photos,
+    pose_changes,
+    routes,
+    scenes,
+    surfaces,
+    work_items
+]
+
+for bp in blueprints:
+    app.register_blueprint(bp)
 
 
 @app.before_first_request
