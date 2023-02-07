@@ -483,7 +483,11 @@ function Location(props) {
       return;
     }
 
-    webSocket.current = new WebSocket(`ws://${window.location.host}/ws`);
+    if (window.location.protocol === "https:") {
+      webSocket.current = new WebSocket(`wss://${window.location.host}/ws`);
+    } else {
+      webSocket.current = new WebSocket(`ws://${window.location.host}/ws`);
+    }
 
     const ws = webSocket.current;
 
