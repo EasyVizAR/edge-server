@@ -5,8 +5,7 @@ import "./LayerContainer.css"
 import {Form, FormCheck} from "react-bootstrap";
 
 function LayerContainer(props) {
-    const host = window.location.hostname;
-    const port = props.port;
+    const host = process.env.PUBLIC_URL;
     const icons = props.icons;
     const mapIconSize = 7;
     const circleSvgIconSize = 11;
@@ -39,7 +38,7 @@ function LayerContainer(props) {
                 if (layer.imageUrl.startsWith("http")) {
                   url = layer.imageUrl;
                 } else {
-                  url = `http://${host}:${port}${layer.imageUrl}?v=${layer.version}`;
+                  url = `${host}${layer.imageUrl}?v=${layer.version}`;
                 }
               }
               selectedLayerIsValid = true;
@@ -207,7 +206,7 @@ function LayerContainer(props) {
 
       var url = photo.imageUrl;
       if (!url.startsWith('http')) {
-        url = `http://${host}:${port}/photos/${photo.id}/thumbnail`;
+        url = `${host}/photos/${photo.id}/thumbnail`;
       }
 
       setThumbnailImage({

@@ -12,8 +12,7 @@ const placementTypes = [
 ]
 
 function FeatureTable(props){
-  const host = window.location.hostname;
-  const port = props.port;
+  const host = process.env.PUBLIC_URL;
   const icons = props.icons;
 
   // Only one row can be open for editing at a time. A reference is used to
@@ -55,7 +54,7 @@ function FeatureTable(props){
 
   // saves the headset data
   const saveFeature = (e, id) => {
-    const url = `http://${host}:${port}/locations/${props.locationId}/features/${id}`;
+    const url = `${host}/locations/${props.locationId}/features/${id}`;
 
     const newName = formReferences.name.current.value;
     const newColor = formReferences.color.current.value;
@@ -92,7 +91,7 @@ function FeatureTable(props){
       return;
     }
 
-    const url = `http://${host}:${port}/locations/${props.locationId}/features/${id}`;
+    const url = `${host}/locations/${props.locationId}/features/${id}`;
     const requestData = {
       method: 'DELETE',
       headers: {
@@ -130,7 +129,7 @@ function FeatureTable(props){
 
     await Object.entries(checkedItems).map(async ([id, checked]) => {
       if (checked) {
-        const url = `http://${host}:${port}/locations/${props.locationId}/features/${id}`;
+        const url = `${host}/locations/${props.locationId}/features/${id}`;
         const requestData = {
           method: 'DELETE',
           headers: {

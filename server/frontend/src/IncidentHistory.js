@@ -8,8 +8,7 @@ import useStateSynchronous from './useStateSynchronous.js';
 import moment from 'moment';
 
 function IncidentHistory(props){
-  const host = window.location.hostname;
-  const port = props.port;
+  const host = process.env.PUBLIC_URL;
   var historyData = props.historyData;
 
   const [inEditMode, setInEditMode] = useState({
@@ -40,7 +39,7 @@ function IncidentHistory(props){
         body: JSON.stringify({'name': inEditMode.originalValue})
     };
 
-    fetch(`http://${host}:${port}/incidents/${historyData[id]['id']}`, requestData).then(response => {
+    fetch(`${host}/incidents/${historyData[id]['id']}`, requestData).then(response => {
       if (response.ok) {
         onCancel(e, id);
         return response.json();
@@ -93,7 +92,7 @@ function IncidentHistory(props){
           return;
       }
 
-      const url = `http://${host}:${port}/incidents/${incidentNumber}`;
+      const url = `${host}/incidents/${incidentNumber}`;
       const requestData = {
         method: 'DELETE',
         headers: {
@@ -119,7 +118,7 @@ function IncidentHistory(props){
         body: JSON.stringify({"id": incidentNumber})
     };
 
-    fetch(`http://${host}:${port}/incidents/active`, requestData).then(response => {
+    fetch(`${host}/incidents/active`, requestData).then(response => {
       if (response.ok) {
         props.currentIncident.set(incidentNumber);
         props.incidentName.set(incidentName);

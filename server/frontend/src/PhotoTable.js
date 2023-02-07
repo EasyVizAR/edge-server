@@ -7,8 +7,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 
 function PhotoTable(props) {
-  const host = window.location.hostname;
-  const port = props.port;
+  const host = process.env.PUBLIC_URL;
 
   function handleDeleteClicked(id) {
     const del = window.confirm(`Delete photo ${id}?`);
@@ -16,7 +15,7 @@ function PhotoTable(props) {
       return;
     }
 
-    const url = `http://${host}:${port}/photos/${id}`;
+    const url = `${host}/photos/${id}`;
     const requestData = {
       method: 'DELETE',
       headers: {
@@ -39,7 +38,7 @@ function PhotoTable(props) {
       if (props.url.startsWith('http')) {
         url = props.url;
       } else {
-        url = `http://${host}:${port}/photos/${props.id}/thumbnail`;
+        url = `${host}/photos/${props.id}/thumbnail`;
       }
     } else {
       return <p style={{color: 'black'}}>No image</p>;

@@ -6,8 +6,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 
 function HeadsetTable(props){
-  const host = window.location.hostname;
-  const port = props.port;
+  const host = process.env.PUBLIC_URL;
 
   // Only one row can be open for editing at a time. A reference is used to
   // query the value of the input field when the user clicks Save. The
@@ -49,7 +48,7 @@ function HeadsetTable(props){
   // saves the headset data
   const onSaveHeadsets = (e, id) => {
     const headset = props.headsets[id];
-    const url = `http://${host}:${port}/headsets/${id}`;
+    const url = `${host}/headsets/${id}`;
 
     const newName = formReferences.name.current.value;
     const newColor = formReferences.color.current.value;
@@ -96,7 +95,7 @@ function HeadsetTable(props){
       return;
     }
 
-    const url = `http://${host}:${port}/headsets/${id}`;
+    const url = `${host}/headsets/${id}`;
     const requestData = {
       method: 'DELETE',
       headers: {
@@ -114,7 +113,7 @@ function HeadsetTable(props){
   }
 
   const handleRemoveClicked = (id) => {
-    const url = `http://${host}:${port}/headsets/${id}`;
+    const url = `${host}/headsets/${id}`;
 
     const requestData = {
       method: 'PATCH',

@@ -6,13 +6,12 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 
 function CheckInTable(props){
-  const host = window.location.hostname;
-  const port = props.port;
+  const host = process.env.PUBLIC_URL;
 
   const [checkIns, setCheckIns] = useState([]);
 
   useEffect(() => {
-    const url = `http://${host}:${port}/headsets/${props.headsetId}/check-ins`;
+    const url = `${host}/headsets/${props.headsetId}/check-ins`;
     fetch(url)
       .then(response => response.json())
       .then(data => {
@@ -27,7 +26,7 @@ function CheckInTable(props){
       return;
     }
 
-    const url = `http://${host}:${port}/headsets/${props.headsetId}/check-ins/${id}`;
+    const url = `${host}/headsets/${props.headsetId}/check-ins/${id}`;
     const requestData = {
       method: 'DELETE',
       headers: {

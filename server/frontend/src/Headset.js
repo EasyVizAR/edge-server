@@ -72,8 +72,7 @@ fontawesome.library.add(
   faUser);
 
 function Headset(props) {
-  const host = window.location.hostname;
-  const port = props.port;
+  const host = process.env.PUBLIC_URL;
   const { location_id } = useParams();
   const { headset_id } = useParams();
 
@@ -192,7 +191,7 @@ function Headset(props) {
     if (!selectedLocation)
       return;
 
-    fetch(`http://${host}:${port}/headsets?location_id=${selectedLocation}`)
+    fetch(`${host}/headsets?location_id=${selectedLocation}`)
       .then(response => {
         return response.json()
       }).then(data => {
@@ -209,7 +208,7 @@ function Headset(props) {
     if (!selectedLocation)
       return;
 
-    fetch(`http://${host}:${port}/locations/${selectedLocation}/features`)
+    fetch(`${host}/locations/${selectedLocation}/features`)
       .then(response => {
         return response.json()
       }).then(data => {
@@ -223,7 +222,7 @@ function Headset(props) {
 
   // gets pose changes from the server
   function getHistories(hset) {
-    fetch(`http://${host}:${port}/headsets/${headset_id}/pose-changes`)
+    fetch(`${host}/headsets/${headset_id}/pose-changes`)
     .then(response => {
         return response.json()
     }).then(
@@ -253,7 +252,7 @@ function Headset(props) {
   function get_locations() {
     setLocations({});
 
-    fetch(`http://${host}:${port}/locations`)
+    fetch(`${host}/locations`)
       .then(response => response.json())
       .then(data => {
         var temp_locations = {};
@@ -273,7 +272,7 @@ function Headset(props) {
   }
 
   const handleLocationSelection = (e, o) => {
-    window.location.href = `http://${host}:${port}/#/locations/${e}`;
+    window.location.href = `${host}/#/locations/${e}`;
     setSelectedLocation(e);
     setCurrLocationName(locations[e]['name']);
     setFeaturesChecked(false);
@@ -311,7 +310,7 @@ function Headset(props) {
       }
     };
 
-    const surfaces_url = `http://${host}:${port}/locations/` + selectedLocation + "/surfaces";
+    const surfaces_url = `${host}/locations/` + selectedLocation + "/surfaces";
     fetch(surfaces_url)
       .then(response => response.json())
       .then(data => {
@@ -340,7 +339,7 @@ function Headset(props) {
       }
     };
 
-    fetch(`http://${host}:${port}/incidents`, requestData).then(response => {
+    fetch(`${host}/incidents`, requestData).then(response => {
       if (response.ok) {
         return response.json();
       }
@@ -408,7 +407,7 @@ function Headset(props) {
   }
 
   function getCurrentIncident() {
-    fetch(`http://${host}:${port}/incidents/active`)
+    fetch(`${host}/incidents/active`)
       .then(response => response.json())
       .then(data => {
         currentIncident.set(data['id']);
@@ -418,7 +417,7 @@ function Headset(props) {
   }
 
   const getLayers = () => {
-    fetch(`http://${host}:${port}/locations/${selectedLocation}/layers`)
+    fetch(`${host}/locations/${selectedLocation}/layers`)
       .then(response => response.json())
       .then(data => {
         var layerList = [];
@@ -438,7 +437,7 @@ function Headset(props) {
       return;
     }
 
-    webSocket.current = new WebSocket(`ws://${host}:${port}/ws`);
+    webSocket.current = new WebSocket(`ws://${window.location.host}/ws`);
 
     const ws = webSocket.current;
 
@@ -592,7 +591,7 @@ function Headset(props) {
             </div>
 
             <div className='home-content'>
-              <NewFeature port={port} icons={icons}
+              <NewFeature icons={icons}
                 showNewFeature={showNewFeature} changeCursor={toggleCursor}
                 changeIcon={changeIcon} pointCoordinates={pointCoordinates}
                 changePointValue={changePointValue} mapID={selectedLocation}
@@ -612,7 +611,7 @@ function Headset(props) {
                   <h5>{currLocationName != '' ? selectedLocation : ''}</h5>
                 </div>
               </div>
-              <LayerContainer id="map-container" port={port} icons={icons}
+              <LayerContainer id="map-container" icons={icons}
                 headsets={headsets} headsetsChecked={headsetsChecked}
                 features={features} featuresChecked={featuresChecked}
                 histories={histories} setHistories={setHistories}
@@ -645,34 +644,34 @@ function Headset(props) {
                 </Form>
               </div>
 
-              <CheckInTable port={port} locations={locations} headsetId={headset_id} />
+              <CheckInTable locations={locations} headsetId={headset_id} />
 
-              <HeadsetTable port={port} headsets={headsets} getHeadsets={getHeadsets}
+              <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
                 setHeadsets={setHeadsets} locations={locations} />
-              <FeatureTable port={port} icons={icons} features={features} locationId={selectedLocation} />
-              {/* <LocationTable port={port} locations={locations} getLocations={get_locations}
+              <FeatureTable icons={icons} features={features} locationId={selectedLocation} />
+              {/* <LocationTable locations={locations} getLocations={get_locations}
                                      setLocations={setLocations}/> */}
             </div>
           </Tab>
           {/* <Tab eventKey="create-location" title="Create Location">
-                    <NewLocation port={port} getHeadsets={getHeadsets} getLocations={get_locations} setTab={setTab}/>
+                    <NewLocation getHeadsets={getHeadsets} getLocations={get_locations} setTab={setTab}/>
                   </Tab> */}
           <Tab eventKey="create-incident" title="Create Incident">
-            <NewIncidentModal port={port} getHeadsets={getHeadsets} setLocations={setLocations}
+            <NewIncidentModal getHeadsets={getHeadsets} setLocations={setLocations}
               getCurrentIncident={getCurrentIncident} currentIncident={currentIncident} incidentName={incidentName}
               updateIncidentInfo={updateIncidentInfo} setTab={setTab} getIncidentHistory={getIncidentHistory} />
           </Tab>
           <Tab eventKey="incident-history" title="Incident History">
-            <IncidentHistory port={port} currentIncident={currentIncident} incidentName={incidentName}
+            <IncidentHistory currentIncident={currentIncident} incidentName={incidentName}
               updateIncidentInfo={updateIncidentInfo} historyData={historyData}
               setHistoryData={setHistoryData} getIncidentHistory={getIncidentHistory}
               getLocations={get_locations} getHeadsets={getHeadsets} getCurrentIncident={getCurrentIncident} />
           </Tab>
           {/* <Tab eventKey="all-headsets" title="All Headsets">
-                    <AllHeadsets port={port} getLocationHeadsets={getHeadsets} locations={locations}/>
+                    <AllHeadsets getLocationHeadsets={getHeadsets} locations={locations}/>
                   </Tab> */}
           <Tab eventKey="create-layer" title="Create Layer">
-            <NewLayer port={port} getHeadsets={getHeadsets} getLayers={getLayers} setTab={setTab} locations={locations} />
+            <NewLayer getHeadsets={getHeadsets} getLayers={getLayers} setTab={setTab} locations={locations} />
           </Tab>
         </Tabs>
       </div>

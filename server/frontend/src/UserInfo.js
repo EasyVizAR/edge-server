@@ -5,8 +5,7 @@ import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.m
 import {Dropdown, DropdownButton} from 'react-bootstrap';
 
 function UserInfo(props){
-  const host = window.location.hostname;
-  const port = props.port;
+  const host = process.env.PUBLIC_URL;
   const [show, setShow] = useState(false);
 
   const showDropdown = (e)=>{
@@ -22,7 +21,7 @@ function UserInfo(props){
   }
 
   function gotoDoc(){
-    window.location = `http://${host}:${port}/openapi.html`;
+    window.location = `${host}/openapi.html`;
   }
 
   return (
@@ -34,7 +33,7 @@ function UserInfo(props){
           <Dropdown.Item className="dropdown-item" eventKey="1">Login</Dropdown.Item>
           <Dropdown.Item className="dropdown-item" eventKey="2">Logout</Dropdown.Item>
           <Dropdown.Divider />
-          <Dropdown.Item as="a" target="_blank" href={`http://${host}:${port}/openapi.html`} className="dropdown-item"
+          <Dropdown.Item as="a" target="_blank" href={`${host}/openapi.html`} className="dropdown-item"
                          eventKey="3">API Documentation</Dropdown.Item>
         </DropdownButton>
       </div>

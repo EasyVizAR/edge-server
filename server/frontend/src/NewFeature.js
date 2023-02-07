@@ -8,7 +8,6 @@ import { solid, regular, brands } from '@fortawesome/fontawesome-svg-core/import
 import RangeSlider from 'react-bootstrap-range-slider';
 
 function NewFeature(props) {
-    const port = props.port;
     const icons = props.icons;
 
     const state = {
@@ -35,7 +34,7 @@ function NewFeature(props) {
         display: "flex"
     }
 
-    const host = window.location.hostname;
+    const host = process.env.PUBLIC_URL;
 
     const [formVal, updateForm] = useState(state);
     const [feature_name, setName] = useState('');
@@ -204,7 +203,7 @@ function NewFeature(props) {
         }
 
         console.log(new_feature)
-        let url = `http://${host}:${port}/locations/${props.mapID}/features`
+        let url = `${host}/locations/${props.mapID}/features`
         const requestData = {
             method: 'POST',
             headers: {

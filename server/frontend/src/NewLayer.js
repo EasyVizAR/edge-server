@@ -5,8 +5,7 @@ import React from "react";
 import {useState} from 'react';
 
 function NewLayer(props) {
-    const host = window.location.hostname;
-    const port = props.port;
+    const host = process.env.PUBLIC_URL;
     const [layerName, setLayerName] = useState(null);
     const [imageMode, setImageMode] = useState('uploaded');
     const [dropdownValue, setDropdownValue] = useState('');
@@ -40,11 +39,11 @@ function NewLayer(props) {
             body: JSON.stringify(new_layer)
         };
 
-        let url = `http://${host}:${port}/locations/${selectedLocation}/layers`;
+        let url = `${host}/locations/${selectedLocation}/layers`;
         fetch(url, requestData)
             .then(response => response.json())
             .then(data => {
-                const url =  `http://${host}:${port}/locations/${selectedLocation}/layers/${data.id}/image`;
+                const url =  `${host}/locations/${selectedLocation}/layers/${data.id}/image`;
                 const formData = new FormData();
                 formData.append('image', file);
                 const config = {

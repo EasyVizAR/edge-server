@@ -6,8 +6,7 @@ import {Link} from "react-router-dom";
 import moment from 'moment';
 
 function WorkItems(props){
-  const host = window.location.hostname;
-  const port = props.port;
+  const host = process.env.PUBLIC_URL;
   const[workItems, setWorkItems] = useState([]);
 
   useEffect(() => {
@@ -15,7 +14,7 @@ function WorkItems(props){
   }, []);
 
   const handleDeleteClicked = (id) => {
-    const url = `http://${host}:${port}/photos/${id}`;
+    const url = `${host}/photos/${id}`;
     const requestData = {
       method: 'DELETE',
       headers: {
@@ -36,7 +35,7 @@ function WorkItems(props){
         }
     };
 
-    fetch(`http://${host}:${port}/photos`, requestData).then(response => {
+    fetch(`${host}/photos`, requestData).then(response => {
       if (response.ok) {
         return response.json();
       }
@@ -96,8 +95,8 @@ function WorkItems(props){
       if (props.e.imageUrl.includes('http')){
         url = props.e.imageUrl;
       }else{
-        url = `http://${host}:${port}/photos/${props.e.id}/thumbnail`;
-        full_url = `http://${host}:${port}${props.e.imageUrl}`;
+        url = `${host}/photos/${props.e.id}/thumbnail`;
+        full_url = `${host}${props.e.imageUrl}`;
       }
     }else{
       return(<p style={{color: 'black'}}>No Image Yet</p>);

@@ -5,8 +5,7 @@ import {Helmet} from 'react-helmet';
 import './PhotoWrapper.css';
 
 function PhotoWrapper(props) {
-  const host = window.location.hostname;
-  const port = props.port;
+  const host = process.env.PUBLIC_URL;
 
   const {photo_id} = useParams();
 
@@ -15,7 +14,7 @@ function PhotoWrapper(props) {
 
   useEffect(() => {
     function getPhotoInfo() {
-      const url = `http://${host}:${port}/photos/${photo_id}`;
+      const url = `${host}/photos/${photo_id}`;
       fetch(url).then(response => {
         if (response.ok) {
           return response.json();
@@ -29,7 +28,7 @@ function PhotoWrapper(props) {
     }
 
     getPhotoInfo();
-  }, [host, port, photo_id]);
+  }, [host, photo_id]);
 
   function Photo() {
     return (
