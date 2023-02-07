@@ -403,7 +403,7 @@ function Home(props) {
         return;
       }
 
-      if (window.location.protocol === "https") {
+      if (window.location.protocol === "https:") {
         webSocket.current = new WebSocket(`wss://${window.location.host}/ws`);
       } else {
         webSocket.current = new WebSocket(`ws://${window.location.host}/ws`);
