@@ -5,6 +5,11 @@ from http import HTTPStatus
 import pytest
 
 from server.main import app
+from server.utils.testing import int_equal
+
+
+def int_equal(a, b):
+    return int(a) == int(b)
 
 
 @pytest.mark.asyncio
@@ -55,7 +60,7 @@ async def test_annotation_routes():
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         annotation2 = await response.get_json()
-        assert annotation2['id'] == annotation['id']
+        assert int_equal(annotation2['id'], annotation['id'])
         assert annotation2[test_field] == annotation[test_field]
 
         # Test changing a field
@@ -63,7 +68,7 @@ async def test_annotation_routes():
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         annotation2 = await response.get_json()
-        assert annotation2['id'] == annotation['id']
+        assert int_equal(annotation2['id'], annotation['id'])
         assert annotation2[test_field] == "bar"
 
         # Test replacement
@@ -71,7 +76,7 @@ async def test_annotation_routes():
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         annotation2 = await response.get_json()
-        assert annotation2['id'] == annotation['id']
+        assert int_equal(annotation2['id'], annotation['id'])
         assert annotation2[test_field] == annotation[test_field]
 
         # Test deleting the object
@@ -79,14 +84,14 @@ async def test_annotation_routes():
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         annotation2 = await response.get_json()
-        assert annotation2['id'] == annotation['id']
+        assert int_equal(annotation2['id'], annotation['id'])
 
         # Test creating object through PUT
         response = await client.put(annotation_url, json=annotation)
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         annotation2 = await response.get_json()
-        assert annotation2['id'] == annotation['id']
+        assert int_equal(annotation2['id'], annotation['id'])
         assert annotation2[test_field] == annotation[test_field]
 
         # Test that object does not exist after DELETE
