@@ -25,6 +25,7 @@ from server.auth import Authenticator
 from server.events import EventDispatcher
 from server.headset.models import Headset
 from server.incidents.models import Incident
+from server.mapping.navigator import Navigator
 
 from server.resources.abstractresource import AbstractCollection
 
@@ -97,6 +98,9 @@ def before_first_request():
 
     app.modeling_pool = ProcessPoolExecutor(1)
     app.modeling_limiter = PoolLimiter()
+
+    app.navigator = Navigator()
+    app.dispatcher.add_event_listener("headsets:updated", "*", app.navigator.on_headset_updated)
 
 
 @app.before_request
