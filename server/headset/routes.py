@@ -236,6 +236,9 @@ async def create_headset():
 
     await current_app.dispatcher.dispatch_event("headsets:created",
             "/headsets/"+headset.id, current=headset)
+    if headset.location_id is not None:
+        await current_app.dispatcher.dispatch_event("location-headsets:created",
+                "locations/{}/headsets/{}".format(headset.location_id, headset.id), current=headset)
     return jsonify(rheadset), HTTPStatus.CREATED
 
 
@@ -274,6 +277,9 @@ async def delete_headset(headset_id):
         folder.delete()
 
     await current_app.dispatcher.dispatch_event("headsets:deleted", "/headsets/"+headset.id, previous=headset)
+    if headset.location_id is not None:
+        await current_app.dispatcher.dispatch_event("location-headsets:deleted",
+                "locations/{}/headsets/{}".format(headset.location_id, headset.id), previous=headset)
     return jsonify(headset), HTTPStatus.OK
 
 
@@ -381,10 +387,16 @@ async def replace_headset(headsetId):
     if created:
         await current_app.dispatcher.dispatch_event("headsets:created",
                 "/headsets/"+headset.id, current=headset, previous=previous)
+        if headset.location_id is not None:
+            await current_app.dispatcher.dispatch_event("location-headsets:created",
+                    "locations/{}/headsets/{}".format(headset.location_id, headset.id), current=headset, previous=previous)
         return jsonify(headset), HTTPStatus.CREATED
     else:
         await current_app.dispatcher.dispatch_event("headsets:updated",
                 "/headsets/"+headset.id, current=headset, previous=previous)
+        if headset.location_id is not None:
+            await current_app.dispatcher.dispatch_event("location-headsets:updated",
+                    "locations/{}/headsets/{}".format(headset.location_id, headset.id), current=headset, previous=previous)
         return jsonify(headset), HTTPStatus.OK
 
 
@@ -472,6 +484,9 @@ async def update_headset(headset_id):
 
     await current_app.dispatcher.dispatch_event("headsets:updated",
             "/headsets/"+headset.id, current=headset, previous=previous)
+    if headset.location_id is not None:
+        await current_app.dispatcher.dispatch_event("location-headsets:updated",
+                "locations/{}/headsets/{}".format(headset.location_id, headset.id), current=headset, previous=previous)
     return jsonify(headset), HTTPStatus.OK
 
 
