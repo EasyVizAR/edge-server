@@ -1,11 +1,12 @@
+import os
 import time
 
 from dataclasses import field
 from marshmallow_dataclass import dataclass
 
+from server.check_in.models import CheckInModel
 from server.location.models import LocationModel
 from server.photo.models import PhotoModel
-from server.pose_changes.models import PoseChangeModel
 from server.surface.models import SurfaceModel
 
 from server.resources.csvresource import CsvCollection
@@ -18,7 +19,7 @@ class HeadsetContainer(DictResource):
     id: str = field(default=None)
 
     def on_ready(self):
-        self.PoseChange = CsvCollection(PoseChangeModel, "pose-change", parent=self)
+        self.CheckIn = JsonCollection(CheckInModel, "check-in", parent=self)
 
 
 @dataclass

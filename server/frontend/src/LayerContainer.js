@@ -1,12 +1,11 @@
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import React, {useEffect, useState} from "react";
 import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
-import "./MapContainer.css"
+import "./LayerContainer.css"
 import {Form, FormCheck} from "react-bootstrap";
 
 function LayerContainer(props) {
-    const host = window.location.hostname;
-    const port = props.port;
+    const host = process.env.PUBLIC_URL;
     const icons = props.icons;
     const mapIconSize = 7;
     const circleSvgIconSize = 11;
@@ -19,6 +18,7 @@ function LayerContainer(props) {
     });
     const [layerImage, setLayerImage] = useState(null);
     const [layerLoaded, setLayerLoaded] = useState(false);
+    const [thumbnailImage, setThumbnailImage] = useState(null);
 
 //    useEffect(() => {
 //        const imgUrl = selectedImage.split("?")[0] + "?" + Math.floor(Math.random() * 100);
@@ -38,7 +38,7 @@ function LayerContainer(props) {
                 if (layer.imageUrl.startsWith("http")) {
                   url = layer.imageUrl;
                 } else {
-                  url = `http://${host}:${port}${layer.imageUrl}?v=${layer.version}`;
+                  url = `${host}${layer.imageUrl}?v=${layer.version}`;
                 }
               }
               selectedLayerIsValid = true;
@@ -196,24 +196,51 @@ function LayerContainer(props) {
       return list;
     }
 
+    const handleMouseOverPhoto = (ev, photo) => {
+      const x = mapShape.xscale * (photo.camera_position.x - mapShape.xmin);
+      const y = mapShape.yscale * (photo.camera_position.z - mapShape.ymin);
+
+      // Bounding rect for the icon.
+      // Use this to center the corner of the photo within the icon.
+      const rect = ev.target.getBoundingClientRect();
+
+      var url = photo.imageUrl;
+      if (!url.startsWith('http')) {
+        url = `${host}/photos/${photo.id}/thumbnail`;
+      }
+
+      setThumbnailImage({
+        url: url,
+        left: x + 0.5*rect.width,
+        top: y + 0.5*rect.height
+      })
+    }
+
     return (
         <div className="map-layer-container">
             <div className="map-image-container">
                 <img id="map-image" src={layerImage} alt="Map of the environment" onLoad={onMapLoad}
                      onClick={onMouseClick} style={{cursor: props.cursor}}/>
                 {
-                  layerLoaded && props.headsetsChecked && Object.keys(props.headsets).length > 0 &&
-                    Object.entries(props.headsets).map(([id, item]) => {
-                      const x = mapShape.xscale * (item.position.x - mapShape.xmin);
-                      const y = mapShape.yscale * (item.position.z - mapShape.ymin);
-                      return <FontAwesomeIcon icon={icons['headset']['iconName']}
-                                              className="features" id={item.id}
-                                              alt={item.name} color={item.color}
+                  layerLoaded && props.photosChecked && Object.keys(props.photos).length > 0 &&
+                    Object.entries(props.photos).map(([id, item]) => {
+                      if (!item.camera_position || !item.ready) {
+                        return null;
+                      }
+
+                      const x = mapShape.xscale * (item.camera_position.x - mapShape.xmin);
+                      const y = mapShape.yscale * (item.camera_position.z - mapShape.ymin);
+                      const color = (item.created_by && props.headsets[item.created_by]) ? props.headsets[item.created_by].color : "#808080";
+                      return <FontAwesomeIcon icon={icons['photo']['iconName']}
+                                              className="features" id={"photo-" + item.id}
+                                              alt="Photo taken by a headset"
+                                              color={color}
+                                              onMouseEnter={(e) => handleMouseOverPhoto(e, item)}
+                                              onMouseLeave={() => setThumbnailImage(null)}
                                               style={{
                                                   left: x,
                                                   top: y,
-                                                  height: mapIconSize + "%",
-                                                  pointerEvents: "none"
+                                                  height: mapIconSize + "%"
                                               }}/>
                     })
                 }
@@ -257,6 +284,30 @@ function LayerContainer(props) {
                                                 }}/>
                       }
                     })
+                }
+                {
+                  layerLoaded && props.headsetsChecked && Object.keys(props.headsets).length > 0 &&
+                    Object.entries(props.headsets).map(([id, item]) => {
+                      const x = mapShape.xscale * (item.position.x - mapShape.xmin);
+                      const y = mapShape.yscale * (item.position.z - mapShape.ymin);
+                      return <FontAwesomeIcon icon={icons['headset']['iconName']}
+                                              className="features" id={item.id}
+                                              alt={item.name} color={item.color}
+                                              style={{
+                                                  left: x,
+                                                  top: y,
+                                                  height: mapIconSize + "%",
+                                                  pointerEvents: "none"
+                                              }}/>
+                    })
+                }
+                {
+                  thumbnailImage && <img class="thumbnail-image" src={thumbnailImage.url} style={{
+                    width: "33%",
+                    left: thumbnailImage.left,
+                    top: thumbnailImage.top,
+                    pointerEvents: "none"
+                  }}/>
                 }
             </div>
             <Form className='layer-radio-form'>

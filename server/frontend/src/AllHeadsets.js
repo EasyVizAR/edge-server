@@ -4,9 +4,8 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
 import moment from 'moment';
 
-function AllHeadsets(props){
-  const host = window.location.hostname;
-  const port = props.port;
+function AllHeadsets(props) {
+  const host = process.env.PUBLIC_URL;
 
   const [headsets, setHeadsets] = useState({});
 
@@ -45,7 +44,7 @@ function AllHeadsets(props){
           return;
       }
 
-      const url = `http://${host}:${port}/headsets/${id}`;
+      const url = `${host}/headsets/${id}`;
       const requestData = {
           method: 'DELETE',
           headers: {
@@ -77,7 +76,7 @@ function AllHeadsets(props){
   // saves the headset data
   const onSaveHeadsets = (e, id) => {
       const headset = headsets[id];
-      const url = `http://${host}:${port}/headsets/${id}`;
+      const url = `${host}/headsets/${id}`;
 
       const newName = formReferences.name.current.value;
       const newLocationId = formReferences.location_id.current.value;
@@ -133,7 +132,7 @@ function AllHeadsets(props){
   }
 
   function getAllHeadsets(){
-    fetch(`http://${host}:${port}/headsets`)
+    fetch(`${host}/headsets`)
     .then(response => {
       return response.json()
     }).then(data => {

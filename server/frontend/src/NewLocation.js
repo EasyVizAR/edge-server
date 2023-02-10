@@ -5,8 +5,7 @@ import React from "react";
 import { useState } from 'react';
 
 function NewLocation(props){
-    const host = window.location.hostname;
-    const port = props.port;
+    const host = process.env.PUBLIC_URL;
     const[locationName, setLocationName] = useState(null);
     const[initDummy, setInitDummy] = useState(false);
 
@@ -25,7 +24,7 @@ function NewLocation(props){
         body: JSON.stringify(new_location)
       };
 
-      let url = `http://${host}:${port}/locations`;
+      let url = `${host}/locations`;
       fetch(url, requestData)
       .then(response => response.json())
       .then(data => {

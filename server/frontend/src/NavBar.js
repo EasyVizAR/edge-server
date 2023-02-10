@@ -5,7 +5,6 @@ import './NavBar.css';
 import {Link} from "react-router-dom";
 
 function NavBar(props){
-  const port = props.port;
 
   return (
     <Navbar bg="dark" variant="dark">
@@ -18,7 +17,7 @@ function NavBar(props){
           <Link className="links" to="/">Home</Link>
           <Link className="links" to="/workitems">Image Processing</Link>
         </div>
-        <UserInfo port={port}/>
+        <UserInfo />
     </Navbar>
   );
 }

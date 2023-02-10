@@ -52,6 +52,9 @@
   margin-top: 10px;
   margin-left: 10px;
 }
+.location-header {
+    text-align: left;
+}
 .location-nav{
   display: flex;
   padding-bottom: 20px;

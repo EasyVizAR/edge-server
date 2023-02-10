@@ -1,5 +1,5 @@
 import './Home.css';
-import { Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button, Tab, Tabs } from 'react-bootstrap';
+import { Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button, Tab, Tabs, Row, Col } from 'react-bootstrap';
 import NewLocation from './NewLocation.js';
 import NewFeature from './NewFeature.js';
 import NewIncidentModal from './NewIncidentModal.js';
@@ -8,6 +8,8 @@ import AllHeadsets from './AllHeadsets.js';
 import LocationTable from './LocationTable.js';
 import HeadsetTable from './HeadsetTable.js';
 import FeatureTable from './FeatureTable.js';
+import PhotoTable from './PhotoTable.js';
+import ClickToEdit from './ClickToEdit.js';
 import 'reactjs-popup/dist/index.css';
 import React, { useState, useEffect, useRef } from 'react';
 import moment from 'moment';
@@ -23,6 +25,7 @@ import {
   faBandage,
   faBiohazard,
   faBug,
+  faCircle,
   faCirclePlay,
   faDoorClosed,
   faElevator,
@@ -30,6 +33,7 @@ import {
   faFire,
   faFireExtinguisher,
   faHeadset,
+  faImage,
   faLocationDot,
   faMessage,
   faPerson,
@@ -48,6 +52,7 @@ fontawesome.library.add(
   faBandage,
   faBiohazard,
   faBug,
+  faCircle,
   faCirclePlay,
   faDoorClosed,
   faElevator,
@@ -55,6 +60,7 @@ fontawesome.library.add(
   faFire,
   faFireExtinguisher,
   faHeadset,
+  faImage,
   faLocationDot,
   faMessage,
   faPerson,
@@ -67,8 +73,7 @@ fontawesome.library.add(
   faUser);
 
 function Location(props) {
-  const host = window.location.hostname;
-  const port = props.port;
+  const host = process.env.PUBLIC_URL;
   const { location_id } = useParams();
 
   // Map feature type -> FA icon
@@ -87,6 +92,8 @@ function Location(props) {
     message: solid('message'),
     object: solid('square'),
     person: solid('person'),
+    photo: solid('image'),
+    point: solid('circle'),
     radiation: solid('radiation'),
     stairs: solid('stairs'),
     user: solid('user'),
@@ -109,6 +116,7 @@ function Location(props) {
   const [features, setFeatures] = useState({}); // object indexed by feature.id
   const [headsets, setHeadsets] = useState({}); // object indexed by headset.id
   const [locations, setLocations] = useState({}); // object indexed by locationId
+  const [photos, setPhotos] = useState({});
   const [showNewFeature, displayNewFeature] = useState(false);
   const [layers, setLayers] = useState([]);
   const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
@@ -118,8 +126,9 @@ function Location(props) {
   const [iconIndex, setIconIndex] = useState(null);
   const [headsetsChecked, setHeadsetsChecked] = useState(true);
   const [featuresChecked, setFeaturesChecked] = useState(false);
+  const [photosChecked, setPhotosChecked] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
-  const [currLocationName, setCurrLocationName] = useState('');
+  const [currentLocation, setCurrentLocation] = useState(null);
   const [placementType, setPlacementType] = useState('');
   const [tab, setTab] = useState('location-view');
   const [historyData, setHistoryData] = useState([]);
@@ -151,6 +160,7 @@ function Location(props) {
 
     if (selectedLocation) {
       getLayers();
+      getPhotos();
     }
 
     changeSubscriptions(selectedLocationRef.current, selectedLocation);
@@ -166,25 +176,12 @@ function Location(props) {
   //        return () => clearTimeout(timer)
   //    });
 
-  const changeMapObjects = (e, v) => {
-
-  };
-
-  const changeMapObjectsContainer = (e) => {
-    if (e.target.id == 'features-switch') {
-      setFeaturesChecked(e.target.checked);
-    }
-    if (e.target.id == 'headsets-switch') {
-      setHeadsetsChecked(e.target.checked);
-    }
-  };
-
   // function that sends request to server to get headset data
   function getHeadsets() {
     if (!selectedLocation)
       return;
 
-    fetch(`http://${host}:${port}/headsets?location_id=${selectedLocation}`)
+    fetch(`${host}/headsets?location_id=${selectedLocation}`)
       .then(response => {
         return response.json()
       }).then(data => {
@@ -200,7 +197,7 @@ function Location(props) {
     if (!selectedLocation)
       return;
 
-    fetch(`http://${host}:${port}/locations/${selectedLocation}/features`)
+    fetch(`${host}/locations/${selectedLocation}/features`)
       .then(response => {
         return response.json()
       }).then(data => {
@@ -217,7 +214,7 @@ function Location(props) {
   //   console.log(headsets);
   //   for (var h in headsets) {
   //     let id = h; // h changes before the promise is resolved, so the id has to be saved
-  //     fetch(`http://${host}:${port}/headsets/${h}/pose-changes`)
+  //     fetch(`${host}/headsets/${h}/pose-changes`)
   //       .then(response => {
   //         return response.json()
   //       }).then(data => {
@@ -257,7 +254,7 @@ function Location(props) {
   function get_locations() {
     setLocations({});
 
-    fetch(`http://${host}:${port}/locations`)
+    fetch(`${host}/locations`)
       .then(response => response.json())
       .then(data => {
         var temp_locations = {};
@@ -266,6 +263,21 @@ function Location(props) {
         }
         setLocations(temp_locations);
       });
+  }
+
+  function getPhotos() {
+    if (!selectedLocation)
+      return;
+
+    fetch(`${host}/photos?camera_location_id=${selectedLocation}`)
+      .then(response => response.json())
+      .then(data => {
+        var temp = {};
+        for (var photo of data) {
+          temp[photo.id] = photo;
+        }
+        setPhotos(temp);
+      })
   }
 
   function updateIncidentInfo() {
@@ -277,9 +289,9 @@ function Location(props) {
   }
 
   const handleLocationSelection = (e, o) => {
-    window.location.href = `http://${host}:${port}/#/locations/${e}`;
+    window.location.href = `${host}/#/locations/${e}`;
     setSelectedLocation(e);
-    setCurrLocationName(locations[e]['name']);
+    setCurrentLocation(locations[e]);
     setFeaturesChecked(false);
     setHeadsetsChecked(true);
   }
@@ -287,7 +299,7 @@ function Location(props) {
   const getDefaultLocationSelection = () => {
     if (Object.keys(locations).length == 0)
       return null;
-    setCurrLocationName(locations[location_id]['name']);
+    setCurrentLocation(locations[location_id]);
     return location_id;
   }
 
@@ -315,7 +327,7 @@ function Location(props) {
       }
     };
 
-    const surfaces_url = `http://${host}:${port}/locations/` + selectedLocation + "/surfaces";
+    const surfaces_url = `${host}/locations/` + selectedLocation + "/surfaces";
     fetch(surfaces_url)
       .then(response => response.json())
       .then(data => {
@@ -344,7 +356,7 @@ function Location(props) {
       }
     };
 
-    fetch(`http://${host}:${port}/incidents`, requestData).then(response => {
+    fetch(`${host}/incidents`, requestData).then(response => {
       if (response.ok) {
         return response.json();
       }
@@ -412,7 +424,7 @@ function Location(props) {
   }
 
   function getCurrentIncident() {
-    fetch(`http://${host}:${port}/incidents/active`)
+    fetch(`${host}/incidents/active`)
       .then(response => response.json())
       .then(data => {
         currentIncident.set(data['id']);
@@ -422,7 +434,7 @@ function Location(props) {
   }
 
   const getLayers = () => {
-    fetch(`http://${host}:${port}/locations/${selectedLocation}/layers`)
+    fetch(`${host}/locations/${selectedLocation}/layers`)
       .then(response => response.json())
       .then(data => {
         var layerList = [];
@@ -434,6 +446,35 @@ function Location(props) {
       });
   }
 
+  const saveLocationFieldChange = (fieldName, newValue) => {
+    if (!currentLocation)
+      return;
+
+    const url = `${host}/locations/${currentLocation.id}`;
+    const requestData = {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        [fieldName]: newValue
+      })
+    };
+
+    fetch(url, requestData)
+      .then(response => {
+        return response.json()
+      }).then(data => {
+        setCurrentLocation(data);
+
+        setLocations(current => {
+          const copy = {...current};
+          copy[data.id] = data;
+          return copy;
+        });
+      });
+  }
+
   function openWebSocket() {
     // I thought useEffect should only be called once, but this seems to be
     // called many times. Something is not quite right. The easy fix is to
@@ -442,7 +483,11 @@ function Location(props) {
       return;
     }
 
-    webSocket.current = new WebSocket(`ws://${host}:${port}/ws`);
+    if (window.location.protocol === "https:") {
+      webSocket.current = new WebSocket(`wss://${window.location.host}/ws`);
+    } else {
+      webSocket.current = new WebSocket(`ws://${window.location.host}/ws`);
+    }
 
     const ws = webSocket.current;
 
@@ -450,6 +495,9 @@ function Location(props) {
       ws.send("subscribe headsets:created");
       ws.send("subscribe headsets:updated");
       ws.send("subscribe headsets:deleted");
+      ws.send("subscribe photos:created");
+      ws.send("subscribe photos:updated");
+      ws.send("subscribe photos:deleted");
 
       const selectedLocation = selectedLocationRef.current;
       if (selectedLocation) {
@@ -509,6 +557,30 @@ function Location(props) {
           delete newFeatures[message.previous.id];
           return newFeatures;
         });
+      } else if (message.event === "photos:created") {
+        if (message.current.camera_location_id !== selectedLocation)
+          return;
+        setPhotos(prevPhotos => {
+          let newPhotos = Object.assign({}, prevPhotos);
+          newPhotos[message.current.id] = message.current;
+          return newPhotos;
+        });
+      } else if (message.event === "photos:updated") {
+        if (message.current.camera_location_id !== selectedLocation)
+          return;
+        setPhotos(prevPhotos => {
+          let newPhotos = Object.assign({}, prevPhotos);
+          newPhotos[message.current.id] = message.current;
+          return newPhotos;
+        });
+      } else if (message.event === "photos:deleted") {
+        if (message.previous.camera_location_id !== selectedLocation)
+          return;
+        setPhotos(prevPhotos => {
+          let newPhotos = Object.assign({}, prevPhotos);
+          delete newPhotos[message.previous.id];
+          return newPhotos;
+        });
       } else if (message.event === "layers:updated") {
         if (!message.uri.includes(selectedLocation))
           return;
@@ -529,7 +601,7 @@ function Location(props) {
     };
   }
 
-  function changeSubscriptions(previousLocation, currentLocation) {
+  function changeSubscriptions(previousLocationId, currentLocationId) {
     const ws = webSocket.current;
     if (!ws || ws.readyState === 0) {
       return;
@@ -543,14 +615,14 @@ function Location(props) {
       "locations:updated"
     ];
 
-    if (previousLocation) {
-      let filter1 = " /locations/" + previousLocation + "*";
+    if (previousLocationId) {
+      let filter1 = " /locations/" + previousLocationId + "*";
       for (var ev of events) {
         ws.send("unsubscribe " + ev + filter1);
       }
     }
 
-    let filter2 = " /locations/" + currentLocation + "*";
+    let filter2 = " /locations/" + currentLocationId + "*";
     for (var ev of events) {
       ws.send("subscribe " + ev + filter2);
     }
@@ -595,8 +667,8 @@ function Location(props) {
               </div>
             </div>
 
-            <div className='home-content'>
-              <NewFeature port={port} icons={icons}
+            <Container fluid>
+              <NewFeature icons={icons}
                 showNewFeature={showNewFeature} changeCursor={toggleCursor}
                 changeIcon={changeIcon} pointCoordinates={pointCoordinates}
                 changePointValue={changePointValue} mapID={selectedLocation}
@@ -604,21 +676,52 @@ function Location(props) {
                 setSliderValue={setSliderValue} setPlacementType={setPlacementType}
                 placementType={placementType} />
 
-              <div style={{ textAlign: 'left', marginBottom: '15px' }}>
-                <div style={{ display: 'inline-block' }}>
+              <Row className="location-header">
+                <Col>
                   <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Current Incident</p>
                   <h4 style={{ marginTop: '0px' }}>{incidentInfo.get()}</h4>
                   <h5>{currentIncident.get()}</h5>
-                </div>
-                <div style={{ marginLeft: '15px', display: 'inline-block' }}>
+                </Col>
+                <Col>
                   <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Current Location</p>
-                  <h4 style={{ marginTop: '0px' }}>{currLocationName != '' ? (currLocationName) : ('No Location Selected')}</h4>
-                  <h5>{currLocationName != '' ? selectedLocation : ''}</h5>
-                </div>
-              </div>
-              <LayerContainer id="map-container" port={port} icons={icons}
+                  {
+                    currentLocation ? (
+                      <>
+                        <ClickToEdit
+                          tag='h4'
+                          initialValue={currentLocation.name}
+                          placeholder='Location name'
+                          onSave={(newValue) => saveLocationFieldChange('name', newValue)} />
+                        <h5>{currentLocation ? selectedLocation : ''}</h5>
+                      </>
+                    ) : (
+                      <h4>No Location Selected</h4>
+                    )
+                  }
+                </Col>
+                <Col xs={5}>
+                  {
+                    currentLocation ? (
+                      <>
+                        <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Description</p>
+                        <ClickToEdit
+                          textarea
+                          tag='p'
+                          initialValue={currentLocation.description}
+                          placeholder='Description'
+                          onSave={(newValue) => saveLocationFieldChange('description', newValue)} />
+                      </>
+                    ) : (
+                      null
+                    )
+                  }
+                </Col>
+              </Row>
+
+              <LayerContainer id="map-container" icons={icons}
                 headsets={headsets} headsetsChecked={headsetsChecked}
                 features={features} featuresChecked={featuresChecked}
+                photos={photos} photosChecked={photosChecked}
                 histories={histories} setHistories={setHistories}
                 setFeatures={setFeatures} setHeadsets={setHeadsets}
                 cursor={cursor} setClickCount={setClickCount}
@@ -631,50 +734,59 @@ function Location(props) {
                 selectedLayer={selectedLayer} setSelectedLayer={setSelectedLayer}
               />
               <div style={{ width: 'max-content' }}>
-                <Form onChange={changeMapObjectsContainer}>
+                <Form>
                   <Form.Check
-                    onClick={changeMapObjects(this, 'headsets')}
+                    onChange={(e) => setHeadsetsChecked(e.target.checked)}
                     type="switch"
                     id="headsets-switch"
                     label="Headsets"
                     checked={headsetsChecked}
                   />
                   <Form.Check
-                    onChange={changeMapObjects(this, 'features')}
+                    onChange={(e) => setFeaturesChecked(e.target.checked)}
                     type="switch"
                     id="features-switch"
                     label="Features"
                     checked={featuresChecked}
                   />
+                  <Form.Check
+                    onChange={(e) => setPhotosChecked(e.target.checked)}
+                    type="switch"
+                    id="photos-switch"
+                    label="Photos"
+                    checked={photosChecked}
+                  />
                 </Form>
               </div>
 
-              <HeadsetTable port={port} headsets={headsets} getHeadsets={getHeadsets}
+              <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
                 setHeadsets={setHeadsets} locations={locations} />
-              <FeatureTable port={port} icons={icons} features={features} locationId={selectedLocation} />
-              {/* <LocationTable port={port} locations={locations} getLocations={get_locations}
+              <FeatureTable icons={icons} features={features} locationId={selectedLocation} />
+              {/* <LocationTable locations={locations} getLocations={get_locations}
                                      setLocations={setLocations}/> */}
-            </div>
+
+              <PhotoTable photos={photos} setPhotos={setPhotos} />
+            </Container>
           </Tab>
           {/* <Tab eventKey="create-location" title="Create Location">
-                    <NewLocation port={port} getHeadsets={getHeadsets} getLocations={get_locations} setTab={setTab}/>
+                    <NewLocation getHeadsets={getHeadsets} getLocations={get_locations} setTab={setTab}/>
                   </Tab> */}
           <Tab eventKey="create-incident" title="Create Incident">
-            <NewIncidentModal port={port} getHeadsets={getHeadsets} setLocations={setLocations}
+            <NewIncidentModal getHeadsets={getHeadsets} setLocations={setLocations}
               getCurrentIncident={getCurrentIncident} currentIncident={currentIncident} incidentName={incidentName}
               updateIncidentInfo={updateIncidentInfo} setTab={setTab} getIncidentHistory={getIncidentHistory} />
           </Tab>
           <Tab eventKey="incident-history" title="Incident History">
-            <IncidentHistory port={port} currentIncident={currentIncident} incidentName={incidentName}
+            <IncidentHistory currentIncident={currentIncident} incidentName={incidentName}
               updateIncidentInfo={updateIncidentInfo} historyData={historyData}
               setHistoryData={setHistoryData} getIncidentHistory={getIncidentHistory}
               getLocations={get_locations} getHeadsets={getHeadsets} getCurrentIncident={getCurrentIncident} />
           </Tab>
           {/* <Tab eventKey="all-headsets" title="All Headsets">
-                    <AllHeadsets port={port} getLocationHeadsets={getHeadsets} locations={locations}/>
+                    <AllHeadsets getLocationHeadsets={getHeadsets} locations={locations}/>
                   </Tab> */}
           <Tab eventKey="create-layer" title="Create Layer">
-            <NewLayer port={port} getHeadsets={getHeadsets} getLayers={getLayers} setTab={setTab} locations={locations} />
+            <NewLayer getHeadsets={getHeadsets} getLayers={getLayers} setTab={setTab} locations={locations} />
           </Tab>
         </Tabs>
       </div>

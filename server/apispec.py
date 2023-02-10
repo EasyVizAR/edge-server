@@ -10,6 +10,7 @@ from apispec_webframeworks.flask import FlaskPlugin
 from marshmallow import Schema, fields
 
 from server.annotation import routes as annotations
+from server.check_in import routes as check_ins
 from server.feature import routes as features
 from server.headset import routes as headsets
 from server.incidents import routes as incidents
@@ -17,17 +18,20 @@ from server.layer import routes as layers
 from server.location import routes as locations
 from server.photo import routes as photos
 from server.pose_changes import routes as pose_changes
+from server.scene import routes as scenes
 from server.surface import routes as surfaces
 from server import routes as other
 
 from server.annotation.models import AnnotationModel
+from server.check_in.models import CheckInModel
 from server.feature.models import FeatureModel
-from server.headset.models import HeadsetModel
+from server.headset.models import HeadsetModel, RegisteredHeadsetModel
 from server.incidents.models import IncidentModel
 from server.layer.models import LayerModel
 from server.location.models import LocationModel
 from server.photo.models import PhotoModel
 from server.pose_changes.models import PoseChangeModel
+from server.scene.models import SceneDescriptor, SceneModel
 from server.surface.models import SurfaceModel
 
 
@@ -46,16 +50,20 @@ async def create_openapi_spec(app):
     )
 
     spec.components.schema("Annotation", schema=AnnotationModel.Schema())
+    spec.components.schema("CheckIn", schema=CheckInModel.Schema())
     spec.components.schema("Feature", schema=FeatureModel.Schema())
     spec.components.schema("Headset", schema=HeadsetModel.Schema())
+    spec.components.schema("RegisteredHeadset", schema=RegisteredHeadsetModel.Schema())
     spec.components.schema("Incident", schema=IncidentModel.Schema())
     spec.components.schema("Layer", schema=LayerModel.Schema())
     spec.components.schema("Location", schema=LocationModel.Schema())
     spec.components.schema("Photo", schema=PhotoModel.Schema())
     spec.components.schema("PoseChange", schema=PoseChangeModel.Schema())
+    spec.components.schema("SceneDescriptor", schema=SceneDescriptor.Schema())
     spec.components.schema("Surface", schema=SurfaceModel.Schema())
 
     spec.tag(dict(name="annotations", description=AnnotationModel.__doc__))
+    spec.tag(dict(name="check-ins", description=CheckInModel.__doc__))
     spec.tag(dict(name="features", description=FeatureModel.__doc__))
     spec.tag(dict(name="headsets", description=HeadsetModel.__doc__))
     spec.tag(dict(name="incidents", description=IncidentModel.__doc__))
@@ -63,6 +71,7 @@ async def create_openapi_spec(app):
     spec.tag(dict(name="locations", description=LocationModel.__doc__))
     spec.tag(dict(name="photos", description=PhotoModel.__doc__))
     spec.tag(dict(name="pose-changes", description=PoseChangeModel.__doc__))
+    spec.tag(dict(name="scenes", description=SceneModel.__doc__))
     spec.tag(dict(name="surfaces", description=SurfaceModel.__doc__))
 
     async with app.test_request_context("/"):
@@ -72,6 +81,9 @@ async def create_openapi_spec(app):
         spec.path(view=annotations.get_annotation)
         spec.path(view=annotations.replace_annotation)
         spec.path(view=annotations.update_annotation)
+
+        spec.path(view=check_ins.list_check_ins)
+        spec.path(view=check_ins.create_check_in)
 
         spec.path(view=features.list_features)
         spec.path(view=features.create_feature)
@@ -123,10 +135,18 @@ async def create_openapi_spec(app):
         spec.path(view=photos.replace_photo)
         spec.path(view=photos.update_photo)
         spec.path(view=photos.get_photo_file)
+        spec.path(view=photos.get_photo_file_by_name)
+        spec.path(view=photos.get_photo_thumbnail)
         spec.path(view=photos.upload_photo_file)
+        spec.path(view=photos.upload_photo_file_by_name)
 
         spec.path(view=pose_changes.list_pose_changes)
+        spec.path(view=pose_changes.list_check_in_pose_changes)
         spec.path(view=pose_changes.create_pose_change)
+
+        spec.path(view=scenes.list_scenes)
+        spec.path(view=scenes.get_scene)
+        spec.path(view=scenes.replace_scene)
 
         spec.path(view=surfaces.list_surfaces)
         spec.path(view=surfaces.create_surface)

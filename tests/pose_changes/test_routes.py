@@ -13,7 +13,7 @@ async def test_pose_change_routes():
     async with app.test_client() as client:
         position = dict(x=0, y=0, z=0)
 
-        response = await client.post("/headsets", json=dict(name="Test", position=position))
+        response = await client.post("/headsets", json=dict(name="Test", position=position, location_id="location"))
         assert response.status_code == 201
         assert response.is_json
         headset = await response.get_json()
@@ -65,3 +65,11 @@ async def test_pose_change_routes():
         assert int(headset2['position']['x']) == 1
         assert int(headset2['position']['y']) == 2
         assert int(headset2['position']['z']) == 3
+
+        other_url = "/headsets/{}/check-ins/{}/pose-changes".format(headset['id'], headset['last_check_in_id'])
+        response = await client.get(other_url)
+        assert response.status_code == 200
+        assert response.is_json
+        data = await response.get_json()
+        assert isinstance(data, list)
+        assert len(data) > 0

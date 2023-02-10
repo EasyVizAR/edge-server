@@ -226,10 +226,13 @@ class JsonCollection(AbstractCollection):
                 continue
             fname = os.path.join(subdir, self.resource_filename)
             with open(fname, "r") as source:
-                item = self.resource_schema.loads(source.read())
-                self.prepare_item(item)
-                if filt.matches(item):
-                    results.append(item)
+                try:
+                    item = self.resource_schema.loads(source.read())
+                    self.prepare_item(item)
+                    if filt.matches(item):
+                        results.append(item)
+                except marshmallow.exceptions.ValidationError:
+                    print("Warning: validation error in {}".format(fname))
 
         return results
 

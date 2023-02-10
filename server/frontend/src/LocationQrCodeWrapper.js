@@ -5,8 +5,7 @@ import './LocationQrCodeWrapper.css';
 
 function LocationQrCodeWrapper(props){
   const {location_id} = useParams();
-  const host = window.location.hostname;
-  const port = props.port;
+  const host = process.env.PUBLIC_URL;
   const [qr, setQrCode] = useState(null);
   const[location, setLocation] = useState(null);
 
@@ -22,7 +21,7 @@ function LocationQrCodeWrapper(props){
         }
     };
 
-    fetch(`http://${host}:${port}/locations/` + location_id, requestData).then(response => {
+    fetch(`${host}/locations/` + location_id, requestData).then(response => {
       if(response.ok){
         return response.json();
       }
@@ -56,7 +55,7 @@ function LocationQrCodeWrapper(props){
       <div className="container-lg">
         <div className="row align-items-center">
           <div className="col-lg-8">
-            <img src={`http://${host}:${port}/locations/` + location_id + "/qrcode"}/>
+            <img src={`${host}/locations/` + location_id + "/qrcode"}/>
           </div>
           <div className="col-lg-4">
             <LocationInfo/>
@@ -65,7 +64,7 @@ function LocationQrCodeWrapper(props){
 
         <div className="row">
           <div className="col">
-            <p>{"vizar://" + host + ":" + port + "/locations/" + location_id}</p>
+            <p>{"vizar://" + host + "/locations/" + location_id}</p>
           </div>
         </div>
       </div>

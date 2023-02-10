@@ -21,6 +21,21 @@ class HeadsetModel(JsonResource):
     together known as a "pose". The history of pose changes for a given headset
     is stored separately in the pose-changes resource
     (/headset/{headset_id}/pose-changes).
+
+    Events:
+
+        headsets:created /headsets/<headset_id>
+        headsets:updated /headsets/<headset_id>
+        headsets:deleted /headsets/<headset_id>
+        location-headsets:created /locations/<location_id>/headsets/<headset_id>
+        location-headsets:updated /locations/<location_id>/headsets/<headset_id>
+        location-headsets:deleted /locations/<location_id>/headsets/<headset_id>
+
+    Websocket clients can subscribe to these events to receive notifications.
+    Internal callers can use the event dispatcher (current_app.dispatcher).
+    The headset:* events can be used to listen for any headsets or a specific
+    headset. The location-headsets:* events can be used to filter for headset
+    changes in a particular location.
     """
     id:     str
     name:   str = field(default="New Headset", description="Name of the headset")
@@ -30,6 +45,8 @@ class HeadsetModel(JsonResource):
 
     location_id:    str = field(default=None,
                                 description="Current location or NULL if unknown or inactive")
+    last_check_in_id: int = field(default=None,
+                                description="Most recent check-in or NULL if unknown")
 
     # mapId is deprecated and should be removed after transition to location and layer system
     mapId:  str = field(default=None, description="deprecated")
@@ -41,6 +58,11 @@ class HeadsetModel(JsonResource):
 
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)
+
+
+@dataclass
+class RegisteredHeadsetModel(HeadsetModel):
+    token: str = field(default=None, description="Authentication token")
 
 
 # This is the top-level collection of headset data.  Import this and use

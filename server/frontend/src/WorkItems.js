@@ -1,18 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { Table } from 'react-bootstrap';
+import { Button, Table } from 'react-bootstrap';
 import './WorkItems.css';
 import {Helmet} from 'react-helmet';
 import {Link} from "react-router-dom";
 import moment from 'moment';
 
 function WorkItems(props){
-  const host = window.location.hostname;
-  const port = props.port;
+  const host = process.env.PUBLIC_URL;
   const[workItems, setWorkItems] = useState([]);
 
   useEffect(() => {
     getWorkItems();
   }, []);
+
+  const handleDeleteClicked = (id) => {
+    const url = `${host}/photos/${id}`;
+    const requestData = {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+    fetch(url, requestData).then(response => {
+      setWorkItems(workItems.filter(item => item.id !== id));
+    });
+  }
 
   function getWorkItems(){
     const requestData = {
@@ -22,7 +35,7 @@ function WorkItems(props){
         }
     };
 
-    fetch(`http://${host}:${port}/photos`, requestData).then(response => {
+    fetch(`${host}/photos`, requestData).then(response => {
       if (response.ok) {
         return response.json();
       }
@@ -77,11 +90,13 @@ function WorkItems(props){
 
   function Photos(props){
     var url = '';
+    var full_url = props.e.imageUrl;
     if (props.e.imageUrl != null){
       if (props.e.imageUrl.includes('http')){
         url = props.e.imageUrl;
       }else{
-        url = `http://${host}:${port}` + `${props.e.imageUrl}`;
+        url = `${host}/photos/${props.e.id}/thumbnail`;
+        full_url = `${host}${props.e.imageUrl}`;
       }
     }else{
       return(<p style={{color: 'black'}}>No Image Yet</p>);
@@ -90,7 +105,7 @@ function WorkItems(props){
     if (props.e.hasBoundary == false){
       return(
         <div>
-          <a target="_blank" href={url}>
+          <a target="_blank" href={full_url}>
             <img className="work-items-images" src={url} alt="Photo" />
           </a>
         </div>
@@ -126,6 +141,7 @@ function WorkItems(props){
               <th>Content Type</th>
               <th>Status</th>
               <th>Image URL</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -145,6 +161,14 @@ function WorkItems(props){
                       <div>
                         <Photos e={e}/>
                       </div>
+                    </td>
+                    <td>
+                      <Button
+                        variant="danger" size="sm"
+                        onClick={() => handleDeleteClicked(e.id)}
+                        title="Delete photo">
+                        Delete
+                      </Button>
                     </td>
                   </tr>
                 })

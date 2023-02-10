@@ -5,21 +5,6 @@ import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
 
-const featureTypes = [
-  "ambulance",
-  "door",
-  "elevator",
-  "extinguisher",
-  "fire",
-  "headset",
-  "injury",
-  "message",
-  "object",
-  "stairs",
-  "user",
-  "warning"
-]
-
 const placementTypes = [
   "point",
   "floating",
@@ -27,8 +12,7 @@ const placementTypes = [
 ]
 
 function FeatureTable(props){
-  const host = window.location.hostname;
-  const port = props.port;
+  const host = process.env.PUBLIC_URL;
   const icons = props.icons;
 
   // Only one row can be open for editing at a time. A reference is used to
@@ -46,6 +30,8 @@ function FeatureTable(props){
     enabled: false,
     featureId: null
   });
+
+  const [checkedItems, setCheckedItems] = useState({});
 
   const enableEditMode = (e, id) => {
     if (editMode.status) {
@@ -68,7 +54,7 @@ function FeatureTable(props){
 
   // saves the headset data
   const saveFeature = (e, id) => {
-    const url = `http://${host}:${port}/locations/${props.locationId}/features/${id}`;
+    const url = `${host}/locations/${props.locationId}/features/${id}`;
 
     const newName = formReferences.name.current.value;
     const newColor = formReferences.color.current.value;
@@ -105,7 +91,7 @@ function FeatureTable(props){
       return;
     }
 
-    const url = `http://${host}:${port}/locations/${props.locationId}/features/${id}`;
+    const url = `${host}/locations/${props.locationId}/features/${id}`;
     const requestData = {
       method: 'DELETE',
       headers: {
@@ -116,6 +102,48 @@ function FeatureTable(props){
     fetch(url, requestData).then(response => {
       props.features.pop(id);
     });
+  }
+
+  const toggleCheckAll = () => {
+    if (Object.keys(checkedItems).length > 0) {
+      setCheckedItems({});
+    } else {
+      var result = {};
+      for (const [id, feature] of Object.entries(props.features)) {
+        result[id] = true;
+      }
+      setCheckedItems(result);
+    }
+  }
+
+  const toggleCheck = (id) => {
+    checkedItems[id] = !checkedItems[id];
+    setCheckedItems({...checkedItems});
+  }
+
+  const deleteCheckedItems = async () => {
+    const del = window.confirm("Are you sure you want to delete the checked items?");
+    if (!del) {
+      return;
+    }
+
+    await Object.entries(checkedItems).map(async ([id, checked]) => {
+      if (checked) {
+        const url = `${host}/locations/${props.locationId}/features/${id}`;
+        const requestData = {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        };
+
+        await fetch(url, requestData).then(response => {
+          props.features.pop(id);
+        });
+      }
+    })
+
+    setCheckedItems({});
   }
 
   // code that creates the trash icons
@@ -140,6 +168,7 @@ function FeatureTable(props){
       <Table striped bordered hover>
         <thead>
           <tr>
+            <th rowSpan='2'><input type="checkbox" checked={Object.keys(checkedItems).length > 0} onChange={toggleCheckAll} /></th>
             <th rowSpan='2'>Feature ID</th>
             <th rowSpan='2'>Name</th>
             <th rowSpan='2'>Icon / Color</th>
@@ -147,7 +176,7 @@ function FeatureTable(props){
             <th rowSpan='2'>Last Update</th>
             <th colSpan='3'>Position</th>
             <th colSpan='4'>Style</th>
-            <th colSpan='1'></th>
+            <th colSpan='2' rowSpan='2'></th>
           </tr>
           <tr>
             <th>X</th>
@@ -157,7 +186,6 @@ function FeatureTable(props){
             <th>Radius</th>
             <th>Left Offset</th>
             <th>Top Offset</th>
-            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -165,6 +193,7 @@ function FeatureTable(props){
             Object.keys(props.features).length > 0 ? (
               Object.entries(props.features).map(([id, feature]) => {
                 return <tr>
+                  <td><input type="checkbox" id={"check-"+id} checked={checkedItems[id]} onChange={() => toggleCheck(id)} /></td>
                   <td>{id}</td>
                   <td id={"featureName" + id}>
                     {
@@ -288,6 +317,13 @@ function FeatureTable(props){
           }
         </tbody>
       </Table>
+
+      {
+        Object.keys(checkedItems).length > 0 ? (
+          <Button variant="danger" onClick={deleteCheckedItems}>Delete Checked</Button>
+        ) : (null)
+      }
+
     </div>
   );
 }

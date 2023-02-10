@@ -5,6 +5,7 @@ from http import HTTPStatus
 import pytest
 
 from server.main import app
+from server.utils.testing import int_equal
 
 
 @pytest.mark.asyncio
@@ -55,7 +56,7 @@ async def test_feature_routes():
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         feature2 = await response.get_json()
-        assert feature2['id'] == feature['id']
+        assert int_equal(feature2['id'], feature['id'])
         assert feature2[test_field] == feature[test_field]
 
         # Test changing the name
@@ -63,7 +64,7 @@ async def test_feature_routes():
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         feature2 = await response.get_json()
-        assert feature2['id'] == feature['id']
+        assert int_equal(feature2['id'], feature['id'])
         assert feature2[test_field] == "bar"
 
         # Test replacement
@@ -71,7 +72,7 @@ async def test_feature_routes():
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         feature2 = await response.get_json()
-        assert feature2['id'] == feature['id']
+        assert int_equal(feature2['id'], feature['id'])
         assert feature2[test_field] == feature[test_field]
 
         # Test deleting the object
@@ -79,14 +80,14 @@ async def test_feature_routes():
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         feature2 = await response.get_json()
-        assert feature2['id'] == feature['id']
+        assert int_equal(feature2['id'], feature['id'])
 
         # Test creating object through PUT
         response = await client.put(feature_url, json=feature)
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         feature2 = await response.get_json()
-        assert feature2['id'] == feature['id']
+        assert int_equal(feature2['id'], feature['id'])
         assert feature2[test_field] == feature[test_field]
 
         # Test that object does not exist after DELETE

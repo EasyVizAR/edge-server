@@ -30,6 +30,21 @@ class Detector:
 
 
 @dataclass
+class PhotoFile:
+    name:   str
+
+    purpose:        str = field(default="photo",
+                                description="Meaning of the data in the file (photo|annotated|depth|geometry|thermal|thumbnail)")
+
+    content_type:   str = field(default=None,
+                                description="File MIME type (detected during creation)")
+    height:         int = field(default=None,
+                                description="Photo height in pixels (detected during creation)")
+    width:          int = field(default=None,
+                                description="Photo width in pixels (detected during creation)")
+
+
+@dataclass
 class PhotoModel(JsonResource):
     """
     A photo uploaded by a headset.
@@ -46,6 +61,17 @@ class PhotoModel(JsonResource):
     PUT method.
 
     The server sets the `ready` flag to true after the image has been uploaded.
+    Worker processes such as an object detector may wait for the `ready` flag
+    to be set to begin processing.
+
+    The implementation also features an experimental new approach that allows
+    an arbitrary number of files to be associated with one photo object. The
+    idea is that there may be multiple related images from the same moment in
+    time and view point. The primary image is the full resolution color image,
+    but we may also have a depth image, a thermal image, a smaller thumbnail
+    image, an image with detected objects annotated, and so on. The various
+    types of images can be stored and accessed using the "file by name" API
+    functions.
     """
     id:             str
 
@@ -73,12 +99,17 @@ class PhotoModel(JsonResource):
                                     description="Location ID where the photo was taken")
     camera_position:    Vector3f = field(default=None,
                                          description="Position of the camera in world coordinates")
-    camera_orientation: Vector3f = field(default=None,
+    camera_orientation: Vector4f = field(default=None,
                                          description="Orientation of the camera (quaternion)")
+    related_feature_id: str = field(default=None,
+                                    description="Associated feature ID (if set) for a marker on the map where the photo was taken")
 
     annotations:    List[Annotation] = field(default_factory=list)
     detector:       Detector = field(default=None,
                                      description="Information about the object detector that was used")
+
+    files:          List[PhotoFile] = field(default_factory=list,
+                                            description="List of files associated with this photo")
 
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)

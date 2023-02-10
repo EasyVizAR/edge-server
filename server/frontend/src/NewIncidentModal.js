@@ -5,8 +5,7 @@ import { useState } from 'react';
 
 function NewIncidentModal(props){
   const[incidentName, setIncidentName] = useState('');
-  const host = window.location.hostname;
-  const port = props.port;
+  const host = process.env.PUBLIC_URL;
 
   function updateState(e){
     setIncidentName(e.target.value);
@@ -21,7 +20,7 @@ function NewIncidentModal(props){
           body: JSON.stringify({'name': incidentName})
       };
 
-      fetch(`http://${host}:${port}/incidents`, requestData).then(async response => {
+      fetch(`${host}/incidents`, requestData).then(async response => {
         if (response.ok) {
           return response.json();
         }

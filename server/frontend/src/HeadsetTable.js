@@ -6,8 +6,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 
 function HeadsetTable(props){
-  const host = window.location.hostname;
-  const port = props.port;
+  const host = process.env.PUBLIC_URL;
 
   // Only one row can be open for editing at a time. A reference is used to
   // query the value of the input field when the user clicks Save. The
@@ -49,7 +48,7 @@ function HeadsetTable(props){
   // saves the headset data
   const onSaveHeadsets = (e, id) => {
     const headset = props.headsets[id];
-    const url = `http://${host}:${port}/headsets/${id}`;
+    const url = `${host}/headsets/${id}`;
 
     const newName = formReferences.name.current.value;
     const newColor = formReferences.color.current.value;
@@ -96,7 +95,7 @@ function HeadsetTable(props){
       return;
     }
 
-    const url = `http://${host}:${port}/headsets/${id}`;
+    const url = `${host}/headsets/${id}`;
     const requestData = {
       method: 'DELETE',
       headers: {
@@ -105,9 +104,37 @@ function HeadsetTable(props){
     };
 
     fetch(url, requestData).then(response => {
-      delete props.headsets[id];
-      props.getHeadsets();
+      props.setHeadsets(current => {
+        const copy = {...current};
+        delete copy[id];
+        return copy;
+      });
     });
+  }
+
+  const handleRemoveClicked = (id) => {
+    const url = `${host}/headsets/${id}`;
+
+    const requestData = {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        'location_id': null
+      })
+    };
+
+    fetch(url, requestData).then(response => {
+      onCancelHeadset(null, id);
+
+      props.setHeadsets(current => {
+        const copy = {...current};
+        delete copy[id];
+        return copy;
+      });
+    });
+
   }
 
   // code that creates the trash icons
@@ -217,12 +244,20 @@ function HeadsetTable(props){
                           </Button>
                         </React.Fragment>
                       ) : (
-                        <Button
-                          className={"btn-primary table-btns"}
-                          onClick={(e) => onEditHeadset(e, id)}
-                          title='Edit'>
-                          Edit
-                        </Button>
+                        <React.Fragment>
+                          <Button
+                            variant="primary" size="sm"
+                            onClick={(e) => onEditHeadset(e, id)}
+                            title='Edit'>
+                            Edit
+                          </Button>
+                          <Button
+                            variant="warning" size="sm"
+                            onClick={() => handleRemoveClicked(id)}
+                            title="Remove headset from location (does not delete its history)">
+                            Remove
+                          </Button>
+                        </React.Fragment>
                       )
                     }
                   </td>

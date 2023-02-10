@@ -353,8 +353,7 @@ async def get_location_route(location_id):
     start = get_vector_from_query("from")
     end = get_vector_from_query("to")
 
-    # TODO: Add navigation code here.
-    path = [start, end]
+    path = current_app.navigator.find_path(location, start, end)
 
     # Wrap the list if the caller requested an envelope.
     if "envelope" in query:
