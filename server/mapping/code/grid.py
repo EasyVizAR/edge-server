@@ -2,7 +2,7 @@
 # We will need the grid data structure to be as solid as possible
 import math
 import matplotlib.pyplot as plt
-
+import parser
 
 class Grid:
 	def __init__(self, boxes_per_meter):
@@ -110,8 +110,10 @@ class Grid:
 			self.put(box, private_usage=True)
 
 	def put_lines(self, lines):
-		for line in lines:
-			self.put_line(line)
+		if len(lines) < 2:
+			self.put(self.point_to_box(lines[0]))
+		for i in range(len(lines)-1):
+			self.put_line([lines[i], lines[i+1]])
 
 
 def test_boxes_touching_line():
@@ -129,7 +131,7 @@ def test_boxes_touching_line():
 	plt.ylim(-10, 10)
 	plt.show()
 
-if __name__ == "__main__":
+def test_neighbors():
 	# test occupied neighbors?
 	grid = Grid(5)
 	line = [(-2, 1), (2, 1)]
@@ -147,4 +149,20 @@ if __name__ == "__main__":
 
 	plt.xlim(-5, 5)
 	plt.ylim(-5, 5)
+	plt.show()
+
+if __name__ == "__main__":
+	from os import path as os_path
+	this_path = os_path.dirname(__name__)
+	
+	print("Importing image...")
+	boundaries = parser.getPathsFromSvg(os_path.join(this_path, "..\\image.svg"))
+	grid = Grid()
+	print("Placing lines into grid...")
+	for boundary in boundaries:
+		grid.put_lines(boundary)
+	
+	print("Lines in grid...")
+	plt.plot([box[0] + 0.5 for box in grid], [box[1] + 0.5 for box in grid],
+			 marker="s", color="red", markersize=20)
 	plt.show()
