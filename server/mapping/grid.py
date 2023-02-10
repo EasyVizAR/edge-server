@@ -2,7 +2,7 @@
 # We will need the grid data structure to be as solid as possible
 import math
 import matplotlib.pyplot as plt
-import parser
+import parse_data
 
 class Grid:
 	def __init__(self, boxes_per_meter):
@@ -151,18 +151,22 @@ def test_neighbors():
 	plt.ylim(-5, 5)
 	plt.show()
 
-if __name__ == "__main__":
-	from os import path as os_path
-	this_path = os_path.dirname(__name__)
-	
+def test_image_import():
 	print("Importing image...")
-	boundaries = parser.getPathsFromSvg(os_path.join(this_path, "..\\image.svg"))
-	grid = Grid()
+	boundaries = parse_data.getPathsFromSvg("image.svg")
+
+	#print("Importing image...")
+	#points = parser.getUserLocations("samples\\direct-route.csv")
+
+	grid = Grid(5)
 	print("Placing lines into grid...")
 	for boundary in boundaries:
 		grid.put_lines(boundary)
 	
 	print("Lines in grid...")
 	plt.plot([box[0] + 0.5 for box in grid], [box[1] + 0.5 for box in grid],
-			 marker="s", color="red", markersize=20)
+			 marker="s", color="green", markersize=2, linestyle = '')
 	plt.show()
+
+if __name__ == "__main__":
+	print("Hello")
