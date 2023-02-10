@@ -662,8 +662,6 @@ if __name__ == "__main__":
 		parser.setPaths(paths)
 		parser.getGridOfBoxesWithPoints()
 		parser.box_intersections(paths[0])
-		plotPathsAndBoxes(paths, parser.grid.getOccupiedBoxes(),
-						  "test_line_intersection.png")
 
 	if (test == 2):
 		print("Getting paths from svg...")
