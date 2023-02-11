@@ -4,6 +4,7 @@
 # I can resolve that later, input matters the most right now
 
 from xml.dom import minidom
+import csv
 
 def getPathsFromSvg(filename):
 
