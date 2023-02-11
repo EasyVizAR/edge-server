@@ -27,7 +27,7 @@ def getUserLocations(self, filepath):
 		csvReader = csv.reader(csvFile, delimiter=',')
 		headerRead = False
 		for row in csvReader:
-			# Skip heaer
+			# Skip header
 			if not headerRead:
 				headerRead = True
 				continue

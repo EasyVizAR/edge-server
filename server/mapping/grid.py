@@ -167,6 +167,23 @@ def test_image_import():
 	plt.plot([box[0] + 0.5 for box in grid], [box[1] + 0.5 for box in grid],
 			 marker="s", color="green", markersize=2, linestyle = '')
 	plt.show()
+	
+def test_image_import():
+	print("Importing image...")
+	boundaries = parse_data.getPathsFromSvg("image.svg")
+
+	#print("Importing image...")
+	#points = parser.getUserLocations("samples\\direct-route.csv")
+
+	grid_walls = Grid(5)
+	print("Placing lines into grid...")
+	for boundary in boundaries:
+		grid_walls.put_lines(boundary)
+	
+	print("Lines in grid...")
+	plt.plot([box[0] + 0.5 for box in grid_walls], [box[1] + 0.5 for box in grid_walls],
+			 marker="s", color="green", markersize=2, linestyle = '')
+	plt.show()
 
 if __name__ == "__main__":
 	print("Hello")
