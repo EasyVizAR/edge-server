@@ -26,7 +26,7 @@ class Grid:
 	def put(self, point, private_usage=False):
 		box = point
 		if not private_usage:
-			box = self.box_to_point(point)
+			box = self.point_to_box(point)
 
 		if box in self.grid:
 			self.grid[box] += 1

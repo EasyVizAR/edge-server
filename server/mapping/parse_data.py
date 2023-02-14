@@ -22,7 +22,7 @@ def getPathsFromSvg(filename):
 	doc.unlink()
 	return paths
 
-def getUserLocations(self, filepath):
+def getUserLocations(filepath):
 	points = []
 	with open(filepath, newline='') as csvFile:
 		csvReader = csv.reader(csvFile, delimiter=',')
