@@ -70,8 +70,9 @@ class Grid:
 	# by just starting from a box on one endpoint, and moving vertically or horizontally
 	# until you get to the endpoint box
 	def boxes_touching_line(self, line, private_output=False):
-		box_start = self.point_to_box(line[0])
-		box_end = self.point_to_box(line[1])
+		print(line)
+		box_start = self.point_to_box(line[0])# if not private_usage else line[0]
+		box_end = self.point_to_box(line[1])# if not private_usage else line[0]
 
 		if box_start == box_end:
 			return [box_start]
