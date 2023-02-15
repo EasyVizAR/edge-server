@@ -11,6 +11,7 @@ from werkzeug import exceptions
 from server.incidents.models import Incident
 from server.mapping.obj_file import ObjFileMaker
 from server.resources.csvresource import CsvCollection
+from server.resources.geometry import Vector3f
 
 from .models import LocationModel
 
@@ -316,8 +317,8 @@ async def get_location_route(location_id):
                 200 OK
                 Content-Type: application/json
                 [
-                    [-2.0, 0.0, 7.5],
-                    [22.0, 0.0, 9.5]
+                    {"x": -2.0, "y": 0.0, "z": 7.5},
+                    {"x": 22.0, "y": 0.0, "z": 9.5}
                 ]
         tags:
           - locations
@@ -338,6 +339,14 @@ async def get_location_route(location_id):
             in: query
             required: false
             description: Ending point in comma-separated format (x,y,z)
+        responses:
+            200:
+                description: A path consisting of a list of points.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: Vector3f
     """
     location = g.active_incident.Location.find_by_id(location_id)
     if location is None:
@@ -347,11 +356,14 @@ async def get_location_route(location_id):
 
     def get_vector_from_query(name):
         value = query.get(name, "0,0,0")
-        parts = value.split(",")
-        return [float(v) for v in parts]
+        parts = [float(v) for v in value.split(",")]
+        return Vector3f(*parts)
 
-    start = get_vector_from_query("from")
-    end = get_vector_from_query("to")
+    try:
+        start = get_vector_from_query("from")
+        end = get_vector_from_query("to")
+    except:
+        raise exceptions.BadRequest("Invalid starting or destination point")
 
     path = current_app.navigator.find_path(location, start, end)
 
