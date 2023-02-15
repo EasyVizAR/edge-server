@@ -31,8 +31,8 @@ class Floor():
 	
 	def calculate_bloom(self):
 		weights = set()
-		size_constant = 4
-		size = size_constant * self.boxes_per_meter + 1
+		meters_wide = 4
+		size = meters_wide * self.boxes_per_meter + 1
 		for location in self.user_locations:
 			for i in range(0, size):
 				# for x in range(location[0] - 1, location[0] + 1 + 1/GRANULARITY, 1/GRANULARITY):
@@ -41,7 +41,7 @@ class Floor():
 					x = location[0] + (-math.floor(size/2) + i) / self.user_locations.boxes_per_meter
 					y = location[1] + (-math.floor(size/2) + j) / self.user_locations.boxes_per_meter
 					weights.add((x, y))
-		self.weights = weights
+		self.explored_area = weights
 
 	def update_user_loations_from_csv(self, filepath):
 		locations = parse_data.getUserLocations(filepath)
@@ -53,8 +53,8 @@ class Floor():
 			self.user_locations.put(point)
 
 	def hEuclideanApprox(self, start, end):
-		score = (start[0] - end[0])**2 + (start[1] - end[1]) ** 2
-		return score if start not in self.weights else score + 100
+		score = math.sqrt((start[0] - end[0])**2 + (start[1] - end[1]) ** 2)
+		return score if start in self.explored_area else score + 100
 
 	def calculatePath(self, start, destination):
 		path = self.aStarSearch(start, destination, self.hEuclideanApprox)
@@ -85,29 +85,29 @@ class Floor():
 				return self.reconstructPath(cameFrom, current)
 
 			neighbors = self.walls.unoccupied_neighbors(current)
-			#print("{} -> {}".format(current, neighbors))
+			#print("{} -> {}".format(current, [(neighbor, getGScore(neighbor)) for neighbor in neighbors]))
 			for neighbor in neighbors:
 				if neighbor not in self.walls:
 
-					weight = 1 if neighbor not in self.weights else 100
-					#if neighbor in self.weights:
+					weight = 1 if neighbor in self.explored_area else 100
+					#if neighbor in self.explored_area:
 					#	weight = 100
 					#else:
 					#	print("Neighbor {} is kinda far ngl", neighbor)
 
-					tentativeGScore = getGScore(current) + weight
+					tentative_neighbor_gscore = getGScore(current) + weight
 
-					if weight == 100:
-						print("? {} vs {}".format(tentativeGScore, getGScore(neighbor)))
+					#if weight == 100:
+					#	print("? {} vs {}".format(tentative_neighbor_gscore, getGScore(neighbor)))
 
-					if tentativeGScore < getGScore(neighbor):
+					if tentative_neighbor_gscore < getGScore(neighbor):
 						# Better path to destination is found, record it
 						cameFrom[neighbor] = current
-						gscore[neighbor] = tentativeGScore
-						fscore[neighbor] = tentativeGScore + h(neighbor, destination)
-						#print(" - neighbor {} in openSet? {}".format(neighbor, neighbor not in openSet))
+						gscore[neighbor] = tentative_neighbor_gscore
+						fscore[neighbor] = tentative_neighbor_gscore + h(neighbor, destination)
+						#print(" - neighbor {} with fscore {}".format(neighbor, fscore[neighbor]))
 						if (neighbor not in openSet):
-							heapq.heappush(openSet, (h(neighbor, destination), neighbor))
+							heapq.heappush(openSet, (fscore[neighbor], neighbor))
 							#print(len(openSet))
 
 	def reconstructPath(self, cameFrom, current):
@@ -119,24 +119,62 @@ class Floor():
 		total_path.reverse()
 		return total_path
 
+##################
+# Test functions #
+##################
+
+def test_map_explore_area():
+	floor = Floor()
+	print("Updating walls...")
+	floor.update_walls_from_svg("image.svg")
+
+	print("Updating user locations...")
+	floor.update_user_loations_from_csv("samples\\direct-route.csv")
+	#print([p for p in floor.user_locations])
+	
+	print("Naive bloom...")
+	floor.calculate_bloom()
+
+	print("Calculating path...")
+	path = floor.calculatePath((0, -2), (20, 12))
+	#print(path)
+
+	weights = floor.explored_area
+	plt.plot([box[0] for box in weights], [box[1] for box in weights],
+			 marker="s", color="green", markersize=2, linestyle = '')
+
+	walls = floor.walls
+	plt.plot([box[0] for box in walls], [box[1] for box in walls],
+			 marker="s", color="blue", markersize=2, linestyle = '')
+	
+	locations = floor.user_locations
+	plt.plot([box[0] for box in locations], [box[1] for box in locations],
+			 marker="s", color="red", markersize=2, linestyle = '')
+
+	plt.plot([p[0] for p in path], [p[1] for p in path], "r-")
+
+	plt.show()
+
 def test_easy_explore_area():
 	floor = Floor(1)
 
 	print("Updating walls...")
-	boundary = [(0, 5), (5, 5), (5, -5), (0, -5)]
+	#boundary = [(0, 5), (5, 5), (5, -5), (0, -5)]
+	boundary = []
 	floor.update_walls_from_list(boundary)
 
 	print("Updating user locations...")
-	locations = [(0, 0), (0, -3), (0, -6), (3, -6), (6, -6), (6, -3), (6, 0), (6, 3), (6, 6)]
+	#locations = [(0, 0), (0, -3), (0, -6), (3, -6), (6, -6), (6, -3), (6, 0), (6, 3), (6, 6)]
+	locations = [(0, 0)]
 	floor.update_user_locations_from_list(locations)
 
 	print("Calculate naive bloom...")
 	floor.calculate_bloom()
 
 	print("Calculate path...")
-	path = floor.calculatePath((0, 0), (6, 6))
+	path = floor.calculatePath((-2, 2), (2, -4))
 
-	weights = floor.weights
+	weights = floor.explored_area
 	plt.plot([box[0] for box in weights], [box[1] for box in weights],
 			 marker="s", color="green", markersize=2, linestyle = '')
 
@@ -155,41 +193,9 @@ def test_easy_explore_area():
 
 
 if __name__ == "__main__":
-	test_easy_explore_area()
+	test_map_explore_area()
 
 
-
-def test_map_explore_area():
-	floor = Floor()
-	print("Updating walls...")
-	floor.update_walls_from_svg("image.svg")
-
-	print("Updating user locations...")
-	floor.update_user_loations_from_csv("samples\\direct-route.csv")
-	#print([p for p in floor.user_locations])
-	
-	print("Naive bloom...")
-	floor.calculate_bloom()
-
-	print("Calculating path...")
-	path = floor.calculatePath((0, -2), (20, 12))
-	#print(path)
-
-	weights = floor.weights
-	plt.plot([box[0] + 0.5 for box in weights], [box[1] + 0.5 for box in weights],
-			 marker="s", color="green", markersize=2, linestyle = '')
-
-	walls = floor.walls
-	plt.plot([box[0] + 0.5 for box in walls], [box[1] + 0.5 for box in walls],
-			 marker="s", color="blue", markersize=2, linestyle = '')
-	
-	locations = floor.user_locations
-	plt.plot([box[0] + 0.5 for box in locations], [box[1] + 0.5 for box in locations],
-			 marker="s", color="red", markersize=2, linestyle = '')
-
-	plt.plot([p[0] for p in path], [p[1] for p in path], "r-")
-
-	plt.show()
 
 def test_walls_locations_path():
 	floor = Floor()

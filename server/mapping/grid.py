@@ -111,7 +111,9 @@ class Grid:
 			self.put(box, private_usage=True)
 
 	def put_lines(self, lines):
-		if len(lines) < 2:
+		if len(lines) < 1:
+			return
+		elif len(lines) < 2:
 			self.put(self.point_to_box(lines[0]))
 		for i in range(len(lines)-1):
 			self.put_line([lines[i], lines[i+1]])
