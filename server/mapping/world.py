@@ -146,7 +146,7 @@ def test_boundary_aware_bloom():
 
 	plt.show()
 
-def test_map_explore_area():
+def test_map_explore_area(user_locations_filename, destination_plot_filename):
 	plt.rcParams['figure.dpi'] = 500
 	plt.rcParams['savefig.dpi'] = 500
 
@@ -156,7 +156,7 @@ def test_map_explore_area():
 
 	print("Updating user locations...")
 	#floor.update_user_loations_from_csv("samples\\direct-route.csv")
-	floor.update_user_loations_from_csv("samples\\rh-search.csv")
+	floor.update_user_loations_from_csv(user_locations_filename)
 	#print([p for p in floor.user_locations])
 	
 	print("Naive bloom...")
@@ -164,7 +164,7 @@ def test_map_explore_area():
 
 	print("Calculating path...")
 	path = floor.calculatePath((0, -2), (20, 12))
-	print(path)
+	#print(path)
 
 	weights = floor.explored_area
 	plt.plot([box[0] for box in weights], [box[1] for box in weights],
@@ -181,7 +181,13 @@ def test_map_explore_area():
 	plt.plot([p[0] for p in path], [p[1] for p in path], "r-")
 
 	#plt.show()
-	plt.savefig("images\\weighted_search_rh_search.png")
+	#plt.savefig("images\\weighted_search_rh_search.png")
+	plt.savefig(destination_plot_filename)
+
+def generate_images():
+	test_map_explore_area("samples\\direct-route.csv", "images\\weighted_search_direct_route.png")
+	test_map_explore_area("samples\\rh-search.csv", "images\\weighted_search_rh_search.png")
+	test_map_explore_area("samples\\lh-search.csv", "images\\weighted_search_lh_search.png")
 
 def test_easy_explore_area():
 	floor = Floor(1)
@@ -246,4 +252,4 @@ def test_walls_locations_path():
 	plt.show()
 
 if __name__ == "__main__":
-	test_map_explore_area()
+	generate_images()
