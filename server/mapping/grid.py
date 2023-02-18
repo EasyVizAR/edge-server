@@ -59,6 +59,21 @@ class Grid:
 				if neighbor not in self.grid:
 					unoccupied.append(neighbor)
 		return [self.box_to_point(n) for n in unoccupied]
+	
+	def unoccupied_neighbors_with_weights(self, point):
+		unoccupied = []
+		box = self.point_to_box(point)
+		for i in range(-1, 2):
+			for j in range(-1, 2):
+				if i == 0 and j == 0: continue
+				neighbor = (box[0] + i, box[1] + j)
+				if neighbor not in self.grid:
+					weight = 1
+					# Check for diagonal box to weight boxes differently based on distance
+					if (i + j) % 2 == 0:
+						weight = 1.4
+					unoccupied.append((self.box_to_point(neighbor), weight))
+		return unoccupied
 
 	# What about all neighboring grid boxes or occupied neighboring grid boxes?
 
@@ -70,7 +85,6 @@ class Grid:
 	# by just starting from a box on one endpoint, and moving vertically or horizontally
 	# until you get to the endpoint box
 	def boxes_touching_line(self, line, private_output=False):
-		print(line)
 		box_start = self.point_to_box(line[0])# if not private_usage else line[0]
 		box_end = self.point_to_box(line[1])# if not private_usage else line[0]
 
