@@ -28,7 +28,7 @@ class Floor():
 	def update_walls_from_list(self, boundary):
 		self.walls.put_lines(boundary)
 	
-	def naive_bloom(self):
+	def generate_user_weighted_areas(self):
 		weights = set()
 		meters_wide = 4
 		size = meters_wide * self.boxes_per_meter + 1
@@ -64,15 +64,15 @@ class Floor():
 		for point in locations:
 			self.user_locations.put(point)
 
-	def hEuclideanApprox(self, start, end):
+	def h_euclidean_approx(self, start, end):
 		score = math.sqrt((start[0] - end[0])**2 + (start[1] - end[1]) ** 2)
 		return score if start in self.explored_area else score + 100
 
-	def calculatePath(self, start, destination):
-		path = self.aStarSearch(start, destination, self.hEuclideanApprox)
+	def calculate_path(self, start, destination):
+		path = self.a_star_search(start, destination, self.h_euclidean_approx)
 		return path
 
-	def aStarSearch(self, start, destination, h):
+	def a_star_search(self, start, destination, h):
 		# First, is get neighbors implemented? Yes, although won't tell if neighbor is in the grid
 		openSet = []
 		cameFrom = {}
@@ -94,11 +94,9 @@ class Floor():
 			current_f, current = heapq.heappop(openSet)
 
 			if current == destination:
-				return self.reconstructPath(cameFrom, current)
+				return self.reconstruct_path(cameFrom, current)
 
-			#neighbors = self.walls.unoccupied_neighbors(current)
 			neighbors = self.walls.unoccupied_neighbors_with_weights(current)
-			#print("{} -> {}".format(current, [(neighbor, getGScore(neighbor)) for neighbor in neighbors]))
 			for neighbor_link in neighbors:
 				neighbor = neighbor_link[0]
 				weight = neighbor_link[1]
@@ -110,17 +108,13 @@ class Floor():
 					tentative_neighbor_gscore = getGScore(current) + weight
 
 					if tentative_neighbor_gscore < getGScore(neighbor):
-						# Better path to destination is found, record it
 						cameFrom[neighbor] = current
 						gscore[neighbor] = tentative_neighbor_gscore
 						fscore[neighbor] = tentative_neighbor_gscore + h(neighbor, destination)
-						#print(" - neighbor {} with fscore {}".format(neighbor, fscore[neighbor]))
 						if (neighbor not in openSet):
 							heapq.heappush(openSet, (fscore[neighbor], neighbor))
-							#print(len(openSet))
 
-	def reconstructPath(self, cameFrom, current):
-		#print("Current node {} in cameFrom? {}".format(current, current in cameFrom))
+	def reconstruct_path(self, cameFrom, current):
 		total_path = [current]
 		while current in cameFrom:
 			current = cameFrom[current]
