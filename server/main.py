@@ -1,6 +1,6 @@
 import os
 
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 from quart import Quart, g
 
@@ -98,6 +98,10 @@ def before_first_request():
 
     app.modeling_pool = ProcessPoolExecutor(1)
     app.modeling_limiter = PoolLimiter()
+
+    # Thread pool for miscellaneous tasks like cleaning up old images.
+    app.thread_pool = ThreadPoolExecutor()
+    app.last_photo_cleanup = 0
 
     app.navigator = Navigator()
     app.dispatcher.add_event_listener("headsets:updated", "*", app.navigator.on_headset_updated)

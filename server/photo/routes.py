@@ -14,10 +14,14 @@ from server.resources.csvresource import CsvCollection
 from server.resources.filter import Filter
 from server.utils.utils import save_image
 
+from .cleanup import PhotoCleanupTask
 from .models import PhotoFile, PhotoModel
 
 
 photos = Blueprint("photos", __name__)
+
+# Interval for purging temporary photos (in seconds)
+cleanup_interval = 300
 
 thumbnail_max_size = (320, 320)
 
@@ -30,6 +34,13 @@ def get_photo_extension(photo):
     else:
         error = "Unsupported content type ({})".format(photo.contentType)
         raise exceptions.BadRequest(description=error)
+
+
+def schedule_cleanup():
+    if time.time() - current_app.last_photo_cleanup >= cleanup_interval:
+        task = PhotoCleanupTask(g.active_incident.id)
+        current_app.thread_pool.submit(task.run)
+        current_app.last_photo_cleanup = time.time()
 
 
 @photos.route('/photos', methods=['GET'])
@@ -221,6 +232,7 @@ async def create_photo():
         photo.status = "ready"
 
     photo.save()
+    schedule_cleanup()
 
     await current_app.dispatcher.dispatch_event("photos:created",
             "/photos/"+photo.id, current=photo)
