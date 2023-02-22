@@ -274,7 +274,9 @@ function Location(props) {
       .then(data => {
         var temp = {};
         for (var photo of data) {
-          temp[photo.id] = photo;
+          if (photo.retention !== "temporary") {
+            temp[photo.id] = photo;
+          }
         }
         setPhotos(temp);
       })

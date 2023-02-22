@@ -12,6 +12,7 @@ from PIL import Image
 
 from server.resources.csvresource import CsvCollection
 from server.resources.filter import Filter
+from server.utils.rate_limiter import rate_limit_exempt
 from server.utils.utils import save_image
 
 from .cleanup import PhotoCleanupTask
@@ -77,6 +78,12 @@ async def list_photos():
             schema:
                 type: boolean
             description: Only show items with ready flag set.
+          - name: retention
+            in: query
+            required: false
+            schema:
+                type: str
+            description: Only show items with specified retention policy (auto|temporary|permanent).
           - name: since
             in: query
             required: false
@@ -123,6 +130,8 @@ async def list_photos():
         filt.target_equal_to("created_by", request.args.get("created_by"))
     if "ready" in request.args:
         filt.target_equal_to("ready", True)
+    if "retention" in request.args:
+        filt.target_equal_to("retention", request.args.get("retention"))
     if "since" in request.args:
         filt.target_greater_than("updated", float(request.args.get("since")))
     if "status" in request.args:
@@ -473,6 +482,7 @@ async def get_photo_file(photo_id):
 
 
 @photos.route('/photos/<photo_id>/thumbnail', methods=['GET'])
+@rate_limit_exempt
 async def get_photo_thumbnail(photo_id):
     """
     Get a photo thumbnail file

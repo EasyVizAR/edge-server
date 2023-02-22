@@ -33,13 +33,18 @@ async def test_photo_routes():
         assert isinstance(photos2['items'], list)
 
         # Create an object
-        response = await client.post(photos_url, json=dict(imageUrl="/foo"))
+        photo_data = {
+            "imageUrl": "/foo",
+            "retention": "temporary"
+        }
+        response = await client.post(photos_url, json=photo_data)
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         photo = await response.get_json()
         assert isinstance(photo, dict)
         assert photo['id'] is not None
         assert photo['imageUrl'] == "/foo"
+        assert photo['retention'] != "auto"
 
         photo_url = "{}/{}".format(photos_url, photo['id'])
 
@@ -102,13 +107,18 @@ async def test_photo_upload():
         photos_url = "/photos"
 
         # Create an object
-        response = await client.post(photos_url, json=dict(contentType="image/jpeg"))
+        photo_data = {
+            "contentType": "image/jpeg",
+            "retention": "temporary"
+        }
+        response = await client.post(photos_url, json=photo_data)
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         photo = await response.get_json()
         assert isinstance(photo, dict)
         assert photo['ready'] is False
         assert photo['status'] == "created"
+        assert photo['retention'] != "auto"
 
         photo_url = "/photos/{}".format(photo['id'])
 
@@ -146,7 +156,11 @@ async def test_photo_annotations():
         photos_url = "/photos"
 
         # Create an object
-        response = await client.post(photos_url, json=dict(contentType="image/jpeg"))
+        photo_data = {
+            "contentType": "image/jpeg",
+            "retention": "temporary"
+        }
+        response = await client.post(photos_url, json=photo_data)
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         photo = await response.get_json()
@@ -155,6 +169,7 @@ async def test_photo_annotations():
         assert isinstance(photo['annotations'], list)
         assert len(photo['annotations']) == 0
         assert photo['status'] == "created"
+        assert photo['retention'] != "auto"
 
         photo_url = "/photos/{}".format(photo['id'])
 
@@ -269,7 +284,11 @@ async def test_photo_status_change_long_polling():
         start_time = time.time()
 
         # Create an object
-        response = await client.post(photos_url, json=dict(imageUrl="/foo"))
+        photo_data = {
+            "imageUrl": "/foo",
+            "retention": "temporary"
+        }
+        response = await client.post(photos_url, json=photo_data)
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         photo = await response.get_json()
@@ -277,6 +296,7 @@ async def test_photo_status_change_long_polling():
         assert photo['id'] is not None
         assert photo['imageUrl'] == "/foo"
         assert photo['status'] == "ready"
+        assert photo['retention'] != "auto"
 
         # Set up a listener
         photo_url = "/photos/{}".format(photo['id'])
