@@ -1,4 +1,5 @@
 import os
+from os.path import realpath
 
 from dataclasses import field
 from marshmallow_dataclass import dataclass
@@ -52,7 +53,7 @@ def test_csvresource():
     assert item.y == 2
     assert item.z == 3
 
-    assert Dummy.storage_path == "data/dummies/dummies.csv"
+    assert realpath(Dummy.storage_path) == realpath("data/dummies/dummies.csv")
 
 
 def test_csvresource_parent():
@@ -70,7 +71,7 @@ def test_csvresource_parent():
     results = parent.children.find()
     assert len(results) == 3
 
-    assert parent.children.storage_path == "data/parents/00000001/children/children.csv"
+    assert realpath(parent.children.storage_path) == realpath("data/parents/00000001/children/children.csv")
 
 
 def test_csvresource_nested():
