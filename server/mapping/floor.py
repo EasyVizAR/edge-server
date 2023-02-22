@@ -19,6 +19,7 @@ class Floor():
 		self.boxes_per_meter = boxes_per_meter
 		self.walls = Grid(self.boxes_per_meter)
 		self.user_locations = Grid(self.boxes_per_meter)
+		self.explored_area = None
 
 	def update_walls_from_svg(self, filepath):
 		boundaries = parse_data.getPathsFromSvg(filepath)
@@ -71,7 +72,8 @@ class Floor():
 	def calculate_path(self, start, destination):
 		self.generate_user_weighted_areas()
 		path = self.a_star_search(start, destination, self.h_euclidean_approx)
-		return path
+		smoothened_path = self.douglas_peucker_path_smoothening(path, self.boxes_per_meter * 0.1)
+		return smoothened_path
 
 	def a_star_search(self, start, destination, h):
 		# First, is get neighbors implemented? Yes, although won't tell if neighbor is in the grid
@@ -122,4 +124,32 @@ class Floor():
 			total_path.append(current)
 		total_path.reverse()
 		return total_path
+	
+	def douglas_peucker_path_smoothening(self, points, epsilon):
+		if len(points) < 3:
+			return points
+		
+		def perpendicular_distance(point, line_start, line_end):
+			if line_start == line_end:
+				return distance(point, line_start)
+			else:
+				return abs((line_end[0] - line_start[0]) * (line_start[1] - point[1]) - (line_start[0] - point[0]) * (line_end[1] - line_start[1])) / distance(line_end, line_start)
+
+		def distance(p, q):
+			return ((p[0] - q[0])**2 + (p[1] - q[1])**2)**0.5
+
+		dmax = 0
+		index = 0
+		end = len(points) - 1
+		for i in range(1, end):
+			d = perpendicular_distance(points[i], points[0], points[end])
+			if d > dmax:
+				index = i
+				dmax = d
+		if dmax > epsilon:
+			left = self.douglas_peucker_path_smoothening(points[:index+1], epsilon)
+			right = self.douglas_peucker_path_smoothening(points[index:], epsilon)
+			return left[:-1] + right
+		else:
+			return [points[0], points[end]]
 
