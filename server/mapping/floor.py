@@ -69,6 +69,7 @@ class Floor():
 		return score if start in self.explored_area else score + 100
 
 	def calculate_path(self, start, destination):
+		self.generate_user_weighted_areas()
 		path = self.a_star_search(start, destination, self.h_euclidean_approx)
 		return path
 

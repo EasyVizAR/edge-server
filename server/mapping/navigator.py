@@ -26,7 +26,7 @@ class Navigator:
         # TODO: run path finding algorithm here
         return [start, end]
 
-    async def on_headset_updated(event, uri, *args, **kwargs):
+    async def on_headset_updated(self, event, uri, *args, **kwargs):
         current = kwargs.get('current')
         previous = kwargs.get('previous')
 
