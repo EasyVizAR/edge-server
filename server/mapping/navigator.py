@@ -31,7 +31,7 @@ class Navigator:
         # TODO: run path finding algorithm here
         return [start, end]
 
-    async def on_headset_updated(event, uri, *args, **kwargs):
+    async def on_headset_updated(self, event, uri, *args, **kwargs):
         current = kwargs.get('current')
         previous = kwargs.get('previous')
 
@@ -44,11 +44,21 @@ class Navigator:
         if current.location_id not in self.exploration_grids:
             self.exploration_grids[current.location_id] = Grid(5)
 
+        # This is not great. It seems we may either receive a Vector3f or a
+        # dict for current.position. Needs to be cleaned up in the headset
+        # code.
+        try:
+            x = current.position.x
+            z = current.position.z
+        except:
+            x = current.position.get("x", 0)
+            z = current.position.get("z", 0)
+
         # Experimental code that should make a heatmap of explored areas
         # using the Grid class.
         grid = self.exploration_grids[current.location_id]
         grid.put_line([(previous.position.x, previous.position.z),
-                        (current.position.x, current.position.z)])
+                        (x, z)])
         grid.write_png("heatmap.png")
 
         #print("Headset in location {} moved from {} to {}".format(
