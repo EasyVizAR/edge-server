@@ -32,6 +32,7 @@ priority==2.0.0
 py==1.11.0
 pycparser==2.21
 pyparsing==3.0.7
+pypng==0.20220715.0
 PyQRCode==1.2.1
 pytest==7.0.1
 pytest-asyncio==0.18.1

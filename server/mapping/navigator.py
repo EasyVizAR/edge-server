@@ -8,7 +8,12 @@ there is only one navigator instance for the server, we will need to use the
 passed location_id to look up the appropriate map.
 """
 
+from .grid import Grid
+
+
 class Navigator:
+    def __init__(self):
+        self.exploration_grids = dict()
 
     def find_path(self, location, start, end):
         layers = location.Layer.find(type="generated")
@@ -35,6 +40,16 @@ class Navigator:
 
         if current.position is None or previous.position is None:
             return
+
+        if current.location_id not in self.exploration_grids:
+            self.exploration_grids[current.location_id] = Grid(5)
+
+        # Experimental code that should make a heatmap of explored areas
+        # using the Grid class.
+        grid = self.exploration_grids[current.location_id]
+        grid.put_line([(previous.position.x, previous.position.z),
+                        (current.position.x, current.position.z)])
+        grid.write_png("heatmap.png")
 
         #print("Headset in location {} moved from {} to {}".format(
         #    current.location_id, previous.position, current.position))
