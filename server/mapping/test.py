@@ -6,7 +6,7 @@ from floor import Floor
 # Test functions #
 ##################
 
-def test_map_explore_timing(user_locations_filename):
+def test_map_timing(user_locations_filename):
 	floor = Floor()
 	profiler = cProfile.Profile()
 
@@ -63,8 +63,18 @@ def test_easy_explore_area():
 
 	locations = [(0, 0)]
 	floor.update_user_locations_from_list(locations)
-	floor.generate_user_weighted_areas()
 	path = floor.calculate_path((-2, 2), (2, -4))
+
+	draw_map(floor.explored_area , floor.walls, floor.user_locations, path)
+
+def test_medium_explore_area():
+	floor = Floor(1)
+	boundary = [(3, 3), (3, 2), (3, 1), (3, 0), (3, -1), (3, -2), (3, -3)]
+	floor.update_walls_from_list(boundary)
+
+	locations = [(0, 0), (3, 0), (5, 0)]
+	floor.update_user_locations_from_list(locations)
+	path = floor.calculate_path((0, 0), (5, 0))
 
 	draw_map(floor.explored_area , floor.walls, floor.user_locations, path)
 
@@ -81,7 +91,7 @@ def test_map_from_file(user_locations_filename, destination_plot_filename=None):
 	floor.update_user_loations_from_csv(user_locations_filename)
 	floor.generate_user_weighted_areas()
 	path = floor.calculate_path((0, -2), (20, 12))
-	print(path)
+	print("Path: {}", path)
 
 	weights = floor.explored_area
 	walls = floor.walls
@@ -89,5 +99,6 @@ def test_map_from_file(user_locations_filename, destination_plot_filename=None):
 	draw_map(weights, walls, user_locations, path, destination_plot_filename)
 
 if __name__ == "__main__":
-	test_map_from_file("samples\\lh-search.csv")
-	#test_easy_douglas_peucker()
+	#test_map_from_file("samples\\lh-search.csv")
+	#test_map_timing("samples\\lh-search.csv")
+	test_medium_explore_area()

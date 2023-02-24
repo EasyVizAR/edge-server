@@ -72,7 +72,7 @@ class Floor():
 	def calculate_path(self, start, destination):
 		self.generate_user_weighted_areas()
 		path = self.a_star_search(start, destination, self.h_euclidean_approx)
-		smoothened_path = self.douglas_peucker_path_smoothening(path, self.boxes_per_meter * 0.1)
+		smoothened_path = self.douglas_peucker_path_smoothening(path, 1/self.boxes_per_meter)
 		return smoothened_path
 
 	def a_star_search(self, start, destination, h):

@@ -8,6 +8,8 @@ there is only one navigator instance for the server, we will need to use the
 passed location_id to look up the appropriate map.
 """
 
+from floor import Floor
+
 class Navigator:
 
     def find_path(self, location, start, end):
@@ -23,12 +25,19 @@ class Navigator:
         # This would be the file path for the SVG image
         # layer.imagePath
 
+        # What would the layer.imagePath even look like? Would it be relative to the edge-server repository?
+
+        floor = Floor()
+        floor.update_walls_from_svg()
+
         # TODO: run path finding algorithm here
         return [start, end]
 
     async def on_headset_updated(self, event, uri, *args, **kwargs):
         current = kwargs.get('current')
         previous = kwargs.get('previous')
+
+        # server/headset/models: describes the Headset class that the code is receiving
 
         if current.location_id is None:
             return
@@ -38,5 +47,7 @@ class Navigator:
 
         #print("Headset in location {} moved from {} to {}".format(
         #    current.location_id, previous.position, current.position))
+
+        # current.position.x, current.position.z
 
         # TODO: use the old and new position to mark passable cells in the map
