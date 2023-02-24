@@ -167,8 +167,14 @@ class Grid:
 		for y in range(height):
 			row = []
 			for x in range(width):
-				value = int(255 * self.grid.get((x, y), 0) / (max_value + 1))
-				row.append(value)
+				value = self.grid.get((x, y), 0)
+				if value == 0:
+					# Empty grid cells will be black (0)
+					row.append(0)
+				else:
+					# Occupied cells will range from mid-gray to white (255)
+					color = int(127 * value / (max_value + 1)) + 128
+					row.append(color)
 			data.append(row)
 
 		with open(path, "wb") as output:
