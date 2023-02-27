@@ -28,7 +28,7 @@ class Navigator:
         # What would the layer.imagePath even look like? Would it be relative to the edge-server repository?
 
         floor = Floor()
-        floor.update_walls_from_svg()
+        floor.update_walls_from_svg(layer.imagePath)
 
         # TODO: run path finding algorithm here
         return [start, end]

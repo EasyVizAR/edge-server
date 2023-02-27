@@ -170,7 +170,7 @@ def test_neighbors():
 
 def test_image_import():
 	print("Importing image...")
-	boundaries = parse_data.getPathsFromSvg("image.svg")
+	boundaries = parse_data.get_paths_from_svg("image.svg")
 
 	#print("Importing image...")
 	#points = parser.getUserLocations("samples\\direct-route.csv")
@@ -187,7 +187,7 @@ def test_image_import():
 	
 def test_image_import():
 	print("Importing image...")
-	boundaries = parse_data.getPathsFromSvg("image.svg")
+	boundaries = parse_data.get_paths_from_svg("image.svg")
 
 	#print("Importing image...")
 	#points = parser.getUserLocations("samples\\direct-route.csv")

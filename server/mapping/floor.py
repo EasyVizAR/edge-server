@@ -22,7 +22,7 @@ class Floor():
 		self.explored_area = None
 
 	def update_walls_from_svg(self, filepath):
-		boundaries = parse_data.getPathsFromSvg(filepath)
+		boundaries = parse_data.get_paths_from_svg(filepath)
 		for boundary in boundaries:
 			self.walls.put_lines(boundary)
 	
@@ -57,7 +57,7 @@ class Floor():
 		return points
 
 	def update_user_loations_from_csv(self, filepath):
-		locations = parse_data.getUserLocations(filepath)
+		locations = parse_data.get_user_locations_csv_hololens(filepath)
 		for point in locations:
 			self.user_locations.put(point)
 	

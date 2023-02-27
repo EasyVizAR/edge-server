@@ -6,7 +6,7 @@
 from xml.dom import minidom
 import csv
 
-def getPathsFromSvg(filename):
+def get_paths_from_svg(filename):
 
 	def parse_polyline_str(string):
 		points = []
@@ -22,7 +22,7 @@ def getPathsFromSvg(filename):
 	doc.unlink()
 	return paths
 
-def getUserLocations(filepath):
+def get_user_locations_csv_hololens(filepath):
 	points = []
 	with open(filepath, newline='') as csvFile:
 		csvReader = csv.reader(csvFile, delimiter=',')
