@@ -1,8 +1,20 @@
 # Assuming we stick with the grid paradigm,
 # We will need the grid data structure to be as solid as possible
 import math
-import matplotlib.pyplot as plt
-import parse_data
+
+try:
+	import png
+	have_pypng = True
+except:
+	have_pypng = False
+
+try:
+	import matplotlib.pyplot as plt
+	have_matplotlib = True
+except:
+	have_matplotlib = False
+
+from . import parse_data
 
 class Grid:
 	def __init__(self, boxes_per_meter):
@@ -131,6 +143,43 @@ class Grid:
 			self.put(self.point_to_box(lines[0]))
 		for i in range(len(lines)-1):
 			self.put_line([lines[i], lines[i+1]])
+
+	def get_ranges(self):
+		"""
+		Find the minimum and maximum indices for each dimension of the grid.
+		"""
+		min_indices = tuple(min(dim) for dim in zip(*self.grid.keys()))
+		max_indices = tuple(max(dim) for dim in zip(*self.grid.keys()))
+		return min_indices, max_indices
+
+	def write_png(self, path):
+		if not have_pypng:
+			raise Exception("Missing library pypng")
+
+		min_indices, max_indices = self.get_ranges()
+		
+		width = 1 + max_indices[0] - min_indices[0]
+		height = 1 + max_indices[1] - min_indices[1]
+
+		max_value = max(self.grid.values())
+
+		data = []
+		for y in range(height):
+			row = []
+			for x in range(width):
+				value = self.grid.get((x, y), 0)
+				if value == 0:
+					# Empty grid cells will be black (0)
+					row.append(0)
+				else:
+					# Occupied cells will range from mid-gray to white (255)
+					color = int(127 * value / (max_value + 1)) + 128
+					row.append(color)
+			data.append(row)
+
+		with open(path, "wb") as output:
+			writer = png.Writer(width, height, greyscale=True)
+			writer.write(output, data)
 
 
 def test_boxes_touching_line():

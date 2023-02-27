@@ -3,11 +3,16 @@ import os
 import re
 import tempfile
 
-import cairosvg
-
 from quart import send_from_directory
 from werkzeug import exceptions
 
+# Module cairosvg does not work on Windows,
+# check if it can be imported (will fail many tests otherwise)
+cairosvg_imported = True
+try:
+    import cairosvg
+except:
+    cairosvg_imported = False
 
 def hash_file(path, block_size=2**20, method=hashlib.sha1):
     result = method()
@@ -49,6 +54,9 @@ async def try_send_image(image_path, original_type, headers):
 
     # Convert SVG to PNG
     if original_type == "image/svg+xml" and "image/png" in accepted_types:
+        if cairosvg_imported:
+            raise exceptions.NotFound("Unable to convert SVG to PNG, cairosvg module not imported")
+        
         try:
             width = int(width)
         except:

@@ -41,42 +41,45 @@ function WorkItems(props){
       }
     }).then(data => {
       var temp_data = [];
-      for (var x in data){
+      for (var photo of data) {
+        if (photo.retention === "temporary") {
+          continue;
+        }
 
         var boundaryIndex = -1;
         var maxConfidence = 0;
 
-        if (data[x]['annotations'].length > 0) {
-          for(var y in data[x]['annotations']) {
-            if (data[x]['annotations'][y]?.confidence > maxConfidence) {
+        if (photo['annotations'].length > 0) {
+          for(var y in photo['annotations']) {
+            if (photo['annotations'][y]?.confidence > maxConfidence) {
               boundaryIndex = y;
-              maxConfidence = data[x]['annotations'][y].confidence;
+              maxConfidence = photo['annotations'][y].confidence;
             }
           }
         }
 
         if (boundaryIndex >= 0){
           temp_data.push({
-            'id': data[x]['id'],
-            'created': data[x]['created'],
-            'ready': Boolean(data[x]['ready']),
-            'status': data[x]['status'],
-            'imageUrl': data[x]['imageUrl'],
-            'contentType': data[x]['contentType'],
+            'id': photo['id'],
+            'created': photo['created'],
+            'ready': Boolean(photo['ready']),
+            'status': photo['status'],
+            'imageUrl': photo['imageUrl'],
+            'contentType': photo['contentType'],
             'hasBoundary': true,
-            'topOffset': data[x]['annotations'][boundaryIndex]['boundary']['top'],
-            'leftOffset': data[x]['annotations'][boundaryIndex]['boundary']['left'],
-            'divWidth': data[x]['annotations'][boundaryIndex]['boundary']['width'],
-            'divHeight': data[x]['annotations'][boundaryIndex]['boundary']['height']
+            'topOffset': photo['annotations'][boundaryIndex]['boundary']['top'],
+            'leftOffset': photo['annotations'][boundaryIndex]['boundary']['left'],
+            'divWidth': photo['annotations'][boundaryIndex]['boundary']['width'],
+            'divHeight': photo['annotations'][boundaryIndex]['boundary']['height']
           });
         }else{
           temp_data.push({
-            'id': data[x]['id'],
-            'created': data[x]['created'],
-            'ready': Boolean(data[x]['ready']),
-            'status': data[x]['status'],
-            'imageUrl': data[x]['imageUrl'],
-            'contentType': data[x]['contentType'],
+            'id': photo['id'],
+            'created': photo['created'],
+            'ready': Boolean(photo['ready']),
+            'status': photo['status'],
+            'imageUrl': photo['imageUrl'],
+            'contentType': photo['contentType'],
             'hasBoundary': false
           });
         }

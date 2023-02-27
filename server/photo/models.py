@@ -91,7 +91,8 @@ class PhotoModel(JsonResource):
     height:         int = field(default=None)
     width:          int = field(default=None)
 
-    retention:      str = field(default="auto")
+    retention:      str = field(default="auto",
+                                description="Retention policy for the photo (auto|permanent|temporary)")
 
     created_by:         str = field(default=None,
                                     description="Headset ID that submitted the photo")

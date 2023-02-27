@@ -1,7 +1,7 @@
 import datetime
 import sys
 
-from quart_rate_limiter import RateLimit, RateLimiter, rate_limit
+from quart_rate_limiter import RateLimit, RateLimiter, rate_exempt, rate_limit
 
 
 # Detect if we are running under pytest and increase the rate limits.
@@ -16,3 +16,6 @@ main_rate_limiter = RateLimiter(default_limits=[RateLimit(10*multiplier, datetim
 
 # Function decorator that can be used on particularly expensive routes
 rate_limit_expensive = rate_limit(1*multiplier, datetime.timedelta(seconds=1))
+
+# Function decorator that can be used on routes that should be exempt from limiting
+rate_limit_exempt = rate_exempt

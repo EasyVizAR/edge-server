@@ -1,4 +1,6 @@
 import os
+from os.path import realpath
+
 import time
 
 from dataclasses import field
@@ -35,7 +37,7 @@ def test_jsonresource():
     res1 = Dummy(0, "foo")
     created = res1.save()
     assert created is True
-    assert res1.get_path() == "data/dummies/00000000/dummy.json"
+    assert realpath(res1.get_path()) == realpath("data/dummies/00000000/dummy.json")
     assert os.path.exists(res1.get_path())
 
     time.sleep(1) # make sure this item has a later modified time
@@ -100,5 +102,5 @@ def test_jsonresource_subcollection():
     assert newest is not None
     assert newest.name == "child2"
 
-    assert child1.get_path() == "data/parents/00000001/children/00000001/child.json"
-    assert child2.get_path() == "data/parents/00000001/children/00000002/child.json"
+    assert realpath(child1.get_path()) == realpath("data/parents/00000001/children/00000001/child.json")
+    assert realpath(child2.get_path()) == realpath("data/parents/00000001/children/00000002/child.json")

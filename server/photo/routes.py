@@ -12,12 +12,17 @@ from PIL import Image
 
 from server.resources.csvresource import CsvCollection
 from server.resources.filter import Filter
+from server.utils.rate_limiter import rate_limit_exempt
 from server.utils.utils import save_image
 
+from .cleanup import PhotoCleanupTask
 from .models import PhotoFile, PhotoModel
 
 
 photos = Blueprint("photos", __name__)
+
+# Interval for purging temporary photos (in seconds)
+cleanup_interval = 300
 
 thumbnail_max_size = (320, 320)
 
@@ -30,6 +35,13 @@ def get_photo_extension(photo):
     else:
         error = "Unsupported content type ({})".format(photo.contentType)
         raise exceptions.BadRequest(description=error)
+
+
+def schedule_cleanup():
+    if time.time() - current_app.last_photo_cleanup >= cleanup_interval:
+        task = PhotoCleanupTask(g.active_incident.id)
+        current_app.thread_pool.submit(task.run)
+        current_app.last_photo_cleanup = time.time()
 
 
 @photos.route('/photos', methods=['GET'])
@@ -66,6 +78,12 @@ async def list_photos():
             schema:
                 type: boolean
             description: Only show items with ready flag set.
+          - name: retention
+            in: query
+            required: false
+            schema:
+                type: str
+            description: Only show items with specified retention policy (auto|temporary|permanent).
           - name: since
             in: query
             required: false
@@ -112,6 +130,8 @@ async def list_photos():
         filt.target_equal_to("created_by", request.args.get("created_by"))
     if "ready" in request.args:
         filt.target_equal_to("ready", True)
+    if "retention" in request.args:
+        filt.target_equal_to("retention", request.args.get("retention"))
     if "since" in request.args:
         filt.target_greater_than("updated", float(request.args.get("since")))
     if "status" in request.args:
@@ -221,6 +241,7 @@ async def create_photo():
         photo.status = "ready"
 
     photo.save()
+    schedule_cleanup()
 
     await current_app.dispatcher.dispatch_event("photos:created",
             "/photos/"+photo.id, current=photo)
@@ -461,6 +482,7 @@ async def get_photo_file(photo_id):
 
 
 @photos.route('/photos/<photo_id>/thumbnail', methods=['GET'])
+@rate_limit_exempt
 async def get_photo_thumbnail(photo_id):
     """
     Get a photo thumbnail file
