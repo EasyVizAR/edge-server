@@ -127,8 +127,9 @@ function FeatureTable(props){
       return;
     }
 
-    await Object.entries(checkedItems).map(async ([id, checked]) => {
-      if (checked) {
+    await Object.entries(checkedItems)
+      .filter(([id, checked]) => checked)
+      .reduce((chain, [id]) => {
         const url = `${host}/locations/${props.locationId}/features/${id}`;
         const requestData = {
           method: 'DELETE',
@@ -137,11 +138,20 @@ function FeatureTable(props){
           }
         };
 
-        await fetch(url, requestData).then(response => {
-          props.features.pop(id);
-        });
-      }
-    })
+        return chain.then(() => new Promise(resolve => {
+          setTimeout(() => {
+            fetch(url, requestData)
+              .then(response => {
+                props.features.pop(id);
+                resolve();
+              })
+              .catch(error => {
+                console.error(`Error deleting feature ${id}: ${error.message}`);
+                resolve();
+              });
+          }, 100); // Delay by 100ms to avoid triggering rate limit
+        }));
+      }, Promise.resolve());
 
     setCheckedItems({});
   }
