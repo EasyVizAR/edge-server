@@ -30,6 +30,7 @@ class Floor():
 		self.walls.put_lines(boundary)
 	
 	def generate_user_weighted_areas(self):
+		# Naively weighting square areas
 		weights = set()
 		meters_wide = 4
 		size = meters_wide * self.boxes_per_meter + 1
@@ -40,21 +41,6 @@ class Floor():
 					y = location[1] + (-math.floor(size/2) + j) / self.user_locations.boxes_per_meter
 					weights.add((x, y))
 		self.explored_area = weights
-	
-	def boundary_aware_bloom(self):
-		radius = 4
-		points = []
-		for location in self.user_locations:
-			for turn in range(0, 16):
-				# calculate edge point
-				degrees = math.pi * (turn / 8)
-				edge_point = (location[0] + radius * math.cos(turn), location[1] + radius * math.sin(degrees))
-				points.append(edge_point)
-
-				# get boxes in that range
-				# iterate through boxes to see which are filled, 
-		
-		return points
 
 	def update_user_loations_from_csv(self, filepath):
 		locations = parse_data.get_user_locations_csv_hololens(filepath)

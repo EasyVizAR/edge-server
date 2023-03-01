@@ -1,6 +1,7 @@
 # Assuming we stick with the grid paradigm,
 # We will need the grid data structure to be as solid as possible
 import math
+from collections import deque
 
 try:
 	import png
@@ -14,7 +15,7 @@ try:
 except:
 	have_matplotlib = False
 
-from . import parse_data
+import parse_data
 
 class Grid:
 	def __init__(self, boxes_per_meter):
@@ -35,9 +36,9 @@ class Grid:
 				math.floor(box[1] + nudge) / self.boxes_per_meter)
 
 	# Put point into grid
-	def put(self, point, private_usage=False):
+	def put(self, point, private_input=False):
 		box = point
-		if not private_usage:
+		if not private_input:
 			box = self.point_to_box(point)
 
 		if box in self.grid:
@@ -115,7 +116,7 @@ class Grid:
 			boxes = [(current[0], current[1] + 1), (current[0], current[1] - 1),
 					 (current[0] - 1, current[1]), (current[0] + 1, current[1])]
 
-			min_dist = 100000
+			min_dist = 10000000
 			min_box = None
 
 			for box in boxes:
@@ -134,7 +135,7 @@ class Grid:
 	def put_line(self, line):
 		occupied_boxes = self.boxes_touching_line(line, private_output=True)
 		for box in occupied_boxes:
-			self.put(box, private_usage=True)
+			self.put(box, private_input=True)
 
 	def put_lines(self, lines):
 		if len(lines) < 1:
@@ -143,6 +144,67 @@ class Grid:
 			self.put(self.point_to_box(lines[0]))
 		for i in range(len(lines)-1):
 			self.put_line([lines[i], lines[i+1]])
+	
+	def put_line_bloom(self, line, ttl):
+		line_boxes = self.boxes_touching_line(line, private_output=True)
+
+		"""
+		# Do ttl bfs
+		visited_nodes = set()
+		ttl = {}
+		open_queue = line_boxes
+
+		for box in line_boxes:
+			ttl[box] = time_to_live
+		
+		current = open_queue.pop()
+		#visited_nodes.add(current)
+
+		while len(open_queue) != 0:
+			#print(len(open_queue))
+			neighbors = self.unoccupied_neighbors(current)
+			if len(neighbors) == 0:
+				continue
+			if ttl[current] == 0:
+				visited_nodes.add(neighbor)
+			else:
+				for neighbor in neighbors:
+					if neighbor not in visited_nodes and neighbor not in open_queue:
+						open_queue.append(neighbor)
+						ttl[neighbor] = ttl[current] - 1
+
+			print("- Current: {}\n- Neighbors: {}\n- Open Queue: {}\n- Visited Nodes: {}\n====="
+	 			.format(current, neighbors, open_queue, visited_nodes))
+			plt.plot([box[0] for box in visited_nodes], [box[1] for box in visited_nodes],
+				marker="s", color="blue", markersize=2, linestyle = '')
+			plt.show()
+
+			visited_nodes.add(current)
+			current = open_queue.pop()
+		"""
+
+		visited = set()
+		queue = deque((node, ttl) for node in line_boxes)
+
+		# Explore neighbors until the queue is empty
+		while queue:
+			node, ttl = queue.popleft()
+
+			# Check if the node has already been visited or if TTL is expired
+			if node in visited or ttl < 0:
+				continue
+
+			# Add the node to the visited set
+			visited.add(node)
+
+			# Explore the neighbors of the node with a decremented TTL
+			for neighbor in self.unoccupied_neighbors(node):
+				queue.append((neighbor, ttl - 1))
+
+		# Place boxes into grid
+		for node in visited:
+			self.put(node)
+
 
 	def get_ranges(self):
 		"""
@@ -250,6 +312,11 @@ def test_image_import():
 	plt.plot([box[0] + 0.5 for box in grid_walls], [box[1] + 0.5 for box in grid_walls],
 			 marker="s", color="green", markersize=2, linestyle = '')
 	plt.show()
+
+def test_put_line_weights():
+	grid = Grid(1)
+	line = [(0, 0), (5, 5)]
+	grid.put_line_bloom(line, 2)
 
 if __name__ == "__main__":
 	print("Hello")

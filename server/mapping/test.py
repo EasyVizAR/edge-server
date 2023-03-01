@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import cProfile, pstats
 from floor import Floor
+from grid import Grid
 
 ##################
 # Test functions #
@@ -98,7 +99,15 @@ def test_map_from_file(user_locations_filename, destination_plot_filename=None):
 	user_locations = floor.user_locations
 	draw_map(weights, walls, user_locations, path, destination_plot_filename)
 
+def test_put_line_weights():
+	grid = Grid(1)
+	line = [(0, 0), (5, 5)]
+	grid.put_line_bloom(line, 2)
+
+	draw_map(None, None, grid.grid, None, None)
+
 if __name__ == "__main__":
 	#test_map_from_file("samples\\lh-search.csv")
 	#test_map_timing("samples\\lh-search.csv")
-	test_medium_explore_area()
+	#test_medium_explore_area()
+	test_put_line_weights()
