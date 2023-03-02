@@ -54,9 +54,9 @@ async def try_send_image(image_path, original_type, headers):
 
     # Convert SVG to PNG
     if original_type == "image/svg+xml" and "image/png" in accepted_types:
-        if cairosvg_imported:
+        if not cairosvg_imported:
             raise exceptions.NotFound("Unable to convert SVG to PNG, cairosvg module not imported")
-        
+
         try:
             width = int(width)
         except:
