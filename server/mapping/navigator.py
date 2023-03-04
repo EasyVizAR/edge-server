@@ -7,15 +7,16 @@ movements in real-time to update the map with passability information. Since
 there is only one navigator instance for the server, we will need to use the
 passed location_id to look up the appropriate map.
 """
-
+from server.location.models import LocationModel
 from floor import Floor
 
 class Navigator:
     def __init__(self):
         self.exploration_grids = dict()
 
-    def find_path(self, location, start, end):
+    def find_path(self, location: LocationModel, start, end):
         layers = location.Layer.find(type="generated")
+        # from server.location.models
 
         # If there is no map, we cannot navigate!
         if len(layers) == 0:

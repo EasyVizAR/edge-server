@@ -34,7 +34,9 @@ class Floor():
 		weights = set()
 		meters_wide = 4
 		size = meters_wide * self.boxes_per_meter + 1
+		#print("-Locations: {}".format(self.user_locations))
 		for location in self.user_locations:
+			#print(" - {}".format(location))
 			for i in range(0, size):
 				for j in range(0, size):
 					x = location[0] + (-math.floor(size/2) + i) / self.user_locations.boxes_per_meter
@@ -46,17 +48,26 @@ class Floor():
 		locations = parse_data.get_user_locations_csv_hololens(filepath)
 		for point in locations:
 			self.user_locations.put(point)
+		self.generate_user_weighted_areas()
 	
-	def update_user_locations_from_list(self, locations):
+	def update_user_locations_from_list(self, locations: list):
 		for point in locations:
 			self.user_locations.put(point)
+		self.generate_user_weighted_areas()
+	
+	def update_user_locations_as_lines(self, locations: list):
+		len_locations = len(locations)
+		for index in range(len_locations - 1):
+			self.user_locations.put_line_return_area([locations[index], locations[index + 1]], 3)
+
+		# generate user weighted areas
+		self.explored_area = set([point for point in self.user_locations])
 
 	def h_euclidean_approx(self, start, end):
 		score = math.sqrt((start[0] - end[0])**2 + (start[1] - end[1]) ** 2)
 		return score if start in self.explored_area else score + 100
 
 	def calculate_path(self, start, destination):
-		self.generate_user_weighted_areas()
 		path = self.a_star_search(start, destination, self.h_euclidean_approx)
 		smoothened_path = self.douglas_peucker_path_smoothening(path, 1/self.boxes_per_meter)
 		return smoothened_path

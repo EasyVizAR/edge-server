@@ -1,7 +1,9 @@
+import os
 import matplotlib.pyplot as plt
 import cProfile, pstats
 from floor import Floor
 from grid import Grid
+import parse_data
 
 ##################
 # Test functions #
@@ -79,6 +81,29 @@ def test_medium_explore_area():
 
 	draw_map(floor.explored_area , floor.walls, floor.user_locations, path)
 
+def test_map_user_path(user_locations_filename, destination_plot_filename=None):
+	script_dir = os.path.dirname(os.path.abspath(__file__))
+	walls_file_path = os.path.join(script_dir, "image.svg")
+
+	floor = Floor()
+	print("Updating walls...")
+	floor.update_walls_from_svg(walls_file_path)
+	
+	#floor.update_user_loations_from_csv(user_locations_filename)
+	locations_file_path = os.path.join(script_dir, user_locations_filename)
+	locations = parse_data.get_user_locations_csv_hololens(locations_file_path)
+
+	print("Updating user locations as lines...")
+	floor.update_user_locations_as_lines(locations)
+	
+	print("Calculating path...")
+	path = floor.calculate_path((0, -2), (20, 12))
+	print("Path: {}", path)
+
+	plot_file_path = None
+	if destination_plot_filename != None:
+		plot_file_path = os.path.join(script_dir, destination_plot_filename)
+	draw_map(floor.explored_area, floor.walls, floor.user_locations, path, plot_file_path)
 
 def test_if_douglas_peucker_runs():
 	floor = Floor(1)
@@ -90,7 +115,6 @@ def test_map_from_file(user_locations_filename, destination_plot_filename=None):
 	floor = Floor()
 	floor.update_walls_from_svg("image.svg")
 	floor.update_user_loations_from_csv(user_locations_filename)
-	floor.generate_user_weighted_areas()
 	path = floor.calculate_path((0, -2), (20, 12))
 	print("Path: {}", path)
 
@@ -102,7 +126,7 @@ def test_map_from_file(user_locations_filename, destination_plot_filename=None):
 def test_put_line_weights():
 	grid = Grid(1)
 	line = [(0, 0), (5, 5)]
-	grid.put_line_bloom(line, 2)
+	grid.put_line_return_area(line, 2)
 
 	draw_map(None, None, grid.grid, None, None)
 
@@ -110,4 +134,5 @@ if __name__ == "__main__":
 	#test_map_from_file("samples\\lh-search.csv")
 	#test_map_timing("samples\\lh-search.csv")
 	#test_medium_explore_area()
-	test_put_line_weights()
+	#test_put_line_weights()
+	test_map_user_path("samples\\lh-search.csv")

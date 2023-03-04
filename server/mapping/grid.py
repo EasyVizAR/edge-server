@@ -145,8 +145,11 @@ class Grid:
 		for i in range(len(lines)-1):
 			self.put_line([lines[i], lines[i+1]])
 	
-	def put_line_bloom(self, line, ttl):
+	def put_line_return_area(self, line, ttl):
 		line_boxes = self.boxes_touching_line(line, private_output=True)
+		
+		#for box in line_boxes:
+		#	self.put(box, private_input=True)
 
 		"""
 		# Do ttl bfs
@@ -201,9 +204,10 @@ class Grid:
 			for neighbor in self.unoccupied_neighbors(node):
 				queue.append((neighbor, ttl - 1))
 
+		#return visited
 		# Place boxes into grid
 		for node in visited:
-			self.put(node)
+			self.put(node, private_input=True)
 
 
 	def get_ranges(self):
@@ -316,7 +320,7 @@ def test_image_import():
 def test_put_line_weights():
 	grid = Grid(1)
 	line = [(0, 0), (5, 5)]
-	grid.put_line_bloom(line, 2)
+	grid.put_line_return_area(line, 2)
 
 if __name__ == "__main__":
 	print("Hello")
