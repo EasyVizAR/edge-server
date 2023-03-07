@@ -20,6 +20,10 @@ class WebsocketHandler:
         self.websocket_send = websocket_send
         self.subprotocol = subprotocol
 
+        # Maintain a list of active subscriptions so that we can clean up
+        # when the connection closes.
+        self.subscriptions = set()
+
     async def _send_event_notification(self, event, uri, *args, **kwargs):
         obj = kwargs
 
@@ -55,16 +59,27 @@ class WebsocketHandler:
                 uri_filter = words[2] if len(words) > 2 else "*"
 
                 if command == "subscribe":
-                    print("WS: subscribe {} {}".format(event, uri_filter))
-                    self.dispatcher.add_event_listener(event, uri_filter, self._send_event_notification)
+                    # Disallow duplicate subscriptions.
+                    # If the client subscribes multiple times, it is probably a bug.
+                    if (event, uri_filter) not in self.subscriptions:
+                        print("WS: subscribe {} {}".format(event, uri_filter))
+                        self.dispatcher.add_event_listener(event, uri_filter, self._send_event_notification)
+                        self.subscriptions.add((event, uri_filter))
 
                 elif command == "unsubscribe":
-                    print("WS: unsubscribe {} {}".format(event, uri_filter))
-                    self.dispatcher.remove_event_listener(event, uri_filter, self._send_event_notification)
+                    if (event, uri_filter) in self.subscriptions:
+                        print("WS: unsubscribe {} {}".format(event, uri_filter))
+                        self.dispatcher.remove_event_listener(event, uri_filter, self._send_event_notification)
+                        self.subscriptions.remove((event, uri_filter))
 
                 else:
                     print("WS: unexpected command {} from client".format(command))
 
         except asyncio.CancelledError:
-            print("Websocket connection closed")
+            print("Websocket connection closed, removing {} subscriptions".format(len(self.subscriptions)))
+            for event, uri_filter in self.subscriptions:
+                self.dispatcher.remove_event_listener(event, uri_filter, self._send_event_notification)
+
+            # Quart documentation warns that the cancellation error needs to be re-raised.
+            # https://pgjones.gitlab.io/quart/how_to_guides/websockets.html
             raise
