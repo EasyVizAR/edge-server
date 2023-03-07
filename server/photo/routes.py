@@ -664,7 +664,7 @@ async def upload_photo_file_by_name(photo_id, filename):
     file_purpose, file_ext = os.path.splitext(upload_file_name)
     file_purpose = file_purpose.lower()
 
-    created = not os.path.exists(photo.imagePath)
+    created = not os.path.exists(upload_file_path)
 
     request_files = await request.files
     if 'image' in request_files:
