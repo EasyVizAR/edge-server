@@ -109,8 +109,28 @@ def before_first_request():
 
 @app.before_request
 def before_request():
+    # This will be set by the authenticator if the user
+    # passed a valid credential.
+    g.user_id = None
+
     g.authenticator = app.authenticator
     g.authenticator.authenticate_request()
+
+    g.Headset = Headset
+    g.Incident = Incident
+
+    # Make sure an active incident exists and is assigned to g.active_incident.
+    initialize_incidents(app)
+
+
+@app.before_websocket
+def before_websocket():
+    # This will be set by the authenticator if the user
+    # passed a valid credential.
+    g.user_id = None
+
+    g.authenticator = app.authenticator
+    g.authenticator.authenticate_websocket()
 
     g.Headset = Headset
     g.Incident = Incident

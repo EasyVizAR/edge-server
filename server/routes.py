@@ -2,7 +2,7 @@ import asyncio
 import os
 
 from http import HTTPStatus
-from quart import Blueprint, current_app, make_response, jsonify, websocket
+from quart import Blueprint, current_app, g, make_response, jsonify, websocket
 
 from .apispec import create_openapi_spec
 from .websocket import WebsocketHandler
@@ -80,5 +80,5 @@ async def ws():
         chosen_subprotocol = "json-with-header"
 
     handler = WebsocketHandler(current_app.dispatcher, websocket.receive,
-            websocket.send, subprotocol=chosen_subprotocol)
+            websocket.send, subprotocol=chosen_subprotocol, user_id=g.user_id)
     await asyncio.create_task(handler.listen())

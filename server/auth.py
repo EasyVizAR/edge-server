@@ -4,7 +4,7 @@ import secrets
 
 from functools import wraps
 
-from quart import g, request
+from quart import g, request, websocket
 from werkzeug.exceptions import Unauthorized
 
 
@@ -21,6 +21,20 @@ class Authenticator:
             entry = self.headsets.get(parts[1])
             if entry is not None:
                 g.headset_id = entry['id']
+                g.user_id = entry['id']
+
+    def authenticate_websocket(self):
+        # This is one way to do websocket authentication, check the HTTP
+        # Authorization header.  There is another path that sets
+        # websockets.authorization username and password and maybe other
+        # fields.
+        auth = websocket.headers.get("Authorization", "")
+        parts = auth.split()
+        if len(parts) >= 2 and parts[0] == "Bearer":
+            entry = self.headsets.get(parts[1])
+            if entry is not None:
+                g.headset_id = entry['id']
+                g.user_id = entry['id']
 
     def create_headset_token(self, headset_id):
         token = secrets.token_urlsafe(16)

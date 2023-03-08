@@ -115,6 +115,8 @@ async def create_feature(location_id):
         body['color'] = default_color_palette[count % len(default_color_palette)]
 
     feature = location.Feature.load(body, replace_id=True)
+    if g.user_id is not None:
+        feature.createdBy = g.user_id
     feature.save()
 
     await current_app.dispatcher.dispatch_event("features:created",

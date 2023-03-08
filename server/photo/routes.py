@@ -240,6 +240,9 @@ async def create_photo():
         photo.ready = True
         photo.status = "ready"
 
+    if g.user_id is not None:
+        photo.created_by = g.user_id
+
     photo.save()
     schedule_cleanup()
 
