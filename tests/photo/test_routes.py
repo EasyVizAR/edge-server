@@ -343,6 +343,12 @@ def test_process_uploaded_photo_file(Image):
     assert photo.height == image.height
     assert len(photo.files) == 2
 
+    # Repeating the request should not add any new files, but replace the existing.
+    process_uploaded_photo_file(photo, "test.png", "test.png", "photo")
+    assert photo.width == image.width
+    assert photo.height == image.height
+    assert len(photo.files) == 2
+
     image.width = 333
     image.height = 333
 

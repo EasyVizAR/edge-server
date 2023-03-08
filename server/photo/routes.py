@@ -537,14 +537,28 @@ async def get_photo_file_by_name(photo_id, filename):
 
 
 def process_uploaded_photo_file(photo, upload_file_path, upload_file_name, file_purpose):
+    def index_of_file_name(name):
+        for i in range(len(photo.files)):
+            if photo.files[i].name == name:
+                return i
+        return None
+
     with Image.open(upload_file_path) as image:
         content_type = "image/{}".format(image.format.lower())
 
-        photo.files.append(PhotoFile(upload_file_name, file_purpose,
+        new_entry = PhotoFile(upload_file_name, file_purpose,
             width = image.width,
             height = image.height,
             content_type = content_type
-        ))
+        )
+
+        # If the filename matches an existing entry, then replace it, else append.
+        # We could have used a dictionary, but API users are expecting a list.
+        i = index_of_file_name(upload_file_name)
+        if i is not None:
+            photo.files[i] = new_entry
+        else:
+            photo.files.append(new_entry)
 
         if file_purpose == "photo":
             photo.imagePath = upload_file_path
@@ -560,11 +574,18 @@ def process_uploaded_photo_file(photo, upload_file_path, upload_file_name, file_
                 image.thumbnail(thumbnail_max_size)
                 image.save(thumbnail_path, image.format)
 
-                photo.files.append(PhotoFile(thumbnail_file, "thumbnail",
+                new_entry = PhotoFile(thumbnail_file, "thumbnail",
                     width = image.width,
                     height = image.height,
                     content_type = photo.contentType
-                ))
+                )
+
+                # If the filename matches an existing entry, then replace it, else append.
+                i = index_of_file_name(thumbnail_file)
+                if i is not None:
+                    photo.files[i] = new_entry
+                else:
+                    photo.files.append(new_entry)
 
 
 @photos.route('/photos/<photo_id>/image', methods=['PUT'])
