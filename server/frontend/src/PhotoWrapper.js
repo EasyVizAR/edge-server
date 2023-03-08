@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {Table} from 'react-bootstrap';
+import {ListGroup, Table} from 'react-bootstrap';
 import { useParams } from 'react-router';
 import {Helmet} from 'react-helmet';
 import './PhotoWrapper.css';
@@ -11,6 +11,8 @@ function PhotoWrapper(props) {
 
   const [photo, setPhoto] = useState(null);
   const [selectedBox, setSelectedBox] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imageSource, setImageSource] = useState(null);
 
   useEffect(() => {
     function getPhotoInfo() {
@@ -21,6 +23,7 @@ function PhotoWrapper(props) {
         }
       }).then(data => {
         setPhoto(data);
+        setImageSource(data.imageUrl);
       }).catch(err => {
         // Do something for an error here
         console.log("Error Reading data " + err);
@@ -33,7 +36,7 @@ function PhotoWrapper(props) {
   function Photo() {
     return (
       <div className="photo-wrapper">
-        <img src={photo?.imageUrl} alt="something" />
+        <img src={imageSource} alt="something" />
         {
           photo?.annotations && photo.annotations.length > 0 &&
             photo.annotations.map((annotation, index) => {
@@ -51,6 +54,30 @@ function PhotoWrapper(props) {
             })
         }
       </div>
+    );
+  }
+
+  function ImageSelector() {
+    const base_url = `${host}/photos/${photo_id}/`;
+    var photo_found = false;
+    return (
+      <>
+        <h2>Select Image</h2>
+        <ListGroup defaultActiveKey="photo">
+          {
+            photo?.files && photo.files.length > 0 &&
+              photo.files.map((file, index) => {
+                if (file.purpose === "photo") {
+                  photo_found = true;
+                }
+                return <ListGroup.Item action key={ file.purpose } onClick={() => setImageSource(base_url + file.name)}>{ file.purpose }</ListGroup.Item>
+              })
+          }
+          {
+            photo_found || <ListGroup.Item action key="photo" onClick={() => setImageSource(photo.imageUrl)}>Photo</ListGroup.Item>
+          }
+        </ListGroup>
+      </>
     );
   }
 
@@ -148,13 +175,19 @@ function PhotoWrapper(props) {
 
       <div className="container-lg">
         <div className="row align-items-center">
-          <div className="col-lg-6">
+          <div className="col-lg-9">
             <Photo />
           </div>
           <div className="col-lg-3">
+            <ImageSelector />
+          </div>
+        </div>
+
+        <div className="row align-items-center">
+          <div className="col-lg-6">
             <PhotoInfo />
           </div>
-          <div className="col-lg-3">
+          <div className="col-lg-6">
             <DetectorInfo />
           </div>
         </div>
