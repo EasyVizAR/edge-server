@@ -5,7 +5,7 @@ from http import HTTPStatus
 from quart import Blueprint, current_app, g, make_response, jsonify, websocket
 
 from .apispec import create_openapi_spec
-from .websocket import WebsocketHandler
+from .websocket import WebsocketConnection, WebsocketHandler
 
 
 routes = Blueprint('routes', __name__)
@@ -77,8 +77,9 @@ async def ws():
     """
     chosen_subprotocol = "json"
     if "json-with-header" in websocket.requested_subprotocols:
-        chosen_subprotocol = "json-with-header"
+       chosen_subprotocol = "json-with-header"
 
-    handler = WebsocketHandler(current_app.dispatcher, websocket.receive,
-            websocket.send, subprotocol=chosen_subprotocol, user_id=g.user_id)
+    conn = WebsocketConnection(websocket)
+    handler = WebsocketHandler(current_app.dispatcher, conn,
+            subprotocol=chosen_subprotocol, user_id=g.user_id)
     await asyncio.create_task(handler.listen())
