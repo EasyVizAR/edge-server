@@ -10,6 +10,20 @@ from server.headset.routes import _update_headset
 from server.utils.utils import GenericJsonEncoder
 
 
+class ArgumentParser(argparse.ArgumentParser):
+    def error(self, message):
+        """
+        Override ArgumentParser error method.
+
+        The default implementation calls sys.exit on error,
+        which would terminate the server!
+
+        The Python 3.9 implementation adds an option to disable
+        that functionality, but we may be running on Python 3.8.
+        """
+        raise Exception(message)
+
+
 class WebsocketConnection:
     """
     Simplified object representing a websocket connection.
@@ -106,8 +120,8 @@ class WebsocketHandler:
     async def handle_message(self, message):
         try:
             args = self.parser.parse_args(shlex.split(message))
-        except argparse.ArgumentError:
-            print("WS [{}]: error parsing command from client")
+        except Exception as err:
+            print("WS [{}]: error parsing command from client: {}".format(self.user_id, err))
             return
 
         if args.command == "subscribe":
@@ -133,8 +147,8 @@ class WebsocketHandler:
         elif args.command == "move":
             if self.user_id is not None:
                 patch = {
-                    position: dict(zip(["x", "y", "z"], args.position)),
-                    orientation: dict(zip(["x", "y", "z", "w"], args.orientation))
+                    "position": dict(zip(["x", "y", "z"], args.position)),
+                    "orientation": dict(zip(["x", "y", "z", "w"], args.orientation))
                 }
                 await _update_headset(self.user_id, patch)
 
@@ -164,11 +178,10 @@ class WebsocketHandler:
         the following section provides more detailed usage information for each
         command.
         """
-        parser = argparse.ArgumentParser(
+        parser = ArgumentParser(
                 prog="",
                 description=description,
                 add_help=False,
-                exit_on_error=False,
                 formatter_class=argparse.RawTextHelpFormatter
         )
 
