@@ -45,6 +45,8 @@ async def ws():
     ---
     get:
         summary: Open websocket connection
+        tags:
+          - websockets
         description: |-
             Commands:
             - subscribe (resource:event) [uri filter]

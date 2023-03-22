@@ -1,9 +1,12 @@
+import argparse
 import asyncio
 import json
+import shlex
 import time
 
 from quart import g
 
+from server.headset.routes import _update_headset
 from server.utils.utils import GenericJsonEncoder
 
 
@@ -52,6 +55,8 @@ class WebsocketHandler:
         self.user_id = user_id
         self.close_after_seconds = close_after_seconds
 
+        self.parser = WebsocketHandler.build_command_parser()
+
         self.running = True
 
     async def _send_event_notification(self, event, uri, *args, **kwargs):
@@ -98,42 +103,46 @@ class WebsocketHandler:
         for event, uri_filter in self.subscriptions:
             self.dispatcher.remove_event_listener(event, uri_filter, self._send_event_notification)
 
+    async def handle_message(self, message):
+        try:
+            args = self.parser.parse_args(shlex.split(message))
+        except argparse.ArgumentError:
+            print("WS [{}]: error parsing command from client")
+            return
+
+        if args.command == "subscribe":
+            # Disallow duplicate subscriptions.
+            # If the client subscribes multiple times, it is probably a bug.
+            if (args.event, args.uri_filter) not in self.subscriptions:
+                print("WS [{}]: subscribe {} {}".format(self.user_id, args.event, args.uri_filter))
+                self.dispatcher.add_event_listener(args.event, args.uri_filter, self._send_event_notification)
+                self.subscriptions.add((args.event, args.uri_filter))
+
+        elif args.command == "unsubscribe":
+            if (args.event, args.uri_filter) in self.subscriptions:
+                print("WS [{}]: unsubscribe {} {}".format(self.user_id, args.event, args.uri_filter))
+                self.dispatcher.remove_event_listener(args.event, args.uri_filter, self._send_event_notification)
+                self.subscriptions.remove((args.event, args.uri_filter))
+
+        elif args.command == "suppress":
+            if args.enabled == "on":
+                self.suppress_own_events = True
+            else:
+                self.suppress_own_events = False
+
+        elif args.command == "move":
+            if self.user_id is not None:
+                patch = {
+                    position: dict(zip(["x", "y", "z"], args.position)),
+                    orientation: dict(zip(["x", "y", "z", "w"], args.orientation))
+                }
+                await _update_headset(self.user_id, patch)
+
     async def listen(self):
         try:
             while self.running:
                 data = await self.websocket.receive()
-
-                words = data.split()
-                if len(words) < 2:
-                    print("WS [{}]: malformed data from client ({})".format(self.user_id, data))
-                    continue
-
-                command = words[0]
-                event = words[1]
-                uri_filter = words[2] if len(words) > 2 else "*"
-
-                if command == "subscribe":
-                    # Disallow duplicate subscriptions.
-                    # If the client subscribes multiple times, it is probably a bug.
-                    if (event, uri_filter) not in self.subscriptions:
-                        print("WS [{}]: subscribe {} {}".format(self.user_id, event, uri_filter))
-                        self.dispatcher.add_event_listener(event, uri_filter, self._send_event_notification)
-                        self.subscriptions.add((event, uri_filter))
-
-                elif command == "unsubscribe":
-                    if (event, uri_filter) in self.subscriptions:
-                        print("WS [{}]: unsubscribe {} {}".format(self.user_id, event, uri_filter))
-                        self.dispatcher.remove_event_listener(event, uri_filter, self._send_event_notification)
-                        self.subscriptions.remove((event, uri_filter))
-
-                elif command == "suppress":
-                    if event == "on":
-                        self.suppress_own_events = True
-                    else:
-                        self.suppress_own_events = False
-
-                else:
-                    print("WS [{}]: unexpected command {} from client".format(self.user_id, command))
+                await self.handle_message(data)
 
         except asyncio.CancelledError:
             print("WS [{}]: connection closed, removing {} subscriptions".format(self.user_id, len(self.subscriptions)))
@@ -142,3 +151,55 @@ class WebsocketHandler:
             # Quart documentation warns that the cancellation error needs to be re-raised.
             # https://pgjones.gitlab.io/quart/how_to_guides/websockets.html
             raise
+
+    @classmethod
+    def build_command_parser(cls):
+        description = """
+        The websocket server supports various commands from the client much
+        like a command-line interface. Each command should be sent as a single
+        line message beginning with a command name and followed by arguments
+        separated by spaces.
+
+        The next section provides an overview of the supported commands, and
+        the following section provides more detailed usage information for each
+        command.
+        """
+        parser = argparse.ArgumentParser(
+                prog="",
+                description=description,
+                add_help=False,
+                exit_on_error=False,
+                formatter_class=argparse.RawTextHelpFormatter
+        )
+
+        command = parser.add_subparsers(dest="command", help="Command description")
+        subscribe = command.add_parser("subscribe", help="Subscribe to an event type", add_help=False)
+        unsubscribe = command.add_parser("unsubscribe", help="Unsubscribe from an event type", add_help=False)
+        suppress = command.add_parser("suppress", help="Configure suppression of own events", add_help=False)
+        move = command.add_parser("move", help="Change headset pose", add_help=False)
+
+        subscribe.add_argument("event", type=str)
+        subscribe.add_argument("uri_filter", type=str, nargs="?", default="*")
+
+        unsubscribe.add_argument("event", type=str)
+        unsubscribe.add_argument("uri_filter", type=str, nargs="?", default="*")
+
+        suppress.add_argument("enabled", type=str, choices=["on", "off"])
+
+        move.add_argument("position", type=float, nargs=3, metavar="x")
+        move.add_argument("orientation", type=float, nargs=4, metavar="w")
+
+        parser.epilog = "".join([
+            "command usage:\n",
+            subscribe.format_usage()[7:],
+            unsubscribe.format_usage()[7:],
+            suppress.format_usage()[7:],
+            move.format_usage()[7:]
+        ])
+
+        return parser
+
+
+if __name__ == "__main__":
+    parser = WebsocketHandler.build_command_parser()
+    parser.print_help()

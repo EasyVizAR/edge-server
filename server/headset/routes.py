@@ -400,6 +400,49 @@ async def replace_headset(headsetId):
         return jsonify(headset), HTTPStatus.OK
 
 
+async def _update_headset(headset_id, patch):
+    headset = g.Headset.find_by_id(headset_id)
+    if headset is None:
+        raise exceptions.NotFound(description="Headset {} was not found".format(id))
+
+    previous = g.Headset.find_by_id(headset_id)
+
+    # Do not allow changing the object's ID
+    if 'id' in patch:
+        del patch['id']
+
+    headset.update(patch)
+    headset.updated = time.time()
+
+    folder = g.active_incident.Headset.find_by_id(headset_id)
+    if folder is None:
+        # This is the first time the headset appears under the current incident.
+        folder = g.active_incident.Headset.add(headset.id)
+
+    checkin = valid_check_in_or_none(folder, previous, headset)
+
+    # Automatically create a check-in record for this headset
+    if checkin is None and headset.location_id != None:
+        checkin = folder.CheckIn.load({'location_id': headset.location_id}, replace_id=True)
+        checkin.save()
+
+        headset.last_check_in_id = checkin.id
+
+    if checkin is not None and ('position' in patch or 'orientation' in patch):
+        change = checkin.PoseChange.load(patch)
+        checkin.PoseChange.add(change)
+
+    headset.save()
+
+    await current_app.dispatcher.dispatch_event("headsets:updated",
+            "/headsets/"+headset.id, current=headset, previous=previous)
+    if headset.location_id is not None:
+        await current_app.dispatcher.dispatch_event("location-headsets:updated",
+                "locations/{}/headsets/{}".format(headset.location_id, headset.id), current=headset, previous=previous)
+
+    return headset
+
+
 @headsets.route('/headsets/<headset_id>', methods=['PATCH'])
 async def update_headset(headset_id):
     """
@@ -447,46 +490,8 @@ async def update_headset(headset_id):
                     application/json:
                         schema: Headset
     """
-    headset = g.Headset.find_by_id(headset_id)
-    if headset is None:
-        raise exceptions.NotFound(description="Headset {} was not found".format(id))
-
-    previous = g.Headset.find_by_id(headset_id)
-
     body = await request.get_json()
-
-    # Do not allow changing the object's ID
-    if 'id' in body:
-        del body['id']
-
-    headset.update(body)
-    headset.updated = time.time()
-
-    folder = g.active_incident.Headset.find_by_id(headset_id)
-    if folder is None:
-        # This is the first time the headset appears under the current incident.
-        folder = g.active_incident.Headset.add(headset.id)
-
-    checkin = valid_check_in_or_none(folder, previous, headset)
-
-    # Automatically create a check-in record for this headset
-    if checkin is None and headset.location_id != None:
-        checkin = folder.CheckIn.load({'location_id': headset.location_id}, replace_id=True)
-        checkin.save()
-
-        headset.last_check_in_id = checkin.id
-
-    if checkin is not None and ('position' in body or 'orientation' in body):
-        change = checkin.PoseChange.load(body)
-        checkin.PoseChange.add(change)
-
-    headset.save()
-
-    await current_app.dispatcher.dispatch_event("headsets:updated",
-            "/headsets/"+headset.id, current=headset, previous=previous)
-    if headset.location_id is not None:
-        await current_app.dispatcher.dispatch_event("location-headsets:updated",
-                "locations/{}/headsets/{}".format(headset.location_id, headset.id), current=headset, previous=previous)
+    headset = await _update_headset(headset_id, body)
     return jsonify(headset), HTTPStatus.OK
 
 

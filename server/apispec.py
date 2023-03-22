@@ -1,5 +1,6 @@
 import asyncio
 import json
+import textwrap
 
 import quart.flask_patch
 
@@ -33,6 +34,8 @@ from server.photo.models import PhotoModel
 from server.pose_changes.models import PoseChangeModel
 from server.scene.models import SceneDescriptor, SceneModel
 from server.surface.models import SurfaceModel
+
+from server.websocket import WebsocketHandler
 
 
 async def create_openapi_spec(app):
@@ -73,6 +76,12 @@ async def create_openapi_spec(app):
     spec.tag(dict(name="pose-changes", description=PoseChangeModel.__doc__))
     spec.tag(dict(name="scenes", description=SceneModel.__doc__))
     spec.tag(dict(name="surfaces", description=SurfaceModel.__doc__))
+
+    # The websocket command parser has useful information about
+    # the supported websocket client commands.
+    parser = WebsocketHandler.build_command_parser()
+    description = textwrap.indent(parser.format_help(), "    ")
+    spec.tag(dict(name="websockets", description=description))
 
     async with app.test_request_context("/"):
         spec.path(view=annotations.list_annotations)
