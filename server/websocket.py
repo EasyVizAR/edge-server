@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import json
 import shlex
+import sys
 import time
 
 from quart import g
@@ -152,6 +153,12 @@ class WebsocketHandler:
                 }
                 await _update_headset(self.user_id, patch)
 
+        elif args.command == "exit":
+            sys.exit(0)
+
+        elif args.command == "user":
+            self.user_id = args.id
+
     async def listen(self):
         try:
             while self.running:
@@ -185,6 +192,7 @@ class WebsocketHandler:
                 formatter_class=argparse.RawTextHelpFormatter
         )
 
+
         command = parser.add_subparsers(dest="command", help="Command description")
         subscribe = command.add_parser("subscribe", help="Subscribe to an event type", add_help=False)
         unsubscribe = command.add_parser("unsubscribe", help="Unsubscribe from an event type", add_help=False)
@@ -202,13 +210,28 @@ class WebsocketHandler:
         move.add_argument("position", type=float, nargs=3, metavar="x")
         move.add_argument("orientation", type=float, nargs=4, metavar="w")
 
-        parser.epilog = "".join([
+        command_usage_strings = [
             "command usage:\n",
             subscribe.format_usage()[7:],
             unsubscribe.format_usage()[7:],
             suppress.format_usage()[7:],
             move.format_usage()[7:]
-        ])
+        ]
+
+        # These commands are useful for testing but must not be available in
+        # production environment because of their security risks.
+        if not g.environment.startswith("prod"):
+            exit = command.add_parser("exit", help="Stop the server", add_help=False)
+            user = command.add_parser("user", help="Set user ID for the connection", add_help=False)
+
+            user.add_argument("id", type=str)
+
+            command_usage_strings.extend([
+                exit.format_usage()[7:],
+                user.format_usage()[7:]
+            ])
+
+        parser.epilog = "".join(command_usage_strings)
 
         return parser
 

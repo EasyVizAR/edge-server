@@ -109,6 +109,8 @@ def before_first_request():
 
 @app.before_request
 def before_request():
+    g.environment = os.environ.get("QUART_ENV", "production")
+
     # This will be set by the authenticator if the user
     # passed a valid credential.
     g.user_id = None
@@ -125,6 +127,8 @@ def before_request():
 
 @app.before_websocket
 def before_websocket():
+    g.environment = os.environ.get("QUART_ENV", "production")
+
     # This will be set by the authenticator if the user
     # passed a valid credential.
     g.user_id = None
