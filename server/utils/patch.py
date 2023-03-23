@@ -8,6 +8,13 @@ def patch_by_path(obj, path_components, value):
 
     if isinstance(current, dict):
         current[path_components[-1]] = value
+    elif isinstance(value, dict):
+        # In this case, the target is a child object.
+        # Rather than replace the object with a dictionary,
+        # we iterate the values in the dict and set them in the target object.
+        target = getattr(current, path_components[-1])
+        for ckey, cvalue in value.items():
+            setattr(target, ckey, cvalue)
     else:
         setattr(current, path_components[-1], value)
 
@@ -36,6 +43,6 @@ def patch_object(obj, changes):
     for key, value in changes.items():
         components = key.split(".")
         if len(components) == 1:
-            setattr(obj, key, value)
+            patch_by_path(obj, [key], value)
         else:
             patch_by_path(obj, components, value)
