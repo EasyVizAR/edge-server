@@ -36,6 +36,7 @@ import shutil
 import time
 import uuid
 
+import cachetools
 import marshmallow
 
 from server.resources.abstractresource import AbstractResource, AbstractCollection
@@ -66,6 +67,7 @@ class JsonResource(AbstractResource):
 
     def delete(self):
         shutil.rmtree(self._storage_dir, ignore_errors=True)
+        self._collection.evict_cached_item(self)
 
     def get_dir(self):
         """
@@ -121,6 +123,8 @@ class JsonResource(AbstractResource):
         # Notify any listeners of the change.
         self.notify_listeners(created)
 
+        self._collection.update_cached_item(self)
+
         return created
 
     def update(self, other):
@@ -140,7 +144,7 @@ class JsonResource(AbstractResource):
 
 
 class JsonCollection(AbstractCollection):
-    def __init__(self, resource_class, resource_name, collection_name=None, id_type="numeric", parent=None):
+    def __init__(self, resource_class, resource_name, collection_name=None, id_type="numeric", parent=None, cachesize=32):
         """
         Create a new collection.
 
@@ -183,6 +187,8 @@ class JsonCollection(AbstractCollection):
         # Used for auto-incrementing numeric IDs.
         self.next_id = 0
 
+        self.cache = cachetools.LRUCache(maxsize=cachesize)
+
     def __call__(self, *args, **kwargs):
         """
         Construct a new instance of the underlying resource class.
@@ -209,11 +215,41 @@ class JsonCollection(AbstractCollection):
 
         return self.prepare_item(item)
 
+    def evict_cached_item(self, item):
+        if item._storage_path in self.cache:
+            del self.cache[item._storage_path]
+
+    def update_cached_item(self, item):
+        self.cache[item._storage_path] = item
+
     def clear(self):
         """
         Delete all data belonging to this collection.
         """
         shutil.rmtree(self.base_directory, ignore_errors=True)
+        self.cache.clear()
+
+    def _read_file(self, path):
+        """
+        Read object from file or in-memory cache.
+        """
+        if path in self.cache:
+            if os.path.exists(path):
+                return self.cache[path]
+            else:
+                # Detect file was deleted but object is still cached.
+                del self.cache[path]
+
+        try:
+            with open(path, "r") as source:
+                item = self.resource_schema.loads(source.read())
+                self.prepare_item(item)
+                self.cache[path] = item
+                return item
+        except marshmallow.exceptions.ValidationError:
+            print("Warning: validation error in {}".format(fname))
+        except:
+            pass
 
     def find(self, filt=None, **kwargs):
         """
@@ -232,14 +268,9 @@ class JsonCollection(AbstractCollection):
             if not os.path.isdir(subdir):
                 continue
             fname = os.path.join(subdir, self.resource_filename)
-            with open(fname, "r") as source:
-                try:
-                    item = self.resource_schema.loads(source.read())
-                    self.prepare_item(item)
-                    if filt.matches(item):
-                        results.append(item)
-                except marshmallow.exceptions.ValidationError:
-                    print("Warning: validation error in {}".format(fname))
+            item = self._read_file(fname)
+            if item is not None and filt.matches(item):
+                results.append(item)
 
         return results
 
@@ -250,13 +281,7 @@ class JsonCollection(AbstractCollection):
         Returns None if not found.
         """
         path = os.path.join(self.base_directory, self.format_id(id), self.resource_filename)
-        try:
-            with open(path, "r") as source:
-                item = self.resource_schema.loads(source.read())
-                item.id = id
-                return self.prepare_item(item)
-        except:
-            return None
+        return self._read_file(path)
 
     def find_newest(self, filt=None, **kwargs):
         """
@@ -274,11 +299,9 @@ class JsonCollection(AbstractCollection):
                 continue
 
             file_path = os.path.join(entry.path, self.resource_filename)
-            with open(file_path, "r") as source:
-                item = self.resource_schema.loads(source.read())
-                self.prepare_item(item)
-                if filt.matches(item):
-                    return item
+            item = self._read_file(file_path)
+            if item is not None and filt.matches(item):
+                return item
 
         return None
 

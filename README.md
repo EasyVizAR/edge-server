@@ -18,6 +18,12 @@ Run the server with default settings. By default, it will listen on localhost po
 python3 -m server
 ```
 
+Run the server in development mode. This enables certain useful functions such as additional websocket commands which would be dangerous in deployment.
+
+```console
+QUART_ENV=development python3 -m server
+```
+
 Run all of the unit tests with coverage report.
 
 ```console
