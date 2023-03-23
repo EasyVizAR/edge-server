@@ -405,7 +405,7 @@ async def _update_headset(headset_id, patch):
     if headset is None:
         raise exceptions.NotFound(description="Headset {} was not found".format(id))
 
-    previous = g.Headset.find_by_id(headset_id)
+    previous = headset.clone()
 
     # Do not allow changing the object's ID
     if 'id' in patch:

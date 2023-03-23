@@ -446,13 +446,14 @@ async def update_photo(photo_id):
     if photo is None:
         raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
+    previous = photo.clone()
+
     body = await request.get_json()
 
     # Do not allow changing the object's ID
     if 'id' in body:
         del body['id']
 
-    previous = g.active_incident.Photo.find_by_id(photo_id)
     photo.update(body)
     photo.save()
 
@@ -610,6 +611,8 @@ async def upload_photo_file(photo_id):
     if photo is None:
         raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
+    previous = photo.clone()
+
     # In case the image path was not set correctly or even was set maliciously,
     # reconstruct it here before writing the file.
     upload_file_name = "image.{}".format(get_photo_extension(photo))
@@ -630,7 +633,6 @@ async def upload_photo_file(photo_id):
     except:
         pass
 
-    previous = g.active_incident.Photo.find_by_id(photo_id)
     photo.imageUrl = "/photos/{}/image".format(photo_id)
     photo.ready = True
     photo.status = "ready"
@@ -681,6 +683,8 @@ async def upload_photo_file_by_name(photo_id, filename):
     if photo is None:
         raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
+    previous = photo.clone()
+
     # In case the image path was not set correctly or even was set maliciously,
     # reconstruct it here before writing the file.
     upload_file_name = secure_filename(filename)
@@ -703,7 +707,6 @@ async def upload_photo_file_by_name(photo_id, filename):
     except:
         pass
 
-    previous = g.active_incident.Photo.find_by_id(photo_id)
     photo.imageUrl = "/photos/{}/image".format(photo_id)
     if file_purpose == "photo":
         photo.ready = True

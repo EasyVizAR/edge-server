@@ -29,6 +29,7 @@ used to create new objects find objects in storage.
     results = Dummy.find(name="foobar")
 """
 import asyncio
+import copy
 import json
 import os
 import shutil
@@ -56,6 +57,12 @@ class JsonResource(AbstractResource):
             del d['_collection']
 
         return d
+
+    def clone(self):
+        """
+        Returns a copy of this resource.
+        """
+        return copy.deepcopy(self)
 
     def delete(self):
         shutil.rmtree(self._storage_dir, ignore_errors=True)

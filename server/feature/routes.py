@@ -283,6 +283,8 @@ async def update_feature(location_id, feature_id):
     if feature is None:
         raise exceptions.NotFound(description="Feature {} was not found".format(feature_id))
 
+    previous = feature.clone()
+
     body = await request.get_json()
 
     # Do not allow changing the object's ID
@@ -290,7 +292,6 @@ async def update_feature(location_id, feature_id):
         del body['id']
 
     feature.update(body)
-    previous = location.Feature.find_by_id(feature_id)
     feature.save()
 
     await current_app.dispatcher.dispatch_event("features:updated",
