@@ -145,3 +145,49 @@ async def test_surface_upload():
         assert response.is_json
         surface2 = await response.get_json()
         assert surface2['id'] == surface['id']
+
+
+@pytest.mark.asyncio
+async def test_clear_surfaces():
+    """
+    Test clear surfaces
+    """
+    async with app.test_client() as client:
+        # Create a test location
+        response = await client.post("/locations", json=dict(name="Surface Test"))
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        location = await response.get_json()
+
+        surfaces_url = "/locations/{}/surfaces".format(location['id'])
+
+        # Create an object
+        response = await client.post(surfaces_url, json={"type": "uploaded"})
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        surface = await response.get_json()
+        assert isinstance(surface, dict)
+        assert surface['id'] is not None
+
+        surface_url = "{}/{}".format(surfaces_url, surface['id'])
+
+        # Test upload process
+        response = await client.put(surface['fileUrl'], data="ply")
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        surface2 = await response.get_json()
+        assert isinstance(surface, dict)
+        assert surface2['id'] == surface['id']
+        assert surface2['updated'] > surface['updated']
+
+        # Test deleting all surfaces
+        response = await client.delete(surfaces_url)
+        assert response.status_code == HTTPStatus.OK
+
+        # List of surfaces should be empty now
+        response = await client.get(surfaces_url)
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        surfaces = await response.get_json()
+        assert isinstance(surfaces, list)
+        assert len(surfaces) == 0

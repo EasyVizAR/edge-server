@@ -330,25 +330,10 @@ function Location(props) {
     };
 
     const surfaces_url = `${host}/locations/` + selectedLocation + "/surfaces";
-    fetch(surfaces_url)
+    fetch(surfaces_url, requestData)
       .then(response => response.json())
-      .then(surface_list => {
-        surface_list.reduce((chain, item) => {
-          return chain.then(() => {
-            const url = surfaces_url + "/" + item['id'];
-            return new Promise(resolve => {
-              setTimeout(() => {
-                fetch(url, requestData)
-                  .then(response => response.json())
-                  .then(result => {
-                    // Handle the result of the request
-                    console.log("Deleted item: " + item['id']);
-                    resolve();
-                  });
-              }, 100); // Wait for 100ms before making each request
-            });
-          });
-        }, Promise.resolve());
+      .then(data => {
+        console.log("Deleted surfaces");
       });
   }
 

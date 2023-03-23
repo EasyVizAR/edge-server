@@ -89,6 +89,26 @@ async def create_surface(location_id):
     return jsonify(surface), HTTPStatus.CREATED
 
 
+@surfaces.route('/locations/<location_id>/surfaces', methods=['DELETE'])
+async def clear_surfaces(location_id):
+    """
+    Clear surfaces
+    ---
+    delete:
+        summary: Clear surfaces
+        description: This method deletes ALL surfaces collected in the location.
+        tags:
+         - surfaces
+    """
+    location = g.active_incident.Location.find_by_id(location_id)
+    if location is None:
+        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+
+    location.Surface.clear()
+
+    return {}, HTTPStatus.OK
+
+
 @surfaces.route('/locations/<location_id>/surfaces/<surface_id>', methods=['DELETE'])
 async def delete_surface(location_id, surface_id):
     """

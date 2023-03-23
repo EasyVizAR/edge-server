@@ -159,6 +159,7 @@ async def create_openapi_spec(app):
 
         spec.path(view=surfaces.list_surfaces)
         spec.path(view=surfaces.create_surface)
+        spec.path(view=surfaces.clear_surfaces)
         spec.path(view=surfaces.delete_surface)
         spec.path(view=surfaces.get_surface)
         spec.path(view=surfaces.replace_surface)

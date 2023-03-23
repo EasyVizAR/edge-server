@@ -277,12 +277,10 @@ function Home(props) {
         };
 
         const surfaces_url = `${host}/locations/` + selectedLocation + "/surfaces";
-        fetch(surfaces_url)
+        fetch(surfaces_url, requestData)
             .then(response => response.json())
             .then(data => {
-                for (var key in data) {
-                    fetch(surfaces_url + "/" + data[key]['id'], requestData);
-                }
+                console.log("Deleted surfaces");
             });
     }
 
