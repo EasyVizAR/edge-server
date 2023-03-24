@@ -305,7 +305,21 @@ function LayerContainer(props) {
                     Object.entries(props.headsets).map(([id, item]) => {
                       const x = mapShape.xscale * (item.position.x - mapShape.xmin);
                       const y = mapShape.yscale * (mapShape.height - (item.position.z - mapShape.ymin));
-                      return <FontAwesomeIcon icon={icons['headset']['iconName']}
+                      const rotation = 2 * Math.atan2(item.orientation.y, item.orientation.w);
+                      console.log(rotation);
+                      return <div>
+                              <FontAwesomeIcon icon={solid('play')}
+                                              className="heading"
+                                              color={item.color}
+                                              style={{
+                                                  left: x,
+                                                  top: y,
+                                                  height: mapIconSize + "%",
+                                                  pointerEvents: "none",
+                                                  opacity: 0.75,
+                                                  transform: "translate(-50%, -50%) rotate(" + rotation + "rad) translateX(75%)"
+                                              }} />
+                              <FontAwesomeIcon icon={icons['headset']['iconName']}
                                               className="features" id={item.id}
                                               alt={item.name} color={item.color}
                                               style={{
@@ -314,6 +328,7 @@ function LayerContainer(props) {
                                                   height: mapIconSize + "%",
                                                   pointerEvents: "none"
                                               }}/>
+                        </div>
                     })
                 }
                 {

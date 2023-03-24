@@ -23,6 +23,11 @@
     transform: translate(-50%, -50%);
 }
 
+.heading {
+    position: absolute;
+    border: 0px solid #000000;
+}
+
 .layer-radio-form {
     margin-left: 1%;
 }
