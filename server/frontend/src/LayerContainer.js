@@ -13,6 +13,8 @@ function LayerContainer(props) {
     const [mapShape, setMapShape] = useState({
       xmin: 0,
       ymin: 0,
+      width: 0,
+      height: 0,
       xscale: 1,
       yscale: 1
     });
@@ -95,8 +97,12 @@ function LayerContainer(props) {
         const ymin = map['viewBox']['top'];
         const width = map['viewBox']['width'];
         const height = map['viewBox']['height'];
-        list.push((px * width / document.getElementById('map-image').offsetWidth + xmin));
-        list.push((py * height / document.getElementById('map-image').offsetHeight + ymin));
+
+        const displayWidth = document.getElementById('map-image').offsetWidth;
+        const displayHeight = document.getElementById('map-image').offsetHeight;
+
+        list.push((px * width / displayWidth + xmin));
+        list.push(((displayHeight - py) * height / displayHeight + ymin));
 
         return list;
     }
@@ -111,14 +117,20 @@ function LayerContainer(props) {
         }
         if (props.clickCount > 0)
             f.pop();
+
+        const scaled = convertScaled2Vector(
+          e.clientX - e.target.getBoundingClientRect().left,
+          e.clientY - e.target.getBoundingClientRect().top
+        );
+
         f.push({
             id: 'undefined',
             mapId: props.selectedLayer,
             name: '(editing in map)',
             position: {
-              x: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[0],
+              x: scaled[0],
               y: 0,
-              z: convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left, e.clientY - e.target.getBoundingClientRect().top)[1]
+              z: scaled[1],
             },
             scaledX: e.clientX - e.target.getBoundingClientRect().left,
             scaledY: e.clientY - e.target.getBoundingClientRect().top,
@@ -130,12 +142,7 @@ function LayerContainer(props) {
             }
         });
 
-        props.setPointCoordinates([convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left,
-            e.clientY - e.target.getBoundingClientRect().top)[0],
-            0,
-            convertScaled2Vector(e.clientX - e.target.getBoundingClientRect().left,
-                e.clientY - e.target.getBoundingClientRect().top)[1]]);
-
+        props.setPointCoordinates([scaled[0], 0, scaled[1]]);
         props.setClickCount(props.clickCount + 1);
     }
 
@@ -150,14 +157,22 @@ function LayerContainer(props) {
         if (!layer)
           return
 
+        var map_image = document.getElementById('map-image');
+
         setLayerLoaded(true);
 
         setMapShape({
           xmin: layer['viewBox']['left'],
           ymin: layer['viewBox']['top'],
-          xscale: document.getElementById('map-image').offsetWidth / layer['viewBox']['width'],
-          yscale: document.getElementById('map-image').offsetHeight / layer['viewBox']['height']
+          width: layer['viewBox']['width'],
+          height: layer['viewBox']['height'],
+          xscale: map_image.offsetWidth / layer['viewBox']['width'],
+          yscale: map_image.offsetHeight / layer['viewBox']['height']
         });
+
+        // After the image has been loaded, apply the mirroring effect.
+        // That allows the alt text to display properly while the map is loading.
+        map_image.classList.add('mirrored');
     }
 
     const getCircleSvgSize = (r) => {
@@ -198,7 +213,7 @@ function LayerContainer(props) {
 
     const handleMouseOverPhoto = (ev, photo) => {
       const x = mapShape.xscale * (photo.camera_position.x - mapShape.xmin);
-      const y = mapShape.yscale * (photo.camera_position.z - mapShape.ymin);
+      const y = mapShape.yscale * (mapShape.height - (photo.camera_position.z - mapShape.ymin));
 
       // Bounding rect for the icon.
       // Use this to center the corner of the photo within the icon.
@@ -229,7 +244,7 @@ function LayerContainer(props) {
                       }
 
                       const x = mapShape.xscale * (item.camera_position.x - mapShape.xmin);
-                      const y = mapShape.yscale * (item.camera_position.z - mapShape.ymin);
+                      const y = mapShape.yscale * (mapShape.height - (item.camera_position.z - mapShape.ymin));
                       const color = (item.created_by && props.headsets[item.created_by]) ? props.headsets[item.created_by].color : "#808080";
                       return <FontAwesomeIcon icon={icons['photo']['iconName']}
                                               className="features" id={"photo-" + item.id}
@@ -248,7 +263,7 @@ function LayerContainer(props) {
                   layerLoaded && props.featuresChecked && Object.keys(props.features).length > 0 &&
                     Object.entries(props.features).map(([id, item]) => {
                       const x = mapShape.xscale * (item.position.x - mapShape.xmin);
-                      const y = mapShape.yscale * (item.position.z - mapShape.ymin);
+                      const y = mapShape.yscale * (mapShape.height - (item.position.z - mapShape.ymin));
                       if (item.style?.placement == "floating") {
                         return <div>
                                 <FontAwesomeIcon icon={icons?.[item.type]?.['iconName'] || "bug"}
@@ -289,7 +304,7 @@ function LayerContainer(props) {
                   layerLoaded && props.headsetsChecked && Object.keys(props.headsets).length > 0 &&
                     Object.entries(props.headsets).map(([id, item]) => {
                       const x = mapShape.xscale * (item.position.x - mapShape.xmin);
-                      const y = mapShape.yscale * (item.position.z - mapShape.ymin);
+                      const y = mapShape.yscale * (mapShape.height - (item.position.z - mapShape.ymin));
                       return <FontAwesomeIcon icon={icons['headset']['iconName']}
                                               className="features" id={item.id}
                                               alt={item.name} color={item.color}

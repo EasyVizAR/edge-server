@@ -13,9 +13,14 @@
     align-self: center;
 }
 
+.mirrored {
+    transform: scaleY(-1);
+}
+
 .features {
     position: absolute;
     border: 0px solid #000000;
+    transform: translate(-50%, -50%);
 }
 
 .layer-radio-form {
