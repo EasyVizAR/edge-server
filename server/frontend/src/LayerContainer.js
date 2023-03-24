@@ -305,8 +305,17 @@ function LayerContainer(props) {
                     Object.entries(props.headsets).map(([id, item]) => {
                       const x = mapShape.xscale * (item.position.x - mapShape.xmin);
                       const y = mapShape.yscale * (mapShape.height - (item.position.z - mapShape.ymin));
-                      const rotation = 2 * Math.atan2(item.orientation.y, item.orientation.w);
-                      console.log(rotation);
+
+                      /*
+                       * 2*atan2(y, w) gives us the angle of rotation around
+                       * the vertical Y axis, ie. the heading direction.  We
+                       * subtract PI/2 because the arrow icon starts pointing
+                       * in the positive X direction, but from the headset
+                       * perspective, zero rotation points in the positive Z
+                       * direction.
+                       */
+                      const rotation = (2 * Math.atan2(item.orientation.y, item.orientation.w)) - (0.5 * Math.PI);
+
                       return <div>
                               <FontAwesomeIcon icon={solid('play')}
                                               className="heading"
