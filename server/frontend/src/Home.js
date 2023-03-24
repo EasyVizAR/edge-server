@@ -410,10 +410,6 @@ function Home(props) {
       const ws = webSocket.current;
 
       ws.onopen = (event) => {
-          ws.send("subscribe headsets:created");
-          ws.send("subscribe headsets:updated");
-          ws.send("subscribe headsets:deleted");
-
           const selectedLocation = selectedLocationRef.current;
           if (selectedLocation) {
             changeSubscriptions(null, selectedLocation);
@@ -424,7 +420,7 @@ function Home(props) {
         const selectedLocation = selectedLocationRef.current;
 
         const message = JSON.parse(event.data);
-        if (message.event === "headsets:created") {
+        if (message.event === "location-headsets:created") {
           if (message.current.location_id !== selectedLocation)
             return;
           setHeadsets(prevHeadsets => {
@@ -432,7 +428,7 @@ function Home(props) {
             newHeadsets[message.current.id] = message.current;
             return newHeadsets;
           });
-        } else if (message.event === "headsets:updated") {
+        } else if (message.event === "location-headsets:updated") {
           if (message.current.location_id !== selectedLocation)
             return;
           setHeadsets(prevHeadsets => {
@@ -440,7 +436,7 @@ function Home(props) {
             newHeadsets[message.current.id] = message.current;
             return newHeadsets;
           });
-        } else if (message.event === "headsets:deleted") {
+        } else if (message.event === "location-headsets:deleted") {
           if (message.previous.location_id !== selectedLocation)
             return;
           setHeadsets(prevHeadsets => {
@@ -499,6 +495,9 @@ function Home(props) {
       }
 
       const events = [
+        "location-headsets:created",
+        "location-headsets:updated",
+        "location-headsets:deleted",
         "features:created",
         "features:updated",
         "features:deleted",
