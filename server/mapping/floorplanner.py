@@ -63,12 +63,13 @@ def lp_intersect(p0, p1, p_co, p_no, epsilon=1e-6):
 
 class Floorplanner:
 
-    def __init__(self, ply_path_or_list, image_scale=1, json_data_path=None, headsets=None, slices=None):
+    def __init__(self, ply_path_or_list, image_scale=1, json_data_path=None, cutting_height=0.0, headsets=None, slices=None):
         self.ply_path_or_list = ply_path_or_list
         self.image_scale = image_scale
         self.json_data_path = json_data_path
         self.data = {}
         self.first_load_json = json_data_path is not None
+        self.cutting_height = cutting_height
         self.headsets = headsets
         self.slices = slices
 
@@ -151,12 +152,29 @@ class Floorplanner:
         return paths
 
     def update_lines(self, initialize=True):
-        if initialize:
-            self.data = {}
-        elif self.first_load_json and os.path.exists(self.json_data_path):
+        if self.first_load_json and os.path.exists(self.json_data_path):
             with open(self.json_data_path, 'r') as f:
                 self.data = json.load(f)
+
+            # Detect old version of data file and transition
+            if 'files' not in self.data:
+                tmp = self.data
+                self.data = {
+                    "cutting_height": 0.0,
+                    "files": tmp
+                }
+
+            # Cutting height has changed - reprocess all surface data
+            if not math.isclose(self.cutting_height, self.data['cutting_height']):
+                initialize = True
+
             self.first_load_json = False
+
+        if initialize:
+            self.data = {
+                "cutting_height": self.cutting_height,
+                "files": {}
+            }
 
         changes = 0
 
@@ -166,28 +184,29 @@ class Floorplanner:
         # Detect surface files that have been deleted and stop using line
         # segments that were created from them.
         deleted = []
-        for path in self.data.keys():
+        for path in self.data['files'].keys():
             if not os.path.exists(path):
                 deleted.append(path)
         for path in deleted:
-            self.data.pop(path)
+            self.data['files'].pop(path)
             changes += 1
 
         for i, path in enumerate(self.ply_path_or_list):
             time_of_prev_mod = os.path.getmtime(path)
-            update_lines_at_path = path not in self.data or self.data[path]["last_modified"] < time_of_prev_mod
+            update_lines_at_path = path not in self.data['files'] or self.data['files'][path]["last_modified"] < time_of_prev_mod
             if initialize or update_lines_at_path:
                 mesh = read_ply_file(path)
 
                 if self.slices is None:
-                    zplane = self.calculate_intersections(mesh, json_serialize=True)
-                    self.data[path] = {"last_modified": time_of_prev_mod, "polylines": zplane}
+                    headset_position = [0, self.cutting_height, 0]
+                    zplane = self.calculate_intersections(mesh, headset_position=headset_position, json_serialize=True)
+                    self.data['files'][path] = {"last_modified": time_of_prev_mod, "polylines": zplane}
                 else:
-                    self.data[path] = {"last_modified": time_of_prev_mod, "slices": []}
+                    self.data['files'][path] = {"last_modified": time_of_prev_mod, "slices": []}
                     for level in self.slices:
-                        headset_position = [0, level, 0]
+                        headset_position = [0, self.cutting_height+level, 0]
                         zplane = self.calculate_intersections(mesh, headset_position=headset_position, json_serialize=True)
-                        self.data[path]['slices'].append(zplane)
+                        self.data['files'][path]['slices'].append(zplane)
 
                 changes += 1
 
@@ -203,22 +222,22 @@ class Floorplanner:
         Write map image file as an SVG.
         """
         minx = maxx = minz = maxz = 0
-        for path in self.data:
-            for segment in self.data[path].get('lines', []):
+        for path in self.data['files']:
+            for segment in self.data['files'][path].get('lines', []):
                 for point in segment:
                     minx = min(point[0], minx)
                     maxx = max(point[0], maxx)
                     minz = min(point[2], minz)
                     maxz = max(point[2], maxz)
 
-            for polyline in self.data[path].get('polylines', []):
+            for polyline in self.data['files'][path].get('polylines', []):
                 for point in polyline:
                     minx = min(point[0], minx)
                     maxx = max(point[0], maxx)
                     minz = min(point[2], minz)
                     maxz = max(point[2], maxz)
 
-            for layer in self.data[path].get("slices", []):
+            for layer in self.data['files'][path].get("slices", []):
                 for polyline in layer:
                     for point in polyline:
                         minx = min(point[0], minx)
@@ -229,7 +248,6 @@ class Floorplanner:
         scale = self.image_scale
         image_width = scale * (maxx - minx)
         image_height = scale * (maxz - minz)
-
 
         if self.slices is None or len(self.slices) == 1:
             colors = ["black"]
@@ -244,23 +262,22 @@ class Floorplanner:
 
         dwg = svgwrite.Drawing(svg_destination_path, profile='tiny',
                 viewBox="{} {} {} {}".format(scale*minx, scale*minz, image_width, image_height))
-        for path in self.data:
-            for line in self.data[path].get("lines", []):
+        for path in self.data['files']:
+            for line in self.data['files'][path].get("lines", []):
                 p1f = ((line[0][0]) * scale, (line[0][2]) * scale)
                 p2f = ((line[1][0]) * scale, (line[1][2]) * scale)
                 dwg.add(dwg.line(start=p1f, end=p2f, stroke='black', stroke_width=0.1))
 
-            for polyline in self.data[path].get("polylines", []):
+            for polyline in self.data['files'][path].get("polylines", []):
                 dwg.add(dwg.polyline(
                     points=[(x[0], x[2]) for x in polyline],
                     stroke='black', stroke_width=0.1, fill="none"))
 
-            for layer, polylines in enumerate(self.data[path].get("slices", [])):
+            for layer, polylines in enumerate(self.data['files'][path].get("slices", [])):
                 for polyline in polylines:
                     dwg.add(dwg.polyline(
                         points=[(x[0], x[2]) for x in polyline],
                         stroke=colors[layer], stroke_width=0.1, fill="none"))
-
 
         # If floorplanner was configured with a headset list, draw some simple
         # markers over the map. This should ideally be a lot more configurable.

@@ -228,6 +228,39 @@ async def replace_layer(location_id, layer_id):
         return jsonify(layer), HTTPStatus.OK
 
 
+def trigger_map_rebuild(location):
+    # Variables required for the callbacks below:
+    loop = asyncio.get_event_loop()
+    dispatcher = current_app.dispatcher
+    mapping_limiter = current_app.mapping_limiter
+    Location = g.active_incident.Location
+
+    # The pool limiter helps us batch multiple surface updates. If there is
+    # already a mapping task pending for this location, then we do not schedule
+    # another. This is not a perfect solution, as we may delay or miss
+    # processing the last updates.
+    if mapping_limiter.try_submit(location.id):
+        map_maker = MapMaker.build_maker(g.active_incident.id, location.id)
+        future = current_app.mapping_pool.submit(map_maker.make_map)
+
+        def map_ready(future):
+            mapping_limiter.finished(location.id)
+
+            result = future.result()
+            if result.changes > 0:
+                layer = location.Layer.find_by_id(result.layer_id)
+                layer.imagePath = result.image_path
+                layer.ready = True
+                layer.version += 1
+                layer.viewBox = result.view_box
+                layer.save()
+
+                layer_uri = "/locations/{}/layers/{}".format(location.id, layer.id)
+                asyncio.run_coroutine_threadsafe(dispatcher.dispatch_event("layers:updated", layer_uri, current=layer), loop=loop)
+
+        future.add_done_callback(map_ready)
+
+
 @layers.route('/locations/<location_id>/layers/<layer_id>', methods=['PATCH'])
 async def update_layer(location_id, layer_id):
     """
@@ -272,6 +305,9 @@ async def update_layer(location_id, layer_id):
 
     layer.update(body)
     layer.save()
+
+    if layer.type == "generated":
+        trigger_map_rebuild(location)
 
     return jsonify(layer), HTTPStatus.OK
 

@@ -22,11 +22,12 @@ class MapMakerResult:
 
 
 class MapMaker:
-    def __init__(self, layer, surfaces, mapping_state_path, output_path, headsets=None, slices=None):
+    def __init__(self, layer, surfaces, mapping_state_path, output_path, cutting_height=0.0, headsets=None, slices=None):
         self.layer = layer
         self.surfaces = surfaces
         self.mapping_state_path = mapping_state_path
         self.output_path = output_path
+        self.cutting_height = cutting_height
         self.headsets = headsets
         self.slices = slices
 
@@ -38,7 +39,7 @@ class MapMaker:
         """
         surface_files = [surface.filePath for surface in self.surfaces]
 
-        floorplanner = Floorplanner(surface_files, json_data_path=self.mapping_state_path, headsets=self.headsets, slices=self.slices)
+        floorplanner = Floorplanner(surface_files, json_data_path=self.mapping_state_path, cutting_height=self.cutting_height, headsets=self.headsets, slices=self.slices)
         changes = floorplanner.update_lines(initialize=False)
 
         result = MapMakerResult(self.layer.id, self.output_path, changes=changes)
@@ -66,6 +67,7 @@ class MapMaker:
             layer = location.Layer(id=None, name="Division 0", type="generated", contentType="image/svg+xml")
             layer.contentType = "image/svg+xml"
             layer.imageUrl = "/locations/{}/layers/{}/image".format(location.id, layer.id)
+            layer.cutting_height = 0.0
             layer.save()
         else:
             # TODO: different layers for the floors of a building
@@ -83,4 +85,4 @@ class MapMaker:
 
         mapping_state_path = os.path.join(layer.get_dir(), "floor_plan.json")
 
-        return MapMaker(layer, surfaces, mapping_state_path, output_path, headsets=headsets, slices=slices)
+        return MapMaker(layer, surfaces, mapping_state_path, output_path, cutting_height=float(layer.cutting_height), headsets=headsets, slices=slices)

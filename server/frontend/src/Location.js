@@ -6,6 +6,7 @@ import NewIncidentModal from './NewIncidentModal.js';
 import IncidentHistory from './IncidentHistory.js';
 import AllHeadsets from './AllHeadsets.js';
 import LocationTable from './LocationTable.js';
+import LayerTable from './LayerTable.js';
 import HeadsetTable from './HeadsetTable.js';
 import FeatureTable from './FeatureTable.js';
 import PhotoTable from './PhotoTable.js';
@@ -758,6 +759,8 @@ function Location(props) {
                   />
                 </Form>
               </div>
+
+              <LayerTable locationId={selectedLocation} layers={layers} />
 
               <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
                 setHeadsets={setHeadsets} locations={locations} />

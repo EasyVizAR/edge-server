@@ -35,5 +35,8 @@ class LayerModel(JsonResource):
     imageUrl:       str = field(default=None)
     viewBox:        Box = field(default_factory=Box)
 
+    cutting_height: float = field(default=0.0,
+                                  description="Height of cutting plane for floor plan construction.")
+
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)
