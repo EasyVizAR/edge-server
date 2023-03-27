@@ -1,8 +1,12 @@
-.table-btns{
+.table-btns {
   padding: 0px 5px !important;
 }
 
 span.detection {
     margin-left: 0.25em;
     margin-right: 0.25em;
+}
+
+td.limit-width {
+    max-width: 20em;
 }

@@ -103,7 +103,7 @@ function LayerTable(props) {
   return(
     <div style={{marginTop: "20px"}}>
       <div>
-        <h3 style={{textAlign: "left"}}>Layers</h3>
+        <h3 style={{textAlign: "left"}}>Map Layers</h3>
       </div>
       <Table striped bordered hover>
         <thead>
@@ -111,7 +111,7 @@ function LayerTable(props) {
             <th>Layer ID</th>
             <th>Name</th>
             <th>Type</th>
-            <th>Cutting Height (experimental)</th>
+            <th>Cutting Height</th>
             <th></th>
           </tr>
         </thead>
@@ -137,16 +137,22 @@ function LayerTable(props) {
                     }
                   </td>
                   <td>{layer.type}</td>
-                  <td>
+                  <td class="limit-width">
                     {
                       editMode.status && editMode.layerId === layer.id ? (
-                        <input
-                          defaultValue={layer.cutting_height}
-                          placeholder="Edit Layer Cutting Height"
-                          name={"layer-color-" + layer.id}
-                          type="number"
-                          ref={formReferences.cutting_height}
-                          id={"layer-color-" + layer.id}/>
+                        <div>
+                          <input
+                            defaultValue={layer.cutting_height}
+                            placeholder="Edit Layer Cutting Height"
+                            name={"layer-color-" + layer.id}
+                            type="number"
+                            ref={formReferences.cutting_height}
+                            id="edit-layer-cutting-height" />
+                          <label for="edit-layer-cutting-height">
+                            Cutting plane height offset in meters relative to the reference height (e.g. QR code) used for floor plan construction.
+                            Changing this value will cause the map to be regenerated, which may take some time to complete.
+                          </label>
+                        </div>
                       ) : (
                         layer.cutting_height
                       )
