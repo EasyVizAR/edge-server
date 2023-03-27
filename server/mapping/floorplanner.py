@@ -67,11 +67,21 @@ class Floorplanner:
         self.ply_path_or_list = ply_path_or_list
         self.image_scale = image_scale
         self.json_data_path = json_data_path
-        self.data = {}
         self.first_load_json = json_data_path is not None
         self.cutting_height = cutting_height
         self.headsets = headsets
         self.slices = slices
+
+        self.data = self.init_stored_data()
+
+    def init_stored_data(self):
+        """
+        Initialize empty data structure for storing intermediate data.
+        """
+        return {
+            "cutting_height": self.cutting_height,
+            "files": {},
+        }
 
     def calculate_intersections(self, mesh, headset_position=[0, 0, 0], vector_normal=[0, 1, 0], json_serialize=False):
         points = np.asarray(mesh.vertices)
@@ -154,15 +164,14 @@ class Floorplanner:
     def update_lines(self, initialize=True):
         if self.first_load_json and os.path.exists(self.json_data_path):
             with open(self.json_data_path, 'r') as f:
-                self.data = json.load(f)
+                loaded_data = json.load(f)
 
-            # Detect old version of data file and transition
-            if 'files' not in self.data:
-                tmp = self.data
-                self.data = {
-                    "cutting_height": 0.0,
-                    "files": tmp
-                }
+                # Detect old version of data file and transition
+                if 'files' not in loaded_data:
+                    self.data = self.init_stored_data()
+                    self.data['files'] = loaded_data
+                else:
+                    self.data = loaded_data
 
             # Cutting height has changed - reprocess all surface data
             if not math.isclose(self.cutting_height, self.data['cutting_height']):
@@ -171,10 +180,7 @@ class Floorplanner:
             self.first_load_json = False
 
         if initialize:
-            self.data = {
-                "cutting_height": self.cutting_height,
-                "files": {}
-            }
+            self.data = self.init_stored_data()
 
         changes = 0
 
