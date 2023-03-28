@@ -8,6 +8,16 @@ from server.resources.geometry import Vector3f, Vector4f
 
 
 @dataclass
+class NavigationTarget:
+    type:      str = field(default="none",
+                           description="Target type (none|point|feature|headset)")
+    target_id: str = field(default=None,
+                           description="Target ID if type is feature or headset")
+    position:  Vector3f = field(default_factory=Vector3f,
+                                description="Fixed position for point type or last resolved position of feature or headset")
+
+
+@dataclass
 class HeadsetModel(JsonResource):
     """
     Headset refers to any individual AR device that participates in the system.
@@ -55,6 +65,9 @@ class HeadsetModel(JsonResource):
                                      description="Most recent position relative to current location")
     orientation:    Vector4f = field(default_factory=Vector4f,
                                      description="Most recent orientation relative to current location, represented as a quaternion")
+
+    navigation_target: NavigationTarget = field(default=None,
+                                                description="May be set to a NavigationTarget to provide navigation cues to the wearer")
 
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)

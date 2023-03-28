@@ -247,7 +247,7 @@ class JsonCollection(AbstractCollection):
                 self.cache[path] = item
                 return item
         except marshmallow.exceptions.ValidationError:
-            print("Warning: validation error in {}".format(fname))
+            print("Warning: validation error in {}".format(path))
         except:
             pass
 

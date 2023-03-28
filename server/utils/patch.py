@@ -8,7 +8,7 @@ def patch_by_path(obj, path_components, value):
 
     if isinstance(current, dict):
         current[path_components[-1]] = value
-    elif isinstance(value, dict):
+    elif isinstance(value, dict) and getattr(current, path_components[-1]) is not None:
         # In this case, the target is a child object.
         # Rather than replace the object with a dictionary,
         # we iterate the values in the dict and set them in the target object.

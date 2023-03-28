@@ -5,7 +5,7 @@ import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 
-function HeadsetTable(props){
+function HeadsetTable(props) {
   const host = process.env.PUBLIC_URL;
 
   // Only one row can be open for editing at a time. A reference is used to
@@ -17,10 +17,48 @@ function HeadsetTable(props){
     color: React.createRef()
   };
 
+  const [navigationTargetIndex, setNavigationTargetIndex] = useState(0);
   const [inEditModeHeadset, setInEditModeHeadset] = useState({
     status: false,
     rowKey: null
   });
+
+  const navigationTargetOptions = ((props) => {
+    const options = [
+      {
+        name: "None",
+        value: null
+      }
+    ];
+
+    if (Object.keys(props.features).length > 0) {
+      Object.entries(props.features).map(([id, feature]) => {
+        options.push({
+          name: "Feature: " + feature.name,
+          value: {
+            type: "feature",
+            target_id: feature.id,
+            position: feature.position
+          }
+        });
+      });
+    }
+
+    if (Object.keys(props.headsets).length > 0) {
+      Object.entries(props.headsets).map(([id, headset]) => {
+        options.push({
+          name: "Headset: " + headset.name,
+          value: {
+            type: "headset",
+            target_id: headset.id,
+            position: headset.position
+          }
+        });
+      });
+    }
+
+    return options;
+  })(props);
 
   // check if a headset name already exists
   function checkHeadsetName(name, id) {
@@ -33,7 +71,7 @@ function HeadsetTable(props){
   }
 
   // turns on headset editing
-  const onEditHeadset = (e, id) => {
+  const onEditHeadset = (headset, id) => {
     if (inEditModeHeadset.status == true && inEditModeHeadset.rowKey != null) {
       alert("Please save or cancel edit on other headset before editing another headset");
       return;
@@ -43,6 +81,20 @@ function HeadsetTable(props){
         status: true,
         rowKey: id
     });
+
+    // Find the current navigation target as an index in our list of options.
+    var target_index = 0;
+    if (headset.navigation_target) {
+      const target_type = headset.navigation_target.type;
+      const target_id = headset.navigation_target.target_id;
+
+      navigationTargetOptions.forEach((option, index) => {
+        if (target_type === option.value?.type && target_id === option.value?.target_id) {
+          target_index = index;
+        }
+      });
+    }
+    setNavigationTargetIndex(target_index);
   }
 
   // saves the headset data
@@ -68,7 +120,8 @@ function HeadsetTable(props){
       },
       body: JSON.stringify({
         'name': newName,
-        'color': newColor
+        'color': newColor,
+        'navigation_target': navigationTargetOptions[navigationTargetIndex].value
       })
     };
 
@@ -151,6 +204,21 @@ function HeadsetTable(props){
     );
   }
 
+  function NavigationTarget(child_props) {
+    const target = child_props.target;
+
+    switch(target?.type) {
+      case "point":
+        return <p>{target.position.x}</p>;
+      case "feature":
+        return <p>{props.features[target.target_id] ? props.features[target.target_id].name : "invalid"}</p>;
+      case "headset":
+        return <p>{props.headsets[target.target_id] ? props.headsets[target.target_id].name : "invalid"}</p>;
+      default:
+        return <p>None</p>;
+    }
+  }
+
   return(
     <div style={{marginTop: "20px"}}>
       <div>
@@ -166,6 +234,7 @@ function HeadsetTable(props){
             <th rowSpan='2'>Last Update</th>
             <th colSpan='3'>Position</th>
             <th colSpan='4'>Orientation</th>
+            <th colSpan='2'>Navigation</th>
             <th colSpan='1'></th>
           </tr>
           <tr>
@@ -176,6 +245,8 @@ function HeadsetTable(props){
             <th>Y</th>
             <th>Z</th>
             <th>W</th>
+            <th>Type</th>
+            <th>Target</th>
             <th></th>
           </tr>
         </thead>
@@ -224,6 +295,28 @@ function HeadsetTable(props){
                   <td>{headset.orientation.y.toFixed(3)}</td>
                   <td>{headset.orientation.z.toFixed(3)}</td>
                   <td>{headset.orientation.w.toFixed(3)}</td>
+                  {
+                    (inEditModeHeadset.status && inEditModeHeadset.rowKey === id) ? (
+                      <td colSpan='2'>
+                        <select
+                          id="navigation-target-dropdown"
+                          title="Change Target"
+                          defaultValue={navigationTargetIndex}
+                          onChange={(e) => setNavigationTargetIndex(e.target.value)}>
+                          {
+                            navigationTargetOptions.map((option, index) => {
+                              return <option value={index}>{option.name}</option>
+                            })
+                          }
+                        </select>
+                      </td>
+                    ) : (
+                      <React.Fragment>
+                        <td>{headset.navigation_target ? headset.navigation_target.type : 'None'}</td>
+                        <td><NavigationTarget target={headset.navigation_target} /></td>
+                      </React.Fragment>
+                    )
+                  }
                   <td>
                     {
                       (inEditModeHeadset.status && inEditModeHeadset.rowKey === id) ? (
@@ -247,7 +340,7 @@ function HeadsetTable(props){
                         <React.Fragment>
                           <Button
                             variant="primary" size="sm"
-                            onClick={(e) => onEditHeadset(e, id)}
+                            onClick={(e) => onEditHeadset(headset, id)}
                             title='Edit'>
                             Edit
                           </Button>

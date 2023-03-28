@@ -763,7 +763,7 @@ function Location(props) {
               <LayerTable locationId={selectedLocation} layers={layers} />
 
               <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
-                setHeadsets={setHeadsets} locations={locations} />
+                setHeadsets={setHeadsets} locations={locations} features={features} />
               <FeatureTable icons={icons} features={features} locationId={selectedLocation} />
               {/* <LocationTable locations={locations} getLocations={get_locations}
                                      setLocations={setLocations}/> */}
