@@ -89,7 +89,7 @@ function HeadsetTable(props) {
       const target_id = headset.navigation_target.target_id;
 
       navigationTargetOptions.forEach((option, index) => {
-        if (target_type === option.value?.type && target_id === option.value?.target_id) {
+        if (target_type === option.value?.type && target_id == option.value?.target_id) {
           target_index = index;
         }
       });
