@@ -1,6 +1,5 @@
 import time
 
-from typing import Set
 
 from server.resources.dataclasses import dataclass, field
 from server.resources.jsonresource import JsonResource, JsonCollection

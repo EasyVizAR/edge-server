@@ -3,7 +3,7 @@ import os
 
 from http import HTTPStatus
 
-from quart import Blueprint, current_app, request, make_response, jsonify, send_from_directory
+from quart import Blueprint, request, jsonify, send_from_directory
 from werkzeug import exceptions
 from werkzeug.utils import secure_filename
 

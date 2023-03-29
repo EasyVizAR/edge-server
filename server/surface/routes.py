@@ -9,7 +9,6 @@ from werkzeug import exceptions
 
 from server.mapping.obj_file import ObjFileMaker
 from server.mapping.map_maker import MapMaker
-from server.resources.csvresource import CsvCollection
 
 
 surfaces = Blueprint("surfaces", __name__)

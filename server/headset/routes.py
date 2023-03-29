@@ -1,18 +1,12 @@
 import asyncio
-import json
-import os
 import time
 
 from http import HTTPStatus
 
-from quart import request, jsonify, make_response, Blueprint, current_app, send_file, g
+from quart import request, jsonify, Blueprint, current_app, g
 from werkzeug import exceptions
-from werkzeug.utils import secure_filename
 
-from server.incidents.incident_handler import init_incidents_handler
-from server.incidents.models import Incident
 from server.resources.filter import Filter
-from server.utils.utils import GenericJsonEncoder, save_image
 
 from .models import RegisteredHeadsetModel
 

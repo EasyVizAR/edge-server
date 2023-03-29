@@ -1,4 +1,3 @@
-import os
 import time
 
 from dataclasses import field
@@ -7,9 +6,7 @@ from marshmallow_dataclass import dataclass
 from server.check_in.models import CheckInModel
 from server.location.models import LocationModel
 from server.photo.models import PhotoModel
-from server.surface.models import SurfaceModel
 
-from server.resources.csvresource import CsvCollection
 from server.resources.dictresource import DictResource, DictCollection
 from server.resources.jsonresource import JsonResource, JsonCollection
 

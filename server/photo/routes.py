@@ -10,13 +10,12 @@ from werkzeug.utils import secure_filename
 
 from PIL import Image
 
-from server.resources.csvresource import CsvCollection
 from server.resources.filter import Filter
 from server.utils.rate_limiter import rate_limit_exempt
 from server.utils.utils import save_image
 
 from .cleanup import PhotoCleanupTask
-from .models import PhotoFile, PhotoModel
+from .models import PhotoFile
 
 
 photos = Blueprint("photos", __name__)

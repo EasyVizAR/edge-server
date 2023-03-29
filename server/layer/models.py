@@ -1,7 +1,7 @@
 import time
 
 from server.resources.dataclasses import dataclass, field
-from server.resources.jsonresource import JsonCollection, JsonResource
+from server.resources.jsonresource import JsonResource
 from server.resources.geometry import Box
 
 

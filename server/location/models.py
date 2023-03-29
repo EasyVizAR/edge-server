@@ -1,11 +1,10 @@
-import time
 
 from server.feature.models import FeatureModel
 from server.layer.models import LayerModel
 from server.scene.models import SceneModel
 from server.surface.models import SurfaceModel
 from server.resources.dataclasses import dataclass, field
-from server.resources.dictresource import DictResource, DictCollection
+from server.resources.dictresource import DictCollection
 from server.resources.jsonresource import JsonCollection, JsonResource
 
 

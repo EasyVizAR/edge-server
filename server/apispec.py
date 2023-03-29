@@ -2,13 +2,11 @@ import asyncio
 import json
 import textwrap
 
-import quart.flask_patch
+import quart.flask_patch # noqa
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from apispec_webframeworks.flask import FlaskPlugin
-
-from marshmallow import Schema, fields
 
 from server.annotation import routes as annotations
 from server.check_in import routes as check_ins

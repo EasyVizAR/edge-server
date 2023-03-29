@@ -3,7 +3,6 @@ import time
 from server.resources.csvresource import CsvCollection
 from server.resources.dataclasses import dataclass, field
 from server.resources.jsonresource import JsonResource
-from server.resources.geometry import Vector3f, Vector4f
 
 from server.pose_changes.models import PoseChangeModel
 

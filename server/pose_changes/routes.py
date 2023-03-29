@@ -5,7 +5,6 @@ from http import HTTPStatus
 from quart import Blueprint, g, jsonify, request, send_from_directory
 from werkzeug import exceptions
 
-from server.resources.csvresource import CsvCollection
 
 from server.utils.rate_limiter import rate_limit_expensive
 from server.utils.response import maybe_wrap

@@ -3,7 +3,7 @@ import dataclasses
 # Import to bring the marshmallow dataclass into this namespace so that
 # other modules can import it. If we ever need to change the dataclass
 # implementation across the project, this will make it easier.
-from marshmallow_dataclass import dataclass
+from marshmallow_dataclass import dataclass # noqa
 
 
 def field(description=None, **kwargs):

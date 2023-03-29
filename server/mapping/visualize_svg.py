@@ -1,12 +1,9 @@
-import csv
 import glob
-import io
 import json
 import os
 
 from time import time
 
-import numpy as np
 import svgwrite
 
 from . import visualize_pointcloud as v

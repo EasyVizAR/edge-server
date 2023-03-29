@@ -4,15 +4,13 @@ import time
 
 from http import HTTPStatus
 
-from quart import Blueprint, current_app, g, jsonify, request, send_from_directory
+from quart import Blueprint, current_app, g, jsonify, request
 from werkzeug import exceptions
 
 from server.mapping.map_maker import MapMaker
-from server.resources.csvresource import CsvCollection
 from server.utils.images import try_send_image
 from server.utils.utils import save_image
 
-from .models import LayerModel
 
 
 layers = Blueprint("layers", __name__)
