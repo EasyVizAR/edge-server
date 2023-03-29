@@ -7,11 +7,19 @@ from server.resources.geometry import Box, Vector3f, Vector4f
 from server.resources.jsonresource import JsonCollection, JsonResource
 
 
+ENORMOUS_POSITION_ERROR = 100000.0
+
+
 @dataclass
 class Annotation:
     label:      str = field(default="object")
     confidence: float = field(default=0.0)
     boundary:   Box = field(default_factory=Box)
+
+    position:   Vector3f = field(default=None,
+                                 description="Predicted center position of the detected object")
+    position_error: float = field(default=ENORMOUS_POSITION_ERROR,
+                                    description="Predicted position error (meters)")
 
 
 @dataclass
@@ -113,3 +121,36 @@ class PhotoModel(JsonResource):
 
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)
+
+    def infer_missing_annotation_positions(self, inferred_position_error=10.0):
+        """
+        Update annotations with missing position information.
+
+        This uses the camera position to make a very crude position prediction
+        for object locations.
+        """
+        if self.camera_position is None or self.camera_orientation is None:
+            return
+
+        # Fix type mismatch if headset set the camera pose as dict, but we
+        # expect object types.
+        if isinstance(self.camera_position, dict):
+            self.camera_position = Vector3f(**self.camera_position)
+        if isinstance(self.camera_orientation, dict):
+            self.camera_orientation = Vector4f(**self.camera_orientation)
+
+        pos = self.camera_position
+        rot = self.camera_orientation
+
+        # This math finds the forward vector from the camera_orientation
+        # quaternion and adds it to the position vector for the camera. In
+        # other words, we predict the object location to be one meter in front
+        # of the camera.
+        x = pos.x + 2*(rot.x*rot.z + rot.w*rot.y)
+        y = pos.y + 2*(rot.y*rot.z - rot.w*rot.x)
+        z = pos.z + 1 - 2*(rot.x**2 + rot.y**2)
+
+        for annotation in self.annotations:
+            if annotation.position is None or annotation.position_error is None or annotation.position_error > inferred_position_error:
+                annotation.position = Vector3f(x, y, z)
+                annotation.position_error = inferred_position_error

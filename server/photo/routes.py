@@ -242,6 +242,8 @@ async def create_photo():
     if g.user_id is not None:
         photo.created_by = g.user_id
 
+    photo.infer_missing_annotation_positions()
+
     photo.save()
     schedule_cleanup()
 
@@ -378,6 +380,7 @@ async def replace_photo(photo_id):
 
     previous = g.active_incident.Photo.find_by_id(photo_id)
     photo = g.active_incident.Photo.load(body)
+    photo.infer_missing_annotation_positions()
     created = photo.save()
 
     if created:
@@ -454,6 +457,7 @@ async def update_photo(photo_id):
         del body['id']
 
     photo.update(body)
+    photo.infer_missing_annotation_positions()
     photo.save()
 
     await current_app.dispatcher.dispatch_event("photos:updated",
