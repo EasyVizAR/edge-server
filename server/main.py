@@ -4,7 +4,6 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 from quart import Quart, g
 
-from server.annotation.routes import annotations
 from server.check_in.routes import check_ins
 from server.feature.routes import features
 from server.headset.routes import headsets
@@ -66,7 +65,6 @@ data_dir = app.config.get('VIZAR_DATA_DIR', 'data')
 AbstractCollection.data_directory = data_dir
 
 blueprints = [
-    annotations,
     check_ins,
     features,
     headsets,

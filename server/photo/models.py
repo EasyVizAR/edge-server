@@ -2,7 +2,6 @@ import time
 
 from typing import List
 
-from server.annotation.models import AnnotationModel
 from server.resources.dataclasses import dataclass, field
 from server.resources.geometry import Box, Vector3f, Vector4f
 from server.resources.jsonresource import JsonCollection, JsonResource
@@ -114,6 +113,3 @@ class PhotoModel(JsonResource):
 
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)
-
-    def on_ready(self):
-        self.Annotation = JsonCollection(AnnotationModel, "feature", parent=self)
