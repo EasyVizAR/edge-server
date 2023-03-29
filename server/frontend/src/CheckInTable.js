@@ -1,12 +1,16 @@
 import './Tables.css';
 import {Container, Table, Button} from 'react-bootstrap';
-import React, {useState, useEffect} from 'react';
+import React, {useContext, useState, useEffect} from 'react';
 import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
+import { LocationsContext } from './Contexts.js';
+
 
 function CheckInTable(props){
   const host = process.env.PUBLIC_URL;
+
+  const { locations, setLocations } = useContext(LocationsContext);
 
   const [checkIns, setCheckIns] = useState([]);
 
@@ -73,7 +77,7 @@ function CheckInTable(props){
             checkIns.map((item, index) =>
               <tr>
                 <td>{item.id}</td>
-                <td>{props.locations[item.location_id] ? props.locations[item.location_id]['name'] : 'Unknown'}</td>
+                <td>{locations[item.location_id] ? locations[item.location_id]['name'] : 'Unknown'}</td>
                 <td>{moment.unix(item.start_time).fromNow()}</td>
                 <td>
                   <div>

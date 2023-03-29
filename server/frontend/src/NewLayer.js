@@ -2,10 +2,15 @@ import './NewLayer.css';
 import App from './App.js';
 import {Form, Button, FloatingLabel, FormText, FormControl, Dropdown, DropdownButton} from 'react-bootstrap';
 import React from "react";
-import {useState} from 'react';
+import { useContext, useState } from 'react';
+import { LocationsContext } from './Contexts.js';
+
 
 function NewLayer(props) {
     const host = process.env.PUBLIC_URL;
+
+    const { locations, setLocations } = useContext(LocationsContext);
+
     const [layerName, setLayerName] = useState(null);
     const [imageMode, setImageMode] = useState('uploaded');
     const [dropdownValue, setDropdownValue] = useState('');
@@ -103,7 +108,7 @@ function NewLayer(props) {
                                 className="mb-3" controlId="layer-name">
                         <DropdownButton id="location-dropdown" title="Select Location" onSelect={handleLocationSelection}>
                             {
-                                Object.entries(props.locations).map(([id, loc]) => {
+                                Object.entries(locations).map(([id, loc]) => {
                                     return <Dropdown.Item eventKey={id}>{loc.name}</Dropdown.Item>
                                 })
                             }

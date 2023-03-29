@@ -1,11 +1,15 @@
 import { Button, Table } from 'react-bootstrap';
-import React, { useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
 import moment from 'moment';
+import { LocationsContext } from './Contexts.js';
+
 
 function AllHeadsets(props) {
   const host = process.env.PUBLIC_URL;
+
+  const { locations, setLocations } = useContext(LocationsContext);
 
   const [headsets, setHeadsets] = useState({});
 
@@ -198,13 +202,13 @@ function AllHeadsets(props) {
                           defaultValue={headset.location_id}
                           ref={formReferences.location_id}>
                           {
-                            Object.entries(props.locations).map(([location_id, loc]) => {
+                            Object.entries(locations).map(([location_id, loc]) => {
                               return <option value={location_id}>{loc.name}</option>
                             })
                           }
                           </select>
                       ) : (
-                        props.locations[headset.location_id] ? props.locations[headset.location_id]['name'] : 'Unknown'
+                        locations[headset.location_id] ? locations[headset.location_id]['name'] : 'Unknown'
                       )
                     }
                   </td>

@@ -1,11 +1,14 @@
 import App from './App.js';
 import { Form, Button, FloatingLabel } from 'react-bootstrap';
 import React from "react";
-import { useState } from 'react';
+import { useContext, useState } from 'react';
+import { LocationsContext } from './Contexts.js';
 
 function NewIncidentModal(props){
   const[incidentName, setIncidentName] = useState('');
   const host = process.env.PUBLIC_URL;
+
+  const { locations, setLocations } = useContext(LocationsContext);
 
   function updateState(e){
     setIncidentName(e.target.value);
@@ -28,7 +31,7 @@ function NewIncidentModal(props){
         props.currentIncident.set(data['current incident']);
         props.incidentName.set(incidentName);
         props.updateIncidentInfo();
-        props.setLocations([]);
+        setLocations({});
         props.getHeadsets();
         props.getIncidentHistory();
         e.target.form.elements.incidentName.value = ""

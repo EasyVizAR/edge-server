@@ -1,12 +1,16 @@
 import './Tables.css';
 import {Container, Table, Button} from 'react-bootstrap';
-import React, {useState, useEffect} from 'react';
+import React, {useContext, useState, useEffect} from 'react';
 import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
+import { LocationsContext } from './Contexts.js';
+
 
 function HeadsetTable(props) {
   const host = process.env.PUBLIC_URL;
+
+  const { locations, setLocations } = useContext(LocationsContext);
 
   // Only one row can be open for editing at a time. A reference is used to
   // query the value of the input field when the user clicks Save. The
@@ -286,7 +290,7 @@ function HeadsetTable(props) {
                       )
                     }
                   </td>
-                  <td>{props.locations[headset.location_id] ? props.locations[headset.location_id]['name'] : 'Unknown'}</td>
+                  <td>{locations[headset.location_id] ? locations[headset.location_id]['name'] : 'Unknown'}</td>
                   <td>{moment.unix(headset.updated).fromNow()}</td>
                   <td>{headset.position.x.toFixed(3)}</td>
                   <td>{headset.position.y.toFixed(3)}</td>

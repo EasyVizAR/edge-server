@@ -10,7 +10,7 @@ import CheckInTable from './CheckInTable.js';
 import HeadsetTable from './HeadsetTable.js';
 import FeatureTable from './FeatureTable.js';
 import 'reactjs-popup/dist/index.css';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useContext, useState, useEffect, useRef } from 'react';
 import moment from 'moment';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { solid, regular, brands } from '@fortawesome/fontawesome-svg-core/import.macro';
@@ -18,6 +18,8 @@ import { Helmet } from 'react-helmet';
 import useStateSynchronous from './useStateSynchronous.js';
 import { Link } from "react-router-dom";
 import { useParams } from "react-router";
+import { LocationsContext } from './Contexts.js';
+
 
 import fontawesome from '@fortawesome/fontawesome'
 import {
@@ -108,6 +110,8 @@ function Headset(props) {
   const mapIconSize = 7;
   const circleSvgIconSize = 11;
 
+  const { locations, setLocations } = useContext(LocationsContext);
+
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedLayer, setSelectedLayer] = useState(null);
   const selectedLocationRef = useRef(null);
@@ -115,7 +119,6 @@ function Headset(props) {
   const [histories, setHistories] = useState({}); // position data
   const [features, setFeatures] = useState({}); // object indexed by feature.id
   const [headsets, setHeadsets] = useState({}); // object indexed by headset.id
-  const [locations, setLocations] = useState({}); // object indexed by locationId
   const [showNewFeature, displayNewFeature] = useState(false);
   const [layers, setLayers] = useState([]);
   const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
@@ -138,7 +141,6 @@ function Headset(props) {
   const webSocket = useRef(null);
 
   useEffect(() => {
-    get_locations();
     getCurrentIncident();
     openWebSocket();
   }, []);
@@ -246,21 +248,6 @@ function Headset(props) {
         }
         }
     );
-  }
-
-  // gets list of locations from server
-  function get_locations() {
-    setLocations({});
-
-    fetch(`${host}/locations`)
-      .then(response => response.json())
-      .then(data => {
-        var temp_locations = {};
-        for (var key in data) {
-          temp_locations[data[key]['id']] = data[key];
-        }
-        setLocations(temp_locations);
-      });
   }
 
   function updateIncidentInfo() {
@@ -653,13 +640,8 @@ function Headset(props) {
               <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
                 setHeadsets={setHeadsets} locations={locations} features={features} />
               <FeatureTable icons={icons} features={features} locationId={selectedLocation} />
-              {/* <LocationTable locations={locations} getLocations={get_locations}
-                                     setLocations={setLocations}/> */}
             </div>
           </Tab>
-          {/* <Tab eventKey="create-location" title="Create Location">
-                    <NewLocation getHeadsets={getHeadsets} getLocations={get_locations} setTab={setTab}/>
-                  </Tab> */}
           <Tab eventKey="create-incident" title="Create Incident">
             <NewIncidentModal getHeadsets={getHeadsets} setLocations={setLocations}
               getCurrentIncident={getCurrentIncident} currentIncident={currentIncident} incidentName={incidentName}
@@ -669,11 +651,8 @@ function Headset(props) {
             <IncidentHistory currentIncident={currentIncident} incidentName={incidentName}
               updateIncidentInfo={updateIncidentInfo} historyData={historyData}
               setHistoryData={setHistoryData} getIncidentHistory={getIncidentHistory}
-              getLocations={get_locations} getHeadsets={getHeadsets} getCurrentIncident={getCurrentIncident} />
+              getHeadsets={getHeadsets} getCurrentIncident={getCurrentIncident} />
           </Tab>
-          {/* <Tab eventKey="all-headsets" title="All Headsets">
-                    <AllHeadsets getLocationHeadsets={getHeadsets} locations={locations}/>
-                  </Tab> */}
           <Tab eventKey="create-layer" title="Create Layer">
             <NewLayer getHeadsets={getHeadsets} getLayers={getLayers} setTab={setTab} locations={locations} />
           </Tab>

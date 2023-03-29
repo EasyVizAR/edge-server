@@ -1,12 +1,16 @@
 import './Tables.css';
 import {Container, Table, Button} from 'react-bootstrap';
-import React, {useState, useEffect} from 'react';
+import React, {useContext, useState, useEffect} from 'react';
 import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
+import { LocationsContext } from './Contexts.js';
 
-function LocationTable(props){
+
+function LocationTable(props) {
   const host = process.env.PUBLIC_URL;
+
+  const { locations, setLocations } = useContext(LocationsContext);
 
   // Only one row can be open for editing at a time. A reference is used to
   // query the value of the input field when the user clicks Save. The
@@ -24,7 +28,7 @@ function LocationTable(props){
 
   // checks if a Location name already exists
   function checkLocationName(name, targetId) {
-    for (const [id, loc] of Object.entries(props.locations)) {
+    for (const [id, loc] of Object.entries(locations)) {
       if (id != targetId && loc['name'] === name) {
         return true;
       }
@@ -39,7 +43,7 @@ function LocationTable(props){
       return;
     }
 
-    setChangedLocation(props.locations[id]['name']);
+    setChangedLocation(locations[id]['name']);
 
     setInEditModeLocation({
       status: true,
@@ -50,7 +54,7 @@ function LocationTable(props){
   // saves the Location data
   const saveLocation = (e, id) => {
     const url = `${host}/locations/${id}`;
-    const targetLocation = props.locations[id];
+    const targetLocation = locations[id];
     console.log(e.target);
     const newName = formReferences.locationName.current.value;
 
@@ -72,17 +76,25 @@ function LocationTable(props){
       })
     };
 
-    fetch(url, requestData).then(response => {
-      targetLocation['name'] = newName;
-      setChangedLocation(targetLocation['name']);
-      onCancelLocation(id);
-      props.getLocations();
-    });
+    fetch(url, requestData)
+      .then(response => {
+        return response.json()
+      }).then(data => {
+        setChangedLocation(newName);
+
+        setLocations(current => {
+          const copy = {...current};
+          copy[data.id] = data;
+          return copy;
+        });
+
+        onCancelLocation(id);
+      });
   }
 
   // cancels Location editing
   const onCancelLocation = (id) => {
-    props.locations[id]['name'] = changedLocation;
+    locations[id]['name'] = changedLocation;
     setChangedLocation(null);
 
     // reset the inEditMode state value
@@ -94,14 +106,7 @@ function LocationTable(props){
 
   // on change handler for updating Location name
   const updateLocationName = (ev, id) => {
-    props.locations[id]['name'] = ev.target.value;
-
-    /*
-    for (var x in props.locations) {
-      newLocations.push(props.locations[x]);
-    }
-    props.setLocations(newLocations);
-    */
+    locations[id]['name'] = ev.target.value;
   }
 
   function deleteLocation(id, name) {
@@ -119,8 +124,11 @@ function LocationTable(props){
     };
 
     fetch(url, requestData).then(response => {
-      delete props.locations[id];
-      props.getLocations();
+      setLocations(current => {
+        const copy = {...current};
+        delete copy[id];
+        return copy;
+      });
     });
   }
 
@@ -152,8 +160,8 @@ function LocationTable(props){
         </thead>
         <tbody>
           {
-            Object.keys(props.locations).length > 0 ? (
-              Object.entries(props.locations).map(([id, loc]) => {
+            Object.keys(locations).length > 0 ? (
+              Object.entries(locations).map(([id, loc]) => {
                 return <tr>
                   <td>{id}</td>
                   <td>
