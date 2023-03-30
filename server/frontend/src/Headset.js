@@ -179,6 +179,23 @@ function Headset(props) {
     selectedLocationRef.current = selectedLocation;
   }, [selectedLocation]);
 
+  useEffect(() => {
+    if (headset) {
+      setPositionHistory(current => {
+        // Drop the oldest point from history and append the new headset position.
+        let newHistory = current.slice(1);
+        newHistory.push({
+          id: headset.id+headset.updated,
+          time: headset.updated,
+          type: "point",
+          color: headset.color,
+          position: headset.position
+        });
+        return newHistory;
+      });
+    }
+  }, [headset]);
+
   // time goes off every 10 seconds to refresh headset data
   //    useEffect(() => {
   //        const timer = setTimeout(() => getHeadsets(), 1e4)
@@ -257,7 +274,7 @@ function Headset(props) {
           id: headset_id+pt.time,
           time: pt.time,
           type: "point",
-          color: hset.color + Math.round(128 * (i / data.length) + 16).toString(16),
+          color: hset.color,
           position: pt.position
         });
       }
@@ -314,32 +331,6 @@ function Headset(props) {
       }
     };
     return arr;
-  }
-
-  function getIncidentHistory() {
-    const requestData = {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
-
-    fetch(`${host}/incidents`, requestData).then(response => {
-      if (response.ok) {
-        return response.json();
-      }
-    }).then(data => {
-      var temp_data = [];
-      for (var x in data) {
-        temp_data.push({
-          'id': data[x]['id'],
-          'name': data[x]['name'],
-          'created': data[x]['created'],
-        });
-      }
-      temp_data = sort_list(temp_data);
-      setHistoryData(temp_data);
-    });
   }
 
   // onchange handler for updating Location image

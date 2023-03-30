@@ -241,9 +241,17 @@ function LayerContainer(props) {
                     Object.entries(props.history).map(([id, item]) => {
                       const x = mapShape.xscale * (item.position.x - mapShape.xmin);
                       const y = mapShape.yscale * (mapShape.height - (item.position.z - mapShape.ymin));
+
+                      // Get the point age in seconds, constrained to between 0 and 255-16.
+                      // Then set the opacity such that older points are more transparent.
+                      // Note: The -16 means the minimum opacity will be 0x10 (two digits).
+                      const age = Math.max(0, Math.min(255-16, Date.now()/1000.0 - item.time));
+                      const color = item.color + Math.round(255-age).toString(16);
+
                       return <FontAwesomeIcon icon={icons?.[item.type]?.['iconName'] || "bug"}
                                               className="features" id={item.id}
-                                              alt={item.name} color={item.color}
+                                              alt={item.name}
+                                              color={color}
                                               style={{
                                                   left: x,
                                                   top: y,
