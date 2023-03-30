@@ -21,7 +21,7 @@ function CheckInTable(props){
       .then(data => {
         setCheckIns(data);
       })
-  }, []);
+  }, [props.headsetId]);
 
   // deletes headset with the id and name
   function deleteCheckIn(index, id) {

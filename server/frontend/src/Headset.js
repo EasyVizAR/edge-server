@@ -18,7 +18,7 @@ import { Helmet } from 'react-helmet';
 import useStateSynchronous from './useStateSynchronous.js';
 import { Link } from "react-router-dom";
 import { useParams } from "react-router";
-import { LocationsContext } from './Contexts.js';
+import { ActiveIncidentContext, LocationsContext } from './Contexts.js';
 
 
 import fontawesome from '@fortawesome/fontawesome'
@@ -75,7 +75,7 @@ fontawesome.library.add(
 
 function Headset(props) {
   const host = process.env.PUBLIC_URL;
-  const { location_id } = useParams();
+
   const { headset_id } = useParams();
 
   // Map feature type -> FA icon
@@ -110,15 +110,19 @@ function Headset(props) {
   const mapIconSize = 7;
   const circleSvgIconSize = 11;
 
+  const { activeIncident, setActiveIncident } = useContext(ActiveIncidentContext);
   const { locations, setLocations } = useContext(LocationsContext);
 
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedLayer, setSelectedLayer] = useState(null);
   const selectedLocationRef = useRef(null);
 
+  const [headset, setHeadset] = useState(null);
+
   const [histories, setHistories] = useState({}); // position data
   const [features, setFeatures] = useState({}); // object indexed by feature.id
   const [headsets, setHeadsets] = useState({}); // object indexed by headset.id
+  const [positionHistory, setPositionHistory] = useState([]);
   const [showNewFeature, displayNewFeature] = useState(false);
   const [layers, setLayers] = useState([]);
   const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
@@ -126,36 +130,42 @@ function Headset(props) {
   const [cursor, setCursor] = useState('auto');
   const [clickCount, setClickCount] = useState(0);
   const [iconIndex, setIconIndex] = useState(null);
-  const [headsetsChecked, setHeadsetsChecked] = useState(true);
-  const [featuresChecked, setFeaturesChecked] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
   const [currLocationName, setCurrLocationName] = useState('');
   const [placementType, setPlacementType] = useState('');
   const [tab, setTab] = useState('location-view');
   const [historyData, setHistoryData] = useState([]);
 
-  const incidentInfo = useStateSynchronous(-1);
-  const incidentName = useStateSynchronous('');
-  const currentIncident = useStateSynchronous(-1);
+  const [displayOptions, setDisplayOptions] = useState({
+    headsets: true,
+    features: false,
+    history: false
+  });
 
   const webSocket = useRef(null);
 
   useEffect(() => {
-    getCurrentIncident();
     openWebSocket();
   }, []);
 
   useEffect(() => {
-    if (!(selectedLocation in locations)) {
-      setSelectedLocation(getDefaultLocationSelection());
-    }
-  }, [locations, setLocations]);
+    fetch(`${host}/headsets/${headset_id}`)
+      .then(response => response.json())
+      .then(data => {
+        setHeadset(data)
+        setSelectedLocation(data.location_id);
+        getHistories(data);
+      });
+  }, [headset_id]);
+
+  useEffect(() => {
+    setHeadset(headsets[headset_id]);
+  }, [headset_id, headsets]);
 
   useEffect(() => {
     // If selected location changed, immediately reload list of headsets and
     // features at the new location.
     getHeadsets();
-    // getHistories(headsets[headset_id]);
     getFeatures();
 
     if (selectedLocation) {
@@ -181,10 +191,22 @@ function Headset(props) {
 
   const changeMapObjectsContainer = (e) => {
     if (e.target.id == 'features-switch') {
-      setFeaturesChecked(e.target.checked);
+      setDisplayOptions({
+        ...displayOptions,
+        features: e.target.checked
+      });
     }
     if (e.target.id == 'headsets-switch') {
-      setHeadsetsChecked(e.target.checked);
+      setDisplayOptions({
+        ...displayOptions,
+        headsets: e.target.checked
+      });
+    }
+    if (e.target.id == 'history-switch') {
+      setDisplayOptions({
+        ...displayOptions,
+        history: e.target.checked
+      });
     }
   };
 
@@ -202,7 +224,6 @@ function Headset(props) {
           headsets[h.id] = h;
         }
         setHeadsets(headsets);
-        getHistories(headsets[headset_id]);
       })
   }
 
@@ -227,50 +248,27 @@ function Headset(props) {
     fetch(`${host}/headsets/${headset_id}/pose-changes`)
     .then(response => {
         return response.json()
-    }).then(
-        (data) => {
-        var num = data.length;
-        var i = 0
-        for (var pt of data) {
-            i += 1;
-            setFeatures(prevState => {
-                prevState.push({
-                id: headset_id+pt.time,
-                time: pt.time,
-                type: "point",
-                color: hset.color + Math.round(128 * (i / num) + 16).toString(16),
-                position: pt.position,
-                });
-                // console.log(prevState);
-                return prevState;
-            });
-            // console.log(features);
-        }
-        }
-    );
-  }
-
-  function updateIncidentInfo() {
-    if (currentIncident.get() != -1 && (incidentName.get() == '' || incidentName.get() == null)) {
-      incidentInfo.set(currentIncident.get())
-    } else {
-      incidentInfo.set(incidentName.get());
-    }
+    }).then(data => {
+      let history = [];
+      var i = 0;
+      for (var pt of data) {
+        i += 1;
+        history.push({
+          id: headset_id+pt.time,
+          time: pt.time,
+          type: "point",
+          color: hset.color + Math.round(128 * (i / data.length) + 16).toString(16),
+          position: pt.position
+        });
+      }
+      setPositionHistory(history);
+    });
   }
 
   const handleLocationSelection = (e, o) => {
     window.location.href = `${host}/#/locations/${e}`;
     setSelectedLocation(e);
     setCurrLocationName(locations[e]['name']);
-    setFeaturesChecked(false);
-    setHeadsetsChecked(true);
-  }
-
-  const getDefaultLocationSelection = () => {
-    if (Object.keys(locations).length == 0)
-      return null;
-    setCurrLocationName(locations[location_id]['name']);
-    return location_id;
   }
 
   const changePointValue = (value, idx) => {
@@ -393,16 +391,6 @@ function Headset(props) {
     setCrossHairIcon(v);
   }
 
-  function getCurrentIncident() {
-    fetch(`${host}/incidents/active`)
-      .then(response => response.json())
-      .then(data => {
-        currentIncident.set(data['id']);
-        incidentName.set(data['name']);
-        updateIncidentInfo();
-      });
-  }
-
   const getLayers = () => {
     fetch(`${host}/locations/${selectedLocation}/layers`)
       .then(response => response.json())
@@ -433,10 +421,6 @@ function Headset(props) {
     const ws = webSocket.current;
 
     ws.onopen = (event) => {
-      ws.send("subscribe headsets:created");
-      ws.send("subscribe headsets:updated");
-      ws.send("subscribe headsets:deleted");
-
       const selectedLocation = selectedLocationRef.current;
       if (selectedLocation) {
         changeSubscriptions(null, selectedLocation);
@@ -447,7 +431,7 @@ function Headset(props) {
       const selectedLocation = selectedLocationRef.current;
 
       const message = JSON.parse(event.data);
-      if (message.event === "headsets:created") {
+      if (message.event === "location-headsets:created") {
         if (message.current.location_id !== selectedLocation)
           return;
         setHeadsets(prevHeadsets => {
@@ -455,7 +439,7 @@ function Headset(props) {
           newHeadsets[message.current.id] = message.current;
           return newHeadsets;
         });
-      } else if (message.event === "headsets:updated") {
+      } else if (message.event === "location-headsets:updated") {
         if (message.current.location_id !== selectedLocation)
           return;
         setHeadsets(prevHeadsets => {
@@ -463,7 +447,7 @@ function Headset(props) {
           newHeadsets[message.current.id] = message.current;
           return newHeadsets;
         });
-      } else if (message.event === "headsets:deleted") {
+      } else if (message.event === "location-headsets:deleted") {
         if (message.previous.location_id !== selectedLocation)
           return;
         setHeadsets(prevHeadsets => {
@@ -522,6 +506,9 @@ function Headset(props) {
     }
 
     const events = [
+      "location-headsets:created",
+      "location-headsets:updated",
+      "location-headsets:deleted",
       "features:created",
       "features:updated",
       "features:deleted",
@@ -548,115 +535,115 @@ function Headset(props) {
         <title>EasyVizAR Edge</title>
       </Helmet>
       <div className="home-body">
-        <Tabs activeKey={tab} className="mb-3 tabs" onSelect={(t) => setTab(t)}>
-          <Tab eventKey="location-view" title="Location View">
-            <div className="location-nav">
-              <div className="dropdown-container">
-                <DropdownButton id="location-dropdown" title="Select Location" onSelect={handleLocationSelection}
-                  defaultValue={getDefaultLocationSelection}>
-                  {
-                    Object.entries(locations).map(([id, loc]) => {
-                      return <Dropdown.Item eventKey={id}>{loc.name}</Dropdown.Item>
-                    })
-                  }
-                </DropdownButton>
-              </div>
+          <div className="location-nav">
+            { /*
+            <div className="dropdown-container">
+              <DropdownButton id="location-dropdown" title="Select Location" onSelect={handleLocationSelection}
+                defaultValue={getDefaultLocationSelection}>
+                {
+                  Object.entries(locations).map(([id, loc]) => {
+                    return <Dropdown.Item eventKey={id}>{loc.name}</Dropdown.Item>
+                  })
+                }
+              </DropdownButton>
+            </div> */
+            }
 
-              <div className="header-button">
-                <Button variant="secondary" title="Add Feature" value="Add Feature"
-                  onClick={(e) => showFeature(e)}>Add Feature</Button>
-              </div>
+            <div className="header-button">
+              <Button variant="secondary" title="Add Feature" value="Add Feature"
+                onClick={(e) => showFeature(e)}>Add Feature</Button>
+            </div>
 
-              <div className="QR-code-btn header-button">
-                <Link className="btn btn-secondary" role="button" to={"/locations/" + selectedLocation + "/qrcode"}>Location QR Code</Link>
-              </div>
+            <div className="QR-code-btn header-button">
+              <Link className="btn btn-secondary" role="button" to={"/locations/" + selectedLocation + "/qrcode"}>Location QR Code</Link>
+            </div>
 
-              <div className="header-button">
-                <a class="btn btn-secondary" href={"/locations/" + selectedLocation + "/model"}>Location 3D Model</a>
-              </div>
+            <div className="header-button">
+              <a class="btn btn-secondary" href={"/locations/" + selectedLocation + "/model"}>Location 3D Model</a>
+            </div>
 
-              <div className="header-button">
-                <Button variant="secondary" title="Reset Surfaces" value="Reset Surfaces"
-                  onClick={(e) => resetSurfaces(e)}>Reset Surfaces</Button>
+            <div className="header-button">
+              <Button variant="secondary" title="Reset Surfaces" value="Reset Surfaces"
+                onClick={(e) => resetSurfaces(e)}>Reset Surfaces</Button>
+            </div>
+          </div>
+
+          <div className='home-content'>
+            <NewFeature icons={icons}
+              showNewFeature={showNewFeature} changeCursor={toggleCursor}
+              changeIcon={changeIcon} pointCoordinates={pointCoordinates}
+              changePointValue={changePointValue} mapID={selectedLocation}
+              setIconIndex={setIconIndex} sliderValue={sliderValue}
+              setSliderValue={setSliderValue} setPlacementType={setPlacementType}
+              placementType={placementType} />
+
+            <div style={{ textAlign: 'left', marginBottom: '15px' }}>
+              <div style={{ display: 'inline-block' }}>
+                <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Current Incident</p>
+                <h4 style={{ marginTop: '0px' }}>{activeIncident ? activeIncident.name : "No Active Incident"}</h4>
+                <h5>{activeIncident?.id}</h5>
+              </div>
+              <div style={{ marginLeft: '15px', display: 'inline-block' }}>
+                <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Current Location</p>
+                <h4 style={{ marginTop: '0px' }}>{locations[selectedLocation] ? locations[selectedLocation].name : ('Unknown')}</h4>
+                <h5>{selectedLocation}</h5>
+              </div>
+              <div style={{ marginLeft: '15px', display: 'inline-block' }}>
+                <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Headset</p>
+                <h4 style={{ marginTop: '0px' }}>{headset ? (headset.name) : ('Unknown')}</h4>
+                <h5>{headset_id}</h5>
               </div>
             </div>
 
-            <div className='home-content'>
-              <NewFeature icons={icons}
-                showNewFeature={showNewFeature} changeCursor={toggleCursor}
-                changeIcon={changeIcon} pointCoordinates={pointCoordinates}
-                changePointValue={changePointValue} mapID={selectedLocation}
-                setIconIndex={setIconIndex} sliderValue={sliderValue}
-                setSliderValue={setSliderValue} setPlacementType={setPlacementType}
-                placementType={placementType} />
+            <LayerContainer id="map-container" icons={icons}
+              headsets={headsets} headsetsChecked={displayOptions.headsets}
+              features={features} featuresChecked={displayOptions.features}
+              history={positionHistory} historyChecked={displayOptions.history}
+              histories={histories} setHistories={setHistories}
+              setFeatures={setFeatures} setHeadsets={setHeadsets}
+              cursor={cursor} setClickCount={setClickCount}
+              clickCount={clickCount} placementType={placementType} iconIndex={iconIndex}
+              setPointCoordinates={setPointCoordinates}
+              sliderValue={sliderValue}
+              crossHairIcon={crossHairIcon}
+              layers={layers} setLayers={setLayers}
+              selectedLocation={selectedLocation}
+              selectedLayer={selectedLayer} setSelectedLayer={setSelectedLayer}
+            />
 
-              <div style={{ textAlign: 'left', marginBottom: '15px' }}>
-                <div style={{ display: 'inline-block' }}>
-                  <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Current Incident</p>
-                  <h4 style={{ marginTop: '0px' }}>{incidentInfo.get()}</h4>
-                  <h5>{currentIncident.get()}</h5>
-                </div>
-                <div style={{ marginLeft: '15px', display: 'inline-block' }}>
-                  <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Current Location</p>
-                  <h4 style={{ marginTop: '0px' }}>{currLocationName != '' ? (currLocationName) : ('No Location Selected')}</h4>
-                  <h5>{currLocationName != '' ? selectedLocation : ''}</h5>
-                </div>
-              </div>
-              <LayerContainer id="map-container" icons={icons}
-                headsets={headsets} headsetsChecked={headsetsChecked}
-                features={features} featuresChecked={featuresChecked}
-                histories={histories} setHistories={setHistories}
-                setFeatures={setFeatures} setHeadsets={setHeadsets}
-                cursor={cursor} setClickCount={setClickCount}
-                clickCount={clickCount} placementType={placementType} iconIndex={iconIndex}
-                setPointCoordinates={setPointCoordinates}
-                sliderValue={sliderValue}
-                crossHairIcon={crossHairIcon}
-                layers={layers} setLayers={setLayers}
-                selectedLocation={selectedLocation}
-                selectedLayer={selectedLayer} setSelectedLayer={setSelectedLayer}
-              />
-              <div style={{ width: 'max-content' }}>
-                <Form onChange={changeMapObjectsContainer}>
-                  <Form.Check
-                    onClick={changeMapObjects(this, 'headsets')}
-                    type="switch"
-                    id="headsets-switch"
-                    label="Headsets"
-                    checked={headsetsChecked}
-                  />
-                  <Form.Check
-                    onChange={changeMapObjects(this, 'features')}
-                    type="switch"
-                    id="features-switch"
-                    label="Features"
-                    checked={featuresChecked}
-                  />
-                </Form>
-              </div>
-
-              <CheckInTable locations={locations} headsetId={headset_id} />
-
-              <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
-                setHeadsets={setHeadsets} locations={locations} features={features} />
-              <FeatureTable icons={icons} features={features} locationId={selectedLocation} />
+            <div style={{ width: 'max-content' }}>
+              <Form onChange={changeMapObjectsContainer}>
+                <Form.Check
+                  onClick={changeMapObjects(this, 'headsets')}
+                  type="switch"
+                  id="headsets-switch"
+                  label="Headsets"
+                  checked={displayOptions.headsets}
+                />
+                <Form.Check
+                  onChange={changeMapObjects(this, 'features')}
+                  type="switch"
+                  id="features-switch"
+                  label="Features"
+                  checked={displayOptions.features}
+                />
+                <Form.Check
+                  onChange={changeMapObjects(this, 'history')}
+                  type="switch"
+                  id="history-switch"
+                  label="History"
+                  checked={displayOptions.history}
+                />
+              </Form>
             </div>
-          </Tab>
-          <Tab eventKey="create-incident" title="Create Incident">
-            <NewIncidentModal getHeadsets={getHeadsets} setLocations={setLocations}
-              getCurrentIncident={getCurrentIncident} currentIncident={currentIncident} incidentName={incidentName}
-              updateIncidentInfo={updateIncidentInfo} setTab={setTab} getIncidentHistory={getIncidentHistory} />
-          </Tab>
-          <Tab eventKey="incident-history" title="Incident History">
-            <IncidentHistory currentIncident={currentIncident} incidentName={incidentName}
-              updateIncidentInfo={updateIncidentInfo} historyData={historyData}
-              setHistoryData={setHistoryData} getIncidentHistory={getIncidentHistory}
-              getHeadsets={getHeadsets} getCurrentIncident={getCurrentIncident} />
-          </Tab>
-          <Tab eventKey="create-layer" title="Create Layer">
-            <NewLayer getHeadsets={getHeadsets} getLayers={getLayers} setTab={setTab} locations={locations} />
-          </Tab>
-        </Tabs>
+
+            <CheckInTable locations={locations} headsetId={headset_id} />
+
+            <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
+              setHeadsets={setHeadsets} locations={locations} features={features} />
+            <FeatureTable icons={icons} features={features} locationId={selectedLocation} />
+          </div>
+
       </div>
     </div>
   );

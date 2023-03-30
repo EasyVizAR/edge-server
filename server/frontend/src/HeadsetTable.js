@@ -1,6 +1,7 @@
 import './Tables.css';
 import {Container, Table, Button} from 'react-bootstrap';
 import React, {useContext, useState, useEffect} from 'react';
+import { Link } from "react-router-dom";
 import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
@@ -129,12 +130,16 @@ function HeadsetTable(props) {
       })
     };
 
-    fetch(url, requestData).then(response => {
-      headset.name = newName;
-      headset.color = newColor;
-      onCancelHeadset(null, id);
-      props.getHeadsets();
-    });
+    fetch(url, requestData)
+      .then(response => response.json())
+      .then(data => {
+        props.setHeadsets(prevHeadsets => {
+          let newHeadsets = Object.assign({}, prevHeadsets);
+          newHeadsets[id] = data;
+          return newHeadsets;
+        });
+        onCancelHeadset(null, id);
+      });
   }
 
   // turns off headset editing
@@ -259,7 +264,7 @@ function HeadsetTable(props) {
             Object.keys(props.headsets).length > 0 ? (
               Object.entries(props.headsets).map(([id, headset]) => {
                 return <tr>
-                  <td><a href={`/#/locations/${headset.location_id}/${id}`}>{id}</a></td>
+                  <td><Link to={`/headsets/${id}`}>{id}</Link></td>
                   <td id={"headsetName" + id}>
                     {
                       inEditModeHeadset.status && inEditModeHeadset.rowKey === id ? (

@@ -1,5 +1,6 @@
 import { Button, Table } from 'react-bootstrap';
 import React, { useContext, useState, useEffect } from 'react';
+import { Link } from "react-router-dom";
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
 import moment from 'moment';
@@ -177,7 +178,7 @@ function AllHeadsets(props) {
             Object.keys(headsets).length > 0 ? (
               Object.entries(headsets).map(([id, headset]) => {
                 return <tr>
-                  <td>{id}</td>
+                  <td><Link to={`/headsets/${id}`}>{id}</Link></td>
                   <td id={"headsetName" + id}>
                     {
                       inEditModeHeadset.status && inEditModeHeadset.rowKey === id ? (

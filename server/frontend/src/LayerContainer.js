@@ -237,6 +237,23 @@ function LayerContainer(props) {
                 <img id="map-image" src={layerImage} alt="Map of the environment" onLoad={onMapLoad}
                      onClick={onMouseClick} style={{cursor: props.cursor}}/>
                 {
+                  layerLoaded && props.historyChecked && Object.keys(props.history).length > 0 &&
+                    Object.entries(props.history).map(([id, item]) => {
+                      const x = mapShape.xscale * (item.position.x - mapShape.xmin);
+                      const y = mapShape.yscale * (mapShape.height - (item.position.z - mapShape.ymin));
+                      return <FontAwesomeIcon icon={icons?.[item.type]?.['iconName'] || "bug"}
+                                              className="features" id={item.id}
+                                              alt={item.name} color={item.color}
+                                              style={{
+                                                  left: x,
+                                                  top: y,
+                                                  "z-index": 1,
+                                                  height: mapIconSize + "%",
+                                                  pointerEvents: "none"
+                                              }}/>
+                    })
+                }
+                {
                   layerLoaded && props.photosChecked && Object.keys(props.photos).length > 0 &&
                     Object.entries(props.photos).map(([id, item]) => {
                       if (!item.camera_position || !item.ready) {
@@ -255,6 +272,7 @@ function LayerContainer(props) {
                                               style={{
                                                   left: x,
                                                   top: y,
+                                                  "z-index": 2,
                                                   height: mapIconSize + "%"
                                               }}/>
                     })
@@ -271,6 +289,7 @@ function LayerContainer(props) {
                                                  alt={item.name} color={item.color} style={{
                                     left: x,
                                     top: y,
+                                    "z-index": 3,
                                     height: mapIconSize + "%",
                                     pointerEvents: "none"
                                 }}/>
@@ -280,6 +299,7 @@ function LayerContainer(props) {
                                      style={{
                                          left: x - getCircleSvgShift(item.style?.radius || 1.0),
                                          top: y - getCircleSvgShift(item.style?.radius || 1.0),
+                                         "z-index": 3,
                                          pointerEvents: "none"
                                      }}>
                                     <circle style={{pointerEvents: "none"}} cx={getCircleSvgSize(item.style?.radius || 1.0) / 2}
@@ -294,6 +314,7 @@ function LayerContainer(props) {
                                                 style={{
                                                     left: x,
                                                     top: y,
+                                                    "z-index": 4,
                                                     height: mapIconSize + "%",
                                                     pointerEvents: "none"
                                                 }}/>

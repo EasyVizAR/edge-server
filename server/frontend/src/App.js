@@ -45,11 +45,11 @@ function App() {
                     <Routes>
                         <Route exact path="/" element={<Location />}/>
                         <Route path="/headsets" element={<AllHeadsets />}/>
+                        <Route path="/headsets/:headset_id" element={<Headset />}/>
                         <Route path="/incidents" element={<IncidentHistory />}/>
                         <Route path="/workitems" element={<WorkItems />}/>
                         <Route path="/locations/:location_id/qrcode" element={<LocationQrCodeWrapper />}/>
                         <Route path="/locations/:location_id" element={<Location />}/>
-                        <Route path="/locations/:location_id/:headset_id" element={<Headset />}/>
                         <Route path="/photos/:photo_id" element={<PhotoWrapper />} />
                     </Routes>
                   </LocationsContext.Provider>

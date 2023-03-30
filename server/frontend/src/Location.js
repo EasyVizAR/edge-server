@@ -20,7 +20,7 @@ import { Helmet } from 'react-helmet';
 import useStateSynchronous from './useStateSynchronous.js';
 import { Link } from "react-router-dom";
 import { useParams } from "react-router";
-import { LocationsContext } from './Contexts.js';
+import { ActiveIncidentContext, LocationsContext } from './Contexts.js';
 
 import fontawesome from '@fortawesome/fontawesome'
 import {
@@ -110,6 +110,7 @@ function Location(props) {
   const mapIconSize = 7;
   const circleSvgIconSize = 11;
 
+  const { activeIncident, setActiveIncident } = useContext(ActiveIncidentContext);
   const { locations, setLocations } = useContext(LocationsContext);
 
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -136,14 +137,9 @@ function Location(props) {
   const [tab, setTab] = useState('location-view');
   const [historyData, setHistoryData] = useState([]);
 
-  const incidentInfo = useStateSynchronous(-1);
-  const incidentName = useStateSynchronous('');
-  const currentIncident = useStateSynchronous(-1);
-
   const webSocket = useRef(null);
 
   useEffect(() => {
-    getCurrentIncident();
     openWebSocket();
   }, []);
 
@@ -223,14 +219,6 @@ function Location(props) {
         }
         setPhotos(temp);
       })
-  }
-
-  function updateIncidentInfo() {
-    if (currentIncident.get() != -1 && (incidentName.get() == '' || incidentName.get() == null)) {
-      incidentInfo.set(currentIncident.get())
-    } else {
-      incidentInfo.set(incidentName.get());
-    }
   }
 
   const handleLocationSelection = (e, o) => {
@@ -322,16 +310,6 @@ function Location(props) {
 
   const changeIcon = (v) => {
     setCrossHairIcon(v);
-  }
-
-  function getCurrentIncident() {
-    fetch(`${host}/incidents/active`)
-      .then(response => response.json())
-      .then(data => {
-        currentIncident.set(data['id']);
-        incidentName.set(data['name']);
-        updateIncidentInfo();
-      });
   }
 
   const getLayers = () => {
@@ -590,8 +568,8 @@ function Location(props) {
               <Row className="location-header">
                 <Col>
                   <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Current Incident</p>
-                  <h4 style={{ marginTop: '0px' }}>{incidentInfo.get()}</h4>
-                  <h5>{currentIncident.get()}</h5>
+                  <h4 style={{ marginTop: '0px' }}>{activeIncident ? activeIncident.name : 'No Active Incident'}</h4>
+                  <h5>{activeIncident?.id}</h5>
                 </Col>
                 <Col>
                   <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Current Location</p>
