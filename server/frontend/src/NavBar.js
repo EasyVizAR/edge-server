@@ -16,6 +16,7 @@ function NavBar(props){
           <div class="vl"></div>
           <Link className="links" to="/">Locations</Link>
           <Link className="links" to="/headsets">Headsets</Link>
+          <Link className="links" to="/incidents">Incidents</Link>
           <Link className="links" to="/workitems">Photos</Link>
         </div>
         <UserInfo />

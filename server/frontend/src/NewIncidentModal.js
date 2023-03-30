@@ -1,26 +1,28 @@
 import App from './App.js';
-import { Form, Button, FloatingLabel } from 'react-bootstrap';
+import { Form, Button, FloatingLabel, Row, Col } from 'react-bootstrap';
 import React from "react";
 import { useContext, useState } from 'react';
-import { LocationsContext } from './Contexts.js';
+import { ActiveIncidentContext, LocationsContext } from './Contexts.js';
 
-function NewIncidentModal(props){
-  const[incidentName, setIncidentName] = useState('');
+function NewIncidentModal(props) {
   const host = process.env.PUBLIC_URL;
 
+  const { activeIncident, setActiveIncident } = useContext(ActiveIncidentContext);
   const { locations, setLocations } = useContext(LocationsContext);
 
-  function updateState(e){
-    setIncidentName(e.target.value);
+  const formReferences = {
+    name: React.createRef()
   }
 
   function createNewIncident(e) {
+      const newName = formReferences.name.current.value;
+
       const requestData = {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json'
           },
-          body: JSON.stringify({'name': incidentName})
+          body: JSON.stringify({'name': newName})
       };
 
       fetch(`${host}/incidents`, requestData).then(async response => {
@@ -28,30 +30,39 @@ function NewIncidentModal(props){
           return response.json();
         }
       }).then(async data => {
-        props.currentIncident.set(data['current incident']);
-        props.incidentName.set(incidentName);
-        props.updateIncidentInfo();
-        setLocations({});
-        props.getHeadsets();
-        props.getIncidentHistory();
-        e.target.form.elements.incidentName.value = ""
-        props.setTab('location-view');
+        setActiveIncident(data);
+        props.setIncidents(prevIncidents => {
+          let newIncidents = [...prevIncidents];
+          newIncidents.push(data);
+          return newIncidents;
+        });
+        //props.setTab('location-view');
       });
   }
 
   return (
     <div className="newIncidentForm">
       <div>
-        <h2>Create New Incident</h2>
+        <h3 style={{marginBottom: '15px'}}>New Incident</h3>
         <Form onSubmit={createNewIncident}>
-          <Form.Group style={{width: '50%', margin: 'auto'}} className="mb-3" controlId="incident-name">
-            <FloatingLabel controlId="incident-floating-name" label="Incident Name">
-              <Form.Control type="text" placeholder="Incident Name" name="incidentName" onChange={(e) => updateState(e)}/>
-            </FloatingLabel>
-          </Form.Group>
-          <Button variant="primary" onClick={createNewIncident}>
-            Create
-          </Button>
+          <Row className="align-items-center">
+            <Col xs="auto">
+              <Form.Group controlId="incident-name">
+                <FloatingLabel controlId="incident-floating-name" label="Incident Name">
+                  <Form.Control
+                    type="text"
+                    placeholder="Incident Name"
+                    name="incidentName"
+                    ref={formReferences.name}/>
+                </FloatingLabel>
+              </Form.Group>
+            </Col>
+            <Col xs="auto">
+              <Button variant="primary" onClick={createNewIncident}>
+                Create
+              </Button>
+            </Col>
+          </Row>
         </Form>
       </div>
     </div>

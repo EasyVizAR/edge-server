@@ -1,65 +1,113 @@
 import { Form, Button, FloatingLabel, Table } from 'react-bootstrap';
 import React from "react";
-import { useState, useEffect } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 import './IncidentHistory.css';
 import useStateSynchronous from './useStateSynchronous.js';
 import moment from 'moment';
+import { ActiveIncidentContext } from './Contexts.js';
+import NewIncidentModal from './NewIncidentModal.js';
 
-function IncidentHistory(props){
+
+function IncidentHistory(props) {
   const host = process.env.PUBLIC_URL;
-  var historyData = props.historyData;
 
+  const { activeIncident, setActiveIncident } = useContext(ActiveIncidentContext);
+
+  const [incidents, setIncidents] = useState([]);
   const [inEditMode, setInEditMode] = useState({
     status: false,
-    rowKey: null,
-    originalValue: null,
+    rowKey: null
   });
 
+  // Only one row can be open for editing at a time. A reference is used to
+  // query the value of the input field when the user clicks Save. The
+  // performance is much better than using an onChange handler for every
+  // key press.
+  const formReferences = {
+    name: React.createRef()
+  }
+
   useEffect(() => {
-    props.getIncidentHistory();
+    getIncidentHistory();
   }, []);
 
-  const onSave = (e, id) => {
+  function sort_list(arr) {
+    for (let i = 0; i < arr.length; i++) {
+      for (let j = 0; j < arr.length - i - 1; j++) {
+        if (parseInt(arr[j + 1]['created']) < parseInt(arr[j]['created'])) {
+          [arr[j + 1], arr[j]] = [arr[j], arr[j + 1]]
+        }
+      }
+    };
+    return arr;
+  }
+
+  function getIncidentHistory() {
+    const requestData = {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+    fetch(`${host}/incidents`, requestData).then(response => {
+      if (response.ok) {
+        return response.json();
+      }
+    }).then(data => {
+      var temp = sort_list(data);
+      setIncidents(temp);
+    });
+  }
+
+  const onSave = (index, id) => {
     // save changes to incidents
-
-    inEditMode.originalValue = historyData[id]['name'];
-
-    if (id == historyData.length - 1){
-      props.currentIncident.set(inEditMode.originalValue);
-      props.updateIncidentInfo();
-    }
+    const newName = formReferences.name.current.value;
 
     const requestData = {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({'name': inEditMode.originalValue})
+        body: JSON.stringify({name: newName})
     };
 
-    fetch(`${host}/incidents/${historyData[id]['id']}`, requestData).then(response => {
+    fetch(`${host}/incidents/${id}`, requestData).then(response => {
       if (response.ok) {
-        onCancel(e, id);
+        onCancel(id);
         return response.json();
       }
-    }).then(data => {});
-  }
+    }).then(data => {
+      setIncidents(prevIncidents => {
+        let newIncidents = [];
+        for (var incident of prevIncidents) {
+          if (incident.id === id) {
+            newIncidents.push(data);
+          } else {
+            newIncidents.push(incident);
+          }
+        }
+        return newIncidents;
+      });
 
-  // cancels incident editing
-  const onCancel = (e, index) => {
-    historyData[index]['name'] = inEditMode.originalValue;
-
-    // reset the inEditMode state value
-    setInEditMode({
-      status: false,
-      rowKey: null,
-      originalValue: null,
+      if (id === activeIncident?.id) {
+        setActiveIncident(data);
+      }
     });
   }
 
-  const onEdit = (e, id) => {
+  // cancels incident editing
+  const onCancel = (index, id) => {
+    // reset the inEditMode state value
+    setInEditMode({
+      status: false,
+      rowKey: null
+    });
+  }
+
+  const onEdit = (index, id) => {
     if (inEditMode.status == true && inEditMode.rowKey != null) {
       alert("Please save or cancel edit on other incident before editing another incident");
       return;
@@ -67,32 +115,17 @@ function IncidentHistory(props){
 
     setInEditMode({
       status: true,
-      rowKey: id,
-      originalValue: historyData[id]['name']
+      rowKey: index
     });
   }
 
-  function updateIncidentName(e){
-    var newHistory = [];
-    var prefix = "incidentName";
-    var incidentId = e.target.id.substring(prefix.length, e.target.id.length);
-
-    for (var x in historyData) {
-      if (historyData[x]['id'] == incidentId) {
-        historyData[x]['name'] = e.target.value;
-      }
-      newHistory.push(historyData[x]);
-    }
-    props.setHistoryData(newHistory);
-  }
-
-  function deleteIncident(incidentNumber, incidentName) {
-      const del = window.confirm("Are you sure you want to delete incident '" + incidentName + "'?");
+  function deleteIncident(index, id, name) {
+      const del = window.confirm("Are you sure you want to delete incident '" + name + "'?");
       if (!del) {
           return;
       }
 
-      const url = `${host}/incidents/${incidentNumber}`;
+      const url = `${host}/incidents/${id}`;
       const requestData = {
         method: 'DELETE',
         headers: {
@@ -101,45 +134,45 @@ function IncidentHistory(props){
       };
 
       fetch(url, requestData)
-      .then(response => {
-        props.getIncidentHistory();
-        props.getLocations();
-        props.getHeadsets();
-        props.getCurrentIncident();
-      });
+        .then(response => {
+          setIncidents(prevIncidents => {
+            const newIncidents = [...prevIncidents];
+            delete newIncidents[index];
+            return newIncidents;
+          });
+
+          // If we just deleted the active incident, we need to refresh that.
+          if (id === activeIncident?.id) {
+            fetch(`${process.env.PUBLIC_URL}/incidents/active`)
+              .then(response => response.json())
+              .then(data => setActiveIncident(data));
+          }
+        });
   }
 
-  function restoreIncident(incidentNumber, incidentName){
+  function restoreIncident(index, id) {
     const requestData = {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({"id": incidentNumber})
+        body: JSON.stringify(incidents[index])
     };
 
     fetch(`${host}/incidents/active`, requestData).then(response => {
       if (response.ok) {
-        props.currentIncident.set(incidentNumber);
-        props.incidentName.set(incidentName);
-        props.getLocations();
-        props.getHeadsets();
-        props.getCurrentIncident();
-        props.updateIncidentInfo();
         return response.json();
       }
     }).then(data => {
+      setActiveIncident(data);
     });
   }
 
   // code that creates the trash icons
   function TrashIcon(props) {
-    const incidentNumber = props.incidentNumber;
-    const incidentName = props.incidentName;
-
     return (
       <Button style={{width: "30px", height: "30px"}} className='btn-danger table-btns'
-              onClick={(e) => deleteIncident(incidentNumber, incidentName)} title="Delete Incident">
+              onClick={(e) => deleteIncident(props.index, props.id, props.name)} title="Delete Incident">
           <FontAwesomeIcon icon={solid('trash-can')} size="lg"
                            style={{position: 'relative', right: '0px', top: '-1px'}}/>
       </Button>
@@ -148,7 +181,8 @@ function IncidentHistory(props){
 
   return (
     <div className="incident-history">
-      <h3 style={{textAlign: 'center', marginBottom: '15px'}}>All Incidents</h3>
+      <h3 style={{textAlign: 'center', marginBottom: '15px'}}>Incidents</h3>
+
       <Table striped bordered hover>
         <thead>
           <tr>
@@ -161,31 +195,35 @@ function IncidentHistory(props){
         </thead>
         <tbody>
           {
-            historyData.map((e, index) => {
+            incidents.map((incident, index) => {
               return <tr>
-                <td>{(e.id == props.currentIncident.get()) ? (e.id + ' (Current)') : (e.id)}</td>
+                <td>
+                  <p style={{ fontWeight: (incident.id === activeIncident?.id) ? "bold" : "normal" }}>
+                    {incident.id}
+                  </p>
+                </td>
                 <td>{
                   inEditMode.status && inEditMode.rowKey === index ? (
                     <input
-                      value={historyData[index]['name']}
+                      defaultValue={incident.name}
                       placeholder="Edit Incident Name"
-                      onChange={updateIncidentName}
-                      name={"incidentName" + e.id}
+                      name={"incidentName" + incident.id}
                       type="text"
-                      id={'incidentName' + e.id}/>
+                      ref={formReferences.name}
+                      id={'incidentName' + incident.id}/>
                   ) : (
-                    e.name
+                    incident.name
                   )
                 }</td>
-                <td>{moment.unix(e.created).format("MM-DD-YYYY")}</td>
+                <td>{moment.unix(incident.created).format("MM-DD-YYYY")}</td>
                 <td>
                 {
                   (inEditMode.status && inEditMode.rowKey === index) ? (
                     <React.Fragment>
                       <Button
                         className={"btn-success table-btns"}
-                        id={'savebtn' + e.id}
-                        onClick={(e) => onSave(e, index)}
+                        id={'savebtn' + incident.id}
+                        onClick={(e) => onSave(index, incident.id)}
                         title='Save'>
                         Save
                       </Button>
@@ -193,7 +231,7 @@ function IncidentHistory(props){
                       <Button
                         className={"btn-secondary table-btns"}
                         style={{marginLeft: 8}}
-                        onClick={(event) => onCancel(event, index)}
+                        onClick={(event) => onCancel(index, incident.id)}
                         title='Cancel'>
                         Cancel
                       </Button>
@@ -201,7 +239,7 @@ function IncidentHistory(props){
                   ) : (
                     <Button
                       className={"btn-primary table-btns"}
-                      onClick={(e) => onEdit(e, index)}
+                      onClick={(e) => onEdit(index, incident.id)}
                       title='Edit'>
                       Edit
                     </Button>
@@ -210,14 +248,15 @@ function IncidentHistory(props){
                 </td>
                 <td>
                   <div>
-                    <TrashIcon item='incident' incidentNumber={e.id} incidentName={e.name}/>
+                    <TrashIcon item='incident' index={index} id={incident.id} name={incident.name}/>
                   </div>
                 </td>
                 <td>
                   <div>
-                    {e.number != props.currentIncident.get() ? (
-                      <Button className={"btn-primary table-btns"} onClick={(event) => restoreIncident(e.id, e.name)}>Restore</Button>
-                    ) : ('')
+                    {
+                      incident.id !== activeIncident?.id ? (
+                        <Button className={"btn-primary table-btns"} onClick={(event) => restoreIncident(index, incident.id)}>Restore</Button>
+                      ) : ('')
                     }
                   </div>
                 </td>
@@ -226,6 +265,8 @@ function IncidentHistory(props){
           }
         </tbody>
       </Table>
+
+      <NewIncidentModal setIncidents={setIncidents} />
     </div>
   );
 }

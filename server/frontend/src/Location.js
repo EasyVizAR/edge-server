@@ -275,43 +275,6 @@ function Location(props) {
       });
   }
 
-  function sort_list(arr) {
-    for (let i = 0; i < arr.length; i++) {
-      for (let j = 0; j < arr.length - i - 1; j++) {
-        if (parseInt(arr[j + 1]['created']) < parseInt(arr[j]['created'])) {
-          [arr[j + 1], arr[j]] = [arr[j], arr[j + 1]]
-        }
-      }
-    };
-    return arr;
-  }
-
-  function getIncidentHistory() {
-    const requestData = {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
-
-    fetch(`${host}/incidents`, requestData).then(response => {
-      if (response.ok) {
-        return response.json();
-      }
-    }).then(data => {
-      var temp_data = [];
-      for (var x in data) {
-        temp_data.push({
-          'id': data[x]['id'],
-          'name': data[x]['name'],
-          'created': data[x]['created'],
-        });
-      }
-      temp_data = sort_list(temp_data);
-      setHistoryData(temp_data);
-    });
-  }
-
   // onchange handler for updating Location image
   const updateImage = (e) => {
     /*
@@ -721,17 +684,6 @@ function Location(props) {
                 )
               }
             </Container>
-          </Tab>
-          <Tab eventKey="create-incident" title="Create Incident">
-            <NewIncidentModal getHeadsets={getHeadsets} setLocations={setLocations}
-              getCurrentIncident={getCurrentIncident} currentIncident={currentIncident} incidentName={incidentName}
-              updateIncidentInfo={updateIncidentInfo} setTab={setTab} getIncidentHistory={getIncidentHistory} />
-          </Tab>
-          <Tab eventKey="incident-history" title="Incident History">
-            <IncidentHistory currentIncident={currentIncident} incidentName={incidentName}
-              updateIncidentInfo={updateIncidentInfo} historyData={historyData}
-              setHistoryData={setHistoryData} getIncidentHistory={getIncidentHistory}
-              getHeadsets={getHeadsets} getCurrentIncident={getCurrentIncident} />
           </Tab>
           <Tab eventKey="create-layer" title="Create Layer">
             <NewLayer getHeadsets={getHeadsets} getLayers={getLayers} setTab={setTab} />

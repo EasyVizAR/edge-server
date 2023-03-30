@@ -13,3 +13,12 @@ export const LocationsContext = createContext({
   locations: {},
   setLocations: () => {}
 });
+
+
+// This context maintains a copy of the current active incident.
+//
+// The storage and implementation is in App.js.
+export const ActiveIncidentContext = createContext({
+  activeIncident: {},
+  setActiveIncident: () => {}
+});
