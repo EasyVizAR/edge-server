@@ -14,8 +14,9 @@ function NavBar(props){
               <Navbar.Toggle aria-controls="basic-navbar-nav"/>
           </Container>
           <div class="vl"></div>
-          <Link className="links" to="/">Home</Link>
-          <Link className="links" to="/workitems">Image Processing</Link>
+          <Link className="links" to="/">Locations</Link>
+          <Link className="links" to="/headsets">Headsets</Link>
+          <Link className="links" to="/workitems">Photos</Link>
         </div>
         <UserInfo />
     </Navbar>

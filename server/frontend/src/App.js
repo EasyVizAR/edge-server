@@ -1,6 +1,6 @@
 import React, {createContext, useState, useEffect} from 'react';
 import {HashRouter, Link, Route, Routes} from 'react-router-dom';
-import Home from './Home.js';
+import AllHeadsets from './AllHeadsets.js';
 import WorkItems from './WorkItems.js';
 import Location from './Location.js';
 import Headset from './Headset.js';
@@ -32,7 +32,8 @@ function App() {
                 <div className="content">
                   <LocationsContext.Provider value={locationsContextValue}>
                     <Routes>
-                        <Route exact path="/" element={<Home />}/>
+                        <Route exact path="/" element={<Location />}/>
+                        <Route path="/headsets" element={<AllHeadsets />}/>
                         <Route path="/workitems" element={<WorkItems />}/>
                         <Route path="/locations/:location_id/qrcode" element={<LocationQrCodeWrapper />}/>
                         <Route path="/locations/:location_id" element={<Location />}/>

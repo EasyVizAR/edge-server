@@ -2,7 +2,6 @@ import {Button, Form, FloatingLabel, Row, Col, ButtonGroup} from 'react-bootstra
 import './NewFeature.css';
 import React from "react";
 import {useState, useEffect} from 'react';
-import Home from "./Home.js";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { solid, regular, brands } from '@fortawesome/fontawesome-svg-core/import.macro'
 import RangeSlider from 'react-bootstrap-range-slider';

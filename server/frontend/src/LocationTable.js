@@ -1,6 +1,7 @@
 import './Tables.css';
 import {Container, Table, Button} from 'react-bootstrap';
 import React, {useContext, useState, useEffect} from 'react';
+import { Link } from "react-router-dom";
 import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
@@ -163,7 +164,7 @@ function LocationTable(props) {
             Object.keys(locations).length > 0 ? (
               Object.entries(locations).map(([id, loc]) => {
                 return <tr>
-                  <td>{id}</td>
+                  <td><Link to={`/locations/${id}`}>{id}</Link></td>
                   <td>
                     {
                       (inEditModeLocation.locationId === id) ? (

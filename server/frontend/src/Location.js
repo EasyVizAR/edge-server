@@ -147,20 +147,23 @@ function Location(props) {
     openWebSocket();
   }, []);
 
+  // This triggers if a link causes the location_id URL parameter to change.
   useEffect(() => {
-    if (!(selectedLocation in locations)) {
-      setSelectedLocation(getDefaultLocationSelection());
-    }
-  }, [locations, setLocations]);
+    setSelectedLocation(location_id);
+  }, [location_id]);
+
+  // This triggers after the list of locations has been loaded, then
+  // we can lookup the object for the selected location.
+  useEffect(() => {
+    setCurrentLocation(locations[selectedLocation]);
+  }, [locations, selectedLocation]);
 
   useEffect(() => {
     // If selected location changed, immediately reload list of headsets and
     // features at the new location.
-    getHeadsets();
-    // getHistories();
-    getFeatures();
-
     if (selectedLocation) {
+      getHeadsets();
+      getFeatures();
       getLayers();
       getPhotos();
     }
@@ -171,12 +174,6 @@ function Location(props) {
     // event handler.
     selectedLocationRef.current = selectedLocation;
   }, [selectedLocation]);
-
-  // time goes off every 10 seconds to refresh headset data
-  //    useEffect(() => {
-  //        const timer = setTimeout(() => getHeadsets(), 1e4)
-  //        return () => clearTimeout(timer)
-  //    });
 
   // function that sends request to server to get headset data
   function getHeadsets() {
@@ -211,47 +208,6 @@ function Location(props) {
       });
   }
 
-  // // gets pose changes from the server
-  // function getHistories() {
-  //   console.log(headsets);
-  //   for (var h in headsets) {
-  //     let id = h; // h changes before the promise is resolved, so the id has to be saved
-  //     fetch(`${host}/headsets/${h}/pose-changes`)
-  //       .then(response => {
-  //         return response.json()
-  //       }).then(data => {
-  //         setHistories(prevState => {
-  //           prevState[id] = data;
-  //           return prevState;
-  //         });
-  //         console.log(histories);
-  //       }
-  //       ).then(
-  //         () => {
-  //           // console.log("test");
-  //           // console.log(histories);
-  //           // console.log(Object.keys(histories));
-  //           for (var h of Object.keys(histories)) {
-  //             for (var pt of histories[h]) {
-  //               setFeatures(prevState => {
-  //                 prevState.push({
-  //                   id: h+pt.time,
-  //                   time: pt.time,
-  //                   type: 'circle',
-  //                   color: 'black',
-  //                   position: pt.position,
-  //                 });
-  //                 console.log(prevState);
-  //                 return prevState;
-  //               });
-  //               // console.log(features);
-  //             }
-  //           }
-  //         }
-  //       );
-  //   }
-  // }
-
   function getPhotos() {
     if (!selectedLocation)
       return;
@@ -278,18 +234,13 @@ function Location(props) {
   }
 
   const handleLocationSelection = (e, o) => {
-    window.location.href = `${host}/#/locations/${e}`;
+    if (e) {
+      window.location.href = `${host}/#/locations/${e}`;
+    }
     setSelectedLocation(e);
     setCurrentLocation(locations[e]);
     setFeaturesChecked(false);
     setHeadsetsChecked(true);
-  }
-
-  const getDefaultLocationSelection = () => {
-    if (Object.keys(locations).length == 0)
-      return null;
-    setCurrentLocation(locations[location_id]);
-    return location_id;
   }
 
   const changePointValue = (value, idx) => {
@@ -626,7 +577,7 @@ function Location(props) {
             <div className="location-nav">
               <div className="dropdown-container">
                 <DropdownButton id="location-dropdown" title="Select Location" onSelect={handleLocationSelection}
-                  defaultValue={getDefaultLocationSelection}>
+                  defaultValue={null}>
                   {
                     Object.entries(locations).map(([id, loc]) => {
                       return <Dropdown.Item eventKey={id}>{loc.name}</Dropdown.Item>
@@ -635,33 +586,41 @@ function Location(props) {
                 </DropdownButton>
               </div>
 
-              <div className="header-button">
-                <Button variant="secondary" title="Add Feature" value="Add Feature"
-                  onClick={(e) => showFeature(e)}>Add Feature</Button>
-              </div>
+              {
+                selectedLocation &&
+                  <React.Fragment>
+                    <div className="header-button">
+                      <Button variant="secondary" title="Add Feature" value="Add Feature"
+                        onClick={(e) => showFeature(e)}>Add Feature</Button>
+                    </div>
 
-              <div className="QR-code-btn header-button">
-                <Link className="btn btn-secondary" role="button" to={"/locations/" + selectedLocation + "/qrcode"}>Location QR Code</Link>
-              </div>
+                    <div className="QR-code-btn header-button">
+                      <Link className="btn btn-secondary" role="button" to={"/locations/" + selectedLocation + "/qrcode"}>Location QR Code</Link>
+                    </div>
 
-              <div className="header-button">
-                <a class="btn btn-secondary" href={"/locations/" + selectedLocation + "/model"}>Location 3D Model</a>
-              </div>
+                    <div className="header-button">
+                      <a class="btn btn-secondary" href={"/locations/" + selectedLocation + "/model"}>Location 3D Model</a>
+                    </div>
 
-              <div className="header-button">
-                <Button variant="secondary" title="Reset Surfaces" value="Reset Surfaces"
-                  onClick={(e) => resetSurfaces(e)}>Reset Surfaces</Button>
-              </div>
+                    <div className="header-button">
+                      <Button variant="secondary" title="Reset Surfaces" value="Reset Surfaces"
+                        onClick={(e) => resetSurfaces(e)}>Reset Surfaces</Button>
+                    </div>
+                  </React.Fragment>
+              }
             </div>
 
             <Container fluid>
-              <NewFeature icons={icons}
-                showNewFeature={showNewFeature} changeCursor={toggleCursor}
-                changeIcon={changeIcon} pointCoordinates={pointCoordinates}
-                changePointValue={changePointValue} mapID={selectedLocation}
-                setIconIndex={setIconIndex} sliderValue={sliderValue}
-                setSliderValue={setSliderValue} setPlacementType={setPlacementType}
-                placementType={placementType} />
+              {
+                selectedLocation &&
+                  <NewFeature icons={icons}
+                    showNewFeature={showNewFeature} changeCursor={toggleCursor}
+                    changeIcon={changeIcon} pointCoordinates={pointCoordinates}
+                    changePointValue={changePointValue} mapID={selectedLocation}
+                    setIconIndex={setIconIndex} sliderValue={sliderValue}
+                    setSliderValue={setSliderValue} setPlacementType={setPlacementType}
+                    placementType={placementType} />
+              }
 
               <Row className="location-header">
                 <Col>
@@ -705,54 +664,62 @@ function Location(props) {
                 </Col>
               </Row>
 
-              <LayerContainer id="map-container" icons={icons}
-                headsets={headsets} headsetsChecked={headsetsChecked}
-                features={features} featuresChecked={featuresChecked}
-                photos={photos} photosChecked={photosChecked}
-                histories={histories} setHistories={setHistories}
-                setFeatures={setFeatures} setHeadsets={setHeadsets}
-                cursor={cursor} setClickCount={setClickCount}
-                clickCount={clickCount} placementType={placementType} iconIndex={iconIndex}
-                setPointCoordinates={setPointCoordinates}
-                sliderValue={sliderValue}
-                crossHairIcon={crossHairIcon}
-                layers={layers} setLayers={setLayers}
-                selectedLocation={selectedLocation}
-                selectedLayer={selectedLayer} setSelectedLayer={setSelectedLayer}
-              />
-              <div style={{ width: 'max-content' }}>
-                <Form>
-                  <Form.Check
-                    onChange={(e) => setHeadsetsChecked(e.target.checked)}
-                    type="switch"
-                    id="headsets-switch"
-                    label="Headsets"
-                    checked={headsetsChecked}
-                  />
-                  <Form.Check
-                    onChange={(e) => setFeaturesChecked(e.target.checked)}
-                    type="switch"
-                    id="features-switch"
-                    label="Features"
-                    checked={featuresChecked}
-                  />
-                  <Form.Check
-                    onChange={(e) => setPhotosChecked(e.target.checked)}
-                    type="switch"
-                    id="photos-switch"
-                    label="Photos"
-                    checked={photosChecked}
-                  />
-                </Form>
-              </div>
+              {
+                currentLocation ? (
+                  <React.Fragment>
+                    <LayerContainer id="map-container" icons={icons}
+                      headsets={headsets} headsetsChecked={headsetsChecked}
+                      features={features} featuresChecked={featuresChecked}
+                      photos={photos} photosChecked={photosChecked}
+                      histories={histories} setHistories={setHistories}
+                      setFeatures={setFeatures} setHeadsets={setHeadsets}
+                      cursor={cursor} setClickCount={setClickCount}
+                      clickCount={clickCount} placementType={placementType} iconIndex={iconIndex}
+                      setPointCoordinates={setPointCoordinates}
+                      sliderValue={sliderValue}
+                      crossHairIcon={crossHairIcon}
+                      layers={layers} setLayers={setLayers}
+                      selectedLocation={selectedLocation}
+                      selectedLayer={selectedLayer} setSelectedLayer={setSelectedLayer}
+                    />
+                    <div style={{ width: 'max-content' }}>
+                      <Form>
+                        <Form.Check
+                          onChange={(e) => setHeadsetsChecked(e.target.checked)}
+                          type="switch"
+                          id="headsets-switch"
+                          label="Headsets"
+                          checked={headsetsChecked}
+                        />
+                        <Form.Check
+                          onChange={(e) => setFeaturesChecked(e.target.checked)}
+                          type="switch"
+                          id="features-switch"
+                          label="Features"
+                          checked={featuresChecked}
+                        />
+                        <Form.Check
+                          onChange={(e) => setPhotosChecked(e.target.checked)}
+                          type="switch"
+                          id="photos-switch"
+                          label="Photos"
+                          checked={photosChecked}
+                        />
+                      </Form>
+                    </div>
 
-              <LayerTable locationId={selectedLocation} layers={layers} />
+                    <LayerTable locationId={selectedLocation} layers={layers} />
 
-              <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
-                setHeadsets={setHeadsets} features={features} />
-              <FeatureTable icons={icons} features={features} locationId={selectedLocation} />
+                    <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
+                      setHeadsets={setHeadsets} features={features} />
+                    <FeatureTable icons={icons} features={features} locationId={selectedLocation} />
 
-              <PhotoTable photos={photos} setPhotos={setPhotos} />
+                    <PhotoTable photos={photos} setPhotos={setPhotos} />
+                  </React.Fragment>
+                ) : (
+                  <LocationTable />
+                )
+              }
             </Container>
           </Tab>
           <Tab eventKey="create-incident" title="Create Incident">
