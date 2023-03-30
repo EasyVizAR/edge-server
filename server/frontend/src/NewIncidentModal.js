@@ -43,7 +43,7 @@ function NewIncidentModal(props) {
   return (
     <div className="newIncidentForm">
       <div>
-        <h3 style={{marginBottom: '15px'}}>New Incident</h3>
+        <h3 style={{textAlign: "left"}}>New Incident</h3>
         <Form onSubmit={createNewIncident}>
           <Row className="align-items-center">
             <Col xs="auto">

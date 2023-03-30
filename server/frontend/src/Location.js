@@ -523,9 +523,11 @@ function Location(props) {
       }
     }
 
-    let filter2 = " /locations/" + currentLocationId + "*";
-    for (var ev of events) {
-      ws.send("subscribe " + ev + filter2);
+    if (currentLocationId) {
+      let filter2 = " /locations/" + currentLocationId + "*";
+      for (var ev of events) {
+        ws.send("subscribe " + ev + filter2);
+      }
     }
   }
 
@@ -680,7 +682,10 @@ function Location(props) {
                     <PhotoTable photos={photos} setPhotos={setPhotos} />
                   </React.Fragment>
                 ) : (
-                  <LocationTable />
+                  <React.Fragment>
+                    <LocationTable />
+                    <NewLocation />
+                  </React.Fragment>
                 )
               }
             </Container>
