@@ -164,9 +164,9 @@ class Grid:
 		max_value = max(self.grid.values())
 
 		data = []
-		for y in range(height):
+		for y in range(min_indices[1], max_indices[1] + 1):
 			row = []
-			for x in range(width):
+			for x in range(min_indices[0], max_indices[0] + 1):
 				value = self.grid.get((x, y), 0)
 				if value == 0:
 					# Empty grid cells will be black (0)

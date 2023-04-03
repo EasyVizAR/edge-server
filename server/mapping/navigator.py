@@ -49,7 +49,7 @@ class Navigator:
         grid = self.exploration_grids[current.location_id]
         grid.put_line([(previous.position.x, previous.position.z),
                         (current.position.x, current.position.z)])
-        grid.write_png("heatmap.png")
+        grid.write_png("heatmap-{}.png".format(location_id))
 
         #print("Headset in location {} moved from {} to {}".format(
         #    current.location_id, previous.position, current.position))
