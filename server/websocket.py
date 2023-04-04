@@ -160,6 +160,9 @@ class WebsocketHandler:
                 }
                 await _update_headset(self.user_id, patch)
 
+        elif args.command == "ping":
+            await self.websocket.send("pong")
+
         elif args.command == "exit":
             sys.exit(0)
 
@@ -205,6 +208,7 @@ class WebsocketHandler:
         echo = command.add_parser("echo", help="Enable or disable echoing of user events", add_help=False)
         suppress = command.add_parser("suppress", help="(deprecated) use echo [on|off] instead", add_help=False)
         move = command.add_parser("move", help="Change headset pose", add_help=False)
+        ping = command.add_parser("ping", help="Responds with the string 'pong' for connection testing", add_help=False)
 
         subscribe.add_argument("event", type=str)
         subscribe.add_argument("uri_filter", type=str, nargs="?", default="*")
@@ -225,7 +229,8 @@ class WebsocketHandler:
             unsubscribe.format_usage()[7:],
             echo.format_usage()[7:],
             suppress.format_usage()[7:],
-            move.format_usage()[7:]
+            move.format_usage()[7:],
+            ping.format_usage()[7:]
         ]
 
         # These commands are useful for testing but must not be available in

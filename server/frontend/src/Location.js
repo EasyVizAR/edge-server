@@ -21,6 +21,7 @@ import useStateSynchronous from './useStateSynchronous.js';
 import { Link } from "react-router-dom";
 import { useParams } from "react-router";
 import { ActiveIncidentContext, LocationsContext } from './Contexts.js';
+import ReconnectingWebSocket from './ReconnectingWebSocket.js';
 
 import fontawesome from '@fortawesome/fontawesome'
 import {
@@ -363,12 +364,14 @@ function Location(props) {
     }
 
     if (window.location.protocol === "https:") {
-      webSocket.current = new WebSocket(`wss://${window.location.host}/ws`);
+      webSocket.current = new ReconnectingWebSocket(`wss://${window.location.host}/ws`);
     } else {
-      webSocket.current = new WebSocket(`ws://${window.location.host}/ws`);
+      webSocket.current = new ReconnectingWebSocket(`ws://${window.location.host}/ws`);
     }
 
     const ws = webSocket.current;
+
+    ws.connect();
 
     ws.onopen = (event) => {
       ws.send("subscribe photos:created");
