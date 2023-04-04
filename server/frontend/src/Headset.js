@@ -136,11 +136,13 @@ function Headset(props) {
   const [placementType, setPlacementType] = useState('');
   const [tab, setTab] = useState('location-view');
   const [historyData, setHistoryData] = useState([]);
+  const [navigationRoute, setNavigationRoute] = useState(null);
 
   const [displayOptions, setDisplayOptions] = useState({
     headsets: true,
     features: false,
-    history: false
+    history: false,
+    navigation: false
   });
 
   const webSocket = useRef(null);
@@ -194,6 +196,17 @@ function Headset(props) {
         });
         return newHistory;
       });
+
+      if (headset.navigation_target && headset.location_id) {
+        const target = headset.navigation_target;
+        const from = `${headset.position.x},${headset.position.y},${headset.position.z}`;
+        const to = `${target.position.x},${target.position.y},${target.position.z}`;
+        fetch(`${host}/locations/${headset.location_id}/route?from=${from}&to=${to}`)
+          .then(response => response.json())
+          .then(data => setNavigationRoute(data));
+      } else {
+        setNavigationRoute(null);
+      }
     }
   }, [headset]);
 
@@ -224,6 +237,12 @@ function Headset(props) {
       setDisplayOptions({
         ...displayOptions,
         history: e.target.checked
+      });
+    }
+    if (e.target.id == 'navigation-switch') {
+      setDisplayOptions({
+        ...displayOptions,
+        navigation: e.target.checked
       });
     }
   };
@@ -595,6 +614,8 @@ function Headset(props) {
               history={positionHistory} historyChecked={displayOptions.history}
               histories={histories} setHistories={setHistories}
               navigationTarget={headset?.navigation_target}
+              navigationRoute={navigationRoute}
+              navigationChecked={displayOptions.navigation}
               setFeatures={setFeatures} setHeadsets={setHeadsets}
               cursor={cursor} setClickCount={setClickCount}
               clickCount={clickCount} placementType={placementType} iconIndex={iconIndex}
@@ -628,6 +649,13 @@ function Headset(props) {
                   id="history-switch"
                   label="History"
                   checked={displayOptions.history}
+                />
+                <Form.Check
+                  onChange={changeMapObjects(this, 'navigation')}
+                  type="switch"
+                  id="navigation-switch"
+                  label="Navigation"
+                  checked={displayOptions.navigation}
                 />
               </Form>
             </div>

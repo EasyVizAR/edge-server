@@ -232,11 +232,11 @@ function LayerContainer(props) {
     }
 
     function NavigationTarget(props) {
-      const navigationTarget = props.navigationTarget;
+      const target = props.target;
 
-      if (layerLoaded && navigationTarget) {
-        const x = mapShape.xscale * (navigationTarget.position.x - mapShape.xmin);
-        const y = mapShape.yscale * (mapShape.height - (navigationTarget.position.z - mapShape.ymin));
+      if (layerLoaded && target && props.enabled) {
+        const x = mapShape.xscale * (target.position.x - mapShape.xmin);
+        const y = mapShape.yscale * (mapShape.height - (target.position.z - mapShape.ymin));
         return (
             <FontAwesomeIcon icon={solid('sun')}
               className="features"
@@ -253,12 +253,43 @@ function LayerContainer(props) {
       }
     }
 
+    function NavigationRoute(props) {
+      const route = props.route;
+
+      if (route && route.length >= 2 && props.enabled) {
+        const points = [];
+        for (var p of route) {
+          const x = mapShape.xscale * (p.x - mapShape.xmin);
+          const y = mapShape.yscale * (mapShape.height - (p.z - mapShape.ymin));
+          points.push(`${x},${y}`);
+        }
+
+        const polyline = points.join(" ");
+
+        return (
+          <svg width={mapShape.width * mapShape.xscale}
+               height={mapShape.height * mapShape.yscale}
+               style={{
+                 top: 0,
+                 left: 0,
+                 "z-index": 1,
+                 position: "absolute"
+               }} >
+            <polyline points={polyline} style={{ fill:"none", stroke:"gray", "stroke-width":3, "stroke-dasharray":"10,10" }} />
+          </svg>
+        );
+      } else {
+        return null;
+      }
+    }
+
     return (
         <div className="map-layer-container">
             <div className="map-image-container">
                 <img id="map-image" src={layerImage} alt="Map of the environment" onLoad={onMapLoad}
                      onClick={onMouseClick} style={{cursor: props.cursor}}/>
-                <NavigationTarget navigationTarget={props.navigationTarget} />
+                <NavigationTarget enabled={props.navigationChecked} target={props.navigationTarget} />
+                <NavigationRoute enabled={props.navigationChecked} route={props.navigationRoute} />
                 {
                   layerLoaded && props.historyChecked && Object.keys(props.history).length > 0 &&
                     Object.entries(props.history).map(([id, item]) => {
