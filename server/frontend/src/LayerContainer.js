@@ -346,7 +346,7 @@ function LayerContainer(props) {
                       const rotation = (2 * Math.atan2(item.orientation.y, item.orientation.w)) - (0.5 * Math.PI);
 
                       return <div>
-                              <FontAwesomeIcon icon={solid('play')}
+                              <FontAwesomeIcon icon={solid('caret-right')}
                                               className="heading"
                                               color={item.color}
                                               style={{
@@ -355,7 +355,7 @@ function LayerContainer(props) {
                                                   height: mapIconSize + "%",
                                                   pointerEvents: "none",
                                                   opacity: 0.75,
-                                                  transform: "translate(-50%, -50%) rotate(" + rotation + "rad) translateX(75%)"
+                                                  transform: "translate(-50%, -50%) rotate(" + rotation + "rad) translateX(100%)"
                                               }} />
                               <FontAwesomeIcon icon={icons['headset']['iconName']}
                                               className="features" id={item.id}
