@@ -231,11 +231,34 @@ function LayerContainer(props) {
       })
     }
 
+    function NavigationTarget(props) {
+      const navigationTarget = props.navigationTarget;
+
+      if (layerLoaded && navigationTarget) {
+        const x = mapShape.xscale * (navigationTarget.position.x - mapShape.xmin);
+        const y = mapShape.yscale * (mapShape.height - (navigationTarget.position.z - mapShape.ymin));
+        return (
+            <FontAwesomeIcon icon={solid('sun')}
+              className="features"
+              color="#FFD700"
+              style={{
+                left: x,
+                  top: y,
+                  height: mapIconSize + "%",
+                  pointerEvents: "none"
+              }} />
+        );
+      } else {
+        return null;
+      }
+    }
+
     return (
         <div className="map-layer-container">
             <div className="map-image-container">
                 <img id="map-image" src={layerImage} alt="Map of the environment" onLoad={onMapLoad}
                      onClick={onMouseClick} style={{cursor: props.cursor}}/>
+                <NavigationTarget navigationTarget={props.navigationTarget} />
                 {
                   layerLoaded && props.historyChecked && Object.keys(props.history).length > 0 &&
                     Object.entries(props.history).map(([id, item]) => {

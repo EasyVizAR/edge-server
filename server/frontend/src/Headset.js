@@ -594,6 +594,7 @@ function Headset(props) {
               features={features} featuresChecked={displayOptions.features}
               history={positionHistory} historyChecked={displayOptions.history}
               histories={histories} setHistories={setHistories}
+              navigationTarget={headset?.navigation_target}
               setFeatures={setFeatures} setHeadsets={setHeadsets}
               cursor={cursor} setClickCount={setClickCount}
               clickCount={clickCount} placementType={placementType} iconIndex={iconIndex}
