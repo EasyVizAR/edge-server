@@ -20,7 +20,7 @@ class ObjFileMaker:
     def write_surface(self, out, surface, voffset=0):
         ply = read_ply_file(surface.filePath)
 
-        if len(ply.vertices) == 0 or len(ply.triangles) == 0:
+        if ply is None or len(ply.vertices) == 0 or len(ply.triangles) == 0:
             return 0
 
         # The OBJ file format supports group/object designations, but the
