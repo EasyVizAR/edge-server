@@ -62,13 +62,15 @@ def lp_intersect(p0, p1, p_co, p_no, epsilon=1e-6):
 
 class Floorplanner:
 
-    def __init__(self, ply_path_or_list, json_data_path=None, cutting_height=0.0, headsets=None, slices=None):
+    def __init__(self, ply_path_or_list, json_data_path=None, cutting_height=0.0, features=None, headsets=None, slices=None, stroke_width=0.1):
         self.ply_path_or_list = ply_path_or_list
         self.json_data_path = json_data_path
         self.first_load_json = json_data_path is not None
         self.cutting_height = cutting_height
+        self.features = features
         self.headsets = headsets
         self.slices = slices
+        self.stroke_width = stroke_width
 
         self.data = self.init_stored_data()
 
@@ -277,7 +279,7 @@ class Floorplanner:
         transform_group = dwg.g(id="transform", transform="matrix(1 0 0 -1 0 {})".format(minz + maxz))
 
         # Add all walls to this group, and apply default styling to all of them.
-        walls_group = dwg.g(id="walls", fill="none", stroke='black', stroke_width=0.1)
+        walls_group = dwg.g(id="walls", fill="none", stroke='black', stroke_width=self.stroke_width)
 
         for path in self.data['files']:
             # We could add metadata such as the surface ID and different style options
@@ -312,13 +314,33 @@ class Floorplanner:
             for headset in self.headsets:
                 headset_group.add(dwg.circle(center=(headset.position.x, headset.position.z),
                     fill=headset.color,
-                    fill_opacity=0.25,
-                    r=1.0,
+                    fill_opacity=1.0,
+                    r=self.stroke_width,
                     stroke=headset.color,
-                    stroke_width=0.35
+                    stroke_opacity=0.5,
+                    stroke_width=self.stroke_width
                 ))
 
             transform_group.add(headset_group)
+
+        # If floorplanner was configured with a feature list, draw some simple
+        # markers over the map. This should ideally be a lot more configurable.
+        if self.features is not None:
+            feature_group = dwg.g(id="features")
+
+            for feature in self.features:
+                feature_group.add(dwg.circle(
+                    id="feature-{}".format(feature.id),
+                    center=(feature.position.x, feature.position.z),
+                    fill=feature.color,
+                    fill_opacity=1.0,
+                    r=self.stroke_width,
+                    stroke=feature.color,
+                    stroke_opacity=0.5,
+                    stroke_width=self.stroke_width
+                ))
+
+            transform_group.add(feature_group)
 
         dwg.add(transform_group)
         dwg.save(pretty=True)

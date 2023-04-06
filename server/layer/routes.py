@@ -356,6 +356,12 @@ async def get_layer_file(location_id, layer_id):
 
                 This header value will only be used if a conversion from SVG is performed
                 such as when the image is stored as SVG and a PNG is requested.
+          - name: features
+            in: query
+            required: false
+            schema:
+                type: bool
+            description: Overlay icons for features
           - name: headsets
             in: query
             required: false
@@ -378,7 +384,14 @@ async def get_layer_file(location_id, layer_id):
     if layer is None:
         raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
 
-    if "headsets" in request.args:
+    if "features" in request.args:
+        # This custom map generation code will overlay markers for the positions of features.
+        map_maker = MapMaker.build_maker(g.active_incident.id, location_id, show_features=True)
+        future = current_app.mapping_pool.submit(map_maker.make_map)
+        result = await asyncio.wrap_future(future)
+        return await try_send_image(result.image_path, layer.contentType, request.headers)
+
+    elif "headsets" in request.args:
         # This custom map generation code will overlay markers for the positions of headsets.
         map_maker = MapMaker.build_maker(g.active_incident.id, location_id, show_headsets=True)
         future = current_app.mapping_pool.submit(map_maker.make_map)

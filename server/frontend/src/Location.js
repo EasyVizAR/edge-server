@@ -545,6 +545,10 @@ function Location(props) {
                     </div>
 
                     <div className="header-button">
+                      <a class="btn btn-secondary" href={`/locations/${selectedLocation}/layers/${selectedLayer}/image?features=1`}>Export Map</a>
+                    </div>
+
+                    <div className="header-button">
                       <a class="btn btn-secondary" href={"/locations/" + selectedLocation + "/model"}>Location 3D Model</a>
                     </div>
 
