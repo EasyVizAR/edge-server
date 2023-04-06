@@ -62,9 +62,8 @@ def lp_intersect(p0, p1, p_co, p_no, epsilon=1e-6):
 
 class Floorplanner:
 
-    def __init__(self, ply_path_or_list, image_scale=1, json_data_path=None, cutting_height=0.0, headsets=None, slices=None):
+    def __init__(self, ply_path_or_list, json_data_path=None, cutting_height=0.0, headsets=None, slices=None):
         self.ply_path_or_list = ply_path_or_list
-        self.image_scale = image_scale
         self.json_data_path = json_data_path
         self.first_load_json = json_data_path is not None
         self.cutting_height = cutting_height
@@ -201,6 +200,8 @@ class Floorplanner:
             update_lines_at_path = path not in self.data['files'] or self.data['files'][path]["last_modified"] < time_of_prev_mod
             if initialize or update_lines_at_path:
                 mesh = read_ply_file(path)
+                if mesh is None:
+                    continue
 
                 if self.slices is None:
                     headset_position = [0, self.cutting_height, 0]
@@ -250,9 +251,8 @@ class Floorplanner:
                         minz = min(point[2], minz)
                         maxz = max(point[2], maxz)
 
-        scale = self.image_scale
-        image_width = scale * (maxx - minx)
-        image_height = scale * (maxz - minz)
+        image_width = maxx - minx
+        image_height = maxz - minz
 
         if self.slices is None or len(self.slices) == 1:
             colors = ["black"]
@@ -266,29 +266,51 @@ class Floorplanner:
                 colors.append("rgb({0:d},{0:d},{0:d})".format(256-(i+1)*step_size))
 
         dwg = svgwrite.Drawing(svg_destination_path, profile='tiny',
-                viewBox="{} {} {} {}".format(scale*minx, scale*minz, image_width, image_height))
+                viewBox="{} {} {} {}".format(minx, minz, image_width, image_height))
+
+        # This transformation flips the image vertically.
+        #
+        # There seems to be other way around the fact that SVG (and other image
+        # standards) use the convention that the image starts at the top left
+        # corner with increasing indexes down and to the right. The vertical
+        # axis is the opposite of how we map the world.
+        transform_group = dwg.g(id="transform", transform="matrix(1 0 0 -1 0 {})".format(minz + maxz))
+
+        # Add all walls to this group, and apply default styling to all of them.
+        walls_group = dwg.g(id="walls", fill="none", stroke='black', stroke_width=0.1)
+
         for path in self.data['files']:
+            # We could add metadata such as the surface ID and different style options
+            surface_group = dwg.g()
+
             for line in self.data['files'][path].get("lines", []):
-                p1f = ((line[0][0]) * scale, (line[0][2]) * scale)
-                p2f = ((line[1][0]) * scale, (line[1][2]) * scale)
-                dwg.add(dwg.line(start=p1f, end=p2f, stroke='black', stroke_width=0.1))
+                p1f = ((line[0][0]), (line[0][2]))
+                p2f = ((line[1][0]), (line[1][2]))
+                surface_group.add(dwg.line(start=p1f, end=p2f))
 
             for polyline in self.data['files'][path].get("polylines", []):
-                dwg.add(dwg.polyline(
-                    points=[(x[0], x[2]) for x in polyline],
-                    stroke='black', stroke_width=0.1, fill="none"))
+                surface_group.add(dwg.polyline(
+                    points=[(x[0], x[2]) for x in polyline]))
 
             for layer, polylines in enumerate(self.data['files'][path].get("slices", [])):
                 for polyline in polylines:
-                    dwg.add(dwg.polyline(
+                    surface_group.add(dwg.polyline(
                         points=[(x[0], x[2]) for x in polyline],
-                        stroke=colors[layer], stroke_width=0.1, fill="none"))
+                        stroke=colors[layer]))
+
+            # Skip empty groups, e.g. floor surfaces
+            if len(surface_group.elements) > 0:
+                walls_group.add(surface_group)
+
+        transform_group.add(walls_group)
 
         # If floorplanner was configured with a headset list, draw some simple
         # markers over the map. This should ideally be a lot more configurable.
         if self.headsets is not None:
+            headset_group = dwg.g(id="headsets")
+
             for headset in self.headsets:
-                dwg.add(dwg.circle(center=(headset.position.x, headset.position.z),
+                headset_group.add(dwg.circle(center=(headset.position.x, headset.position.z),
                     fill=headset.color,
                     fill_opacity=0.25,
                     r=1.0,
@@ -296,9 +318,12 @@ class Floorplanner:
                     stroke_width=0.35
                 ))
 
-        dwg.save()
+            transform_group.add(headset_group)
 
-        return dict(left=scale*minx, top=scale*minz, width=image_width, height=image_height)
+        dwg.add(transform_group)
+        dwg.save(pretty=True)
+
+        return dict(left=minx, top=minz, width=image_width, height=image_height)
 
 
 if __name__ == '__main__':

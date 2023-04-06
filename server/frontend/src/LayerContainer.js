@@ -169,10 +169,6 @@ function LayerContainer(props) {
           xscale: map_image.offsetWidth / layer['viewBox']['width'],
           yscale: map_image.offsetHeight / layer['viewBox']['height']
         });
-
-        // After the image has been loaded, apply the mirroring effect.
-        // That allows the alt text to display properly while the map is loading.
-        map_image.classList.add('mirrored');
     }
 
     const getCircleSvgSize = (r) => {

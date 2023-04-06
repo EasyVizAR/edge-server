@@ -22,7 +22,10 @@ def read_ply_file(path):
                 stream.write(line.encode('utf8'))
 
     stream.seek(0)
-    mesh = PlyData.read(stream)
+    try:
+        mesh = PlyData.read(stream)
+    except:
+        return None
 
     # Add two attributes for compatibility with existing code.
     mesh.vertices = []
