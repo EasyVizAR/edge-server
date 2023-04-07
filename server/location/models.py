@@ -9,6 +9,14 @@ from server.resources.jsonresource import JsonCollection, JsonResource
 
 
 @dataclass
+class HeadsetConfiguration(JsonResource):
+    enable_mesh_capture:    bool = field(default=True,
+                                         description="Enable automatic capturing of environment surfaces for mapping")
+    enable_photo_capture:   bool = field(default=False,
+                                         description="Enable automatic capturing of high resolution photos")
+
+
+@dataclass
 class LocationModel(JsonResource):
     """
     A location such as a building with a definite geographical boundary.
@@ -28,6 +36,9 @@ class LocationModel(JsonResource):
 
     model_path: str = field(default=None)
     model_url:  str = field(default=None)
+
+    headset_configuration: HeadsetConfiguration = field(default_factory=HeadsetConfiguration,
+                                                        description="Application configuration that headsets receive when checking in")
 
     def on_ready(self):
         self.Feature = JsonCollection(FeatureModel, "feature", parent=self)

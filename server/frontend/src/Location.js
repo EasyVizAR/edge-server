@@ -8,6 +8,7 @@ import AllHeadsets from './AllHeadsets.js';
 import LocationTable from './LocationTable.js';
 import LayerTable from './LayerTable.js';
 import HeadsetTable from './HeadsetTable.js';
+import HeadsetConfiguration from './HeadsetConfiguration.js';
 import FeatureTable from './FeatureTable.js';
 import PhotoTable from './PhotoTable.js';
 import ClickToEdit from './ClickToEdit.js';
@@ -152,7 +153,11 @@ function Location(props) {
   // This triggers after the list of locations has been loaded, then
   // we can lookup the object for the selected location.
   useEffect(() => {
-    setCurrentLocation(locations[selectedLocation]);
+    if (selectedLocation) {
+      fetch(`${host}/locations/${selectedLocation}`)
+        .then(response => response.json())
+        .then(data => setCurrentLocation(data));
+    }
   }, [locations, selectedLocation]);
 
   useEffect(() => {
@@ -227,7 +232,6 @@ function Location(props) {
       window.location.href = `${host}/#/locations/${e}`;
     }
     setSelectedLocation(e);
-    setCurrentLocation(locations[e]);
     setFeaturesChecked(false);
     setHeadsetsChecked(true);
   }
@@ -663,6 +667,8 @@ function Location(props) {
                     <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
                       setHeadsets={setHeadsets} features={features} />
                     <FeatureTable icons={icons} features={features} locationId={selectedLocation} />
+
+                    <HeadsetConfiguration location={currentLocation} setLocation={setCurrentLocation} />
 
                     <PhotoTable photos={photos} setPhotos={setPhotos} />
                   </React.Fragment>
