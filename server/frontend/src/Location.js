@@ -150,16 +150,6 @@ function Location(props) {
     setSelectedLocation(location_id);
   }, [location_id]);
 
-  // This triggers after the list of locations has been loaded, then
-  // we can lookup the object for the selected location.
-  useEffect(() => {
-    if (selectedLocation) {
-      fetch(`${host}/locations/${selectedLocation}`)
-        .then(response => response.json())
-        .then(data => setCurrentLocation(data));
-    }
-  }, [locations, selectedLocation]);
-
   useEffect(() => {
     // If selected location changed, immediately reload list of headsets and
     // features at the new location.
@@ -168,6 +158,12 @@ function Location(props) {
       getFeatures();
       getLayers();
       getPhotos();
+
+      fetch(`${host}/locations/${selectedLocation}`)
+        .then(response => response.json())
+        .then(data => setCurrentLocation(data));
+    } else {
+      setCurrentLocation(null);
     }
 
     changeSubscriptions(selectedLocationRef.current, selectedLocation);
