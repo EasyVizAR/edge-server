@@ -11,7 +11,7 @@ def read_ply_file(path):
     # Add two attributes for compatibility with existing code.
     mesh.vertices = []
     for v in mesh['vertex'].data:
-        mesh.vertices.append([v['x'], v['y'], z_mult * v['z']])
+        mesh.vertices.append([v['x'], v['y'], v['z']])
     mesh.triangles = np.vstack(mesh['face'].data['vertex_index'])
 
     return mesh
