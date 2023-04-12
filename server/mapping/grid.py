@@ -15,7 +15,7 @@ try:
 except:
 	have_matplotlib = False
 
-import parse_data
+from . import parse_data
 
 class Grid:
 	def __init__(self, boxes_per_meter):

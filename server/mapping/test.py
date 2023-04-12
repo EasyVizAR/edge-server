@@ -1,6 +1,7 @@
 import os
 import matplotlib.pyplot as plt
 import cProfile, pstats
+import math
 from floor import Floor
 from grid import Grid
 import parse_data
@@ -28,21 +29,52 @@ def test_map_timing(user_locations_filename):
 		stats = pstats.Stats(profiler, stream=stream).sort_stats('cumtime')
 		stats.print_stats()
 
+def test_map_timing_user_path_lines(user_locations_filename):
+	script_dir = os.path.dirname(os.path.abspath(__file__))
+	walls_file_path = os.path.join(script_dir, "image.svg")
+	floor = Floor()
+
+	profiler = cProfile.Profile()
+
+	print("Starting timing analysis ...")
+	profiler.enable()
+
+	print("Updating walls...")
+	floor.update_walls_from_svg(walls_file_path)
+	
+	#floor.update_user_loations_from_csv(user_locations_filename)
+	locations_file_path = os.path.join(script_dir, user_locations_filename)
+	locations = parse_data.get_user_locations_csv_hololens(locations_file_path)
+
+	print("Updating user locations as lines...")
+	floor.update_user_locations_as_lines(locations)
+	
+	print("Calculating path...")
+	path = floor.calculate_path((0, -2), (20, 12))
+	#print("Path: {}", path)
+
+	profiler.disable()
+	print("Logging analysis to timing_logs.txt ...")
+
+	with open('timing_logs.txt', 'w') as stream:
+		stats = pstats.Stats(profiler, stream=stream).sort_stats('cumtime')
+		stats.print_stats()
+
 def draw_map(weights, walls, user_locations, path, destination_plot_filename=None):
 	plt.rcParams['figure.dpi'] = 500
 	plt.rcParams['savefig.dpi'] = 500
 
 	if weights is not None:
 		plt.plot([box[0] for box in weights], [box[1] for box in weights],
-			marker="s", color="green", markersize=2, linestyle = '')
+			marker="s", color="green", markersize=1, linestyle = '')
 
 	if walls is not None:
 		plt.plot([box[0] for box in walls], [box[1] for box in walls],
-			marker="s", color="black", markersize=2, linestyle = '')
+			marker="s", color="black", markersize=1, linestyle = '')
 	
 	if user_locations is not None:
 		plt.plot([box[0] for box in user_locations], [box[1] for box in user_locations],
-			 marker="s", color="blue", markersize=2, linestyle = '')
+			 marker="s", color="blue", markersize=1, linestyle = '')
 
 	if path is not None:
 		plt.plot([p[0] for p in path], [p[1] for p in path], "r-")
@@ -130,9 +162,38 @@ def test_put_line_weights():
 
 	draw_map(None, None, grid.grid, None, None)
 
+def test_lerping():
+	p0 = (0, 0)
+	p1 = (3.5, 0)
+	size = 21/5
+	distance = math.sqrt(p0*p0 + p1*p1)
+	points = math.ceil(distance/size)
+
+def test_easy_user_line_approximation_path():
+	floor = Floor(1)
+	boundary = [(3, 3), (3, -3)]
+	floor.update_walls_from_list(boundary)
+
+	#locations = [(0, 0), (3, 0), (5, 0)]
+	#floor.update_user_locations_from_list(locations)
+	l1=((0, 0), (0, 5))
+	l2=((0, 5), (5, 5))
+	l3=((5, 5), (5, 0))
+	floor.place_line_of_blooms(l1, 2)
+	floor.place_line_of_blooms(l2, 2)
+	floor.place_line_of_blooms(l3, 2)
+
+	path = floor.calculate_path((0, 0), (5, 0))
+
+	draw_map(floor.explored_area , floor.walls, floor.user_locations, path)
+
 if __name__ == "__main__":
 	#test_map_from_file("samples\\lh-search.csv")
 	#test_map_timing("samples\\lh-search.csv")
 	#test_medium_explore_area()
 	#test_put_line_weights()
-	test_map_user_path("samples\\lh-search.csv")
+	#test_map_user_path("samples\\lh-search.csv")
+	#test_map_user_path("samples\\direct-route.csv")
+	#test_map_timing_user_path_lines("samples\\lh-search.csv")
+
+	test_easy_user_line_approximation_path()

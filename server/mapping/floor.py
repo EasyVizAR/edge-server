@@ -10,16 +10,17 @@
 # Whatever, I will just implement all the base functions now without any structure
 
 import math
-import parse_data
-from grid import Grid
+from . import parse_data
+from .grid import Grid
 import heapq
+from .geometry import lerp
 
 class Floor():
 	def __init__(self, boxes_per_meter=5):
 		self.boxes_per_meter = boxes_per_meter
 		self.walls = Grid(self.boxes_per_meter)
 		self.user_locations = Grid(self.boxes_per_meter)
-		self.explored_area = None
+		self.explored_area = set()
 
 	def update_walls_from_svg(self, filepath):
 		boundaries = parse_data.get_paths_from_svg(filepath)
@@ -29,20 +30,49 @@ class Floor():
 	def update_walls_from_list(self, boundary):
 		self.walls.put_lines(boundary)
 	
+	def square_bloom_around_point(self, point, meters_wide):
+		size = meters_wide * self.boxes_per_meter + 1
+		for i in range(0, size):
+				for j in range(0, size):
+					x = point[0] + (-math.floor(size/2) + i) / self.user_locations.boxes_per_meter
+					y = point[1] + (-math.floor(size/2) + j) / self.user_locations.boxes_per_meter
+					self.explored_area.add((x, y))
+	
+	def place_line_of_blooms(self, line, meters_wide):
+		# If distance is small, just do a bloom for each point?
+		# Don't put a bloom for the last point, so that we can see the points later?
+		
+		# If lines[i] is the last point, then what happens? We just put it in
+		# How do we know that this is the last point? Do we even need to handle that case here?
+		#if i == len(lines)-1:
+		#	self.square_bloom_around_point(weights, lines[i], meters_wide)
+		#	return
+
+		# Calculate distance between points
+		p0, p1 = line
+		distance = math.sqrt((p1[0]-p0[0])**2 + (p1[1] - p0[1])**2)
+
+		# If points are too close together, just draw the first point and skip (draw the second point next round)
+		if distance < meters_wide:
+			self.square_bloom_around_point(p0, meters_wide)
+			return
+			
+		# Points are too far, add some in between
+		num_points = math.ceil(distance/meters_wide)
+		num_segments = num_points - 1
+		for j in range(num_segments):
+			# lerp between p0 and p1 by j / segments
+			pj = lerp(p0, p1, j/num_segments)
+			self.square_bloom_around_point(pj, meters_wide)
+
+
 	def generate_user_weighted_areas(self):
 		# Naively weighting square areas
-		weights = set()
 		meters_wide = 4
-		size = meters_wide * self.boxes_per_meter + 1
+		
 		#print("-Locations: {}".format(self.user_locations))
 		for location in self.user_locations:
-			#print(" - {}".format(location))
-			for i in range(0, size):
-				for j in range(0, size):
-					x = location[0] + (-math.floor(size/2) + i) / self.user_locations.boxes_per_meter
-					y = location[1] + (-math.floor(size/2) + j) / self.user_locations.boxes_per_meter
-					weights.add((x, y))
-		self.explored_area = weights
+			self.square_bloom_around_point(location, meters_wide)
 
 	def update_user_loations_from_csv(self, filepath):
 		locations = parse_data.get_user_locations_csv_hololens(filepath)
@@ -57,8 +87,9 @@ class Floor():
 	
 	def update_user_locations_as_lines(self, locations: list):
 		len_locations = len(locations)
+		line_width_score = 10
 		for index in range(len_locations - 1):
-			self.user_locations.put_line_return_area([locations[index], locations[index + 1]], 3)
+			self.user_locations.put_line_return_area([locations[index], locations[index + 1]], line_width_score)
 
 		# generate user weighted areas
 		self.explored_area = set([point for point in self.user_locations])
@@ -69,6 +100,9 @@ class Floor():
 
 	def calculate_path(self, start, destination):
 		path = self.a_star_search(start, destination, self.h_euclidean_approx)
+		
+		#return path
+		
 		smoothened_path = self.douglas_peucker_path_smoothening(path, 1/self.boxes_per_meter)
 		return smoothened_path
 
