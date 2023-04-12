@@ -270,14 +270,6 @@ class Floorplanner:
         dwg = svgwrite.Drawing(svg_destination_path, profile='tiny',
                 viewBox="{} {} {} {}".format(minx, minz, image_width, image_height))
 
-        # This transformation flips the image vertically.
-        #
-        # There seems to be other way around the fact that SVG (and other image
-        # standards) use the convention that the image starts at the top left
-        # corner with increasing indexes down and to the right. The vertical
-        # axis is the opposite of how we map the world.
-        transform_group = dwg.g(id="transform", transform="matrix(1 0 0 -1 0 {})".format(minz + maxz))
-
         # Add all walls to this group, and apply default styling to all of them.
         walls_group = dwg.g(id="walls", fill="none", stroke='black', stroke_width=self.stroke_width)
 
@@ -304,7 +296,7 @@ class Floorplanner:
             if len(surface_group.elements) > 0:
                 walls_group.add(surface_group)
 
-        transform_group.add(walls_group)
+        dwg.add(walls_group)
 
         # If floorplanner was configured with a headset list, draw some simple
         # markers over the map. This should ideally be a lot more configurable.
@@ -321,7 +313,7 @@ class Floorplanner:
                     stroke_width=self.stroke_width
                 ))
 
-            transform_group.add(headset_group)
+            dwg.add(headset_group)
 
         # If floorplanner was configured with a feature list, draw some simple
         # markers over the map. This should ideally be a lot more configurable.
@@ -340,9 +332,8 @@ class Floorplanner:
                     stroke_width=self.stroke_width
                 ))
 
-            transform_group.add(feature_group)
+            dwg.add(feature_group)
 
-        dwg.add(transform_group)
         dwg.save(pretty=True)
 
         return dict(left=minx, top=minz, width=image_width, height=image_height)
