@@ -37,6 +37,9 @@ class LocationModel(JsonResource):
     model_path: str = field(default=None)
     model_url:  str = field(default=None)
 
+    last_surface_update: float = field(default=0.0,
+                                       description="Last time a surface was updated")
+
     headset_configuration: HeadsetConfiguration = field(default_factory=HeadsetConfiguration,
                                                         description="Application configuration that headsets receive when checking in")
 

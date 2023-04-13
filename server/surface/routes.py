@@ -13,6 +13,8 @@ from server.mapping.map_maker import MapMaker
 
 surfaces = Blueprint("surfaces", __name__)
 
+auto_build_obj = False
+
 
 @surfaces.route('/locations/<location_id>/surfaces', methods=['GET'])
 async def list_surfaces(location_id):
@@ -324,6 +326,9 @@ async def upload_surface_file(location_id, surface_id):
     surface.updated = time.time()
     surface.save()
 
+    location.last_surface_update = time.time()
+    location.save()
+
     # Variables required for the callbacks below:
     loop = asyncio.get_event_loop()
     dispatcher = current_app.dispatcher
@@ -356,7 +361,10 @@ async def upload_surface_file(location_id, surface_id):
 
         future.add_done_callback(map_ready)
 
-    if modeling_limiter.try_submit(location_id):
+    # auto_build_obj flag enables or disables rebuilding the model obj file
+    # This is quite a bit of extra computation for an infrequently used file.
+    # It is probably better to lazily update the model file when requested.
+    if auto_build_obj and modeling_limiter.try_submit(location_id):
         obj_maker = ObjFileMaker.build_maker(g.active_incident.id, location_id)
         future = current_app.modeling_pool.submit(obj_maker.make_obj)
 

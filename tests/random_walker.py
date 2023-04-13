@@ -22,7 +22,7 @@ def get_headset(headset_id):
     if res.ok:
         return res.json()
     else:
-        print("Querying for headset failed with code: {}".format(res.status))
+        print("Querying for headset failed with code: {}".format(res.status_code))
         sys.exit(1)
 
 

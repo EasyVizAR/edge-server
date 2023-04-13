@@ -280,7 +280,7 @@ async def get_location_model(location_id):
         raise exceptions.NotFound(description="Location {} was not found".format(location_id))
 
     obj_path = os.path.join(location.get_dir(), "model.obj")
-    if not os.path.exists(obj_path):
+    if not os.path.exists(obj_path) or os.path.getmtime(obj_path) < location.last_surface_update:
         obj_maker = ObjFileMaker.build_maker(g.active_incident.id, location_id)
         future = current_app.modeling_pool.submit(obj_maker.make_obj)
         await asyncio.wrap_future(future)
