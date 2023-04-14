@@ -26,6 +26,10 @@ function LocationTable(props) {
     status: false,
     locationId: null
   });
+  const [sortBy, setSortBy] = useState({
+    attr: "last_surface_update",
+    direction: -1,
+  });
 
   // checks if a Location name already exists
   function checkLocationName(name, targetId) {
@@ -133,6 +137,18 @@ function LocationTable(props) {
     });
   }
 
+  function SortByLink(props) {
+    if (sortBy.attr === props.attr) {
+      return (
+        <Button className="column-sort" variant="link" onClick={() => setSortBy({attr: props.attr, direction: -sortBy.direction})}>
+          {props.text} <FontAwesomeIcon icon={sortBy.direction > 0 ? solid('sort-up') : solid('sort-down')} />
+        </Button>
+      )
+    } else {
+      return <Button className="column-sort" variant="link" onClick={() => setSortBy({attr: props.attr, direction: 1})}>{props.text}</Button>
+    }
+  }
+
   // code that creates the trash icons
   function TrashIcon(props) {
     const itemId = props.id;
@@ -155,14 +171,16 @@ function LocationTable(props) {
       <Table striped bordered hover>
         <thead>
           <tr>
-            <th rowSpan='2'>Location ID</th>
-            <th rowSpan='2'>Name</th>
+            <th><SortByLink attr="id" text="Location ID" /></th>
+            <th><SortByLink attr="name" text="Name" /></th>
+            <th><SortByLink attr="last_surface_update" text="Updated" /></th>
+            <th colSpan="2"></th>
           </tr>
         </thead>
         <tbody>
           {
             Object.keys(locations).length > 0 ? (
-              Object.entries(locations).map(([id, loc]) => {
+              Object.entries(locations).sort((a, b) => a[1][sortBy.attr] > b[1][sortBy.attr] ? sortBy.direction : -sortBy.direction).map(([id, loc]) => {
                 return <tr>
                   <td><Link to={`/locations/${id}`}>{id}</Link></td>
                   <td>
@@ -180,6 +198,7 @@ function LocationTable(props) {
                       )
                     }
                   </td>
+                  <td>{ loc.last_surface_update > 1.0 ? moment.unix(loc.last_surface_update).fromNow() : "never" }</td>
                   <td>
                     {
                       (inEditModeLocation.locationId === id) ? (

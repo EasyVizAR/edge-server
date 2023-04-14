@@ -4,10 +4,17 @@ import './WorkItems.css';
 import {Helmet} from 'react-helmet';
 import {Link} from "react-router-dom";
 import moment from 'moment';
+import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
+import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 
 function WorkItems(props){
   const host = process.env.PUBLIC_URL;
+
   const[workItems, setWorkItems] = useState([]);
+  const [sortBy, setSortBy] = useState({
+    attr: "created",
+    direction: -1,
+  });
 
   useEffect(() => {
     getWorkItems();
@@ -91,6 +98,18 @@ function WorkItems(props){
     });
   }
 
+  function SortByLink(props) {
+    if (sortBy.attr === props.attr) {
+      return (
+        <Button className="column-sort" variant="link" onClick={() => setSortBy({attr: props.attr, direction: -sortBy.direction})}>
+          {props.text} <FontAwesomeIcon icon={sortBy.direction > 0 ? solid('sort-up') : solid('sort-down')} />
+        </Button>
+      )
+    } else {
+      return <Button className="column-sort" variant="link" onClick={() => setSortBy({attr: props.attr, direction: 1})}>{props.text}</Button>
+    }
+  }
+
   function Photos(props){
     var url = '';
     var full_url = props.e.imageUrl;
@@ -139,18 +158,18 @@ function WorkItems(props){
       <Table className="work-items-table" striped bordered hover>
         <thead>
             <tr>
-              <th>ID</th>
-              <th>Date Created</th>
-              <th>Content Type</th>
-              <th>Status</th>
-              <th>Image URL</th>
+              <th><SortByLink attr="id" text="Photo ID" /></th>
+              <th><SortByLink attr="created" text="Created" /></th>
+              <th><SortByLink attr="contentType" text="Content Type" /></th>
+              <th><SortByLink attr="status" text="Status" /></th>
+              <th>Image</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {
               (workItems.length > 0) ? (
-                workItems.map((e, index) => {
+                workItems.sort((a, b) => a[sortBy.attr] > b[sortBy.attr] ? sortBy.direction : -sortBy.direction).map((e, index) => {
                   return <tr>
                     <td>
                       <Link to={"/photos/" + e.id}>

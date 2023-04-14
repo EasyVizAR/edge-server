@@ -27,6 +27,10 @@ function AllHeadsets(props) {
       status: false,
       rowKey: null
   });
+  const [sortBy, setSortBy] = useState({
+    attr: "updated",
+    direction: -1,
+  });
 
   useEffect(() => {
       getAllHeadsets();
@@ -114,6 +118,18 @@ function AllHeadsets(props) {
       });
   }
 
+  function SortByLink(props) {
+    if (sortBy.attr === props.attr) {
+      return (
+        <Button className="column-sort" variant="link" onClick={() => setSortBy({attr: props.attr, direction: -sortBy.direction})}>
+          {props.text} <FontAwesomeIcon icon={sortBy.direction > 0 ? solid('sort-up') : solid('sort-down')} />
+        </Button>
+      )
+    } else {
+      return <Button className="column-sort" variant="link" onClick={() => setSortBy({attr: props.attr, direction: 1})}>{props.text}</Button>
+    }
+  }
+
   // code that creates the trash icons
   function TrashIcon(props) {
       const itemId = props.id;
@@ -154,10 +170,10 @@ function AllHeadsets(props) {
       <Table striped bordered hover>
         <thead>
           <tr>
-            <th rowSpan='2'>Headset ID</th>
-            <th rowSpan='2'>Name</th>
-            <th rowSpan='2'>Location</th>
-            <th rowSpan='2'>Last Update</th>
+            <th rowSpan='2'><SortByLink attr="id" text="Headset ID" /></th>
+            <th rowSpan='2'><SortByLink attr="name" text="Name" /></th>
+            <th rowSpan='2'><SortByLink attr="location_id" text="Location" /></th>
+            <th rowSpan='2'><SortByLink attr="updated" text="Last Update" /></th>
             <th colSpan='3'>Position</th>
             <th colSpan='4'>Orientation</th>
             <th colSpan='1'></th>
@@ -176,7 +192,7 @@ function AllHeadsets(props) {
         <tbody>
           {
             Object.keys(headsets).length > 0 ? (
-              Object.entries(headsets).map(([id, headset]) => {
+              Object.entries(headsets).sort((a, b) => a[1][sortBy.attr] > b[1][sortBy.attr] ? sortBy.direction : -sortBy.direction).map(([id, headset]) => {
                 return <tr>
                   <td><Link to={`/headsets/${id}`}>{id}</Link></td>
                   <td id={"headsetName" + id}>
