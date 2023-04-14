@@ -9,6 +9,11 @@ import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.m
 function PhotoTable(props) {
   const host = process.env.PUBLIC_URL;
 
+  const [sortBy, setSortBy] = useState({
+    attr: "created",
+    direction: -1,
+  });
+
   function handleDeleteClicked(id) {
     const del = window.confirm(`Delete photo ${id}?`);
     if (!del) {
@@ -30,6 +35,18 @@ function PhotoTable(props) {
         return copy;
       });
     });
+  }
+
+  function SortByLink(props) {
+    if (sortBy.attr === props.attr) {
+      return (
+        <Button className="column-sort" variant="link" onClick={() => setSortBy({attr: props.attr, direction: -sortBy.direction})}>
+          {props.text} <FontAwesomeIcon icon={sortBy.direction > 0 ? solid('sort-up') : solid('sort-down')} />
+        </Button>
+      )
+    } else {
+      return <Button className="column-sort" variant="link" onClick={() => setSortBy({attr: props.attr, direction: 1})}>{props.text}</Button>
+    }
   }
 
   function Photo(props) {
@@ -74,10 +91,10 @@ function PhotoTable(props) {
       <Table striped bordered hover>
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Date Created</th>
-            <th>Content Type</th>
-            <th>Status</th>
+            <th><SortByLink attr="id" text="ID" /></th>
+            <th><SortByLink attr="created" text="Date Created" /></th>
+            <th><SortByLink attr="contentType" text="Content Type" /></th>
+            <th><SortByLink attr="status" text="Status" /></th>
             <th>Detections</th>
             <th>Image</th>
             <th></th>
@@ -86,7 +103,7 @@ function PhotoTable(props) {
         <tbody>
           {
             Object.keys(props.photos).length > 0 ? (
-              Object.entries(props.photos).map(([id, photo]) => {
+              Object.entries(props.photos).sort((a, b) => a[1][sortBy.attr] > b[1][sortBy.attr] ? sortBy.direction : -sortBy.direction).map(([id, photo]) => {
                 return <tr>
                   <td>{id}</td>
                   <td>{moment.unix(photo.created).fromNow()}</td>
