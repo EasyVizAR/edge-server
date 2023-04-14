@@ -457,6 +457,7 @@ async def update_photo(photo_id):
         del body['id']
 
     photo.update(body)
+    photo = photo.rebuild()
     photo.infer_missing_annotation_positions()
     photo.save()
 

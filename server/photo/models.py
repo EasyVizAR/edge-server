@@ -132,13 +132,6 @@ class PhotoModel(JsonResource):
         if self.camera_position is None or self.camera_orientation is None:
             return
 
-        # Fix type mismatch if headset set the camera pose as dict, but we
-        # expect object types.
-        if isinstance(self.camera_position, dict):
-            self.camera_position = Vector3f(**self.camera_position)
-        if isinstance(self.camera_orientation, dict):
-            self.camera_orientation = Vector4f(**self.camera_orientation)
-
         pos = self.camera_position
         rot = self.camera_orientation
 

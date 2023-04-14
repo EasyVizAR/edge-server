@@ -126,6 +126,18 @@ class JsonResource(AbstractResource):
 
         return created
 
+    def rebuild(self):
+        """
+        Create a copy with nested objects appropriately typed.
+
+        This is useful after a patch operation, where nested objects may have
+        been replaced as primitive dict types instead of objects.
+        """
+        data = self.Schema().dumps(self)
+        item = self._collection.resource_schema.loads(data)
+        self._collection.prepare_item(item)
+        return item
+
     def update(self, other):
         patch_object(self, other)
 

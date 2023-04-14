@@ -175,6 +175,17 @@ async def test_photo_annotations():
 
         # Annotate the image
         update = {
+            "camera_position": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "camera_orientation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+            },
             "width": 640,
             "height": 480,
             "status": "done",
@@ -199,6 +210,8 @@ async def test_photo_annotations():
         assert isinstance(photo2['annotations'], list)
         assert len(photo2['annotations']) == 1
         assert photo2['annotations'][0]['label'] == "extinguisher"
+        assert isinstance(photo2['annotations'][0]['position'], dict)
+        assert photo2['annotations'][0]['position_error'] > 0
 
         # Clean up
         await client.delete(photo_url)
