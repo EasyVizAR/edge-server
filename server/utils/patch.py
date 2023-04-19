@@ -13,8 +13,11 @@ def patch_by_path(obj, path_components, value):
         # Rather than replace the object with a dictionary,
         # we iterate the values in the dict and set them in the target object.
         target = getattr(current, path_components[-1])
-        for ckey, cvalue in value.items():
-            setattr(target, ckey, cvalue)
+        if isinstance(target, dict):
+            target.update(value)
+        else:
+            for ckey, cvalue in value.items():
+                setattr(target, ckey, cvalue)
     else:
         setattr(current, path_components[-1], value)
 
