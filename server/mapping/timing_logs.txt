@@ -1,0 +1,210 @@
+         12783199 function calls (12780571 primitive calls) in 6.077 seconds
+
+   Ordered by: cumulative time
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.021    0.021    5.359    5.359 C:\Users\rudyb\Projects\edge-server\server\mapping\floor.py:58(update_user_locations_as_lines)
+      242    1.373    0.006    5.253    0.022 C:\Users\rudyb\Projects\edge-server\server\mapping\grid.py:148(put_line_return_area)
+   209864    1.226    0.000    3.413    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\grid.py:65(unoccupied_neighbors)
+   209864    0.429    0.000    1.841    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\grid.py:74(<listcomp>)
+  1836357    1.209    0.000    1.531    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\grid.py:33(box_to_point)
+        1    0.000    0.000    0.630    0.630 C:\Users\rudyb\Projects\edge-server\server\mapping\floor.py:71(calculate_path)
+        1    0.310    0.310    0.630    0.630 C:\Users\rudyb\Projects\edge-server\server\mapping\floor.py:79(a_star_search)
+  4300698    0.379    0.000    0.379    0.000 {built-in method math.floor}
+   313992    0.225    0.000    0.283    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\grid.py:26(point_to_box)
+  1767097    0.155    0.000    0.155    0.000 {method 'append' of 'list' objects}
+   222590    0.153    0.000    0.153    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\grid.py:39(put)
+     9955    0.081    0.000    0.152    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\grid.py:76(unoccupied_neighbors_with_weights)
+  1677914    0.136    0.000    0.136    0.000 {method 'append' of 'collections.deque' objects}
+  1679167    0.131    0.000    0.131    0.000 {method 'popleft' of 'collections.deque' objects}
+    72395    0.029    0.000    0.087    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\grid.py:50(__contains__)
+        1    0.000    0.000    0.086    0.086 C:\Users\rudyb\Projects\edge-server\server\mapping\floor.py:24(update_walls_from_svg)
+        1    0.000    0.000    0.083    0.083 C:\Users\rudyb\Projects\edge-server\server\mapping\grid.py:54(__iter__)
+        1    0.022    0.022    0.083    0.083 C:\Users\rudyb\Projects\edge-server\server\mapping\grid.py:55(<listcomp>)
+   144790    0.057    0.000    0.057    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\floor.py:86(getGScore)
+      373    0.006    0.000    0.056    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\grid.py:140(put_lines)
+    10647    0.011    0.000    0.050    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\grid.py:135(put_line)
+   209864    0.046    0.000    0.046    0.000 {method 'add' of 'set' objects}
+    10889    0.016    0.000    0.040    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\grid.py:100(boxes_touching_line)
+        1    0.000    0.000    0.030    0.030 C:\Users\rudyb\Projects\edge-server\server\mapping\parse_data.py:10(get_paths_from_svg)
+        1    0.000    0.000    0.014    0.014 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:1986(parse)
+    10124    0.012    0.000    0.014    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\floor.py:67(h_euclidean_approx)
+        1    0.000    0.000    0.013    0.013 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:899(parse)
+        1    0.000    0.000    0.013    0.013 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:197(parseFile)
+       13    0.002    0.000    0.013    0.001 {method 'Parse' of 'pyexpat.xmlparser' objects}
+        1    0.000    0.000    0.011    0.011 C:\Users\rudyb\Projects\edge-server\server\mapping\parse_data.py:20(<listcomp>)
+      373    0.008    0.000    0.011    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\parse_data.py:12(parse_polyline_str)
+      375    0.003    0.000    0.009    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:736(start_element_handler)
+     9956    0.006    0.000    0.006    0.000 {built-in method _heapq.heappop}
+    17803    0.006    0.000    0.006    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\grid.py:107(euclidean_sq)
+        1    0.000    0.000    0.005    0.005 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:1646(unlink)
+   1876/1    0.001    0.000    0.005    0.005 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:263(unlink)
+    375/1    0.001    0.000    0.005    0.005 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:715(unlink)
+     1500    0.002    0.000    0.003    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:421(unlink)
+    10123    0.003    0.000    0.003    0.000 {built-in method _heapq.heappush}
+     1500    0.002    0.000    0.003    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:355(__init__)
+        1    0.003    0.003    0.003    0.003 C:\Users\rudyb\Projects\edge-server\server\mapping\floor.py:65(<listcomp>)
+    12518    0.002    0.000    0.002    0.000 {method 'split' of 'str' objects}
+    10124    0.002    0.000    0.002    0.000 {built-in method math.sqrt}
+      375    0.000    0.000    0.002    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:789(end_element_handler)
+    12967    0.002    0.000    0.002    0.000 {built-in method builtins.len}
+     1500    0.001    0.000    0.001    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:392(_set_value)
+      750    0.001    0.000    0.001    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:114(_parse_ns_name)
+      4/1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap>:1053(_handle_fromlist)
+        1    0.001    0.001    0.001    0.001 C:\Users\rudyb\Projects\edge-server\server\mapping\parse_data.py:26(get_user_locations_csv_hololens)
+      2/1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap>:233(_call_with_frames_removed)
+        1    0.000    0.000    0.001    0.001 {built-in method builtins.__import__}
+        1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap>:1022(_find_and_load)
+        1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap>:987(_find_and_load_unlocked)
+        1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap>:664(_load_unlocked)
+        1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap_external>:877(exec_module)
+        1    0.000    0.000    0.001    0.001 <frozen importlib._bootstrap_external>:950(get_code)
+     1500    0.001    0.000    0.001    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:1021(__init__)
+      375    0.000    0.000    0.001    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:706(_get_localName)
+        3    0.000    0.000    0.000    0.000 {built-in method builtins.print}
+     3000    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:1033(_set_data)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1070(get_data)
+     1495    0.000    0.000    0.000    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\grid.py:190(<genexpr>)
+      375    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:285(_append_child)
+       14    0.000    0.000    0.000    0.000 {method 'read' of '_io.BufferedReader' objects}
+        2    0.000    0.000    0.000    0.000 {built-in method io.open}
+     1502    0.000    0.000    0.000    0.000 {method 'setdefault' of 'dict' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:1799(getElementsByTagName)
+    376/1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:310(_get_elements_by_tagName_helper)
+      375    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:681(__init__)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:670(_compile_bytecode)
+      373    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:723(getAttribute)
+     1503    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:370(_get_localName)
+        1    0.000    0.000    0.000    0.000 {built-in method marshal.loads}
+        1    0.000    0.000    0.000    0.000 {built-in method io.open_code}
+        1    0.000    0.000    0.000    0.000 {built-in method builtins.exec}
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:1(<module>)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:921(_find_spec)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1431(find_spec)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1399(_get_spec)
+       12    0.000    0.000    0.000    0.000 {built-in method builtins.__build_class__}
+     1503    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:379(_get_name)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1536(find_spec)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\Projects\edge-server\server\mapping\floor.py:121(reconstruct_path)
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:140(_path_stat)
+      377    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:701(_ensure_attributes)
+        3    0.000    0.000    0.000    0.000 {built-in method nt.stat}
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:346(first_element_handler)
+        6    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\encodings\cp1252.py:22(decode)
+        6    0.000    0.000    0.000    0.000 {built-in method _codecs.charmap_decode}
+        3    0.000    0.000    0.000    0.000 {method '__exit__' of '_io._IOBase' objects}
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:159(_path_isfile)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:150(_path_is_mode_type)
+        5    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:96(_path_join)
+      375    0.000    0.000    0.000    0.000 {built-in method builtins.id}
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:564(module_from_spec)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:380(cache_from_source)
+      373    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:389(_get_value)
+        2    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:155(getParser)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:492(_init_module_attrs)
+      374    0.000    0.000    0.000    0.000 {method 'values' of 'dict' objects}
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1089(path_stats)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:391(cached)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:719(createParser)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:510(_get_cached)
+        1    0.000    0.000    0.000    0.000 {built-in method _csv.reader}
+        1    0.000    0.000    0.000    0.000 {built-in method pyexpat.ParserCreate}
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\ntpath.py:103(join)
+        3    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:940(_set_attribute_node)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:169(__enter__)
+        2    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:809(reset)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1531(_get_spec)
+        2    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:166(reset)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:137(__init__)
+        2    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:132(_path_split)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:721(spec_from_file_location)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:179(_get_module_lock)
+        2    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\ntpath.py:150(splitdrive)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:585(_classify_pyc)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:725(install)
+        3    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:1538(_clear_id_cache)
+        2    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:1433(createDocument)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:174(install)
+        2    0.000    0.000    0.000    0.000 {built-in method builtins.max}
+        3    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:84(_unpack_uint32)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:456(FilterVisibilityController)
+        6    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+       11    0.000    0.000    0.000    0.000 {built-in method builtins.hasattr}
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:172(_path_isabs)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:71(__init__)
+        5    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:119(<listcomp>)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:100(acquire)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:133(ExpatBuilder)
+       15    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:618(_validate_timestamp_pyc)
+        2    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:1493(_create_document)
+        6    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:134(<genexpr>)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:173(__exit__)
+       21    0.000    0.000    0.000    0.000 {method 'endswith' of 'str' objects}
+       14    0.000    0.000    0.000    0.000 {method 'startswith' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:60(ElementInfo)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:125(release)
+        6    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:244(_verbose_message)
+        2    0.000    0.000    0.000    0.000 {built-in method _thread.allocate_lock}
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:855(InternalSubsetExtractor)
+        2    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:1573(__init__)
+        3    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:732(start_namespace_decl_handler)
+       17    0.000    0.000    0.000    0.000 {method 'rstrip' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method _imp._fix_co_filename}
+        3    0.000    0.000    0.000    0.000 {method 'replace' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:198(cb)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\site-packages\_distutils_hack\__init__.py:89(find_spec)
+        3    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:295(_in_document)
+        6    0.000    0.000    0.000    0.000 {method 'rpartition' of 'str' objects}
+        4    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:897(__exit__)
+        7    0.000    0.000    0.000    0.000 {method 'join' of 'str' objects}
+        4    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:893(__enter__)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:542(_check_name_wrapper)
+        6    0.000    0.000    0.000    0.000 {built-in method nt.fspath}
+        1    0.000    0.000    0.000    0.000 {method 'format' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:806(ExpatBuilderNS)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:826(find_spec)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\codecs.py:260(__init__)
+        9    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:645(__init__)
+        2    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:111(_intern)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:441(xml_decl_handler)
+        4    0.000    0.000    0.000    0.000 {method 'rfind' of 'str' objects}
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:594(FragmentBuilder)
+        1    0.000    0.000    0.000    0.000 {method 'disable' of '_lsprof.Profiler' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method builtins.iter}
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:48(_new_module)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:165(__init__)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:357(__init__)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:404(parent)
+        2    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:714(_initNamespaces)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:711(Namespaces)
+        1    0.000    0.000    0.000    0.000 {built-in method nt._path_splitroot}
+        3    0.000    0.000    0.000    0.000 {built-in method from_bytes}
+        6    0.000    0.000    0.000    0.000 {built-in method _imp.acquire_lock}
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:67(_relax_case)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1040(__init__)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:1641(_get_documentElement)
+        6    0.000    0.000    0.000    0.000 {built-in method _imp.release_lock}
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:526(Rejecter)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1356(_path_importer_cache)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:2006(getDOMImplementation)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:814(FragmentBuilderNS)
+        2    0.000    0.000    0.000    0.000 {method '__exit__' of '_thread.lock' objects}
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:746(find_spec)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:514(FilterCrutch)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:554(Skipper)
+        2    0.000    0.000    0.000    0.000 {method 'get' of 'dict' objects}
+        3    0.000    0.000    0.000    0.000 {method 'clear' of 'dict' objects}
+        1    0.000    0.000    0.000    0.000 {method 'reverse' of 'list' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method builtins.setattr}
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:232(_setup_subset)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\expatbuilder.py:851(ParseEscape)
+        2    0.000    0.000    0.000    0.000 {built-in method _thread.get_ident}
+        1    0.000    0.000    0.000    0.000 {method 'pop' of 'dict' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method _imp.is_frozen}
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap>:412(has_location)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:874(create_module)
+        1    0.000    0.000    0.000    0.000 <frozen importlib._bootstrap_external>:1065(get_filename)
+        1    0.000    0.000    0.000    0.000 C:\Users\rudyb\miniconda3\envs\viz310\lib\xml\dom\minidom.py:43(__bool__)
+
+
