@@ -136,6 +136,8 @@ function Headset(props) {
   const [placementType, setPlacementType] = useState('');
   const [tab, setTab] = useState('location-view');
   const [historyData, setHistoryData] = useState([]);
+
+  const [navigationTarget, setNavigationTarget] = useState(null);
   const [navigationRoute, setNavigationRoute] = useState(null);
 
   const [displayOptions, setDisplayOptions] = useState({
@@ -196,19 +198,35 @@ function Headset(props) {
         });
         return newHistory;
       });
+    }
+  }, [headset]);
 
-      if (headset.navigation_target && headset.location_id) {
-        const target = headset.navigation_target;
+  useEffect(() => {
+    if (displayOptions.navigation) {
+      // Use a separate state variable to track the navigation target, and only
+      // set it when we see the type or target_id change in the headset.
+      // This reduces the number of times we request the route from the server.
+      const new_target = headset.navigation_target;
+      if (new_target?.type !== navigationTarget?.type || new_target?.target_id !== navigationTarget?.target_id) {
+        setNavigationTarget(headset.navigation_target);
+      }
+    } else {
+      setNavigationTarget(null);
+    }
+  }, [headset, displayOptions]);
+
+  useEffect(() => {
+    if (navigationTarget && navigationTarget.type !== "none") {
+        const target = navigationTarget;
         const from = `${headset.position.x},${headset.position.y},${headset.position.z}`;
         const to = `${target.position.x},${target.position.y},${target.position.z}`;
         fetch(`${host}/locations/${headset.location_id}/route?from=${from}&to=${to}`)
           .then(response => response.json())
           .then(data => setNavigationRoute(data));
-      } else {
-        setNavigationRoute(null);
-      }
+    } else {
+      setNavigationRoute(null);
     }
-  }, [headset]);
+  }, [navigationTarget]);
 
   // time goes off every 10 seconds to refresh headset data
   //    useEffect(() => {
