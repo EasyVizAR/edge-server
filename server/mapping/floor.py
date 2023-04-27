@@ -112,7 +112,7 @@ class Floor():
 				return False
 		return True
 
-	def a_star_search(self, start, destination, h):
+	def a_star_search(self, start, destination, h, max_steps=10000):
 		# First, is get neighbors implemented? Yes, although won't tell if neighbor is in the grid
 		openSet = []
 		cameFrom = {}
@@ -131,7 +131,7 @@ class Floor():
 		debug_x = []
 		debug_y = []
 
-		while len(openSet) != 0:
+		while len(openSet) != 0 and max_steps > 0:
 			current_f, current = heapq.heappop(openSet)
 
 			# Efficiently check cells that have already been visited and avoid
@@ -139,6 +139,7 @@ class Floor():
 			if current in visited:
 				continue
 			visited.add(current)
+			max_steps -= 1
 
 			# Fuzzy test if current cell matches destination.
 			# Note that destination may contain arbitrary floating point values
