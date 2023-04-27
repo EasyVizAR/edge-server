@@ -40,6 +40,8 @@ class Navigator:
 
         # Convert start and end from type Vector3f to type tuple
         path = floor.calculate_path((start.x, start.z), (end.x, end.z))
+        if path is None or len(path) < 2:
+            return [start, end]
 
         # Convert back to a path in three dimensions
         path3d = []

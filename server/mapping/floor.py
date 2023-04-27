@@ -172,7 +172,7 @@ class Floor():
 		return total_path
 	
 	def douglas_peucker_path_smoothening(self, points, epsilon):
-		if len(points) < 3:
+		if points is None or len(points) < 3:
 			return points
 		
 		def perpendicular_distance(point, line_start, line_end):
