@@ -3,11 +3,15 @@ import time
 from http import HTTPStatus
 
 from quart import Blueprint, g, jsonify, request, send_from_directory
+from quart.helpers import stream_with_context
 from werkzeug import exceptions
 
+import sqlalchemy as sa
 
 from server.utils.rate_limiter import rate_limit_expensive
 from server.utils.response import maybe_wrap
+
+from .models import PoseChange, PoseChangeSchema
 
 
 pose_changes = Blueprint('pose-changes', __name__)
@@ -28,6 +32,10 @@ async def list_pose_changes(headset_id):
             in: query
             required: false
             description: If set, the returned list will be wrapped in an envelope with this name.
+          - name: limit
+            in: query
+            required: false
+            description: If set, limit the number of values returned.
         responses:
             200:
                 description: A list of objects.
@@ -37,22 +45,26 @@ async def list_pose_changes(headset_id):
                             type: array
                             items: PoseChange
     """
-    headset = g.Headset.find_by_id(headset_id)
-    if headset is None:
-        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
+    limit = None
+    if "limit" in request.args:
+        limit = int(request.args.get("limit"))
 
-    incident_folder = g.active_incident.Headset.find_by_id(headset_id)
-    if incident_folder is None:
-        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
+    schema = PoseChangeSchema()
 
-    if headset.last_check_in_id is None:
-        raise exceptions.NotFound(description="Headset {} has never checked in".format(headset_id))
+    items = []
+    async with g.session_maker() as session:
+        stmt = sa.select(PoseChange) \
+                .where(PoseChange.headset_id == headset_id) \
+                .order_by(PoseChange.id.desc()) \
+                .limit(limit)
+        result = await session.execute(stmt)
+        for c in result.scalars():
+            dump = schema.dump(c)
+            items.append(dump)
 
-    checkin = incident_folder.CheckIn.find_by_id(headset.last_check_in_id)
-    if checkin is None:
-        raise exceptions.NotFound(description="Headset {} check-in record was not found".format(headset_id))
-
-    items = checkin.PoseChange.find()
+    # We sorted in descending order to find the last N rows.
+    # Now return the list to expected chronological order.
+    items.reverse()
 
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
@@ -71,6 +83,10 @@ async def list_check_in_pose_changes(headset_id, check_in_id):
             in: query
             required: false
             description: If set, the returned list will be wrapped in an envelope with this name.
+          - name: limit
+            in: query
+            required: false
+            description: If set, limit the number of values returned.
         responses:
             200:
                 description: A list of objects.
@@ -80,19 +96,26 @@ async def list_check_in_pose_changes(headset_id, check_in_id):
                             type: array
                             items: PoseChange
     """
-    headset = g.Headset.find_by_id(headset_id)
-    if headset is None:
-        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
+    limit = None
+    if "limit" in request.args:
+        limit = int(request.args.get("limit"))
 
-    incident_folder = g.active_incident.Headset.find_by_id(headset_id)
-    if incident_folder is None:
-        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
+    schema = PoseChangeSchema()
 
-    checkin = incident_folder.CheckIn.find_by_id(check_in_id)
-    if checkin is None:
-        raise exceptions.NotFound(description="Headset {} check-in record was not found".format(headset_id))
+    items = []
+    async with g.session_maker() as session:
+        stmt = sa.select(PoseChange) \
+                .where(PoseChange.headset_id == headset_id and PoseChange.check_in_id == check_in_id) \
+                .order_by(PoseChange.id.desc()) \
+                .limit(limit)
+        result = await session.execute(stmt)
+        for c in result.scalars():
+            dump = schema.dump(c)
+            items.append(dump)
 
-    items = checkin.PoseChange.find()
+    # We sorted in descending order to find the last N rows.
+    # Now return the list to expected chronological order.
+    items.reverse()
 
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
@@ -112,24 +135,38 @@ async def list_pose_changes_csv(headset_id):
                 content:
                     text/csv
     """
-    headset = g.Headset.find_by_id(headset_id)
-    if headset is None:
-        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
+    header = "incident_id,check_in_id,time,position.x,position.y,position.z,orientation.x,orientation.y,orientation.z,orientation.w\n"
 
-    incident_folder = g.active_incident.Headset.find_by_id(headset_id)
-    if incident_folder is None:
-        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
+    session_maker = g.session_maker
 
-    if headset.last_check_in_id is None:
-        raise exceptions.NotFound(description="Headset {} has never checked in".format(headset_id))
+    @stream_with_context
+    async def csv_generator():
+        yield header
 
-    checkin = incident_folder.CheckIn.find_by_id(headset.last_check_in_id)
-    if checkin is None:
-        raise exceptions.NotFound(description="Headset {} check-in record was not found".format(headset_id))
+        async with session_maker() as session:
+            stmt = sa.select(PoseChange) \
+                    .where(PoseChange.headset_id == headset_id) \
+                    .order_by(PoseChange.time)
+            result = await session.execute(stmt)
+            for c in result.scalars():
+                values = [
+                    c.incident_id,
+                    c.check_in_id,
+                    c.time,
+                    c.position_x,
+                    c.position_y,
+                    c.position_z,
+                    c.orientation_x,
+                    c.orientation_y,
+                    c.orientation_z,
+                    c.orientation_w
+                ]
+                yield ",".join(str(v) for v in values) + "\n"
 
-    # Pose changes are stored in a CSV file, so send the file directly without
-    # processing.
-    return await send_from_directory(checkin.PoseChange.base_directory, checkin.PoseChange.collection_filename)
+    headers = {
+        'Content-Type': 'text/csv'
+    }
+    return csv_generator(), 200, headers
 
 
 @pose_changes.route('/headsets/<headset_id>/pose-changes', methods=['POST'])
@@ -157,21 +194,22 @@ async def create_pose_change(headset_id):
     if headset is None:
         raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
 
-    incident_folder = g.active_incident.Headset.find_by_id(headset_id)
-    if incident_folder is None:
-        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
-
-    if headset.last_check_in_id is None:
-        raise exceptions.NotFound(description="Headset {} has never checked in".format(headset_id))
-
-    checkin = incident_folder.CheckIn.find_by_id(headset.last_check_in_id)
-    if checkin is None:
-        raise exceptions.NotFound(description="Headset {} check-in record was not found".format(headset_id))
+    schema = PoseChangeSchema()
 
     body = await request.get_json()
+    change = schema.load(body, transient=True)
+    change.headset_id = headset_id
 
-    change = checkin.PoseChange.load(body)
-    checkin.PoseChange.add(change)
+    if "incident_id" not in body:
+        change.incident_id = g.active_incident.id
+    if "check_in_id" not in body:
+        change.check_in_id = headset.last_check_in_id
+
+    async with g.session_maker() as session:
+        session.add(change)
+        await session.commit()
+
+    result = schema.dump(change)
 
     # Also set the current position and orientation in the headset object.
     if body.get('position') is not None:
@@ -182,4 +220,4 @@ async def create_pose_change(headset_id):
     headset.updated = time.time()
     headset.save()
 
-    return jsonify(change), HTTPStatus.CREATED
+    return jsonify(result), HTTPStatus.CREATED

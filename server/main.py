@@ -3,6 +3,9 @@ import os
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 from quart import Quart, g
+from quart_sqlalchemy import SQLAlchemy
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from server.check_in.routes import check_ins
 from server.feature.routes import features
@@ -25,12 +28,16 @@ from server.events import EventDispatcher
 from server.headset.models import Headset
 from server.incidents.models import Incident
 from server.mapping.navigator import Navigator
+from server.resources.db import Base
 
 from server.resources.abstractresource import AbstractCollection
 
 static_folder = os.environ.get("VIZAR_STATIC_FOLDER", "./frontend/build/")
 
 app = Quart(__name__, static_folder=static_folder, static_url_path='/')
+
+engine = create_async_engine("sqlite+aiosqlite:///easyvizar-edge.sqlite")
+session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
 main_rate_limiter.init_app(app)
 
@@ -121,6 +128,8 @@ def before_request():
 
     # Make sure an active incident exists and is assigned to g.active_incident.
     initialize_incidents(app)
+
+    g.session_maker = session_maker
 
 
 @app.before_websocket

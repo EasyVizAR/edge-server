@@ -40,7 +40,7 @@ async def test_pose_change_routes():
         data = await response.get_json()
         assert isinstance(data['items'], list)
 
-        data = dict(position=dict(x=1, y=2, z=3))
+        data = dict(position=dict(x=1, y=2, z=3), orientation=dict(x=0, y=0, z=0, w=1))
 
         response = await client.post(pose_changes_url, json=data)
         assert response.status_code == 201

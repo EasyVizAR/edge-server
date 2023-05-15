@@ -28,6 +28,8 @@ apps:
 hooks:
   configure:
     plugs: []
+  post-refresh:
+    plugs: []
 
 parts:
   snapcraft-preload:

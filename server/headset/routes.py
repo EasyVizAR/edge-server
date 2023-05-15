@@ -6,6 +6,7 @@ from http import HTTPStatus
 from quart import request, jsonify, Blueprint, current_app, g
 from werkzeug import exceptions
 
+from server.pose_changes.models import PoseChange
 from server.resources.filter import Filter
 
 from .models import RegisteredHeadsetModel
@@ -218,9 +219,18 @@ async def create_headset():
         headset.last_check_in_id = checkin.id
         headset.save()
 
-        if 'position' in body or 'orientation' in body:
-            change = checkin.PoseChange.load(body)
-            checkin.PoseChange.add(change)
+        if 'position' in body and 'orientation' in body:
+            change = PoseChange(
+                    incident_id=g.active_incident.id,
+                    headset_id=headset_id,
+                    check_in_id=checkin.id,
+                    position=headset.position,
+                    orientation=headset.orientation
+            )
+
+            async with g.session_maker() as session:
+                session.add(change)
+                await session.commit()
 
     tmp = headset.Schema().dump(headset)
     rheadset = RegisteredHeadsetModel.Schema().load(tmp)
@@ -373,8 +383,17 @@ async def replace_headset(headsetId):
         headset.last_check_in_id = checkin.id
 
     if checkin is not None and ('position' in body or 'orientation' in body):
-        change = checkin.PoseChange.load(body)
-        checkin.PoseChange.add(change)
+        change = PoseChange(
+                incident_id=g.active_incident.id,
+                headset_id=headset.id,
+                check_in_id=checkin.id,
+                position=headset.position,
+                orientation=headset.orientation
+        )
+
+        async with g.session_maker() as session:
+            session.add(change)
+            await session.commit()
 
     created = headset.save()
 
@@ -423,8 +442,17 @@ async def _update_headset(headset_id, patch):
         headset.last_check_in_id = checkin.id
 
     if checkin is not None and ('position' in patch or 'orientation' in patch):
-        change = checkin.PoseChange.load(patch)
-        checkin.PoseChange.add(change)
+        change = PoseChange(
+                incident_id=g.active_incident.id,
+                headset_id=headset_id,
+                check_in_id=checkin.id,
+                position=headset.position,
+                orientation=headset.orientation
+        )
+
+        async with g.session_maker() as session:
+            session.add(change)
+            await session.commit()
 
     headset.save()
 

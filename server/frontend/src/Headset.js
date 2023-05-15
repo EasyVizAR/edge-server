@@ -110,6 +110,7 @@ function Headset(props) {
 
   const mapIconSize = 7;
   const circleSvgIconSize = 11;
+  const historyLength = 4500;
 
   const { activeIncident, setActiveIncident } = useContext(ActiveIncidentContext);
   const { locations, setLocations } = useContext(LocationsContext);
@@ -300,7 +301,8 @@ function Headset(props) {
 
   // gets pose changes from the server
   function getHistories(hset) {
-    fetch(`${host}/headsets/${headset_id}/pose-changes`)
+    const check_in_id = hset.last_check_in_id;
+    fetch(`${host}/headsets/${headset_id}/check-ins/${check_in_id}/pose-changes?limit=${historyLength}`)
     .then(response => {
         return response.json()
     }).then(data => {
