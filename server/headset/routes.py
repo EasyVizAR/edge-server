@@ -222,7 +222,7 @@ async def create_headset():
         if 'position' in body and 'orientation' in body:
             change = PoseChange(
                     incident_id=g.active_incident.id,
-                    headset_id=headset_id,
+                    headset_id=headset.id,
                     check_in_id=checkin.id,
                     position=headset.position,
                     orientation=headset.orientation
