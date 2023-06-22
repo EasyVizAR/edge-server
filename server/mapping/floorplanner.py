@@ -203,6 +203,7 @@ class Floorplanner:
             if initialize or update_lines_at_path:
                 mesh = read_ply_file(path)
                 if mesh is None:
+                    self.data['files'][path] = {"last_modified": time_of_prev_mod}
                     continue
 
                 if self.slices is None:

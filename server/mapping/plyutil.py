@@ -6,7 +6,11 @@ from plyfile import PlyData
 
 
 def read_ply_file(path):
-    mesh = PlyData.read(path)
+    try:
+        mesh = PlyData.read(path)
+    except:
+        print("Warning: error parsing PLY file {}".format(path))
+        return None
 
     # Add two attributes for compatibility with existing code.
     mesh.vertices = []
