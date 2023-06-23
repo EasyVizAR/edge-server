@@ -27,13 +27,19 @@ class Detector:
     model_repo:     str
     model_name:     str
 
-    torch_version:          str
-    torchvision_version:    str
+    engine_name:            str = field(default="")
+    engine_version:         str = field(default="")
+
+    # DEPRECATED use engine_name and engine_version instead
+    torch_version:          str = field(default="")
+    torchvision_version:    str = field(default="")
+
     cuda_enabled:           bool
 
     preprocess_duration:    float
     inference_duration:     float
-    nms_duration:           float
+    nms_duration:           float = field(default=0.0) # DEPRECATED use postprocess_duration
+    postprocess_duration:   float = field(default=0.0)
 
 
 @dataclass

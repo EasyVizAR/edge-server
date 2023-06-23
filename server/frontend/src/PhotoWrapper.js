@@ -137,12 +137,12 @@ function PhotoWrapper(props) {
               <td>{ photo.detector.model_name }</td>
             </tr>
             <tr>
-              <td>PyTorch Version</td>
-              <td>{ photo.detector.torch_version }</td>
+              <td>Engine Name</td>
+              <td>{ photo.detector.engine_name }</td>
             </tr>
             <tr>
-              <td>Torch Vision Version</td>
-              <td>{ photo.detector.torchvision_version }</td>
+              <td>Engine Version</td>
+              <td>{ photo.detector.engine_version }</td>
             </tr>
             <tr>
               <td>Cuda Enabled</td>
@@ -157,8 +157,8 @@ function PhotoWrapper(props) {
               <td>{ photo.detector.inference_duration }</td>
             </tr>
             <tr>
-              <td>Non-maximum Suppression (NMS) Duration (s)</td>
-              <td>{ photo.detector.nms_duration }</td>
+              <td>Postprocessing Duration (s)</td>
+              <td>{ photo.detector.postprocess_duration }</td>
             </tr>
           </tbody>
         </Table>
