@@ -34,10 +34,10 @@ class Detector:
     torch_version:          str = field(default="")
     torchvision_version:    str = field(default="")
 
-    cuda_enabled:           bool
+    cuda_enabled:           bool = field(default=False)
 
-    preprocess_duration:    float
-    inference_duration:     float
+    preprocess_duration:    float = field(default=0.0)
+    inference_duration:     float = field(default=0.0)
     nms_duration:           float = field(default=0.0) # DEPRECATED use postprocess_duration
     postprocess_duration:   float = field(default=0.0)
 
