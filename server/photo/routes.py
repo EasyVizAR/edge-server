@@ -514,6 +514,9 @@ async def get_photo_thumbnail(photo_id):
     thumbnail_path = os.path.join(photo.get_dir(), thumbnail_file)
     if not os.path.exists(thumbnail_path):
         original_path = os.path.join(photo.imagePath)
+        if not os.path.exists(original_path):
+            raise exceptions.NotFould(description="Photo {} image file was not found".format(photo_id))
+
         with Image.open(original_path) as im:
             im.thumbnail(thumbnail_max_size)
             im.save(thumbnail_path, im.format)

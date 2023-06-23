@@ -49,13 +49,36 @@ function PhotoTable(props) {
     }
   }
 
+  function chooseFile(photo) {
+    var alternative = null;
+    for (var file of photo.files) {
+      if (file.purpose === "thumbnail") {
+        // First choice is thumbnail for its small size.
+        return file.name;
+      } else if (file.purpose === "photo") {
+        // Use the full size image as an alternative.
+        alternative = file.name;
+      } else if (alternative == null) {
+        // Otherwise, use whatever we have.
+        alternative = file.name;
+      }
+    }
+
+    return alternative;
+  }
+
   function Photo(props) {
     var url = '';
     if (props.url) {
       if (props.url.startsWith('http')) {
         url = props.url;
       } else {
-        url = `${host}/photos/${props.id}/thumbnail`;
+        var filename = chooseFile(props);
+        if (filename) {
+          url = `${host}/photos/${props.id}/${filename}`;
+        } else {
+          return <p style={{color: 'black'}}>No image</p>;
+        }
       }
     } else {
       return <p style={{color: 'black'}}>No image</p>;
