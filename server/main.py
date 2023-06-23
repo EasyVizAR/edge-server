@@ -148,3 +148,5 @@ def before_websocket():
 
     # Make sure an active incident exists and is assigned to g.active_incident.
     initialize_incidents(app)
+
+    g.session_maker = session_maker
