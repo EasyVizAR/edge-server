@@ -14,6 +14,8 @@ class HeadsetConfiguration(JsonResource):
                                          description="Enable automatic capturing of environment surfaces for mapping")
     enable_photo_capture:   bool = field(default=False,
                                          description="Enable automatic capturing of high resolution photos")
+    enable_extended_capture:   bool = field(default=False,
+                                         description="Enable automatic capturing of photos, depth, geometry, and intensity images")
 
 
 @dataclass

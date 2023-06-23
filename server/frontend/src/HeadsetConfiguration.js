@@ -10,7 +10,8 @@ function HeadsetConfiguration(props) {
   // key press.
   const formReferences = {
     enable_mesh_capture: React.createRef(),
-    enable_photo_capture: React.createRef()
+    enable_photo_capture: React.createRef(),
+    enable_extended_capture: React.createRef()
   };
 
   function saveConfiguration() {
@@ -21,7 +22,8 @@ function HeadsetConfiguration(props) {
       },
       body: JSON.stringify({
         "headset_configuration.enable_mesh_capture": formReferences.enable_mesh_capture.current.checked,
-        "headset_configuration.enable_photo_capture": formReferences.enable_photo_capture.current.checked
+        "headset_configuration.enable_photo_capture": formReferences.enable_photo_capture.current.checked,
+        "headset_configuration.enable_extended_capture": formReferences.enable_extended_capture.current.checked
       })
     };
 
@@ -65,6 +67,21 @@ function HeadsetConfiguration(props) {
               type="checkbox"
               defaultChecked={props.location.headset_configuration.enable_photo_capture}
               ref={formReferences.enable_photo_capture}
+            />
+          </Col>
+        </Form.Group>
+
+        <Form.Group as={Row} className="mb-3">
+          <Form.Label column sm={6} for="enable_extended_capture">
+            Enable extended capture
+          </Form.Label>
+          <Col sm={6}>
+            <Form.Check
+              id="enable_extended_capture"
+              label="Enable automatic capture of photos, depth, geometry, and intensity images"
+              type="checkbox"
+              defaultChecked={props.location.headset_configuration.enable_extended_capture}
+              ref={formReferences.enable_extended_capture}
             />
           </Col>
         </Form.Group>
