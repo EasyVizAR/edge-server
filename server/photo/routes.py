@@ -515,7 +515,7 @@ async def get_photo_thumbnail(photo_id):
     if not os.path.exists(thumbnail_path):
         original_path = os.path.join(photo.imagePath)
         if not os.path.exists(original_path):
-            raise exceptions.NotFould(description="Photo {} image file was not found".format(photo_id))
+            raise exceptions.NotFound(description="Photo {} image file was not found".format(photo_id))
 
         with Image.open(original_path) as im:
             im.thumbnail(thumbnail_max_size)
@@ -525,6 +525,7 @@ async def get_photo_thumbnail(photo_id):
 
 
 @photos.route('/photos/<photo_id>/<filename>', methods=['GET'])
+@rate_limit_exempt
 async def get_photo_file_by_name(photo_id, filename):
     """
     Get a photo file by name

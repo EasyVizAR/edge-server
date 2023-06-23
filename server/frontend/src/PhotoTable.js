@@ -137,7 +137,7 @@ function PhotoTable(props) {
                   </td>
                   <td>
                     <div>
-                      <Photo id={id} url={photo.imageUrl} />
+                      <Photo id={id} url={photo.imageUrl} files={photo.files} />
                     </div>
                   </td>
                   <td>
