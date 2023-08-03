@@ -69,6 +69,27 @@ async def list_pose_changes(headset_id):
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
 
+async def do_list_check_in_pose_changes(headset_id, check_in_id, limit=None):
+    schema = PoseChangeSchema()
+
+    items = []
+    async with g.session_maker() as session:
+        stmt = sa.select(PoseChange) \
+                .where(PoseChange.headset_id == headset_id and PoseChange.check_in_id == check_in_id) \
+                .order_by(PoseChange.id.desc()) \
+                .limit(limit)
+        result = await session.execute(stmt)
+        for c in result.scalars():
+            dump = schema.dump(c)
+            items.append(dump)
+
+    # We sorted in descending order to find the last N rows.
+    # Now return the list to expected chronological order.
+    items.reverse()
+
+    return items
+
+
 @pose_changes.route('/headsets/<headset_id>/check-ins/<check_in_id>/pose-changes', methods=['GET'])
 async def list_check_in_pose_changes(headset_id, check_in_id):
     """
@@ -100,22 +121,7 @@ async def list_check_in_pose_changes(headset_id, check_in_id):
     if "limit" in request.args:
         limit = int(request.args.get("limit"))
 
-    schema = PoseChangeSchema()
-
-    items = []
-    async with g.session_maker() as session:
-        stmt = sa.select(PoseChange) \
-                .where(PoseChange.headset_id == headset_id and PoseChange.check_in_id == check_in_id) \
-                .order_by(PoseChange.id.desc()) \
-                .limit(limit)
-        result = await session.execute(stmt)
-        for c in result.scalars():
-            dump = schema.dump(c)
-            items.append(dump)
-
-    # We sorted in descending order to find the last N rows.
-    # Now return the list to expected chronological order.
-    items.reverse()
+    items = await do_list_check_in_pose_changes(headset_id, check_in_id, limit=limit)
 
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 

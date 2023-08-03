@@ -6,6 +6,7 @@ from quart import Blueprint, g, jsonify, request
 from werkzeug import exceptions
 
 from server import auth
+from server.resources.filter import Filter
 from server.utils.response import maybe_wrap
 
 
@@ -26,6 +27,12 @@ async def list_check_ins(headset_id):
             in: query
             required: false
             description: If set, the returned list will be wrapped in an envelope with this name.
+          - name: location_id
+            in: query
+            required: false
+            schema:
+                type: str
+            description: Only show results from a given location.
         responses:
             200:
                 description: A list of objects.
@@ -36,11 +43,18 @@ async def list_check_ins(headset_id):
                             items: CheckIn
     """
 
+    filt = Filter()
+    if "location_id" in request.args:
+        location_id = request.args.get("location_id").lower()
+        if location_id in ["", "none", "null"]:
+            location_id = None
+        filt.target_equal_to("location_id", location_id)
+
     headset = g.active_incident.Headset.find_by_id(headset_id)
     if headset is None:
         raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
 
-    items = headset.CheckIn.find()
+    items = headset.CheckIn.find(filt=filt)
 
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
