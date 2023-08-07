@@ -49,6 +49,10 @@ class MapMaker:
             result.changes = changes
             result.image_path = self.output_path
 
+            # Create a grid from wall segments for the navigation code to use.
+            npz_path = os.path.join(os.path.dirname(self.mapping_state_path), "walls.npz")
+            floorplanner.write_grid(result.view_box, npz_path)
+
         return result
 
     @classmethod

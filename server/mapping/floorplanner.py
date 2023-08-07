@@ -7,6 +7,7 @@ import networkx as nx
 import numpy as np
 import svgwrite
 
+from .datagrid import DataGrid
 from .plyutil import read_ply_file
 
 
@@ -225,6 +226,19 @@ class Floorplanner:
                 print("Map updated with {} surfaces changed".format(changes))
 
         return changes
+
+    def write_grid(self, viewBox, npz_path):
+        """
+        Create a DataGrid file with the wall segments and save to npz file.
+        """
+        grid = DataGrid(**viewBox)
+
+        for path in self.data['files']:
+            for polyline in self.data['files'][path].get("polylines", []):
+                for i in range(len(polyline) - 1):
+                    grid.add_segment(polyline[i], polyline[i+1])
+
+        grid.save(npz_path)
 
     def write_image(self, svg_destination_path):
         """

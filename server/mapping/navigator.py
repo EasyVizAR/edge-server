@@ -7,40 +7,72 @@ movements in real-time to update the map with passability information. Since
 there is only one navigator instance for the server, we will need to use the
 passed location_id to look up the appropriate map.
 """
+import os
+import time
+
 from server.location.models import LocationModel
 from server.resources.geometry import Vector3f
+
+from .datagrid import DataGrid
 from .floor import Floor
+
+
+# Seconds between saving explored floor maps
+SAVE_INTERVAL = 15
+
+# Maximum time between consecutive user positions
+MAXIMUM_TIME_DIFFERENCE = 5
+
 
 class Navigator:
     def __init__(self):
-        self.explored_buildings = {}
+        self.floors = {}
+        self.last_saved = 0
 
     def find_path(self, location: LocationModel, start, end):
         layers = location.Layer.find(type="generated")
         # from server/location/models
 
-        # If there is no map, we cannot navigate!
-        if len(layers) == 0:
+        # Try to load a wall grid from one of the layers
+        wall_grid = None
+        for layer in layers:
+            if layer.type == "generated":
+                npz_path = os.path.join(os.path.dirname(layer.imagePath), "walls.npz")
+                if os.path.exists(npz_path):
+                    wall_grid = DataGrid.load(npz_path)
+                    break
+
+        floor_grid = self.floors.get(location.id)
+
+        stuple = start.totuple()
+        etuple = end.totuple()
+
+        # If we do not have walls or floors, we cannot navigate
+        if wall_grid is None and floor_grid is None:
             return [start, end]
 
-        # This is the floor plan layer assuming we have only one floor
-        layer = layers[0]
+        elif wall_grid is None and floor_grid is not None:
+            path = floor_grid.a_star(stuple, etuple, passable=DataGrid.ones_passable)
 
-        # This would be the file path for the SVG image
-        # layer.imagePath
+        elif wall_grid is not None and floor_grid is None:
+            # Create an empty floor grid for this map
+            # with the same shape as the wall grid
+            self.floors[location.id] = DataGrid().resize_to_other(wall_grid)
 
-        # headset.location_id and location.id are the same, use this information for identifying specific bluiding
+            path = wall_grid.a_star(stuple, etuple, passable=DataGrid.zero_passable)
 
-        if location.id not in self.explored_buildings:
-            self.explored_buildings[location.id] = Floor(5)
-        
-        floor = self.explored_buildings[location.id]
+        else:
+            # Expand the floor grid to match the latest wall grid
+            floor_grid = floor_grid.resize_to_other(wall_grid)
+            self.floors[location.id] = floor_grid
 
-        floor.update_walls_from_svg(layer.imagePath)
+            # Create a temporary combined floor and wall grid
+            nav_grid = DataGrid().resize_to_other(wall_grid)
+            nav_grid.data = wall_grid.data - floor_grid.data
 
-        # Convert start and end from type Vector3f to type tuple
-        path = floor.calculate_path((start.x, start.z), (end.x, end.z))
-        if path is None or len(path) < 2:
+            path = nav_grid.a_star(stuple, etuple, passable=DataGrid.zero_passable)
+
+        if path is None:
             return [start, end]
 
         # Convert back to a path in three dimensions
@@ -62,14 +94,24 @@ class Navigator:
         if current.position is None or previous.position is None:
             return
 
-        if current.location_id not in self.explored_buildings:
-            self.explored_buildings[current.location_id] = Floor(5)
+        # If the time difference is too long, we cannot safely infer that
+        # the line between the two points is passable
+        if current.updated - previous.updated > MAXIMUM_TIME_DIFFERENCE:
+            return
+
+        if current.location_id not in self.floors:
+            self.floors[current.location_id] = DataGrid(width=10.0, height=10.0, left=-5.0, top=-5.0)
+
+        floor_grid = self.floors[current.location_id]
 
         # TODO: Change to have multiple floors in a single location and differentiate between each using y position
 
-        # Experimental code that should make a heatmap of explored areas
-        # using the Grid class.
-        floor = self.explored_buildings[current.location_id]
+        floor_grid.add_segment(previous.position.totuple(), current.position.totuple(), vspread=1)
+
+        now = time.time()
+        if now - self.last_saved > SAVE_INTERVAL:
+            floor_grid.save_image("floor-{}.png".format(current.location_id))
+            self.last_saved = now
 
         # TODO: Change to put line in floor
         #floor.put_line([(previous.position.x, previous.position.z),

@@ -11,7 +11,6 @@ from werkzeug import exceptions
 from server.mapping.obj_file import ObjFileMaker
 from server.resources.geometry import Vector3f
 from server.pose_changes.routes import do_list_check_in_pose_changes
-from server.mapping.navgrid import NavigationGrid
 
 
 
@@ -365,101 +364,6 @@ async def get_location_route(location_id):
         raise exceptions.BadRequest("Invalid starting or destination point")
 
     path = current_app.navigator.find_path(location, start, end)
-
-    # Wrap the list if the caller requested an envelope.
-    if "envelope" in query:
-        result = {query.get("envelope"): path}
-    else:
-        result = path
-
-    return jsonify(result), HTTPStatus.OK
-
-
-@locations.route('/locations/<location_id>/route2', methods=['GET'])
-async def get_location_route2(location_id):
-    """
-    Get a route between two points.
-    ---
-    get:
-        summary: Get a route between two points.
-        description: |-
-            This method uses the location map to find a path between two
-            points.
-
-            The following example queries for a path from coordinate (-2, 0, 7.5) to (22, 0, 9.5).
-
-                GET /locations/224c17c4-dd9a-4d62-a075-61f57438a209/route2?from=-2,0,7.5&to=22,0,9.5
-
-            The response will be a list of waypoints that make up a route,
-            which might look like the following.
-
-                200 OK
-                Content-Type: application/json
-                [
-                    {"x": -2.0, "y": 0.0, "z": 7.5},
-                    {"x": 22.0, "y": 0.0, "z": 9.5}
-                ]
-        tags:
-          - locations
-        parameters:
-          - name: id
-            in: path
-            required: true
-            description: Location ID
-          - name: envelope
-            in: query
-            required: false
-            description: If set, the returned list will be wrapped in an envelope with this name.
-          - name: from
-            in: query
-            required: false
-            description: Starting point in comma-separated format (x,y,z)
-          - name: to
-            in: query
-            required: false
-            description: Ending point in comma-separated format (x,y,z)
-        responses:
-            200:
-                description: A path consisting of a list of points.
-                content:
-                    application/json:
-                        schema:
-                            type: array
-                            items: Vector3f
-    """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
-
-    layers = location.Layer.find()
-    geometry = None
-    for layer in layers:
-        if layer.type == "generated":
-            geometry = layer.viewBox
-            break
-    if geometry is None:
-        raise exceptions.NotFound(description="Location {} has no map layer".format(location_id))
-
-    grid = NavigationGrid(geometry=geometry)
-
-    for headset in g.active_incident.Headset.find():
-        for checkin in headset.CheckIn.find(location_id=location_id):
-            trace = await do_list_check_in_pose_changes(headset.id, checkin.id)
-            grid.add_trace(trace)
-
-    query = request.args
-
-    def get_tuple_from_query(name):
-        value = query.get(name, "0,0,0")
-        return tuple(float(v) for v in value.split(","))
-
-    try:
-        start = get_tuple_from_query("from")
-        end = get_tuple_from_query("to")
-    except:
-        raise exceptions.BadRequest("Invalid starting or destination point")
-
-    path = grid.a_star(start, end)
 
     # Wrap the list if the caller requested an envelope.
     if "envelope" in query:
