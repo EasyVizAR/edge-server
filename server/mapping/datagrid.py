@@ -14,6 +14,20 @@ class DataGrid:
     # If this changes, it will break file compatibility when loading old grid files.
     GEOMETRY_ATTRIBUTES = ["top", "left", "bottom", "right", "step"]
 
+    SEARCH_DIRECTIONS = np.array([
+        [-1, 0], # up
+        [0, 1],  # right
+        [1, 0],  # down
+        [0, -1]  # left
+    ], dtype=int)
+
+    SEARCH_DIAGONALS = np.array([
+        [-1, 1], # up + right
+        [1, 1],  # right + down
+        [1, -1], # down + left
+        [-1, -1] # left + up
+    ], dtype=int)
+
     def __init__(self, width=0.0, height=0.0, top=0.0, left=0.0, bottom=None, right=None, step=0.25, dtype=float, cell_shape=None):
         """
         Create a grid data structure.
@@ -119,13 +133,6 @@ class DataGrid:
         best_g = collections.defaultdict(lambda: np.inf)
         came_from = dict()
 
-        directions = np.array([
-            [1, 0],
-            [-1, 0],
-            [0, 1],
-            [0, -1]
-        ], dtype=int)
-
         dist = lambda p, q: self.step * np.linalg.norm(np.subtract(p, q))
 
         def reconstruct_path():
@@ -146,13 +153,13 @@ class DataGrid:
                 return reconstruct_path()
 
             visited.add(current)
-            if len(visited) % 100 == 0:
-                print("[A*] visited {}, work queue {}, current g {}".format(len(visited), len(work), current_g))
 
-            neighbors = current + directions
-            for neigh in neighbors:
+            neighbors = current + self.SEARCH_DIRECTIONS
+            reachable = np.zeros(4, dtype=bool)
+            for i, neigh in enumerate(neighbors):
                 neigh = tuple(neigh)
                 if np.min(neigh) >= 0 and neigh[0] < self.H and neigh[1] < self.W and neigh not in visited and passable(neigh, self.data[neigh]):
+                    reachable[i] = True
                     tentative_g = current_g + self.step
 
                     #TODO reimplement weighted A*
@@ -163,6 +170,23 @@ class DataGrid:
                         best_g[neigh] = tentative_g
                         came_from[neigh] = current
                         heapq.heappush(work, (tentative_g + dist(neigh, b) + penalty, neigh))
+
+            neighbors = current + self.SEARCH_DIAGONALS
+            for i, neigh in enumerate(neighbors):
+                neigh = tuple(neigh)
+                if np.min(neigh) >= 0 and neigh[0] < self.H and neigh[1] < self.W and neigh not in visited and passable(neigh, self.data[neigh]):
+                    # Only consider a diagonal neighbor if the two directly
+                    # adjacent neighbors are reachable.  The directions and
+                    # diagonals are ordered consistently so that we can check
+                    # reachable[i] and reachable[i+1].  For example, to move up
+                    # and right (diagonal entry 0), we need to check up
+                    # (direction 0) and right (direction 1).
+                    if reachable[i] and reachable[(i+1)%4]:
+                        tentative_g = current_g + np.sqrt(2) * self.step
+                        if tentative_g < best_g[neigh]:
+                            best_g[neigh] = tentative_g
+                            came_from[neigh] = current
+                            heapq.heappush(work, (tentative_g + dist(neigh, b) + penalty, neigh))
 
         return None
 

@@ -66,11 +66,12 @@ class Navigator:
             floor_grid = floor_grid.resize_to_other(wall_grid)
             self.floors[location.id] = floor_grid
 
-            # Create a temporary combined floor and wall grid
-            nav_grid = DataGrid().resize_to_other(wall_grid)
-            nav_grid.data = wall_grid.data - floor_grid.data
+            # Update the wall grid with information from the floor grid This
+            # effectively cuts holes in the walls where we have observed user
+            # paths (inferred doors).
+            wall_grid.data -= floor_grid.data
 
-            path = nav_grid.a_star(stuple, etuple, passable=DataGrid.zero_passable)
+            path = wall_grid.a_star(stuple, etuple, passable=DataGrid.zero_passable)
 
         if path is None:
             return [start, end]
