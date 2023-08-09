@@ -87,6 +87,15 @@ class DataGrid:
 
         self.data = np.zeros(shape, dtype=dtype)
 
+    def __contains__(self, key):
+        """
+        Test if a cell is in bounds.
+        """
+        if isinstance(key, tuple) and len(key) == 2:
+            return key[0] >= 0 and key[0] < self.H and key[1] >= 0 and key[1] < self.W
+        elif len(key) == 3:
+            return key[0] >= self.left and key[0] < self.right and key[-1] >= self.top and key[-1] < self.bottom
+
     def __getitem__(self, key):
         if isinstance(key, tuple) and len(key) == 2:
             return self.data[key]
@@ -122,7 +131,9 @@ class DataGrid:
 
         return np.min(self.data[zi, xi])
 
-    def a_star(self, a, b, passable=None):
+    def a_star(self, a, b, cost=None, passable=None):
+        if cost is None:
+            cost = lambda cell, value: 0
         if passable is None:
             passable = self.ones_passable
 
@@ -130,7 +141,11 @@ class DataGrid:
         b = self.xyz_to_index(b)
 
         work = []
-        best_g = collections.defaultdict(lambda: np.inf)
+
+        # Current best distance from start to a given cell
+        g_score = collections.defaultdict(lambda: np.inf)
+        g_score[a] = 0.0
+
         came_from = dict()
 
         dist = lambda p, q: self.step * np.linalg.norm(np.subtract(p, q))
@@ -148,7 +163,7 @@ class DataGrid:
         visited = set()
         heapq.heappush(work, (dist(a, b), a))
         while len(work) > 0:
-            current_g, current = heapq.heappop(work)
+            f_score, current = heapq.heappop(work)
             if current == b:
                 return reconstruct_path()
 
@@ -156,25 +171,31 @@ class DataGrid:
 
             neighbors = current + self.SEARCH_DIRECTIONS
             reachable = np.zeros(4, dtype=bool)
+
+            # Grid cells are all the same size, so distance to any neighbor is
+            # at most distance to the current cell plus a step.
+            neighbors_g = g_score[current] + self.step
+
             for i, neigh in enumerate(neighbors):
                 neigh = tuple(neigh)
-                if np.min(neigh) >= 0 and neigh[0] < self.H and neigh[1] < self.W and neigh not in visited and passable(neigh, self.data[neigh]):
+                if neigh in self and neigh not in visited and passable(neigh, self.data[neigh]):
                     reachable[i] = True
-                    tentative_g = current_g + self.step
 
-                    #TODO reimplement weighted A*
-                    #penalty = 1.0 - self.data[neigh]
-                    penalty = 0
-
-                    if tentative_g < best_g[neigh]:
-                        best_g[neigh] = tentative_g
+                    tentative_g = neighbors_g + cost(neigh, self.data[neigh])
+                    if tentative_g < g_score[neigh]:
+                        g_score[neigh] = tentative_g
                         came_from[neigh] = current
-                        heapq.heappush(work, (tentative_g + dist(neigh, b) + penalty, neigh))
+
+                        f_score = tentative_g + dist(neigh, b)
+                        heapq.heappush(work, (f_score, neigh))
+
+            # Diagonal neighbors have a bit longer step size.
+            neighbors_g = g_score[current] + np.sqrt(2) * self.step
 
             neighbors = current + self.SEARCH_DIAGONALS
             for i, neigh in enumerate(neighbors):
                 neigh = tuple(neigh)
-                if np.min(neigh) >= 0 and neigh[0] < self.H and neigh[1] < self.W and neigh not in visited and passable(neigh, self.data[neigh]):
+                if neigh in self and neigh not in visited and passable(neigh, self.data[neigh]):
                     # Only consider a diagonal neighbor if the two directly
                     # adjacent neighbors are reachable.  The directions and
                     # diagonals are ordered consistently so that we can check
@@ -182,11 +203,13 @@ class DataGrid:
                     # and right (diagonal entry 0), we need to check up
                     # (direction 0) and right (direction 1).
                     if reachable[i] and reachable[(i+1)%4]:
-                        tentative_g = current_g + np.sqrt(2) * self.step
-                        if tentative_g < best_g[neigh]:
-                            best_g[neigh] = tentative_g
+                        tentative_g = neighbors_g + cost(neigh, self.data[neigh])
+                        if tentative_g < g_score[neigh]:
+                            g_score[neigh] = tentative_g
                             came_from[neigh] = current
-                            heapq.heappush(work, (tentative_g + dist(neigh, b) + penalty, neigh))
+
+                            f_score = tentative_g + dist(neigh, b)
+                            heapq.heappush(work, (f_score, neigh))
 
         return None
 

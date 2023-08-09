@@ -72,6 +72,25 @@ def test_a_star():
     assert len(path) == 2
 
 
+def test_contains():
+    grid = DataGrid(width=10, height=10, left=-5, top=-5)
+
+    # Tuple bounds testing
+    assert (0, 0) in grid
+    assert (grid.H-1, grid.W-1) in grid
+
+    assert (grid.H, grid.W) not in grid
+    assert (-1, -1) not in grid
+
+    # Point bounds testing
+    assert [0, 0, 0] in grid
+    assert [4, 0, 4] in grid
+    assert [-4, 0, -4] in grid
+
+    assert [6, 0, 6] not in grid
+    assert [-6, 0, -6] not in grid
+
+
 def test_save_and_load():
     grid = DataGrid(width=10, height=10, left=-5, top=-5)
     k = grid.xyz_to_index((0, 0, 0))

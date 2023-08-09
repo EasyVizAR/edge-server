@@ -72,7 +72,13 @@ class Navigator:
             # paths (inferred doors).
             wall_grid.data -= floor_grid.data
 
-            path = wall_grid.a_star(stuple, etuple, passable=DataGrid.zero_passable)
+            # Create a cost for unexplored cells. This lambda uses the
+            # floor_grid to return 1.0 for unexplored cells and 0.0 for
+            # explored cells.  This will be added to distances in the A* search
+            # to bias the search in favor of explored cells.
+            exploration_cost = lambda cell, value: 1.0 - floor_grid[cell]
+
+            path = wall_grid.a_star(stuple, etuple, cost=exploration_cost, passable=DataGrid.zero_passable)
 
         if path is None:
             return [start, end]
