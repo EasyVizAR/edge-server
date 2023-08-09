@@ -49,6 +49,9 @@ class HeadsetModel(JsonResource):
     id:     str
     name:   str = field(default="New Headset", description="Name of the headset")
 
+    type:   str = field(default="unknown",
+                        description="User device type (unknown|headset|phone|editor)")
+
     color:  str = field(default="#4477aa",
                         description="Suggested display color for the headset as a seven-character HTML color code.")
 
@@ -70,6 +73,16 @@ class HeadsetModel(JsonResource):
 
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)
+
+
+    def is_valid_spatial_sensor(self):
+        """
+        Check whether we can rely on this device for mapping data.
+
+        Returns True for physical devices like headsets and False for
+        testing or unknown devices.
+        """
+        return self.type in ["headset", "phone"]
 
 
 @dataclass

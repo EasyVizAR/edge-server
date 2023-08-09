@@ -8,6 +8,14 @@ import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.m
 import { LocationsContext } from './Contexts.js';
 
 
+const deviceTypeOptions = [
+  "unknown",
+  "headset",
+  "phone",
+  "editor",
+];
+
+
 function HeadsetTable(props) {
   const host = process.env.PUBLIC_URL;
 
@@ -19,7 +27,8 @@ function HeadsetTable(props) {
   // key press.
   const formReferences = {
     name: React.createRef(),
-    color: React.createRef()
+    color: React.createRef(),
+    type: React.createRef(),
   };
 
   const [navigationTargetIndex, setNavigationTargetIndex] = useState(0);
@@ -126,6 +135,7 @@ function HeadsetTable(props) {
       body: JSON.stringify({
         'name': newName,
         'color': newColor,
+        'type': formReferences.type.current.value,
         'navigation_target': navigationTargetOptions[navigationTargetIndex].value
       })
     };
@@ -241,6 +251,7 @@ function HeadsetTable(props) {
             <th rowSpan='2'>Icon / Color</th>
             <th rowSpan='2'>Location</th>
             <th rowSpan='2'>Last Update</th>
+            <th rowSpan='2'>Type</th>
             <th colSpan='3'>Position</th>
             <th colSpan='4'>Orientation</th>
             <th colSpan='2'>Navigation</th>
@@ -297,6 +308,25 @@ function HeadsetTable(props) {
                   </td>
                   <td>{locations[headset.location_id] ? locations[headset.location_id]['name'] : 'Unknown'}</td>
                   <td>{moment.unix(headset.updated).fromNow()}</td>
+                  <td>
+                    {
+                      inEditModeHeadset.status && inEditModeHeadset.rowKey === id ? (
+                        <select
+                          id="device-type-dropdown"
+                          title="Change Device Type"
+                          defaultValue={headset.type}
+                          ref={formReferences.type}>
+                          {
+                            deviceTypeOptions.map((type) => {
+                              return <option value={type}>{type}</option>
+                            })
+                          }
+                        </select>
+                      ) : (
+                        headset.type
+                      )
+                    }
+                  </td>
                   <td>{headset.position.x.toFixed(3)}</td>
                   <td>{headset.position.y.toFixed(3)}</td>
                   <td>{headset.position.z.toFixed(3)}</td>

@@ -95,6 +95,9 @@ class Navigator:
         if current.position is None or previous.position is None:
             return
 
+        if not current.is_valid_spatial_sensor():
+            return
+
         # If the time difference is too long, we cannot safely infer that
         # the line between the two points is passable
         if current.updated - previous.updated > MAXIMUM_TIME_DIFFERENCE:
