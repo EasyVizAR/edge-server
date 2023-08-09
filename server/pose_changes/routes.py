@@ -75,7 +75,8 @@ async def do_list_check_in_pose_changes(headset_id, check_in_id, limit=None):
     items = []
     async with g.session_maker() as session:
         stmt = sa.select(PoseChange) \
-                .where(PoseChange.headset_id == headset_id and PoseChange.check_in_id == check_in_id) \
+                .where(PoseChange.headset_id == headset_id) \
+                .where(PoseChange.check_in_id == check_in_id) \
                 .order_by(PoseChange.id.desc()) \
                 .limit(limit)
         result = await session.execute(stmt)
