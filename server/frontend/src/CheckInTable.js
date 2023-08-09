@@ -45,6 +45,19 @@ function CheckInTable(props){
       })
   }
 
+  function replayCheckIn(id) {
+    const url = `${host}/headsets/${props.headsetId}/check-ins/${id}/pose-changes/replay`;
+    const requestData = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    };
+
+    fetch(url, requestData)
+      .then(response => response.json())
+  }
+
   // code that creates the trash icons
   function TrashIcon(props) {
     const itemIndex = props.index;
@@ -69,7 +82,7 @@ function CheckInTable(props){
             <th>ID</th>
             <th>Location</th>
             <th>Time</th>
-            <th></th>
+            <th colspan="2"></th>
           </tr>
         </thead>
         <tbody>
@@ -80,9 +93,22 @@ function CheckInTable(props){
                 <td>{locations[item.location_id] ? locations[item.location_id]['name'] : 'Unknown'}</td>
                 <td>{moment.unix(item.start_time).fromNow()}</td>
                 <td>
-                  <div>
-                    <TrashIcon index={index} id={item.id}/>
-                  </div>
+                  {
+                    item.id == props.selected ? (
+                      <Button className="btn-warning table-btns"
+                        title="Trigger replay of trace for explored area mapping"
+                        onClick={(e) => replayCheckIn(item.id)}>
+                        Replay
+                      </Button>
+                    ) : (
+                      <Button className="btn-info table-btns" onClick={(e) => props.setSelected(item.id)}>
+                        Show
+                      </Button>
+                    )
+                  }
+                </td>
+                <td>
+                  <TrashIcon index={index} id={item.id}/>
                 </td>
               </tr>
             )

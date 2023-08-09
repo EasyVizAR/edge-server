@@ -141,6 +141,9 @@ function Headset(props) {
   const [navigationTarget, setNavigationTarget] = useState(null);
   const [navigationRoute, setNavigationRoute] = useState(null);
 
+  // Which user trace to show on the map
+  const [displayedCheckInId, setDisplayedCheckInId] = useState(null);
+
   const [displayOptions, setDisplayOptions] = useState({
     headsets: true,
     features: false,
@@ -160,9 +163,13 @@ function Headset(props) {
       .then(data => {
         setHeadset(data)
         setSelectedLocation(data.location_id);
-        getHistories(data);
+        setDisplayedCheckInId(data.last_check_in_id);
       });
   }, [headset_id]);
+
+  useEffect(() => {
+    getPositionHistory(headset);
+  }, [displayedCheckInId]);
 
   useEffect(() => {
     setHeadset(headsets[headset_id]);
@@ -300,8 +307,8 @@ function Headset(props) {
   }
 
   // gets pose changes from the server
-  function getHistories(hset) {
-    const check_in_id = hset.last_check_in_id;
+  function getPositionHistory(hset) {
+    const check_in_id = displayedCheckInId;
     fetch(`${host}/headsets/${headset_id}/check-ins/${check_in_id}/pose-changes?limit=${historyLength}`)
     .then(response => {
         return response.json()
@@ -680,7 +687,8 @@ function Headset(props) {
               </Form>
             </div>
 
-            <CheckInTable locations={locations} headsetId={headset_id} />
+            <CheckInTable locations={locations} headsetId={headset_id}
+              selected={displayedCheckInId} setSelected={setDisplayedCheckInId} />
 
             <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
               setHeadsets={setHeadsets} locations={locations} features={features} />

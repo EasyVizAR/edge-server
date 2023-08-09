@@ -360,8 +360,8 @@ class DataGrid:
 
     @staticmethod
     def ones_passable(cell, value):
-        return value > 0.5
+        return value > 0.75
 
     @staticmethod
     def zero_passable(cell, value):
-        return value < 0.5
+        return value < 0.25

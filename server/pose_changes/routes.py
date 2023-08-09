@@ -2,7 +2,7 @@ import time
 
 from http import HTTPStatus
 
-from quart import Blueprint, g, jsonify, request, send_from_directory
+from quart import Blueprint, current_app, g, jsonify, request, send_from_directory
 from quart.helpers import stream_with_context
 from werkzeug import exceptions
 
@@ -125,6 +125,55 @@ async def list_check_in_pose_changes(headset_id, check_in_id):
     items = await do_list_check_in_pose_changes(headset_id, check_in_id, limit=limit)
 
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
+
+
+@pose_changes.route('/headsets/<headset_id>/check-ins/<check_in_id>/pose-changes/replay', methods=['POST'])
+async def replay_check_in_pose_changes(headset_id, check_in_id):
+    """
+    Replay headset pose changes for a specified check-in
+    ---
+    post:
+        summary: Replay headset pose changes for a specified check-in
+        description: |
+            This method loads the pose changes for a specified check-in
+            and processes the trace as if it had just been received
+            by a headset for map construction purposes.
+
+            Generally, mapping from data collected in real-time should
+            suffice. However, this can be useful for testing or
+            rebuilding a floor map that had errors.
+
+        tags:
+         - pose-changes
+        parameters:
+          - name: limit
+            in: query
+            required: false
+            description: If set, limit the number of values considered.
+        responses:
+            200:
+    """
+    limit = None
+    if "limit" in request.args:
+        limit = int(request.args.get("limit"))
+
+    incident_folder = g.active_incident.Headset.find_by_id(headset_id)
+    if incident_folder is None:
+        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
+
+    checkin = incident_folder.CheckIn.find_by_id(check_in_id)
+    if checkin is None:
+        raise exceptions.NotFound(description="Headset {} check-in was not found".format(headset_id))
+
+    location = g.active_incident.Location.find_by_id(checkin.location_id)
+    if location is None:
+        raise exceptions.NotFound(description="Location {} was not found".format(checkin.location_id))
+
+    items = await do_list_check_in_pose_changes(headset_id, check_in_id, limit=limit)
+
+    current_app.navigator.add_trace(location, items)
+
+    return jsonify({}), HTTPStatus.OK
 
 
 @pose_changes.route('/headsets/<headset_id>/pose-changes.csv', methods=['GET'])

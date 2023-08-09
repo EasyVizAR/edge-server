@@ -94,14 +94,17 @@ class Navigator:
         path = os.path.join(dname, "floor.npz")
         if os.path.exists(path):
             grid = DataGrid.load(path)
-            self.floors[location_id] = grid
-            return grid
         else:
-            return None
+            grid = DataGrid(width=10.0, height=10.0, left=-5.0, top=-5.0)
+
+        self.floors[location_id] = grid
+        return grid
 
     def maybe_save_floor_grid(self, location_id, floor_grid, interval=15):
         """
         Save the floor grid if interval seconds have elapsed
+
+        Setting interval to less than zero will force a save regardless of elapsed time.
         """
         # Set the cached grid
         self.floors[location_id] = floor_grid
@@ -114,6 +117,37 @@ class Navigator:
             floor_grid.save_image(os.path.join(dname, "floor.png"))
             floor_grid.save(os.path.join(dname, "floor.npz"))
             self.last_saved[location_id] = now
+
+    def add_trace(self, location, trace):
+        floor_grid = self.get_floor_grid(location.id)
+
+        layers = location.Layer.find(type="generated")
+
+        # Try to load a wall grid from one of the layers
+        wall_grid = None
+        for layer in layers:
+            if layer.type == "generated":
+                npz_path = os.path.join(os.path.dirname(layer.imagePath), "walls.npz")
+                if os.path.exists(npz_path):
+                    wall_grid = DataGrid.load(npz_path)
+                    break
+
+        floor_grid = self.get_floor_grid(location.id)
+
+        # If possible, resize floor grid to match wall grid.
+        # We may have mapped the space but have a completely empty floor grid.
+        if wall_grid is not None:
+            floor_grid = floor_grid.resize_to_other(wall_grid)
+
+        # Need to convert from list of dict to simple tuples
+        points = []
+        for point in trace:
+            points.append(tuple(point['position'][k] for k in ['x', 'y', 'z']))
+
+        for i in range(len(points) - 1):
+            floor_grid.add_segment(points[i], points[i+1], vspread=1)
+
+        self.maybe_save_floor_grid(location.id, floor_grid, interval=-1)
 
     async def on_headset_updated(self, event, uri, *args, **kwargs):
         current = kwargs.get('current')
