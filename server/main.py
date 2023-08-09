@@ -108,7 +108,7 @@ def before_first_request():
     app.thread_pool = ThreadPoolExecutor()
     app.last_photo_cleanup = 0
 
-    app.navigator = Navigator()
+    app.navigator = Navigator(data_dir=data_dir)
     app.dispatcher.add_event_listener("headsets:updated", "*", app.navigator.on_headset_updated)
 
 
