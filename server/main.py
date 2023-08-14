@@ -21,6 +21,7 @@ from server.surface.routes import surfaces
 from server.utils.pool_limiter import PoolLimiter
 from server.utils.rate_limiter import main_rate_limiter
 from server.utils.utils import GenericJsonEncoder
+from server.websocket.routes import websockets
 from server.work_items.routes import work_items
 
 from server.auth import Authenticator
@@ -83,6 +84,7 @@ blueprints = [
     routes,
     scenes,
     surfaces,
+    websockets,
     work_items
 ]
 

@@ -18,6 +18,7 @@ from server.photo import routes as photos
 from server.pose_changes import routes as pose_changes
 from server.scene import routes as scenes
 from server.surface import routes as surfaces
+from server.websocket import routes as websockets
 from server import routes as other
 
 from server.check_in.models import CheckInModel
@@ -31,7 +32,7 @@ from server.pose_changes.models import PoseChangeModel
 from server.scene.models import SceneDescriptor, SceneModel
 from server.surface.models import SurfaceModel
 
-from server.websocket import WebsocketHandler
+from server.websocket.connection import WebsocketHandler
 
 
 async def create_openapi_spec(app):
@@ -154,7 +155,9 @@ async def create_openapi_spec(app):
         spec.path(view=surfaces.get_surface_file)
         spec.path(view=surfaces.upload_surface_file)
 
-        spec.path(view=other.ws)
+        spec.path(view=websockets.list_websockets)
+        spec.path(view=websockets.delete_websocket)
+        spec.path(view=websockets.ws)
 
     return spec
 

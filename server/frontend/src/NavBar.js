@@ -18,6 +18,7 @@ function NavBar(props){
           <Link className="links" to="/headsets">Headsets</Link>
           <Link className="links" to="/incidents">Incidents</Link>
           <Link className="links" to="/workitems">Photos</Link>
+          <Link className="links" to="/websockets">Websockets</Link>
         </div>
         <UserInfo />
     </Navbar>
