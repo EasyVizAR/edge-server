@@ -121,7 +121,7 @@ function WebsocketConnections(props) {
                   <td>{id}</td>
                   <td>{websocket.client}</td>
                   <td>
-                    { websocket.user_id ? <Link to={`/headsets/${id}`}>{ websocket.user_id }</Link> : "N/A" }
+                    { websocket.user_id ? <Link to={`/headsets/${websocket.user_id}`}>{ websocket.user_id }</Link> : "N/A" }
                   </td>
                   <td>{moment.unix(websocket.start_time).fromNow()}</td>
                   <td>{websocket.messages_received}</td>
