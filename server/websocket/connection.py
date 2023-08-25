@@ -222,8 +222,19 @@ class WebsocketHandler:
 
         try:
             while self.running:
-                data = await self.websocket.receive()
-                await self.handle_message(data)
+                try:
+                    # Put a timeout on the receive call so we can check if the
+                    # connection is inactive and consider closing it.
+                    data = await asyncio.wait_for(self.websocket.receive(), timeout=self.close_after_seconds)
+                    await self.handle_message(data)
+                except asyncio.TimeoutError:
+                    # Timed out with no message received but check if there
+                    # were any successful sends.  A successful send may mean
+                    # that the websocket is still open.
+                    now = time.time()
+                    if now - self.last_successful_send > self.close_after_seconds:
+                        print("WS [{}]: closing connection due to inactivity".format(self.user_id))
+                        await self.close()
 
         except asyncio.CancelledError:
             print("WS [{}]: connection closed, removing {} subscriptions".format(self.user_id, len(self.subscriptions)))
