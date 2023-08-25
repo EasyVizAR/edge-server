@@ -129,16 +129,18 @@ class WebsocketHandler:
         else:
             payload = body
 
-        now = time.time()
-
         try:
-            await self.websocket.send(payload)
-            self.last_successful_send = now
-            self.send_count.add(len(payload))
+            await self.send_text(payload)
         except:
+            now = time.time()
             if now - self.last_successful_send > self.close_after_seconds:
                 print("WS [{}]: closing connection after repeated send failures".format(self.user_id))
                 await self.close()
+
+    async def send_text(self, text):
+        await self.websocket.send(text)
+        self.last_successful_send = time.time()
+        self.send_count.add(len(text))
 
     async def close(self, code=1013):
         # default code 1013 means "try again later"
@@ -207,7 +209,7 @@ class WebsocketHandler:
                 await _update_headset(self.user_id, patch)
 
         elif args.command == "ping":
-            await self.websocket.send("pong")
+            await self.send_text("pong")
 
         elif args.command == "exit":
             sys.exit(0)
