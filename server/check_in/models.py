@@ -2,14 +2,14 @@ import datetime
 import time
 import uuid
 
-from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, SQLAlchemySchema, auto_field
+from marshmallow_sqlalchemy import auto_field
 from marshmallow_sqlalchemy.fields import Nested
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, composite, mapped_column
 
 from server.resources.csvresource import CsvCollection
-from server.resources.db import Base
+from server.resources.db import Base, MigrationSchema
 from server.resources.dataclasses import dataclass, field
 from server.resources.jsonresource import JsonResource
 
@@ -53,7 +53,9 @@ class TrackingSession(Base):
     updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
 
 
-class CheckInSchema(SQLAlchemySchema):
+class CheckInSchemaDefinition(MigrationSchema):
+    __convert_isotime_fields__ = ['start_time']
+
     class Meta:
         model = TrackingSession
         load_instance = True
@@ -61,3 +63,5 @@ class CheckInSchema(SQLAlchemySchema):
     id = auto_field()
     start_time = auto_field('created_time', dump_only=True)
     location_id = auto_field()
+
+CheckInSchema = CheckInSchemaDefinition()
