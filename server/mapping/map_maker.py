@@ -3,7 +3,7 @@ import os
 from dataclasses import dataclass
 
 from server.headset.models import Headset
-from server.incidents.models import Incident
+from server.incidents.models import IncidentLoader
 from server.mapping.floorplanner import Floorplanner
 
 
@@ -62,7 +62,7 @@ class MapMaker:
 
         This should be called from the main thread.
         """
-        incident = Incident.find_by_id(incident_id)
+        incident = IncidentLoader.find_by_id(incident_id)
         location = incident.Location.find_by_id(location_id)
         surfaces = location.Surface.find()
 

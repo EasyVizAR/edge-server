@@ -52,7 +52,10 @@ class Detector:
 
 
 @dataclass
-class PhotoFile:
+class PhotoFile_dc:
+    """
+    deprecated
+    """
     name:   str
 
     purpose:        str = field(default="photo",
@@ -131,7 +134,7 @@ class PhotoModel(JsonResource):
     detector:       Detector = field(default=None,
                                      description="Information about the object detector that was used")
 
-    files:          List[PhotoFile] = field(default_factory=list,
+    files:          List[PhotoFile_dc] = field(default_factory=list,
                                             description="List of files associated with this photo")
 
     created:        float = field(default_factory=time.time)

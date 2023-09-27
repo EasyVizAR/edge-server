@@ -15,7 +15,7 @@ from server.utils.rate_limiter import rate_limit_exempt
 from server.utils.utils import save_image
 
 from .cleanup import PhotoCleanupTask
-from .models import PhotoFile
+from .models import PhotoFile_dc
 
 
 photos = Blueprint("photos", __name__)
@@ -558,7 +558,7 @@ def process_uploaded_photo_file(photo, upload_file_path, upload_file_name, file_
     with Image.open(upload_file_path) as image:
         content_type = "image/{}".format(image.format.lower())
 
-        new_entry = PhotoFile(upload_file_name, file_purpose,
+        new_entry = PhotoFile_dc(upload_file_name, file_purpose,
             width = image.width,
             height = image.height,
             content_type = content_type
@@ -586,7 +586,7 @@ def process_uploaded_photo_file(photo, upload_file_path, upload_file_name, file_
                 image.thumbnail(thumbnail_max_size)
                 image.save(thumbnail_path, image.format)
 
-                new_entry = PhotoFile(thumbnail_file, "thumbnail",
+                new_entry = PhotoFile_dc(thumbnail_file, "thumbnail",
                     width = image.width,
                     height = image.height,
                     content_type = photo.contentType
