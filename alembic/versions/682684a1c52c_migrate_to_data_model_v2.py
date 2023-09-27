@@ -32,7 +32,7 @@ import sqlalchemy as sa
 from werkzeug.security import generate_password_hash
 
 from server.headset.models import Headset
-from server.incidents.models import Incident
+from server.incidents.models import IncidentLoader
 from server.resources.geometry import Vector3f, Vector4f
 
 
@@ -343,7 +343,7 @@ def upgrade() -> None:
         except:
             pass
 
-    for incident in Incident.find():
+    for incident in IncidentLoader.find():
         new_incident = {
             'id': uuid.UUID(incident.id),
             'name': incident.name,
@@ -353,7 +353,11 @@ def upgrade() -> None:
         incidents.append(new_incident)
 
         for headset in incident.Headset.find():
-            mobile_device = mobile_devices_by_id[uuid.UUID(headset.id)]
+            try:
+                mobile_device = mobile_devices_by_id[uuid.UUID(headset.id)]
+            except:
+                print("Warning: skipping headset {} with missing entry".format(headset.id))
+                continue
 
             for checkin in headset.CheckIn.find():
                 new_tracking_session = {
