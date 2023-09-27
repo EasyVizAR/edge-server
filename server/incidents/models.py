@@ -1,4 +1,12 @@
+import datetime
 import time
+import uuid
+
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, SQLAlchemySchema, auto_field
+from marshmallow_sqlalchemy.fields import Nested
+
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, composite, mapped_column
 
 from dataclasses import field
 from marshmallow_dataclass import dataclass
@@ -7,6 +15,7 @@ from server.check_in.models import CheckInModel
 from server.location.models import LocationModel
 from server.photo.models import PhotoModel
 
+from server.resources.db import Base
 from server.resources.dictresource import DictResource, DictCollection
 from server.resources.jsonresource import JsonResource, JsonCollection
 
@@ -37,4 +46,25 @@ class IncidentModel(JsonResource):
         self.Photo = JsonCollection(PhotoModel, "photo", id_type="uuid", parent=self)
 
 
-Incident = JsonCollection(IncidentModel, "incident", id_type="uuid")
+IncidentLoader = JsonCollection(IncidentModel, "incident", id_type="uuid")
+
+
+class Incident(Base):
+    __tablename__ = "incidents"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+
+    name: Mapped[str] = mapped_column(default="New Incident")
+
+    created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+    updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+
+
+class IncidentSchema(SQLAlchemySchema):
+    class Meta:
+        model = Incident
+        load_instance = True
+
+    id = auto_field()
+    name = auto_field()
+    created = auto_field('created_time', dump_only=True)

@@ -1,8 +1,17 @@
+import datetime
 import time
+import uuid
+
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, SQLAlchemySchema, auto_field
+from marshmallow_sqlalchemy.fields import Nested
+
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, composite, mapped_column
 
 from typing import List
 
 from server.resources.dataclasses import dataclass, field
+from server.resources.db import Base
 from server.resources.geometry import Box, Vector3f, Vector4f
 from server.resources.jsonresource import JsonCollection, JsonResource
 
@@ -153,3 +162,103 @@ class PhotoModel(JsonResource):
             if annotation.position is None or annotation.position_error is None or annotation.position_error > inferred_position_error:
                 annotation.position = Vector3f(x, y, z)
                 annotation.position_error = inferred_position_error
+
+
+class PhotoRecord(Base):
+    __tablename__ = "photo_records"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    location_id: Mapped[uuid.UUID] = mapped_column()
+
+    queue_name: Mapped[str] = mapped_column(default="created", nullable=True)
+    mobile_device_id: Mapped[uuid.UUID] = mapped_column(nullable=True)
+    tracking_session_id: Mapped[int] = mapped_column(nullable=True)
+    device_pose_id: Mapped[int] = mapped_column(nullable=True)
+
+    last_photo_annotation_id: Mapped[int] = mapped_column(nullable=True)
+    last_detection_task_id: Mapped[int] = mapped_column(nullable=True)
+
+    priority: Mapped[int] = mapped_column(default=0)
+    retention: Mapped[str] = mapped_column(default="auto")
+
+    created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+    updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+    expiration_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.max)
+
+
+class PhotoFile(Base):
+    __tablename__ = "photo_files"
+
+    name: Mapped[str] = mapped_column(primary_key=True)
+    photo_record_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+
+    purpose: Mapped[str] = mapped_column(default="photo")
+    content_type: Mapped[str] = mapped_column(default="image/jpeg")
+    height: Mapped[int] = mapped_column(default=0)
+    width: Mapped[int] = mapped_column(default=0)
+
+    created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+    updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+
+
+class PhotoQueue(Base):
+    __tablename__ = "photo_queues"
+
+    name: Mapped[str] = mapped_column(primary_key=True)
+    next_queue_name: Mapped[str] = mapped_column(default="done")
+    display_order: Mapped[int] = mapped_column(default=0)
+    description: Mapped[str] = mapped_column(default="")
+
+
+class PhotoAnnotation(Base):
+    __tablename__ = "photo_annotations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    photo_record_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    detection_task_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+
+    label: Mapped[str] = mapped_column(default="unknown")
+    confidence: Mapped[float] = mapped_column(default=0.0)
+
+    boundary_left: Mapped[float] = mapped_column(default=0.0)
+    boundary_top: Mapped[float] = mapped_column(default=0.0)
+    boundary_width: Mapped[float] = mapped_column(default=0.0)
+    boundary_height: Mapped[float] = mapped_column(default=0.0)
+
+    created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+
+
+class DetectionTask(Base):
+    __tablename__ = "detection_tasks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    photo_record_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+
+    model_family: Mapped[str] = mapped_column(default="")
+    model_name: Mapped[str] = mapped_column(default="")
+    engine_name: Mapped[str] = mapped_column(default="")
+    engine_version: Mapped[str] = mapped_column(default="")
+
+    preprocess_duration: Mapped[float] = mapped_column(default=0.0)
+    execution_duration: Mapped[float] = mapped_column(default=0.0)
+    postprocess_duration: Mapped[float] = mapped_column(default=0.0)
+
+    created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+
+
+class PhotoSchema(SQLAlchemySchema):
+    class Meta:
+        model = PhotoRecord
+        load_instance = True
+
+    id = auto_field()
+    status = auto_field('queue_name', dump_only=True)
+
+    priority = auto_field()
+    retention = auto_field()
+
+    created_by = auto_field('mobile_device_id', dump_only=True)
+    camera_location_id = auto_field('location_id', dump_only=True)
+
+    created = auto_field('created_time', dump_only=True)
+    updated = auto_field('updated_time', dump_only=True)

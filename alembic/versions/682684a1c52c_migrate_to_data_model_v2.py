@@ -137,10 +137,14 @@ def create_tables():
         sa.Column('location_id', sa.Uuid(), sa.ForeignKey('locations.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
         sa.Column('name', sa.String(), nullable=False),
         sa.Column('type', sa.String(), nullable=False),
+        sa.Column('version', sa.Integer(), nullable=False),
         sa.Column('boundary_left', sa.Float(), nullable=False),
         sa.Column('boundary_top', sa.Float(), nullable=False),
         sa.Column('boundary_width', sa.Float(), nullable=False),
         sa.Column('boundary_height', sa.Float(), nullable=False),
+        sa.Column('reference_height', sa.Float(), nullable=False),
+        sa.Column('created_time', sa.DateTime(), nullable=False),
+        sa.Column('updated_time', sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint('location_id', 'id')
     )
     created_tables[table.name] = table
@@ -454,10 +458,14 @@ def upgrade() -> None:
                     'location_id': new_location['id'],
                     'name': layer.name,
                     'type': layer.type,
+                    'version': layer.version,
                     'boundary_left': layer.viewBox.left,
                     'boundary_top': layer.viewBox.top,
                     'boundary_width': layer.viewBox.width,
-                    'boundary_height': layer.viewBox.height
+                    'boundary_height': layer.viewBox.height,
+                    'reference_height': layer.cutting_height,
+                    'created_time': datetime.datetime.fromtimestamp(layer.created),
+                    'updated_time': datetime.datetime.fromtimestamp(layer.updated)
                 }
                 layers.append(new_layer)
 

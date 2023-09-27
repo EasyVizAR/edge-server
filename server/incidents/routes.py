@@ -3,7 +3,6 @@ from http import HTTPStatus
 from quart import Blueprint, g, make_response, jsonify, current_app, redirect, request
 from werkzeug import exceptions
 
-from server.incidents.models import Incident
 
 incidents = Blueprint('incidents', __name__)
 
@@ -20,15 +19,15 @@ def initialize_incidents(app):
     # First check if an active incident is configured globally.
     incident_id = app.config.get('ACTIVE_INCIDENT_ID')
     if incident_id is not None:
-        incident = Incident.find_by_id(incident_id)
+        incident = g.Incident.find_by_id(incident_id)
 
     # Active incident may not be configured, or it may have been deleted.
     if incident is None:
-        incident = Incident.find_newest()
+        incident = g.Incident.find_newest()
 
     # If still no incident is found, create one.
     if incident is None:
-        incident = Incident(name="Incident 1")
+        incident = g.Incident(name="Incident 1")
         incident.save()
 
     set_active_incident(app, incident)

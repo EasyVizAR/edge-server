@@ -1,6 +1,15 @@
+import datetime
 import time
+import uuid
+
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, SQLAlchemySchema, auto_field
+from marshmallow_sqlalchemy.fields import Nested
+
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, composite, mapped_column
 
 from server.resources.dataclasses import dataclass, field
+from server.resources.db import Base
 from server.resources.jsonresource import JsonResource
 
 
@@ -44,3 +53,28 @@ class SurfaceModel(JsonResource):
 
     created:    float = field(default_factory=time.time)
     updated:    float = field(default_factory=time.time)
+
+
+class Surface(Base):
+    __tablename__ = "surfaces"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+
+    location_id: Mapped[uuid.UUID] = mapped_column()
+    mobile_device_id: Mapped[int] = mapped_column(nullable=True)
+
+    created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+    updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+
+
+class SurfaceSchema(SQLAlchemySchema):
+    class Meta:
+        model = Surface
+        load_instance = True
+
+    id = auto_field()
+
+    uploadedBy = auto_field('mobile_device_id', dump_only=True)
+
+    created = auto_field('created_time', dump_only=True)
+    updated = auto_field('updated_time', dump_only=True)

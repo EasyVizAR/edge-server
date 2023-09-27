@@ -1,4 +1,6 @@
+import datetime
 import time
+import uuid
 
 from dataclasses import field
 from marshmallow_dataclass import dataclass
@@ -57,3 +59,24 @@ class PoseChangeSchema(SQLAlchemySchema):
     time = auto_field()
     position = Nested(Vector3f.Schema, many=False)
     orientation = Nested(Vector4f.Schema, many=False)
+
+
+class DevicePose(Base):
+    __tablename__ = "device_poses"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tracking_session_id: Mapped[int] = mapped_column(primary_key=True)
+    mobile_device_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+
+    position_x: Mapped[float] = mapped_column()
+    position_y: Mapped[float] = mapped_column()
+    position_z: Mapped[float] = mapped_column()
+    position: Mapped[Vector3f] = composite(position_x, position_y, position_z)
+
+    orientation_x: Mapped[float] = mapped_column()
+    orientation_y: Mapped[float] = mapped_column()
+    orientation_z: Mapped[float] = mapped_column()
+    orientation_w: Mapped[float] = mapped_column()
+    orientation: Mapped[Vector4f] = composite(orientation_x, orientation_y, orientation_z, orientation_w)
+
+    created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)

@@ -1,9 +1,55 @@
+import datetime
 import time
+import uuid
 
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, SQLAlchemySchema, auto_field
+from marshmallow_sqlalchemy.fields import Nested
+
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, composite, mapped_column
 
 from server.resources.dataclasses import dataclass, field
+from server.resources.db import Base
 from server.resources.jsonresource import JsonResource, JsonCollection
 from server.resources.geometry import Vector3f, Vector4f
+
+
+class MobileDevice(Base):
+    __tablename__ = "mobile_devices"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+
+    name: Mapped[str] = mapped_column(default="New Device")
+    type: Mapped[str] = mapped_column(default="unknown")
+    color: Mapped[str] = mapped_column(default="#4477aa")
+
+    last_location_id: Mapped[uuid.UUID] = mapped_column(nullable=True)
+    last_tracking_session_id: Mapped[int] = mapped_column(nullable=True)
+    last_device_pose_id: Mapped[int] = mapped_column(nullable=True)
+
+    created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+    updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+
+
+class HeadsetSchema(SQLAlchemySchema):
+    class Meta:
+        model = MobileDevice
+        load_instance = True
+
+    id = auto_field()
+
+    name = auto_field()
+    type = auto_field()
+    color = auto_field()
+
+    location_id = auto_field('last_location_id', dump_only=True)
+    last_check_in_id = auto_field('last_tracking_session_id', dump_only=True)
+
+    position = Nested(Vector3f.Schema, many=False)
+    orientation = Nested(Vector4f.Schema, many=False)
+
+    created = auto_field('created_time', dump_only=True)
+    updated = auto_field('updated_time', dump_only=True)
 
 
 @dataclass

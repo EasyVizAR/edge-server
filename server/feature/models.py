@@ -1,6 +1,15 @@
+import datetime
 import time
+import uuid
+
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, SQLAlchemySchema, auto_field
+from marshmallow_sqlalchemy.fields import Nested
+
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, composite, mapped_column
 
 from server.resources.dataclasses import dataclass, field
+from server.resources.db import Base
 from server.resources.jsonresource import JsonResource
 from server.resources.geometry import Vector3f
 
@@ -75,3 +84,40 @@ class FeatureModel(JsonResource):
 
     created:        float = field(default_factory=time.time)
     updated:        float = field(default_factory=time.time)
+
+
+class MapMarker(Base):
+    __tablename__ = "map_markers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    location_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+
+    user_id: Mapped[uuid.UUID] = mapped_column(nullable=True)
+
+    type: Mapped[str] = mapped_column(default="object")
+    name: Mapped[str] = mapped_column(default="New Marker")
+    color: Mapped[str] = mapped_column(default="#cc6677")
+
+    position_x: Mapped[float] = mapped_column(default=0.0)
+    position_y: Mapped[float] = mapped_column(default=0.0)
+    position_z: Mapped[float] = mapped_column(default=0.0)
+
+    created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+    updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+
+
+class FeatureSchema(SQLAlchemySchema):
+    class Meta:
+        model = MapMarker
+        load_instance = True
+
+    id = auto_field()
+
+    name = auto_field()
+    color = auto_field()
+    type = auto_field()
+
+    position = Nested(Vector3f.Schema, many=False)
+
+    created = auto_field('created_time', dump_only=True)
+    updated = auto_field('updated_time', dump_only=True)

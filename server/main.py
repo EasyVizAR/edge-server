@@ -27,7 +27,7 @@ from server.work_items.routes import work_items
 from server.auth import Authenticator
 from server.events import EventDispatcher
 from server.headset.models import Headset
-from server.incidents.models import Incident
+from server.incidents.models import IncidentLoader
 from server.mapping.navigator import Navigator
 from server.resources.db import Base
 
@@ -126,12 +126,12 @@ def before_request():
     g.authenticator.authenticate_request()
 
     g.Headset = Headset
-    g.Incident = Incident
+    g.Incident = IncidentLoader
+
+    g.session_maker = session_maker
 
     # Make sure an active incident exists and is assigned to g.active_incident.
     initialize_incidents(app)
-
-    g.session_maker = session_maker
 
 
 @app.before_websocket
@@ -146,9 +146,9 @@ def before_websocket():
     g.authenticator.authenticate_websocket()
 
     g.Headset = Headset
-    g.Incident = Incident
+    g.Incident = IncidentLoader
+
+    g.session_maker = session_maker
 
     # Make sure an active incident exists and is assigned to g.active_incident.
     initialize_incidents(app)
-
-    g.session_maker = session_maker

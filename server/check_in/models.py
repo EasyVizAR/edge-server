@@ -1,6 +1,15 @@
+import datetime
 import time
+import uuid
+
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, SQLAlchemySchema, auto_field
+from marshmallow_sqlalchemy.fields import Nested
+
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, composite, mapped_column
 
 from server.resources.csvresource import CsvCollection
+from server.resources.db import Base
 from server.resources.dataclasses import dataclass, field
 from server.resources.jsonresource import JsonResource
 
@@ -28,3 +37,27 @@ class CheckInModel(JsonResource):
 
     def on_ready(self):
         self.PoseChange = CsvCollection(PoseChangeModel, "pose-change", parent=self)
+
+
+class TrackingSession(Base):
+    __tablename__ = "tracking_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    mobile_device_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+
+    incident_id: Mapped[uuid.UUID] = mapped_column()
+    location_id: Mapped[uuid.UUID] = mapped_column()
+    user_id: Mapped[uuid.UUID] = mapped_column(nullable=True)
+
+    created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+    updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+
+
+class CheckInSchema(SQLAlchemySchema):
+    class Meta:
+        model = TrackingSession
+        load_instance = True
+
+    id = auto_field()
+    start_time = auto_field('created_time', dump_only=True)
+    location_id = auto_field()
