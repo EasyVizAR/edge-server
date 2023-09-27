@@ -3,16 +3,45 @@ import datetime
 import sqlalchemy as sa
 from sqlalchemy import orm
 
-from marshmallow import post_dump
+from marshmallow import pre_load, post_dump
 from marshmallow_sqlalchemy import SQLAlchemySchema
+
+from server.utils.patch import patch_object
 
 
 class Base(orm.DeclarativeBase):
-    pass
+    __allow_update__ = []
+
+    def has(self, attr):
+        """
+        Check if an attribute is loaded, especially useful for sqlalchemy lazy loading.
+        """
+        return attr in self.__dict__
+
+    def update(self, data):
+        """
+        Update object with values from a dictionary.
+
+        The update will only apply to attributes which are already defined
+        and are present in the __allow_update__ class variable.
+        """
+        patch_object(self, data, allowed=self.__allow_update__)
 
 
 class MigrationSchema(SQLAlchemySchema):
     __convert_isotime_fields__ = []
+
+    @pre_load
+    def convert_timestamp(self, data, **kwargs):
+        """
+        Convert designated fields from timestamp to ISO string.
+        """
+        for field in self.__convert_isotime_fields__:
+            ts = data.get(field)
+            if ts is not None:
+                dt = datetime.datetime.fromtimestamp(ts)
+                data[field] = dt.isoformat()
+        return data
 
     @post_dump
     def convert_isotime(self, data, **kwargs):
@@ -25,8 +54,7 @@ class MigrationSchema(SQLAlchemySchema):
         """
         for field in self.__convert_isotime_fields__:
             iso = data.get(field)
-            if iso is None:
-                continue
-            dt = datetime.datetime.fromisoformat(iso)
-            data[field] = dt.timestamp()
+            if iso is not None:
+                dt = datetime.datetime.fromisoformat(iso)
+                data[field] = dt.timestamp()
         return data

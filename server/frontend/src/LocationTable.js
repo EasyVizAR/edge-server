@@ -27,7 +27,7 @@ function LocationTable(props) {
     locationId: null
   });
   const [sortBy, setSortBy] = useState({
-    attr: "last_surface_update",
+    attr: "updated_time",
     direction: -1,
   });
 
@@ -173,7 +173,7 @@ function LocationTable(props) {
           <tr>
             <th><SortByLink attr="id" text="Location ID" /></th>
             <th><SortByLink attr="name" text="Name" /></th>
-            <th><SortByLink attr="last_surface_update" text="Updated" /></th>
+            <th><SortByLink attr="updated_time" text="Updated" /></th>
             <th colSpan="2"></th>
           </tr>
         </thead>
@@ -198,7 +198,7 @@ function LocationTable(props) {
                       )
                     }
                   </td>
-                  <td>{ loc.last_surface_update > 1.0 ? moment.unix(loc.last_surface_update).fromNow() : "never" }</td>
+                  <td>{ loc.updated_time > 1.0 ? moment.unix(loc.updated_time).fromNow() : "never" }</td>
                   <td>
                     {
                       (inEditModeLocation.locationId === id) ? (

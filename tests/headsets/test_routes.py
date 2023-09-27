@@ -1,5 +1,6 @@
 import os
 import time
+import uuid
 
 from http import HTTPStatus
 
@@ -71,9 +72,10 @@ async def test_headset_routes():
         assert headset2[test_field] == "bar"
 
         # Test changing the location and querying for headsets at that location
-        response = await client.patch(headset_url, json={"location_id": "somewhere"})
+        test_location_id = str(uuid.uuid4())
+        response = await client.patch(headset_url, json={"location_id": test_location_id})
         assert response.status_code == HTTPStatus.OK
-        response = await client.get("/headsets?location_id=somewhere")
+        response = await client.get("/headsets?location_id="+test_location_id)
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         headsets = await response.get_json()
@@ -123,67 +125,73 @@ async def test_headset_put_updates():
         headsets_url = "/headsets"
 
         # Create an object
-        response = await client.post(headsets_url, json=dict(name="Test PUT", location_id="location"))
+        test_location_id = str(uuid.uuid4())
+        response = await client.post(headsets_url, json=dict(name="Test PUT", location_id=test_location_id))
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         headset = await response.get_json()
         assert isinstance(headset, dict)
         assert headset['id'] is not None
         assert headset['name'] == "Test PUT"
-        assert headset['position'] is not None
-        assert headset['orientation'] is not None
+        assert headset['location_id'] == test_location_id
 
         headset_url = "{}/{}".format(headsets_url, headset['id'])
 
-        # Test changing position only
+        # Test changing position and orientation
         updated = headset.copy()
         updated['position'] = dict(x=1, y=1, z=1)
+        updated['orientation'] = dict(x=0, y=0, z=0, w=1)
         response = await client.put(headset_url, json=updated)
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         headset2 = await response.get_json()
-        assert isinstance(headset, dict)
+        assert isinstance(headset2, dict)
         assert headset2['id'] == headset['id']
-        assert headset2['position'] == updated['position']
-        assert headset2['orientation'] == updated['orientation']
         assert headset2['updated'] > updated['updated']
-
-        # Test changing orientation only
-        updated = headset2.copy()
-        updated['orientation'] = dict(x=1, y=0, z=0, w=0)
-        response = await client.put(headset_url, json=updated)
-        assert response.status_code == HTTPStatus.OK
-        assert response.is_json
-        headset2 = await response.get_json()
-        assert isinstance(headset, dict)
-        assert headset2['id'] == headset['id']
-        assert headset2['position'] == updated['position']
-        assert headset2['orientation'] == updated['orientation']
-        assert headset2['updated'] > updated['updated']
+        assert headset2['location_id'] == test_location_id
+        assert headset2['last_check_in_id'] > 0
+        assert headset2['last_pose_change_id'] > 0
 
         # Test changing position and orientation
         updated = headset2.copy()
-        updated['position'] = dict(x=2, y=2, z=2)
-        updated['orientation'] = dict(x=1, y=0, z=0, w=0)
+        updated['position'] = dict(x=2, y=1, z=1)
+        updated['orientation'] = dict(x=0, y=0, z=1, w=0)
         response = await client.put(headset_url, json=updated)
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
-        headset2 = await response.get_json()
-        assert isinstance(headset, dict)
-        assert headset2['id'] == headset['id']
-        assert headset2['position'] == updated['position']
-        assert headset2['orientation'] == updated['orientation']
-        assert headset2['updated'] > updated['updated']
+        headset3 = await response.get_json()
+        assert isinstance(headset3, dict)
+        assert headset3['id'] == headset['id']
+        assert headset3['updated'] > updated['updated']
+        assert headset3['location_id'] == test_location_id
+        assert headset3['last_check_in_id'] == headset2['last_check_in_id']
+        assert headset3['last_pose_change_id'] > headset2['last_pose_change_id']
+
+        # Test changing position and orientation
+        updated = headset3.copy()
+        updated['position'] = dict(x=1, y=3, z=1)
+        updated['orientation'] = dict(x=0, y=1, z=0, w=0)
+        response = await client.put(headset_url, json=updated)
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        headset4 = await response.get_json()
+        assert isinstance(headset4, dict)
+        assert headset4['id'] == headset['id']
+        assert headset4['updated'] > updated['updated']
+        assert headset4['location_id'] == test_location_id
+        assert headset4['last_check_in_id'] == headset2['last_check_in_id']
+        assert headset4['last_pose_change_id'] > headset3['last_pose_change_id']
 
         # Test GET headset returns an appropriate object
         response = await client.get(headset_url)
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
-        headset2 = await response.get_json()
-        assert headset2['id'] == headset['id']
-        assert headset2['position'] == updated['position']
-        assert headset2['orientation'] == updated['orientation']
-        assert headset2['updated'] > headset['updated']
+        headset5 = await response.get_json()
+        assert headset5['id'] == headset['id']
+        assert headset5['updated'] > headset['updated']
+        assert headset5['location_id'] == test_location_id
+        assert headset5['last_check_in_id'] == headset2['last_check_in_id']
+        assert headset5['last_pose_change_id'] == headset4['last_pose_change_id']
 
         # Test pose changes returns all of the changes
         pose_changes_url = "/headsets/{}/pose-changes".format(headset['id'])
@@ -194,8 +202,11 @@ async def test_headset_put_updates():
         assert isinstance(changes, list)
         assert len(changes) == 3
         assert int(changes[0]['position']['x']) == 1
-        assert int(changes[1]['orientation']['x']) == 1
-        assert int(changes[2]['position']['x']) == 2
+        assert int(changes[1]['position']['x']) == 2
+        assert int(changes[2]['position']['x']) == 1
+        assert int(changes[0]['orientation']['w']) == 1
+        assert int(changes[1]['orientation']['w']) == 0
+        assert int(changes[2]['orientation']['w']) == 0
 
         # Test deleting the object
         response = await client.delete(headset_url)
@@ -214,7 +225,8 @@ async def test_headset_patch_updates():
         headsets_url = "/headsets"
 
         # Create an object
-        response = await client.post(headsets_url, json=dict(name="Test PATCH", location_id="location"))
+        test_location_id = str(uuid.uuid4())
+        response = await client.post(headsets_url, json=dict(name="Test PATCH", location_id=test_location_id))
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         headset = await response.get_json()
@@ -223,24 +235,14 @@ async def test_headset_patch_updates():
         assert headset['name'] == "Test PATCH"
         assert headset['position'] is not None
         assert headset['orientation'] is not None
+        assert headset['location_id'] == test_location_id
 
         headset_url = "{}/{}".format(headsets_url, headset['id'])
 
-        # Test changing position only
+        # Test changing position and orientation
         position = dict(x=1, y=1, z=1)
-        response = await client.patch(headset_url, json=dict(position=position))
-        assert response.status_code == HTTPStatus.OK
-        assert response.is_json
-        headset2 = await response.get_json()
-        assert isinstance(headset, dict)
-        assert headset2['id'] == headset['id']
-        assert headset2['position'] == position
-        assert headset2['orientation'] == headset['orientation']
-        assert headset2['updated'] > headset['updated']
-
-        # Test changing orientation only
-        orientation = dict(x=1, y=0, z=0, w=0)
-        response = await client.patch(headset_url, json=dict(orientation=orientation))
+        orientation = dict(x=0, y=0, z=0, w=1)
+        response = await client.patch(headset_url, json=dict(position=position, orientation=orientation))
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         headset2 = await response.get_json()
@@ -251,8 +253,21 @@ async def test_headset_patch_updates():
         assert headset2['updated'] > headset['updated']
 
         # Test changing position and orientation
-        position = dict(x=2, y=2, z=2)
-        orientation = dict(x=1, y=0, z=0, w=0)
+        position = dict(x=2, y=1, z=1)
+        orientation = dict(x=0, y=0, z=0, w=0)
+        response = await client.patch(headset_url, json=dict(position=position, orientation=orientation))
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        headset2 = await response.get_json()
+        assert isinstance(headset, dict)
+        assert headset2['id'] == headset['id']
+        assert headset2['position'] == position
+        assert headset2['orientation'] == orientation
+        assert headset2['updated'] > headset['updated']
+
+        # Test changing position and orientation
+        position = dict(x=1, y=1, z=1)
+        orientation = dict(x=0, y=0, z=0, w=0)
         response = await client.patch(headset_url, json=dict(position=position, orientation=orientation))
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
@@ -282,8 +297,11 @@ async def test_headset_patch_updates():
         assert isinstance(changes, list)
         assert len(changes) == 3
         assert int(changes[0]['position']['x']) == 1
-        assert int(changes[1]['orientation']['x']) == 1
-        assert int(changes[2]['position']['x']) == 2
+        assert int(changes[1]['position']['x']) == 2
+        assert int(changes[2]['position']['x']) == 1
+        assert int(changes[0]['orientation']['w']) == 1
+        assert int(changes[1]['orientation']['w']) == 0
+        assert int(changes[2]['orientation']['w']) == 0
 
         # Test deleting the object
         response = await client.delete(headset_url)
@@ -323,9 +341,9 @@ async def test_headset_incidents_tracking():
 
         headset_url = "/headsets/{}".format(headset['id'])
 
-        # Test changing headset position
-        position = dict(x=1, y=1, z=1)
-        response = await client.patch(headset_url, json=dict(position=position))
+        # Test changing headset location
+        test_location_id = uuid.uuid4()
+        response = await client.patch(headset_url, json=dict(location_id=test_location_id))
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         headset2 = await response.get_json()
@@ -343,51 +361,3 @@ async def test_headset_incidents_tracking():
         # Clean up
         await client.delete(headset_url)
         await client.delete("/incidents/{}".format(incident['id']))
-
-
-@pytest.mark.asyncio
-async def test_headset_long_polling():
-    """
-    Test headset long polling
-    """
-    async with app.test_client() as client:
-        headsets_url = "/headsets"
-        start_time = time.time()
-
-        # Initial list of headsets should be empty
-        response = await client.get(headsets_url + "?since={}".format(start_time))
-        assert response.status_code == HTTPStatus.OK
-        assert response.is_json
-        headsets = await response.get_json()
-        assert isinstance(headsets, list)
-        assert len(headsets) == 0
-
-        # A short wait should timeout with no results
-        response = await client.get(headsets_url + "?since={}&wait=0.001".format(start_time))
-        assert response.status_code == HTTPStatus.NO_CONTENT
-        assert response.is_json
-        headsets = await response.get_json()
-        assert isinstance(headsets, list)
-        assert len(headsets) == 0
-
-        # Set up a listener
-        listener = client.get(headsets_url + "?since={}&wait=5".format(start_time))
-
-        # Create an object
-        response = await client.post(headsets_url, json=dict(name="Longpolling Tester"))
-        assert response.status_code == HTTPStatus.CREATED
-        assert response.is_json
-        headset = await response.get_json()
-        assert isinstance(headset, dict)
-        assert headset['id'] is not None
-
-        # The listener should have received the same object
-        response2 = await listener
-        assert response2.status_code == HTTPStatus.OK
-        assert response2.is_json
-        headset2 = await response2.get_json()
-        assert isinstance(headset2, list)
-        assert headset2[0]['name'] == headset['name']
-
-        # Clean up
-        await client.delete("/headsets/{}".format(headset['id']))

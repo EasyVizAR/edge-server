@@ -9,11 +9,12 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, composite, mapped_column
 
 from server.resources.dataclasses import dataclass, field
-from server.resources.db import Base
+from server.resources.db import Base, MigrationSchema
 from server.resources.jsonresource import JsonResource
 from server.resources.geometry import Vector3f
 
 
+# DEPRECATED
 @dataclass
 class FeatureDisplayStyle:
     placement:  str = field(default="point")
@@ -22,6 +23,7 @@ class FeatureDisplayStyle:
     radius:     float = field(default=None)
 
 
+# DEPRECATED
 @dataclass
 class FeatureModel(JsonResource):
     """
@@ -87,10 +89,39 @@ class FeatureModel(JsonResource):
 
 
 class MapMarker(Base):
-    __tablename__ = "map_markers"
+    """
+    A map marker such as an important object or location.
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    location_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    A marker should have a descriptive name, a position in world coordinates,
+    and a type, which affects what is displayed in AR and map overlays.
+
+    Supported marker types:
+        ambulance
+        audio
+        bad-person
+        biohazard
+        door
+        elevator
+        exit
+        extinguisher
+        fire
+        headset
+        injury
+        message
+        object
+        person
+        photo
+        point
+        radiation
+        stairs
+        user
+        warning
+    """
+    __tablename__ = "map_markers"
+    __allow_update__ = ['type', 'name', 'color', 'position_x', 'position_y', 'position_z', 'position']
+
+    id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)
+    location_id: Mapped[uuid.UUID] = mapped_column(sa.ForeignKey("locations.id"))
 
     user_id: Mapped[uuid.UUID] = mapped_column(nullable=True)
 
@@ -101,23 +132,26 @@ class MapMarker(Base):
     position_x: Mapped[float] = mapped_column(default=0.0)
     position_y: Mapped[float] = mapped_column(default=0.0)
     position_z: Mapped[float] = mapped_column(default=0.0)
+    position: Mapped[Vector3f] = composite(position_x, position_y, position_z)
 
     created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
     updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
 
 
-class FeatureSchema(SQLAlchemySchema):
+class FeatureSchema(MigrationSchema):
+    __convert_isotime_fields__ = ['created', 'updated']
+
     class Meta:
         model = MapMarker
         load_instance = True
 
-    id = auto_field()
+    id = auto_field(description="Marker ID")
 
-    name = auto_field()
-    color = auto_field()
-    type = auto_field()
+    name = auto_field(description="Marker name, often displayed next to the marker icon")
+    color = auto_field(description="Suggested display color for the marker as a seven-character HTML color code")
+    type = auto_field(description="Marker type, should be one of the supported types or it may display incorrectly")
 
-    position = Nested(Vector3f.Schema, many=False)
+    position = Nested(Vector3f.Schema, description="Position in world coordinates", many=False)
 
-    created = auto_field('created_time', dump_only=True)
-    updated = auto_field('updated_time', dump_only=True)
+    created = auto_field('created_time', description="Time the marker was created")
+    updated = auto_field('updated_time', description="Time the marker was last updated")

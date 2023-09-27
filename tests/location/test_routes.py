@@ -46,6 +46,7 @@ async def test_location_routes():
         location2 = await response.get_json()
         assert location2['id'] == location['id']
         assert location2['name'] == location['name']
+        assert isinstance(location2['headset_configuration'], dict)
 
         qrcode_url = "/locations/{}/qrcode".format(location['id'])
 

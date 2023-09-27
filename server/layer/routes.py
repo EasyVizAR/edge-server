@@ -1,5 +1,7 @@
 import asyncio
+import datetime
 import os
+import shutil
 import time
 
 from http import HTTPStatus
@@ -7,16 +9,28 @@ from http import HTTPStatus
 from quart import Blueprint, current_app, g, jsonify, request
 from werkzeug import exceptions
 
+import marshmallow
+import sqlalchemy as sa
+
+from server.location.models import Location
 from server.mapping.map_maker import MapMaker
-from server.utils.images import try_send_image
+from server.utils.images import ext_from_type, try_send_image
+from server.utils.response import maybe_wrap
 from server.utils.utils import save_image
 
+from .models import Layer, LayerSchema
 
 
 layers = Blueprint("layers", __name__)
 
+layer_schema = LayerSchema()
 
-@layers.route('/locations/<location_id>/layers', methods=['GET'])
+
+def get_layer_dir(location_id, layer_id):
+    return os.path.join(g.data_dir, 'locations', location_id.hex, 'layers', '{:08x}'.format(layer_id))
+
+
+@layers.route('/locations/<uuid:location_id>/layers', methods=['GET'])
 async def list_layers(location_id):
     """
     List layers
@@ -39,23 +53,17 @@ async def list_layers(location_id):
                             type: array
                             items: Layer
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    items = []
+    async with g.session_maker() as session:
+        stmt = sa.select(Layer).where(Layer.location_id == location_id)
+        result = await session.execute(stmt)
+        for row in result.scalars():
+            items.append(layer_schema.dump(row))
 
-    layers = location.Layer.find()
-
-    # Wrap the list if the caller requested an envelope.
-    query = request.args
-    if "envelope" in query:
-        result = {query.get("envelope"): layers}
-    else:
-        result = layers
-
-    return jsonify(result), HTTPStatus.OK
+    return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
 
-@layers.route('/locations/<location_id>/layers', methods=['POST'])
+@layers.route('/locations/<uuid:location_id>/layers', methods=['POST'])
 async def create_layer(location_id):
     """
     Create layer
@@ -78,46 +86,24 @@ async def create_layer(location_id):
     """
     body = await request.get_json()
 
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(Location).where(Location.id == location_id).limit(1)
+        result = await session.execute(stmt)
+        location = result.scalar()
+        if location is None:
+            raise execptions.NotFound(description="Location {} was not found".format(location_id))
 
-    layer = location.Layer.load(body, replace_id=True)
+        layer = layer_schema.load(body, transient=True)
+        layer.location_id = location_id
+        session.add(layer)
+        await session.commit()
 
-    # The layer object should either specify an external fileUrl, or the caller
-    # will need to upload a file after creating this object.
-    if layer.type == "uploaded":
-        if layer.contentType == "image/jpeg":
-            extension = "jpeg"
-        elif layer.contentType == "image/png":
-            extension = "png"
-        elif layer.contentType == "image/svg+xml":
-            extension = "svg"
-        else:
-            error = "Unsupported content type ({})".format(layer.contentType)
-            raise exceptions.BadRequest(description=error)
+    result = layer_schema.dump(layer)
 
-        upload_file_name = "image.{}".format(extension)
-        layer.imagePath = os.path.join(layer.get_dir(), upload_file_name)
-        layer.imageUrl = "/locations/{}/layers/{}/image".format(location_id, layer.id)
-        layer.ready = False
-
-    elif layer.type == "generated":
-        layer.ready = False
-
-    elif layer.type == "external":
-        layer.ready = True
-
-    else:
-        error = "Unsupported layer type ({})".format(layer.type)
-        raise exceptions.BadyRequest(description=error)
-
-    layer.save()
-
-    return jsonify(layer), HTTPStatus.CREATED
+    return jsonify(result), HTTPStatus.CREATED
 
 
-@layers.route('/locations/<location_id>/layers/<layer_id>', methods=['DELETE'])
+@layers.route('/locations/<uuid:location_id>/layers/<int:layer_id>', methods=['DELETE'])
 async def delete_layer(location_id, layer_id):
     """
     Delete layer
@@ -138,21 +124,27 @@ async def delete_layer(location_id, layer_id):
                     application/json:
                         schema: Layer
     """
+    async with g.session_maker() as session:
+        stmt = sa.select(Layer) \
+                .where(Layer.location_id == location_id) \
+                .where(Layer.id == layer_id)
 
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+        result = await session.execute(stmt)
+        layer = result.scalar()
+        if layer is None:
+            raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
 
-    layer = location.Layer.find_by_id(layer_id)
-    if layer is None:
-        raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
+        await session.delete(layer)
+        await session.commit()
 
-    layer.delete()
+    shutil.rmtree(get_layer_dir(location_id, layer_id), ignore_errors=True)
 
-    return jsonify(layer), HTTPStatus.OK
+    result = layer_schema.dump(layer)
+
+    return jsonify(result), HTTPStatus.OK
 
 
-@layers.route('/locations/<location_id>/layers/<layer_id>', methods=['GET'])
+@layers.route('/locations/<uuid:location_id>/layers/<int:layer_id>', methods=['GET'])
 async def get_layer(location_id, layer_id):
     """
     Get layer
@@ -173,18 +165,32 @@ async def get_layer(location_id, layer_id):
                     application/json:
                         schema: Layer
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(Layer) \
+                .where(Layer.location_id == location_id) \
+                .where(Layer.id == layer_id)
+        result = await session.execute(stmt)
+        layer = result.scalar()
 
-    layer = location.Layer.find_by_id(layer_id)
-    if layer is None:
-        raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
+        # Fix for clients that hard-coded layer ID = 1,
+        # find the layer with lowest ID.
+        if layer is None and layer_id == 1:
+            stmt = sa.select(Layer) \
+                    .where(Layer.location_id == location_id) \
+                    .order_by(Layer.id) \
+                    .limit(1)
+            result = await session.execute(stmt)
+            layer = result.scalar()
 
-    return jsonify(layer), HTTPStatus.OK
+        if layer is None:
+            raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
+
+    result = layer_schema.dump(layer)
+
+    return jsonify(result), HTTPStatus.OK
 
 
-@layers.route('/locations/<location_id>/layers/<layer_id>', methods=['PUT'])
+@layers.route('/locations/<uuid:location_id>/layers/<int:layer_id>', methods=['PUT'])
 async def replace_layer(location_id, layer_id):
     """
     Replace layer
@@ -211,55 +217,78 @@ async def replace_layer(location_id, layer_id):
                         schema: Layer
     """
     body = await request.get_json()
+    if body is None:
+        body = {}
     body['id'] = layer_id
+    body['location_id'] = location_id
 
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(Layer) \
+                .where(Layer.location_id == location_id) \
+                .where(Layer.id == layer_id)
 
-    layer = location.Layer.load(body)
-    created = layer.save()
+        result = await session.execute(stmt)
+        layer = result.scalar()
+
+        if layer is None:
+            previous = None
+            layer = layer_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
+            layer.location_id = location_id
+            session.add(layer)
+            created = True
+
+        else:
+            previous = layer_schema.dump(layer)
+            layer.update(body)
+            layer.updated_time = datetime.datetime.now()
+            created = False
+
+        await session.commit()
+
+    result = layer_schema.dump(layer)
 
     if created:
-        return jsonify(layer), HTTPStatus.CREATED
+        return jsonify(result), HTTPStatus.CREATED
     else:
-        return jsonify(layer), HTTPStatus.OK
+        return jsonify(result), HTTPStatus.OK
 
 
-def trigger_map_rebuild(location):
+async def trigger_map_rebuild(location_id):
     # Variables required for the callbacks below:
     loop = asyncio.get_event_loop()
     dispatcher = current_app.dispatcher
     mapping_limiter = current_app.mapping_limiter
-    Location = g.active_incident.Location
 
     # The pool limiter helps us batch multiple surface updates. If there is
     # already a mapping task pending for this location, then we do not schedule
     # another. This is not a perfect solution, as we may delay or miss
     # processing the last updates.
-    if mapping_limiter.try_submit(location.id):
-        map_maker = MapMaker.build_maker(g.active_incident.id, location.id)
+    if mapping_limiter.try_submit(location_id):
+        surface_dir = os.path.join(g.data_dir, 'locations', location_id.hex, 'surfaces')
+
+        map_maker = await MapMaker.build_maker(g.active_incident.id, location_id, surface_dir)
         future = current_app.mapping_pool.submit(map_maker.make_map)
 
         def map_ready(future):
-            mapping_limiter.finished(location.id)
+            mapping_limiter.finished(location_id)
 
             result = future.result()
-            if result.changes > 0:
-                layer = location.Layer.find_by_id(result.layer_id)
-                layer.imagePath = result.image_path
-                layer.ready = True
-                layer.version += 1
-                layer.viewBox = result.view_box
-                layer.save()
-
-                layer_uri = "/locations/{}/layers/{}".format(location.id, layer.id)
-                asyncio.run_coroutine_threadsafe(dispatcher.dispatch_event("layers:updated", layer_uri, current=layer), loop=loop)
+            # TODO need to send an event
+#            if result.changes > 0:
+#                layer = location.Layer.find_by_id(result.layer_id)
+#                layer.imagePath = result.image_path
+#                layer.ready = True
+#                layer.version += 1
+#                layer.viewBox = result.view_box
+#                layer.save()
+#
+#                layer_uri = "/locations/{}/layers/{}".format(location.id, layer.id)
+#                asyncio.run_coroutine_threadsafe(dispatcher.dispatch_event("layers:updated", layer_uri, current=layer), loop=loop)
 
         future.add_done_callback(map_ready)
 
 
-@layers.route('/locations/<location_id>/layers/<layer_id>', methods=['PATCH'])
+@layers.route('/locations/<uuid:location_id>/layers/<int:layer_id>', methods=['PATCH'])
 async def update_layer(location_id, layer_id):
     """
     Update layer
@@ -286,31 +315,33 @@ async def update_layer(location_id, layer_id):
                     application/json:
                         schema: Layer
     """
-
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
-
-    layer = location.Layer.find_by_id(layer_id)
-    if layer is None:
-        raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
-
     body = await request.get_json()
+    if body is None:
+        body = {}
 
-    # Do not allow changing the object's ID
-    if 'id' in body:
-        del body['id']
+    async with g.session_maker() as session:
+        stmt = sa.select(Layer) \
+                .where(Layer.location_id == location_id) \
+                .where(Layer.id == layer_id)
 
-    layer.update(body)
-    layer.save()
+        result = await session.execute(stmt)
+        layer = result.scalar()
+        if layer is None:
+            raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
+
+        layer.update(body)
+        layer.updated_time = datetime.datetime.now()
+        await session.commit()
 
     if layer.type == "generated":
-        trigger_map_rebuild(location)
+        await trigger_map_rebuild(location_id)
 
-    return jsonify(layer), HTTPStatus.OK
+    result = layer_schema.dump(layer)
+
+    return jsonify(result), HTTPStatus.OK
 
 
-@layers.route('/locations/<location_id>/layers/<layer_id>/image', methods=['GET'])
+@layers.route('/locations/<uuid:location_id>/layers/<int:layer_id>/image', methods=['GET'])
 async def get_layer_file(location_id, layer_id):
     """
     Get a layer data file
@@ -376,42 +407,56 @@ async def get_layer_file(location_id, layer_id):
                     image/png: {}
                     image/svg+xml: {}
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+#    if "features" in request.args:
+#        # This custom map generation code will overlay markers for the positions of features.
+#        map_maker = MapMaker.build_maker(g.active_incident.id, location_id, show_features=True)
+#        future = current_app.mapping_pool.submit(map_maker.make_map)
+#        result = await asyncio.wrap_future(future)
+#        return await try_send_image(result.image_path, layer.contentType, request.headers)
+#
+#    elif "headsets" in request.args:
+#        # This custom map generation code will overlay markers for the positions of headsets.
+#        map_maker = MapMaker.build_maker(g.active_incident.id, location_id, show_headsets=True)
+#        future = current_app.mapping_pool.submit(map_maker.make_map)
+#        result = await asyncio.wrap_future(future)
+#        return await try_send_image(result.image_path, layer.contentType, request.headers)
+#
+#    elif "slices" in request.args:
+#        # Experimental mode: caller specifies a list of cutting plane levels,
+#        # e.g. "-1,-0.75,-0.5,-0.25,0,0.25,0.5"
+#        slices = [float(v) for v in request.args.get("slices").split(",")]
+#        map_maker = MapMaker.build_maker(g.active_incident.id, location_id, slices=slices)
+#        future = current_app.mapping_pool.submit(map_maker.make_map)
+#        result = await asyncio.wrap_future(future)
+#        return await try_send_image(result.image_path, layer.contentType, request.headers)
 
-    layer = location.Layer.find_by_id(layer_id)
-    if layer is None:
-        raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(Layer) \
+                .where(Layer.location_id == location_id) \
+                .where(Layer.id == layer_id)
 
-    if "features" in request.args:
-        # This custom map generation code will overlay markers for the positions of features.
-        map_maker = MapMaker.build_maker(g.active_incident.id, location_id, show_features=True)
-        future = current_app.mapping_pool.submit(map_maker.make_map)
-        result = await asyncio.wrap_future(future)
-        return await try_send_image(result.image_path, layer.contentType, request.headers)
+        result = await session.execute(stmt)
+        layer = result.scalar()
 
-    elif "headsets" in request.args:
-        # This custom map generation code will overlay markers for the positions of headsets.
-        map_maker = MapMaker.build_maker(g.active_incident.id, location_id, show_headsets=True)
-        future = current_app.mapping_pool.submit(map_maker.make_map)
-        result = await asyncio.wrap_future(future)
-        return await try_send_image(result.image_path, layer.contentType, request.headers)
+        # Fix for clients that hard-coded layer ID = 1,
+        # find the layer with lowest ID.
+        if layer is None and layer_id == 1:
+            stmt = sa.select(Layer) \
+                    .where(Layer.location_id == location_id) \
+                    .order_by(Layer.id) \
+                    .limit(1)
+            result = await session.execute(stmt)
+            layer = result.scalar()
 
-    elif "slices" in request.args:
-        # Experimental mode: caller specifies a list of cutting plane levels,
-        # e.g. "-1,-0.75,-0.5,-0.25,0,0.25,0.5"
-        slices = [float(v) for v in request.args.get("slices").split(",")]
-        map_maker = MapMaker.build_maker(g.active_incident.id, location_id, slices=slices)
-        future = current_app.mapping_pool.submit(map_maker.make_map)
-        result = await asyncio.wrap_future(future)
-        return await try_send_image(result.image_path, layer.contentType, request.headers)
+        if layer is None:
+            raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
 
-    else:
-        return await try_send_image(layer.imagePath, layer.contentType, request.headers)
+    layer_dir = get_layer_dir(location_id, layer.id)
+    layer_fname = "image" + ext_from_type(layer.image_type)
+    return await try_send_image(os.path.join(layer_dir, layer_fname), layer.image_type, request.headers)
 
 
-@layers.route('/locations/<location_id>/layers/<layer_id>/image', methods=['PUT'])
+@layers.route('/locations/<uuid:location_id>/layers/<int:layer_id>/image', methods=['PUT'])
 async def upload_layer_image(location_id, layer_id):
     """
     Upload a layer image
@@ -427,38 +472,48 @@ async def upload_layer_image(location_id, layer_id):
                 image/png: {}
                 image/svg+xml: {}
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(Layer) \
+                .where(Layer.location_id == location_id) \
+                .where(Layer.id == layer_id)
 
-    layer = location.Layer.find_by_id(layer_id)
-    if layer is None:
-        raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
+        result = await session.execute(stmt)
+        layer = result.scalar()
+        if layer is None:
+            raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
 
-    created = not os.path.exists(layer.imagePath)
+        layer_dir = get_layer_dir(location_id, layer_id)
+        os.makedirs(layer_dir, exist_ok=True)
 
-    request_files = await request.files
-    if 'image' in request_files:
-        await save_image(layer.imagePath, request_files['image'])
-        if layer.contentType == "image/svg+xml":
+        layer_fname = "image" + ext_from_type(layer.image_type)
+        path = os.path.join(layer_dir, layer_fname)
+
+        created = not os.path.exists(path)
+
+        request_files = await request.files
+        if 'image' in request_files:
+            await save_image(layer.imagePath, request_files['image'])
+        else:
+            body = await request.get_data()
+            with open(path, "wb") as output:
+                output.write(body)
+
+        if layer.image_type == "image/svg+xml":
             from svgelements import SVG
             vb = SVG.parse(layer.imagePath).viewbox
-            layer.viewBox.left = vb.x
-            layer.viewBox.top = vb.y
-            layer.viewBox.width = vb.width
-            layer.viewBox.height = vb.height
-    else:
-        body = await request.get_data()
-        with open(layer.imagePath, "wb") as output:
-            output.write(body)
+            layer.boundary_left = vb.x
+            layer.boundary_top = vb.y
+            layer.boundary_width = vb.width
+            layer.boundary_height = vb.height
 
-    layer.imageUrl = "/locations/{}/layers/{}/image".format(location_id, layer_id)
-    layer.ready = True
-    layer.updated = time.time()
-    layer.version += 1
-    layer.save()
+        layer.updated_time = datetime.datetime.now()
+        layer.version += 1
+
+        await session.commit()
+
+    result = layer_schema.dump(layer)
 
     if created:
-        return jsonify(layer), HTTPStatus.CREATED
+        return jsonify(result), HTTPStatus.CREATED
     else:
-        return jsonify(layer), HTTPStatus.OK
+        return jsonify(result), HTTPStatus.OK

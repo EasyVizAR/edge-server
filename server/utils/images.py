@@ -6,6 +6,7 @@ import tempfile
 from quart import send_from_directory
 from werkzeug import exceptions
 
+
 # Module cairosvg does not work on Windows,
 # check if it can be imported (will fail many tests otherwise)
 cairosvg_imported = True
@@ -13,6 +14,18 @@ try:
     import cairosvg
 except:
     cairosvg_imported = False
+
+
+def ext_from_type(ctype):
+    if ctype == "image/png":
+        return ".png"
+    elif ctype == "image/jpeg":
+        return ".jpeg"
+    elif ctype == "image/svg+xml":
+        return ".svg"
+    else:
+        return None
+
 
 def hash_file(path, block_size=2**20, method=hashlib.sha1):
     result = method()

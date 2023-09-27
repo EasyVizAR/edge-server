@@ -24,6 +24,9 @@ Tables created:
 """
 
 import datetime
+import operator
+import os
+import shutil
 import uuid
 
 from alembic import op
@@ -71,9 +74,10 @@ def create_tables():
         sa.Column('name', sa.String(), nullable=False),
         sa.Column('type', sa.String(), nullable=False),
         sa.Column('color', sa.String(), nullable=False),
-        sa.Column('last_location_id', sa.Uuid(), sa.ForeignKey('locations.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
-        sa.Column('last_tracking_session_id', sa.Integer(), sa.ForeignKey('tracking_sessions.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
-        sa.Column('last_device_pose_id', sa.Integer(), sa.ForeignKey('device_poses.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
+        sa.Column('location_id', sa.Uuid(), sa.ForeignKey('locations.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
+        sa.Column('tracking_session_id', sa.Integer(), sa.ForeignKey('tracking_sessions.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
+        sa.Column('device_pose_id', sa.Integer(), sa.ForeignKey('device_poses.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
+        sa.Column('navigation_target_id', sa.Integer(), sa.ForeignKey('map_markers.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
         sa.Column('created_time', sa.DateTime(), nullable=False),
         sa.Column('updated_time', sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint('id'),
@@ -81,19 +85,19 @@ def create_tables():
     created_tables[table.name] = table
 
     table = op.create_table('tracking_sessions',
-        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
         sa.Column('mobile_device_id', sa.Uuid(), sa.ForeignKey('mobile_devices.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
         sa.Column('incident_id', sa.Uuid(), sa.ForeignKey('incidents.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
         sa.Column('location_id', sa.Uuid(), sa.ForeignKey('locations.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
         sa.Column('user_id', sa.Uuid(), sa.ForeignKey('users.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
         sa.Column('created_time', sa.DateTime(), nullable=False),
         sa.Column('updated_time', sa.DateTime(), nullable=False),
-        sa.PrimaryKeyConstraint('mobile_device_id', 'id')
+        sa.PrimaryKeyConstraint('id')
     )
     created_tables[table.name] = table
 
     table = op.create_table('device_poses',
-        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
         sa.Column('tracking_session_id', sa.Integer(), sa.ForeignKey('tracking_sessions.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
         sa.Column('mobile_device_id', sa.Uuid(), sa.ForeignKey('mobile_devices.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
         sa.Column('position_x', sa.Float(), nullable=False),
@@ -104,16 +108,15 @@ def create_tables():
         sa.Column('orientation_z', sa.Float(), nullable=False),
         sa.Column('orientation_w', sa.Float(), nullable=False),
         sa.Column('created_time', sa.DateTime(), nullable=False),
-        sa.PrimaryKeyConstraint('mobile_device_id', 'tracking_session_id', 'id')
+        sa.PrimaryKeyConstraint('id')
     )
+
     created_tables[table.name] = table
 
     table = op.create_table('locations',
         sa.Column('id', sa.Uuid(), nullable=False),
         sa.Column('name', sa.String(), nullable=False),
         sa.Column('description', sa.String(), nullable=False),
-        sa.Column('last_layer_id', sa.Integer(), sa.ForeignKey('layers.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
-        sa.Column('last_map_marker_id', sa.Integer(), sa.ForeignKey('map_markers.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
         sa.Column('created_time', sa.DateTime(), nullable=False),
         sa.Column('updated_time', sa.DateTime(), nullable=False),
         sa.PrimaryKeyConstraint('id')
@@ -121,6 +124,7 @@ def create_tables():
     created_tables[table.name] = table
 
     table = op.create_table('device_configurations',
+        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
         sa.Column('location_id', sa.Uuid(), sa.ForeignKey('locations.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=True),
         sa.Column('mobile_device_id', sa.Uuid(), sa.ForeignKey('mobile_devices.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=True),
         sa.Column('enable_mesh_capture', sa.Boolean(), nullable=True),
@@ -128,16 +132,17 @@ def create_tables():
         sa.Column('enable_extended_capture', sa.Boolean(), nullable=True),
         sa.Column('created_time', sa.DateTime(), nullable=False),
         sa.Column('updated_time', sa.DateTime(), nullable=False),
-        sa.PrimaryKeyConstraint('location_id', 'mobile_device_id')
+        sa.PrimaryKeyConstraint('id')
     )
     created_tables[table.name] = table
 
     table = op.create_table('layers',
-        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
         sa.Column('location_id', sa.Uuid(), sa.ForeignKey('locations.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
         sa.Column('name', sa.String(), nullable=False),
         sa.Column('type', sa.String(), nullable=False),
         sa.Column('version', sa.Integer(), nullable=False),
+        sa.Column('image_type', sa.String(), nullable=False),
         sa.Column('boundary_left', sa.Float(), nullable=False),
         sa.Column('boundary_top', sa.Float(), nullable=False),
         sa.Column('boundary_width', sa.Float(), nullable=False),
@@ -145,12 +150,12 @@ def create_tables():
         sa.Column('reference_height', sa.Float(), nullable=False),
         sa.Column('created_time', sa.DateTime(), nullable=False),
         sa.Column('updated_time', sa.DateTime(), nullable=False),
-        sa.PrimaryKeyConstraint('location_id', 'id')
+        sa.PrimaryKeyConstraint('id')
     )
     created_tables[table.name] = table
 
     table = op.create_table('map_markers',
-        sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
         sa.Column('location_id', sa.Uuid(), sa.ForeignKey('locations.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
         sa.Column('user_id', sa.Uuid(), sa.ForeignKey('users.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
         sa.Column('type', sa.String(), nullable=False),
@@ -161,7 +166,7 @@ def create_tables():
         sa.Column('position_z', sa.Float(), nullable=False),
         sa.Column('created_time', sa.DateTime(), nullable=False),
         sa.Column('updated_time', sa.DateTime(), nullable=False),
-        sa.PrimaryKeyConstraint('location_id', 'id')
+        sa.PrimaryKeyConstraint('id')
     )
     created_tables[table.name] = table
 
@@ -176,14 +181,13 @@ def create_tables():
     created_tables[table.name] = table
 
     table = op.create_table('photo_records',
-        sa.Column('id', sa.Uuid(), nullable=False),
+        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column('incident_id', sa.Uuid(), sa.ForeignKey('incidents.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
         sa.Column('location_id', sa.Uuid(), sa.ForeignKey('locations.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
-        sa.Column('queue_name', sa.String(), sa.ForeignKey('queues.name', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
         sa.Column('mobile_device_id', sa.Uuid(), sa.ForeignKey('mobile_devices.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
         sa.Column('tracking_session_id', sa.Integer(), sa.ForeignKey('tracking_session.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
         sa.Column('device_pose_id', sa.Integer(), sa.ForeignKey('device_poses.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
-        sa.Column('last_photo_annotation_id', sa.Integer(), sa.ForeignKey('photo_annotations.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
-        sa.Column('last_detection_task_id', sa.Integer(), sa.ForeignKey('detection_tasks.id', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
+        sa.Column('queue_name', sa.String(), sa.ForeignKey('queues.name', onupdate='CASCADE', ondelete='SET NULL'), nullable=True),
         sa.Column('priority', sa.Integer(), nullable=False),
         sa.Column('retention', sa.String(), nullable=False),
         sa.Column('created_time', sa.DateTime(), nullable=False),
@@ -194,15 +198,17 @@ def create_tables():
     created_tables[table.name] = table
 
     table = op.create_table('photo_files',
+        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column('photo_record_id', sa.Integer(), sa.ForeignKey('photo_records.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
         sa.Column('name', sa.String(), nullable=False),
-        sa.Column('photo_record_id', sa.Uuid(), sa.ForeignKey('photo_records.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
         sa.Column('purpose', sa.String(), nullable=False),
         sa.Column('content_type', sa.String(), nullable=False),
         sa.Column('height', sa.Integer(), nullable=False),
         sa.Column('width', sa.Integer(), nullable=False),
         sa.Column('created_time', sa.DateTime(), nullable=False),
         sa.Column('updated_time', sa.DateTime(), nullable=False),
-        sa.PrimaryKeyConstraint('photo_record_id', 'name')
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('photo_record_id', 'name')
     )
     created_tables[table.name] = table
 
@@ -216,8 +222,8 @@ def create_tables():
     created_tables[table.name] = table
 
     table = op.create_table('photo_annotations',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('photo_record_id', sa.Uuid(), sa.ForeignKey('photo_records.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
+        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column('photo_record_id', sa.Integer(), sa.ForeignKey('photo_records.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
         sa.Column('detection_task_id', sa.Integer(), sa.ForeignKey('detection_tasks.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
         sa.Column('label', sa.String(), nullable=False),
         sa.Column('confidence', sa.Float(), nullable=False),
@@ -226,13 +232,13 @@ def create_tables():
         sa.Column('boundary_width', sa.Float(), nullable=False),
         sa.Column('boundary_height', sa.Float(), nullable=False),
         sa.Column('created_time', sa.DateTime(), nullable=False),
-        sa.PrimaryKeyConstraint('photo_record_id', 'id')
+        sa.PrimaryKeyConstraint('id')
     )
     created_tables[table.name] = table
 
     table = op.create_table('detection_tasks',
-        sa.Column('id', sa.Integer(), nullable=False),
-        sa.Column('photo_record_id', sa.Uuid(), sa.ForeignKey('photo_records.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
+        sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+        sa.Column('photo_record_id', sa.Integer(), sa.ForeignKey('photo_records.id', onupdate='CASCADE', ondelete='CASCADE'), nullable=False),
         sa.Column('model_family', sa.String(), nullable=False),
         sa.Column('model_name', sa.String(), nullable=False),
         sa.Column('engine_name', sa.String(), nullable=False),
@@ -242,7 +248,7 @@ def create_tables():
         sa.Column('execution_duration', sa.Float(), nullable=False),
         sa.Column('postprocess_duration', sa.Float(), nullable=False),
         sa.Column('created_time', sa.DateTime(), nullable=False),
-        sa.PrimaryKeyConstraint('photo_record_id', 'id')
+        sa.PrimaryKeyConstraint('id')
     )
     created_tables[table.name] = table
 
@@ -254,7 +260,8 @@ def create_tables():
         sa.Column('type', sa.String(), nullable=False),
         sa.Column('created_time', sa.DateTime(), nullable=False),
         sa.Column('updated_time', sa.DateTime(), nullable=False),
-        sa.PrimaryKeyConstraint('id')
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('name')
     )
     created_tables[table.name] = table
 
@@ -263,6 +270,9 @@ def create_tables():
 
 def upgrade() -> None:
     conn = op.get_bind()
+
+    locations_dir = os.path.join('data', 'locations')
+    os.makedirs(locations_dir, exist_ok=True)
 
     tables = create_tables()
 
@@ -329,9 +339,9 @@ def upgrade() -> None:
             'name': headset.name,
             'type': headset.type,
             'color': headset.color,
-            'last_location_id': None,
-            'last_tracking_session_id': None,
-            'last_device_pose_id': None,
+            'location_id': None,
+            'tracking_session_id': None,
+            'device_pose_id': None,
             'created_time': datetime.datetime.fromtimestamp(headset.created),
             'updated_time': datetime.datetime.fromtimestamp(headset.updated)
         }
@@ -339,7 +349,7 @@ def upgrade() -> None:
         mobile_devices_by_id[new_mobile_device['id']] = new_mobile_device
 
         try:
-            new_mobile_device['last_location_id'] = uuid.UUID(headset.location_id)
+            new_mobile_device['location_id'] = uuid.UUID(headset.location_id)
         except:
             pass
 
@@ -359,9 +369,22 @@ def upgrade() -> None:
                 print("Warning: skipping headset {} with missing entry".format(headset.id))
                 continue
 
+            # Check-in IDS may be corrupted or missing in the pose_changes tables.
+            # Instead, infer the end times of checkins and search for pose changes
+            # that were recorded between the start and end time.
+            checkins = []
             for checkin in headset.CheckIn.find():
+                checkins.append(checkin)
+            checkins.sort(key=operator.attrgetter("start_time"))
+            for i, checkin in enumerate(checkins):
+                if i+1 < len(checkins):
+                    checkin.end_time = checkins[i+1].start_time
+                else:
+                    checkin.end_time = float("inf")
+
+            for checkin in checkins:
                 new_tracking_session = {
-                    'id': checkin.id,
+                    'id': len(tracking_sessions) + 1,
                     'mobile_device_id': mobile_device['id'],
                     'incident_id': new_incident['id'],
                     'location_id': None,
@@ -376,16 +399,17 @@ def upgrade() -> None:
                     print("Warning: skipping check-in {} for headset {} with bad location_id ({})".format(checkin.id, headset.id, checkin.location_id))
                     continue
 
+                # Try to find the last matching check in / tracking session ID.
+                if mobile_device['location_id'] == new_tracking_session['location_id']:
+                    mobile_device['tracking_session_id'] = new_tracking_session['id']
+
                 tracking_sessions.append(new_tracking_session)
 
-                if new_tracking_session['id'] > none_as_zero(mobile_device['last_tracking_session_id']):
-                    mobile_device['last_tracking_session_id'] = new_tracking_session['id']
-
-                query = sa.text('SELECT id,time,position_x,position_y,position_z,orientation_x,orientation_y,orientation_z,orientation_w FROM pose_changes WHERE incident_id="{}" AND headset_id="{}" AND check_in_id="{}"'.format(incident.id, headset.id, checkin.id))
+                query = sa.text('SELECT id,time,position_x,position_y,position_z,orientation_x,orientation_y,orientation_z,orientation_w FROM pose_changes WHERE incident_id="{}" AND headset_id="{}" AND time>="{}" AND time <"{}"'.format(incident.id, headset.id, checkin.start_time, checkin.end_time))
                 res = conn.execute(query)
                 for row in res.fetchall():
                     new_device_pose = {
-                        'id': row[0],
+                        'id': len(device_poses) + 1,
                         'tracking_session_id': new_tracking_session['id'],
                         'mobile_device_id': mobile_device['id'],
                         'position_x': row[2],
@@ -399,8 +423,9 @@ def upgrade() -> None:
                     }
                     device_poses.append(new_device_pose)
 
-                    if new_device_pose['id'] > none_as_zero(mobile_device['last_device_pose_id']):
-                        mobile_device['last_device_pose_id'] = new_device_pose['id']
+                    # Try to find the last appropriate device pose ID
+                    if mobile_device['location_id'] == new_tracking_session['location_id']:
+                        mobile_device['device_pose_id'] = new_device_pose['id']
 
                     delete_pose_change_ids.append(row[0])
 
@@ -409,10 +434,8 @@ def upgrade() -> None:
                 'id': uuid.UUID(location.id),
                 'name': location.name,
                 'description': location.description,
-                'last_layer_id': None,
-                'last_map_marker_id': None,
                 'created_time': datetime.datetime.fromtimestamp(location.last_surface_update),
-                'updated_time': datetime.datetime.fromtimestamp(location.last_surface_update),
+                'updated_time': datetime.datetime.fromtimestamp(location.last_surface_update)
             }
             locations.append(new_location)
 
@@ -427,12 +450,19 @@ def upgrade() -> None:
             }
             device_configurations.append(new_device_configuration)
 
+            location_dir = os.path.join(locations_dir, new_location['id'].hex)
+            os.makedirs(location_dir, exist_ok=True)
+
+            src = os.path.join(location.get_dir(), 'model.obj')
+            if os.path.exists(src):
+                shutil.copy2(src, location_dir)
+
             if new_location['description'] is None:
                 new_location['description'] = ""
 
             for feature in location.Feature.find():
                 new_map_marker = {
-                    'id': feature.id,
+                    'id': len(map_markers) + 1,
                     'location_id': new_location['id'],
                     'user_id': None,
                     'type': feature.type,
@@ -453,16 +483,21 @@ def upgrade() -> None:
                     # Created by default headset user
                     new_map_marker['user_id'] = users[0]['id']
 
-                if new_map_marker['id'] > none_as_zero(new_location['last_map_marker_id']):
-                    new_location['last_map_marker_id'] = new_map_marker['id']
+            location_dir = os.path.join(locations_dir, new_location['id'].hex)
+            os.makedirs(location_dir, exist_ok=True)
+
+            src = os.path.join(location.get_dir(), 'model.obj')
+            if os.path.exists(src):
+                shutil.copy2(src, location_dir)
 
             for layer in location.Layer.find():
                 new_layer = {
-                    'id': layer.id,
+                    'id': len(layers) + 1,
                     'location_id': new_location['id'],
                     'name': layer.name,
                     'type': layer.type,
                     'version': layer.version,
+                    'image_type': layer.contentType,
                     'boundary_left': layer.viewBox.left,
                     'boundary_top': layer.viewBox.top,
                     'boundary_width': layer.viewBox.width,
@@ -473,11 +508,17 @@ def upgrade() -> None:
                 }
                 layers.append(new_layer)
 
-                if new_layer['id'] > none_as_zero(new_location['last_layer_id']):
-                    new_location['last_layer_id'] = new_layer['id']
+                layer_dir = os.path.join(location_dir, 'layers', '{:08x}'.format(new_layer['id']))
+                if layer.imagePath is not None and os.path.exists(layer.imagePath):
+                    os.makedirs(layer_dir, exist_ok=True)
+                    ext = os.path.splitext(layer.imagePath)[-1]
+                    shutil.copy2(layer.imagePath, os.path.join(layer_dir, 'image'+ext))
 
             for scene in location.Scene.find():
                 pass
+
+            surfaces_dir = os.path.join(location_dir, 'surfaces')
+            os.makedirs(surfaces_dir, exist_ok=True)
 
             for surface in location.Surface.find():
                 new_surface = {
@@ -501,22 +542,29 @@ def upgrade() -> None:
                 except:
                     pass
 
+                src = os.path.join(surface.get_dir(), 'surface.ply')
+                if os.path.exists(src):
+                    dest = os.path.join(surfaces_dir, "{}.ply".format(new_surface['id'].hex))
+                    shutil.copy2(src, dest)
+
         for photo in incident.Photo.find():
             new_photo_record = {
-                'id': uuid.UUID(photo.id),
+                'id': len(photo_records) + 1,
+                'incident_id': None,
                 'location_id': None,
                 'queue_name': "done",
                 'mobile_device_id': None,
                 'tracking_session_id': None,
                 'device_pose_id': None,
-                'last_photo_annotation_id': None,
-                'last_detection_task_id': None,
                 'priority': photo.priority,
                 'retention': photo.retention,
                 'created_time': datetime.datetime.fromtimestamp(photo.created),
                 'updated_time': datetime.datetime.fromtimestamp(photo.updated),
                 'expiration_time': datetime.datetime.max
             }
+
+            # Assume the last incident for migrating the photos
+            new_photo_record['incident_id'] = incidents[-1]['id']
 
             try:
                 new_photo_record['location_id'] = uuid.UUID(photo.camera_location_id)
@@ -530,6 +578,15 @@ def upgrade() -> None:
                 new_photo_record['mobile_device_id'] = uuid.UUID(photo.created_by)
             except:
                 pass
+
+            photo_dir = os.path.join(locations_dir, new_photo_record['location_id'].hex, 'photos', '{:08x}'.format(new_photo_record['id']))
+            os.makedirs(photo_dir, exist_ok=True)
+
+            for fname in os.listdir(photo.get_dir()):
+                if fname == 'photo.json':
+                    continue
+                path = os.path.join(photo.get_dir(), fname)
+                shutil.copy2(path, photo_dir)
 
             # Find the closest pose_change record based on time, and if it is
             # close enough, use the associated pose_change_id, and check_in_id.
@@ -552,6 +609,7 @@ def upgrade() -> None:
 
             for file in photo.files:
                 new_photo_file = {
+                    'id': len(photo_files) + 1,
                     'name': file.name,
                     'photo_record_id': new_photo_record['id'],
                     'purpose': file.purpose,
@@ -565,7 +623,7 @@ def upgrade() -> None:
 
             if photo.detector is not None:
                 new_detection_task = {
-                    'id': 1,
+                    'id': len(detection_tasks) + 1,
                     'photo_record_id': new_photo_record['id'],
                     'model_family': photo.detector.model_repo,
                     'model_name': photo.detector.model_name,
@@ -586,13 +644,11 @@ def upgrade() -> None:
                 if photo.detector.nms_duration > photo.detector.postprocess_duration:
                     new_detection_task['postprocess_duration'] = photo.detector.nms_duration
 
-                new_photo_record['last_detection_task_id'] = new_detection_task['id']
-
-                for i, annotation in enumerate(photo.annotations):
+                for annotation in photo.annotations:
                     new_photo_annotation = {
-                        'id': i+1,
+                        'id': len(photo_annotations) + 1,
                         'photo_record_id': new_photo_record['id'],
-                        'detection_task_id': new_photo_record['last_detection_task_id'],
+                        'detection_task_id': detection_tasks[-1]['id'],
                         'label': annotation.label,
                         'confidence': annotation.confidence,
                         'boundary_left': annotation.boundary.left,
@@ -602,8 +658,6 @@ def upgrade() -> None:
                         'created_time': new_photo_record['updated_time']
                     }
                     photo_annotations.append(new_photo_annotation)
-
-                    new_photo_record['last_photo_annotation_id'] = new_photo_annotation['id']
 
     op.bulk_insert(tables['photo_queues'], photo_queues)
     op.bulk_insert(tables['users'], users)

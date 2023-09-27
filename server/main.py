@@ -33,6 +33,7 @@ from server.resources.db import Base
 
 from server.resources.abstractresource import AbstractCollection
 
+
 static_folder = os.environ.get("VIZAR_STATIC_FOLDER", "./frontend/build/")
 
 app = Quart(__name__, static_folder=static_folder, static_url_path='/')
@@ -115,7 +116,8 @@ def before_first_request():
 
 
 @app.before_request
-def before_request():
+async def before_request():
+    g.data_dir = data_dir
     g.environment = os.environ.get("QUART_ENV", "production")
 
     # This will be set by the authenticator if the user
@@ -131,11 +133,12 @@ def before_request():
     g.session_maker = session_maker
 
     # Make sure an active incident exists and is assigned to g.active_incident.
-    initialize_incidents(app)
+    await initialize_incidents(app)
 
 
 @app.before_websocket
-def before_websocket():
+async def before_websocket():
+    g.data_dir = data_dir
     g.environment = os.environ.get("QUART_ENV", "production")
 
     # This will be set by the authenticator if the user
@@ -151,4 +154,4 @@ def before_websocket():
     g.session_maker = session_maker
 
     # Make sure an active incident exists and is assigned to g.active_incident.
-    initialize_incidents(app)
+    await initialize_incidents(app)

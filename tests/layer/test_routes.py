@@ -123,19 +123,16 @@ async def test_layer_upload():
         assert isinstance(layer, dict)
         assert layer['id'] is not None
         assert layer['type'] == "uploaded"
-        assert layer['ready'] is False
 
         layer_url = "{}/{}".format(layers_url, layer['id'])
 
         # Test upload process
-        print(layer['imageUrl'])
         response = await client.put(layer['imageUrl'], data="test")
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         layer2 = await response.get_json()
         assert isinstance(layer, dict)
         assert int_equal(layer2['id'], layer['id'])
-        assert layer2['ready'] is True
         assert layer2['updated'] > layer['updated']
 
         # Test downloading the file

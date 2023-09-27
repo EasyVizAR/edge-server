@@ -1,41 +1,69 @@
+import datetime
+import uuid
+
 from http import HTTPStatus
 
 from quart import Blueprint, g, make_response, jsonify, current_app, redirect, request
 from werkzeug import exceptions
 
+import marshmallow
+import sqlalchemy as sa
+
+from server.utils.response import maybe_wrap
+
+from .models import Incident, IncidentSchema
+
 
 incidents = Blueprint('incidents', __name__)
 
+incident_schema = IncidentSchema()
 
-def initialize_incidents(app):
+
+async def initialize_incidents(app):
     """
     Initialize incidents module at application startup.
 
     This ensures that at least one incident exists, and we determine the ID of
     the current active incident.
     """
-    incident = None
+    g.active_incident = await find_active_incident(app)
+    g.active_incident_id = g.active_incident.id
+    app.config['ACTIVE_INCIDENT_ID'] = g.active_incident.id
 
-    # First check if an active incident is configured globally.
+
+async def find_active_incident(app):
     incident_id = app.config.get('ACTIVE_INCIDENT_ID')
-    if incident_id is not None:
-        incident = g.Incident.find_by_id(incident_id)
+    if isinstance(incident_id, str):
+        try:
+            incident_id = uuid.UUID(app.config.get('ACTIVE_INCIDENT_ID'))
+        except:
+            incident_id = None
 
-    # Active incident may not be configured, or it may have been deleted.
-    if incident is None:
-        incident = g.Incident.find_newest()
+    async with g.session_maker() as session:
+        if incident_id is not None:
+            stmt = sa.select(Incident).where(Incident.id == incident_id).limit(1)
+            result = await session.execute(stmt)
+            incident = result.scalar()
 
-    # If still no incident is found, create one.
-    if incident is None:
-        incident = g.Incident(name="Incident 1")
-        incident.save()
+            if incident is not None:
+                return incident
 
-    set_active_incident(app, incident)
+        stmt = sa.select(Incident).order_by(Incident.updated_time.desc()).limit(1)
+        result = await session.execute(stmt)
+        incident = result.scalar()
+
+        if incident is None:
+            incident = Incident(id=uuid.uuid4())
+            session.add(incident)
+            await session.commit()
+
+        return incident
 
 
 def set_active_incident(app, incident):
     app.config['ACTIVE_INCIDENT_ID'] = incident.id
     g.active_incident = incident
+    g.active_incident_id = incident.id
 
 
 @incidents.route('/incidents', methods=['GET'])
@@ -61,16 +89,14 @@ async def list_incidents():
                             type: array
                             items: Incident
     """
-    incidents = g.Incident.find()
+    items = []
+    async with g.session_maker() as session:
+        stmt = sa.select(Incident)
+        result = await session.execute(stmt)
+        for row in result.scalars():
+            items.append(incident_schema.dump(row))
 
-    # Wrap the maps list if the caller requested an envelope.
-    query = request.args
-    if "envelope" in query:
-        result = {query.get("envelope"): incidents}
-    else:
-        result = incidents
-
-    return jsonify(result), HTTPStatus.OK
+    return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
 
 @incidents.route('/incidents', methods=['POST'])
@@ -97,16 +123,22 @@ async def create_incident():
                         schema: Incident
     """
     body = await request.get_json()
+    body['id'] = uuid.uuid4()
 
-    incident = g.Incident.load(body, replace_id=True)
-    incident.save()
+    incident = incident_schema.load(body, transient=True)
+
+    async with g.session_maker() as session:
+        session.add(incident)
+        await session.commit()
 
     set_active_incident(current_app, incident)
 
-    return jsonify(incident), HTTPStatus.CREATED
+    result = incident_schema.dump(incident)
+
+    return jsonify(result), HTTPStatus.CREATED
 
 
-@incidents.route('/incidents/<incident_id>', methods=['DELETE'])
+@incidents.route('/incidents/<uuid:incident_id>', methods=['DELETE'])
 async def delete_incident(incident_id):
     """
     Delete incident
@@ -127,16 +159,25 @@ async def delete_incident(incident_id):
                     application/json:
                         schema: Incident
     """
-    incident = g.Incident.find_by_id(incident_id)
-    if incident is None:
-        raise exceptions.NotFound(description="Incident {} was not found".format(incident_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(Incident) \
+                .where(Incident.id == incident_id) \
+                .limit(1)
 
-    incident.delete()
+        result = await session.execute(stmt)
+        incident = result.scalar()
+        if incident is None:
+            raise exceptions.NotFound(description="Incident {} was not found".format(incident_id))
 
-    return jsonify(incident), HTTPStatus.OK
+        await session.delete(incident)
+        await session.commit()
+
+    result = incident_schema.dump(incident)
+
+    return jsonify(result), HTTPStatus.OK
 
 
-@incidents.route('/incidents/<incident_id>', methods=['GET'])
+@incidents.route('/incidents/<uuid:incident_id>', methods=['GET'])
 async def get_incident(incident_id):
     """
     Get incident
@@ -157,14 +198,22 @@ async def get_incident(incident_id):
                     application/json:
                         schema: Incident
     """
-    incident = g.Incident.find_by_id(incident_id)
-    if incident is None:
-        raise exceptions.NotFound(description="Incident {} was not found".format(incident_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(Incident) \
+                .where(Incident.id == incident_id) \
+                .limit(1)
 
-    return jsonify(incident), HTTPStatus.OK
+        result = await session.execute(stmt)
+        incident = result.scalar()
+        if incident is None:
+            raise exceptions.NotFound(description="Incident {} was not found".format(incident_id))
+
+    result = incident_schema.dump(incident)
+
+    return jsonify(result), HTTPStatus.OK
 
 
-@incidents.route('/incidents/<incident_id>', methods=['PUT'])
+@incidents.route('/incidents/<uuid:incident_id>', methods=['PUT'])
 async def replace_incident(incident_id):
     """
     Replace incident
@@ -193,20 +242,41 @@ async def replace_incident(incident_id):
                         schema: Incident
     """
     body = await request.get_json()
+    if body is None:
+        body = {}
     body['id'] = incident_id
 
-    incident = g.Incident.load(body)
-    created = incident.save()
+    async with g.session_maker() as session:
+        stmt = sa.select(Incident) \
+                .where(Incident.id == incident_id) \
+                .limit(1)
+
+        result =await session.execute(stmt)
+        incident = result.scalar()
+
+        if incident is None:
+            incident = incident_schema.load(body, transient=True)
+            session.add(incident)
+            created = True
+
+        else:
+            incident.update(body)
+            incident.updated_time = datetime.datetime.now()
+            created = False
+
+        await session.commit()
+
+    result = incident_schema.dump(incident)
 
     set_active_incident(current_app, incident)
 
     if created:
-        return jsonify(incident), HTTPStatus.CREATED
+        return jsonify(result), HTTPStatus.CREATED
     else:
-        return jsonify(incident), HTTPStatus.OK
+        return jsonify(result), HTTPStatus.OK
 
 
-@incidents.route('/incidents/<incident_id>', methods=['PATCH'])
+@incidents.route('/incidents/<uuid:incident_id>', methods=['PATCH'])
 async def update_incident(incident_id):
     """
     Update incident
@@ -234,21 +304,25 @@ async def update_incident(incident_id):
                     application/json:
                         schema: Incident
     """
-
-    incident = g.Incident.find_by_id(incident_id)
-    if incident is None:
-        raise exceptions.NotFound(description="Incident {} was not found".format(incident_id))
-
     body = await request.get_json()
 
-    # Do not allow changing the object's ID
-    if 'id' in body:
-        del body['id']
+    async with g.session_maker() as session:
+        stmt = sa.select(Incident) \
+                .where(Incident.id == incident_id) \
+                .limit(1)
 
-    incident.update(body)
-    incident.save()
+        result = await session.execute(stmt)
+        incident = result.scalar()
+        if incident is None:
+            raise exceptions.NotFound(description="Incident {} was not found".format(incident_id))
 
-    return jsonify(incident), HTTPStatus.OK
+        incident.update(body)
+        incident.updated_time = datetime.datetime.now()
+        await session.commit()
+
+    result = incident_schema.dump(incident)
+
+    return jsonify(result), HTTPStatus.OK
 
 
 @incidents.route('/incidents/active', methods=['GET'])
@@ -271,7 +345,8 @@ async def get_active_incident():
         return jsonify({'message': 'Active incident not found'}), HTTPStatus.NOT_FOUND
 
     else:
-        return jsonify(g.active_incident), HTTPStatus.OK
+        result = incident_schema.dump(g.active_incident)
+        return jsonify(result), HTTPStatus.OK
 
 
 @incidents.route('/incidents/active', methods=['PUT'])
@@ -304,21 +379,7 @@ async def change_active_incident():
                      "severity": "Warning"}),
             HTTPStatus.BAD_REQUEST)
 
-    incident = g.Incident.load(body)
-
+    incident = incident_schema.load(body, transient=True)
     set_active_incident(current_app, incident)
-
-    return jsonify(incident), HTTPStatus.OK
-
-
-#
-# The following functions are either deprecated or untested.
-#
-
-
-@incidents.route('/incidents/history', methods=['GET'])
-async def get_past_incident_info():
-    """
-    (deprecated) caller should use GET /incidents to get list of incidents
-    """
-    return redirect("/incidents")
+    result = incident_schema.dump(incident)
+    return jsonify(result), HTTPStatus.OK

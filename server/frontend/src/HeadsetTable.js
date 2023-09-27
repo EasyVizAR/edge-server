@@ -40,33 +40,17 @@ function HeadsetTable(props) {
   const navigationTargetOptions = ((props) => {
     const options = [
       {
+        id: null,
         name: "None",
-        value: null
       }
     ];
 
     if (Object.keys(props.features).length > 0) {
       Object.entries(props.features).map(([id, feature]) => {
         options.push({
-          name: "Feature: " + feature.name,
-          value: {
-            type: "feature",
-            target_id: feature.id,
-            position: feature.position
-          }
-        });
-      });
-    }
-
-    if (Object.keys(props.headsets).length > 0) {
-      Object.entries(props.headsets).map(([id, headset]) => {
-        options.push({
-          name: "Headset: " + headset.name,
-          value: {
-            type: "headset",
-            target_id: headset.id,
-            position: headset.position
-          }
+          id: feature.id,
+          name: feature.id + " - " + feature.name,
+          position: feature.position,
         });
       });
     }
@@ -136,7 +120,7 @@ function HeadsetTable(props) {
         'name': newName,
         'color': newColor,
         'type': formReferences.type.current.value,
-        'navigation_target': navigationTargetOptions[navigationTargetIndex].value
+        'navigation_target_id': navigationTargetOptions[navigationTargetIndex].id
       })
     };
 
@@ -254,7 +238,7 @@ function HeadsetTable(props) {
             <th rowSpan='2'>Type</th>
             <th colSpan='3'>Position</th>
             <th colSpan='4'>Orientation</th>
-            <th colSpan='2'>Navigation</th>
+            <th colSpan='2'>Target</th>
             <th colSpan='1'></th>
           </tr>
           <tr>
@@ -265,8 +249,8 @@ function HeadsetTable(props) {
             <th>Y</th>
             <th>Z</th>
             <th>W</th>
-            <th>Type</th>
-            <th>Target</th>
+            <th>ID</th>
+            <th>Name</th>
             <th></th>
           </tr>
         </thead>
@@ -351,7 +335,7 @@ function HeadsetTable(props) {
                       </td>
                     ) : (
                       <React.Fragment>
-                        <td>{headset.navigation_target ? headset.navigation_target.type : 'None'}</td>
+                        <td>{headset.navigation_target_id ? headset.navigation_target_id : '0'}</td>
                         <td><NavigationTarget target={headset.navigation_target} /></td>
                       </React.Fragment>
                     )
