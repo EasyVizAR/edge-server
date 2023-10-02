@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {ListGroup, Table} from 'react-bootstrap';
 import { useParams } from 'react-router';
 import {Helmet} from 'react-helmet';
+import MapContainer from "./MapContainer";
 import './PhotoWrapper.css';
 
 function PhotoWrapper(props) {
@@ -162,9 +163,26 @@ function PhotoWrapper(props) {
             </tr>
           </tbody>
         </Table>
-        <p>Mouse over a row to highlight that object in the image.</p>
       </div>
     );
+  }
+
+  function PhotoMap() {
+    if (!photo) {
+      return <p>The photo information is not ready or could not be found.</p>;
+    }
+
+    if (!photo.camera_location_id) {
+      return <p>The photo has no detector information to show.</p>;
+    }
+
+    var photos = {};
+    photos[photo.id] = photo;
+
+    return <MapContainer id="map-container"
+            locationId={photo.camera_location_id}
+            photos={photos} showPhotos={true}
+            defaultIconColor="#aa0000" />
   }
 
   return (
@@ -175,19 +193,22 @@ function PhotoWrapper(props) {
 
       <div className="container-lg">
         <div className="row align-items-center">
-          <div className="col-lg-9">
+          <div className="col-lg-6">
             <Photo />
           </div>
           <div className="col-lg-3">
             <ImageSelector />
           </div>
+          <div className="col-lg-3">
+            <PhotoInfo />
+          </div>
         </div>
 
         <div className="row align-items-center">
-          <div className="col-lg-6">
-            <PhotoInfo />
+          <div className="col-lg-9">
+            <PhotoMap />
           </div>
-          <div className="col-lg-6">
+          <div className="col-lg-3">
             <DetectorInfo />
           </div>
         </div>

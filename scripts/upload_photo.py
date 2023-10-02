@@ -3,7 +3,7 @@ import requests
 import sys
 
 
-SERVER_URL = "http://localhost:5000"
+SERVER_URL = os.environ.get("SERVER_URL", "http://localhost:5000")
 
 
 def upload_item(file_path):
