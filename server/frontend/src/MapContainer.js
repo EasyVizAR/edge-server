@@ -2,7 +2,7 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import React, {useEffect, useState} from "react";
 import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
 import IconMap from "./Icons";
-import "./LayerContainer.css"
+import "./MapContainer.css"
 import {Form, FormCheck} from "react-bootstrap";
 
 function MapContainer(props) {
@@ -30,8 +30,6 @@ function MapContainer(props) {
     });
 
     useEffect(() => {
-      getLayers();
-
       window.addEventListener('resize', changeMapScale);
 
       // Clean up event handler
@@ -39,6 +37,10 @@ function MapContainer(props) {
         window.removeEventListener('resize', changeMapScale)
       }
     }, []);
+
+    useEffect(() => {
+      getLayers();
+    }, [props.locationId]);
 
     useEffect(() => {
       if (selectedLayer) {

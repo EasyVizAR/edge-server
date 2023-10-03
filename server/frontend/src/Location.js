@@ -49,8 +49,8 @@ import {
   faTruckMedical,
   faUser,
 } from "@fortawesome/free-solid-svg-icons";
-import LayerContainer from "./LayerContainer";
 import NewLayer from "./NewLayer";
+import MapContainer from "./MapContainer";
 
 fontawesome.library.add(
   faBandage,
@@ -617,20 +617,15 @@ function Location(props) {
               {
                 currentLocation ? (
                   <React.Fragment>
-                    <LayerContainer id="map-container" icons={icons}
-                      headsets={headsets} headsetsChecked={headsetsChecked}
-                      features={features} featuresChecked={featuresChecked}
-                      photos={photos} photosChecked={photosChecked}
-                      histories={histories} setHistories={setHistories}
-                      setFeatures={setFeatures} setHeadsets={setHeadsets}
+                    <MapContainer id="map-container" locationId={selectedLocation}
+                      headsets={headsets} showHeadsets={headsetsChecked}
+                      features={features} showFeatures={featuresChecked}
+                      photos={photos} showPhotos={photosChecked}
                       cursor={cursor} setClickCount={setClickCount}
                       clickCount={clickCount} placementType={placementType} iconIndex={iconIndex}
                       setPointCoordinates={setPointCoordinates}
                       sliderValue={sliderValue}
                       crossHairIcon={crossHairIcon}
-                      layers={layers} setLayers={setLayers}
-                      selectedLocation={selectedLocation}
-                      selectedLayer={selectedLayer} setSelectedLayer={setSelectedLayer}
                     />
                     <div style={{ width: 'max-content' }}>
                       <Form>
