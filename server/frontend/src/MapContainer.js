@@ -16,8 +16,6 @@ function MapContainer(props) {
       ymin: 0,
       width: 0,
       height: 0,
-      xscale: 1,
-      yscale: 1
     });
     const [thumbnailImage, setThumbnailImage] = useState(null);
 
@@ -25,6 +23,11 @@ function MapContainer(props) {
     const [selectedLayer, setSelectedLayer] = useState(null);
     const [layerImage, setLayerImage] = useState(null);
     const [layerLoaded, setLayerLoaded] = useState(false);
+
+    const [mapScale, setMapScale] = useState({
+      x: 1,
+      y: 1,
+    });
 
     useEffect(() => {
       getLayers();
@@ -38,7 +41,15 @@ function MapContainer(props) {
           setLayerImage(`${host}${selectedLayer.imageUrl}?v=${selectedLayer.version}`);
         }
       }
+
       setLayerLoaded(false);
+
+      window.addEventListener('resize', changeMapScale);
+
+      // Clean up event handler
+      return _ => {
+        window.removeEventListener('resize', changeMapScale)
+      }
     }, [selectedLayer]);
 
 
@@ -60,8 +71,7 @@ function MapContainer(props) {
 
 
     const convert2Pixel = (r) => {
-        const width = selectedLayer['viewBox']['width'];
-        return document.getElementById('map-image').offsetWidth / width * r;
+        return mapScale.x * r;
     }
 
     const convertScaled2Vector = (px, py) => {
@@ -72,11 +82,8 @@ function MapContainer(props) {
         const width = selectedLayer['viewBox']['width'];
         const height = selectedLayer['viewBox']['height'];
 
-        const displayWidth = document.getElementById('map-image').offsetWidth;
-        const displayHeight = document.getElementById('map-image').offsetHeight;
-
-        list.push((px * width / displayWidth + xmin));
-        list.push(((displayHeight - py) * height / displayHeight + ymin));
+        list.push((px * mapScale.x + xmin));
+        list.push((height - (py / mapScale.y) + ymin));
 
         return list;
     }
@@ -120,9 +127,18 @@ function MapContainer(props) {
         props.setClickCount(props.clickCount + 1);
     }
 
-    const onMapLoad = () => {
+    const changeMapScale = () => {
+      if (layerLoaded) {
         var map_image = document.getElementById('map-image');
 
+        setMapScale({
+          x: map_image.offsetWidth / selectedLayer['viewBox']['width'],
+          y: map_image.offsetHeight / selectedLayer['viewBox']['height'],
+        });
+      }
+    }
+
+    const onMapLoad = () => {
         setLayerLoaded(true);
 
         setMapShape({
@@ -130,9 +146,9 @@ function MapContainer(props) {
           ymin: selectedLayer['viewBox']['top'],
           width: selectedLayer['viewBox']['width'],
           height: selectedLayer['viewBox']['height'],
-          xscale: map_image.offsetWidth / selectedLayer['viewBox']['width'],
-          yscale: map_image.offsetHeight / selectedLayer['viewBox']['height']
         });
+
+        changeMapScale();
     }
 
     const getCircleSvgSize = (r) => {
@@ -153,27 +169,9 @@ function MapContainer(props) {
         }
     }
 
-    const convertVector2Scaled = (x, yy) => {
-      var list = [];
-      var map = {};
-      for (var i = 0; i < props.layers.length; i++) {
-        if (props.layers[i]['id'] === props.selectedLayer)
-          map = props.layers[i];
-      }
-      if (Object.keys(map).length === 0 || !layerLoaded)
-        return [0, 0];
-      const xmin = map['viewBox']['left'];
-      const ymin = map['viewBox']['top'];
-      const width = map['viewBox']['width'];
-      const height = map['viewBox']['height'];
-      list.push(document.getElementById('map-image').offsetWidth / width * (x - xmin));
-      list.push(document.getElementById('map-image').offsetHeight / height * (yy - ymin));
-      return list;
-    }
-
     const handleMouseOverPhoto = (ev, photo) => {
-      const x = mapShape.xscale * (photo.camera_position.x - mapShape.xmin);
-      const y = mapShape.yscale * (mapShape.height - (photo.camera_position.z - mapShape.ymin));
+      const x = mapScale.x * (photo.camera_position.x - mapShape.xmin);
+      const y = mapScale.y * (mapShape.height - (photo.camera_position.z - mapShape.ymin));
 
       // Bounding rect for the icon.
       // Use this to center the corner of the photo within the icon.
@@ -195,8 +193,8 @@ function MapContainer(props) {
       const target = props.target;
 
       if (layerLoaded && target && props.enabled) {
-        const x = mapShape.xscale * (target.position.x - mapShape.xmin);
-        const y = mapShape.yscale * (mapShape.height - (target.position.z - mapShape.ymin));
+        const x = mapScale.x * (target.position.x - mapShape.xmin);
+        const y = mapScale.y * (mapShape.height - (target.position.z - mapShape.ymin));
         return (
             <FontAwesomeIcon icon={solid('sun')}
               className="features"
@@ -219,16 +217,16 @@ function MapContainer(props) {
       if (route && route.length >= 2 && props.enabled) {
         const points = [];
         for (var p of route) {
-          const x = mapShape.xscale * (p.x - mapShape.xmin);
-          const y = mapShape.yscale * (mapShape.height - (p.z - mapShape.ymin));
+          const x = mapScale.x * (p.x - mapShape.xmin);
+          const y = mapScale.y * (mapShape.height - (p.z - mapShape.ymin));
           points.push(`${x},${y}`);
         }
 
         const polyline = points.join(" ");
 
         return (
-          <svg width={mapShape.width * mapShape.xscale}
-               height={mapShape.height * mapShape.yscale}
+          <svg width={mapShape.width * mapScale.x}
+               height={mapShape.height * mapScale.y}
                style={{
                  top: 0,
                  left: 0,
@@ -244,8 +242,9 @@ function MapContainer(props) {
     }
 
     return (
-        <div className="map-layer-container">
-            <div className="map-image-container">
+        <div className="container-lg map-layer-container">
+          <div className="row">
+            <div className="col-lg-9 map-image-container">
                 <img id="map-image" src={layerImage} alt="Map of the environment" onLoad={onMapLoad}
                      onClick={onMouseClick} style={{cursor: props.cursor}}/>
                 <NavigationTarget enabled={props.navigationChecked} target={props.navigationTarget} />
@@ -253,8 +252,8 @@ function MapContainer(props) {
                 {
                   layerLoaded && props.showHistory && Object.keys(props.history).length > 0 &&
                     Object.entries(props.history).map(([id, item]) => {
-                      const x = mapShape.xscale * (item.position.x - mapShape.xmin);
-                      const y = mapShape.yscale * (mapShape.height - (item.position.z - mapShape.ymin));
+                      const x = mapScale.x * (item.position.x - mapShape.xmin);
+                      const y = mapScale.y * (mapShape.height - (item.position.z - mapShape.ymin));
 
                       // Get the point age in seconds, constrained to between 0 and 255-16.
                       // Then set the opacity such that older points are more transparent.
@@ -292,8 +291,8 @@ function MapContainer(props) {
                        */
                       const rotation = (2 * Math.atan2(item.camera_orientation.y, item.camera_orientation.w)) - (0.5 * Math.PI);
 
-                      const x = mapShape.xscale * (item.camera_position.x - mapShape.xmin);
-                      const y = mapShape.yscale * (mapShape.height - (item.camera_position.z - mapShape.ymin));
+                      const x = mapScale.x * (item.camera_position.x - mapShape.xmin);
+                      const y = mapScale.y * (mapShape.height - (item.camera_position.z - mapShape.ymin));
                       const color = (item.created_by && props.headsets && props.headsets[item.created_by]) ? props.headsets[item.created_by].color : props.defaultIconColor;
 
                       return <div>
@@ -326,8 +325,8 @@ function MapContainer(props) {
                 {
                   layerLoaded && props.showFeatures && Object.keys(props.features).length > 0 &&
                     Object.entries(props.features).map(([id, item]) => {
-                      const x = mapShape.xscale * (item.position.x - mapShape.xmin);
-                      const y = mapShape.yscale * (mapShape.height - (item.position.z - mapShape.ymin));
+                      const x = mapScale.x * (item.position.x - mapShape.xmin);
+                      const y = mapScale.y * (mapShape.height - (item.position.z - mapShape.ymin));
                       if (item.style?.placement == "floating") {
                         return <div>
                                 <FontAwesomeIcon icon={IconMap?.[item.type]?.['iconName'] || "bug"}
@@ -370,8 +369,8 @@ function MapContainer(props) {
                 {
                   layerLoaded && props.showHeadsets && Object.keys(props.headsets).length > 0 &&
                     Object.entries(props.headsets).map(([id, item]) => {
-                      const x = mapShape.xscale * (item.position.x - mapShape.xmin);
-                      const y = mapShape.yscale * (mapShape.height - (item.position.z - mapShape.ymin));
+                      const x = mapScale.x * (item.position.x - mapShape.xmin);
+                      const y = mapScale.y * (mapShape.height - (item.position.z - mapShape.ymin));
 
                       /*
                        * 2*atan2(y, w) gives us the angle of rotation around
@@ -416,22 +415,25 @@ function MapContainer(props) {
                   }}/>
                 }
             </div>
-            <Form className='layer-radio-form'>
-                <h5>Layers</h5>
-                {
-                  layers.map((layer, idx) => {
-                    return <FormCheck
-                        name="layer-radios"
-                        id={layer.id}
-                        label={layer.name}
-                        type="radio"
-                        value={layer.name}
-                        onChange={() => setSelectedLayer(layer)}
-                        checked={layer.id === selectedLayer?.id}
-                    />
-                  })
-                }
-            </Form>
+            <div className='col-lg-3'>
+              <Form className='layer-radio-form'>
+                  <h5>Layers</h5>
+                  {
+                    layers.map((layer, idx) => {
+                      return <FormCheck
+                          name="layer-radios"
+                          id={layer.id}
+                          label={layer.name}
+                          type="radio"
+                          value={layer.name}
+                          onChange={() => setSelectedLayer(layer)}
+                          checked={layer.id === selectedLayer?.id}
+                      />
+                    })
+                  }
+              </Form>
+            </div>
+          </div>
         </div>
     );
 }

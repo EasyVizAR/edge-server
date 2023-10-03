@@ -280,8 +280,9 @@ function LayerContainer(props) {
     }
 
     return (
-        <div className="map-layer-container">
-            <div className="map-image-container">
+        <div className="container-lg map-layer-container">
+          <div className="row">
+            <div className="col-lg-9 map-image-container">
                 <img id="map-image" src={layerImage} alt="Map of the environment" onLoad={onMapLoad}
                      onClick={onMouseClick} style={{cursor: props.cursor}}/>
                 <NavigationTarget enabled={props.navigationChecked} target={props.navigationTarget} />
@@ -428,7 +429,8 @@ function LayerContainer(props) {
                   }}/>
                 }
             </div>
-            <Form className='layer-radio-form'>
+            <div className='col-lg-3'>
+              <Form className='layer-radio-form'>
                 <h5>Layers</h5>
                 {props.layers.map((layer, idx) => {
                     return <FormCheck
@@ -441,7 +443,9 @@ function LayerContainer(props) {
                         checked={layer.id === props.selectedLayer}
                     />
                 })}
-            </Form>
+              </Form>
+            </div>
+          </div>
         </div>
     );
 }

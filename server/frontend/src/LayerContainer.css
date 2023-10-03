@@ -1,16 +1,14 @@
 .map-layer-container {
-/*    display: flex; */
     justify-content: center;
     align-items: center;
-    flex-direction: row;
 }
 
 #map-image {
     width: 100%;
     border: 1px solid #000000;
-/*    display: flex;*/
     justify-self: center;
     align-self: center;
+    max-height: 100vh;
 }
 
 .mirrored {
