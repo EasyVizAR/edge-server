@@ -167,22 +167,19 @@ function PhotoWrapper(props) {
     );
   }
 
-  function PhotoMap() {
-    if (!photo) {
-      return <p>The photo information is not ready or could not be found.</p>;
-    }
+  function PhotoMap(props) {
+    const photo = props.photo;
 
-    if (!photo.camera_location_id) {
-      return <p>The photo has no detector information to show.</p>;
-    }
-
-    var photos = {};
-    photos[photo.id] = photo;
-
-    return <MapContainer id="map-container"
-            locationId={photo.camera_location_id}
-            photos={photos} showPhotos={true}
-            defaultIconColor="#aa0000" />
+    return (
+        photo?.camera_location_id ? (
+          <MapContainer id="map-container"
+                locationId={props.photo.camera_location_id}
+                photos={[photo]} showPhotos={true}
+                defaultIconColor="#aa0000" />
+        ) : (
+          <p>The photo location is unknown.</p>
+        )
+    )
   }
 
   return (
@@ -206,7 +203,7 @@ function PhotoWrapper(props) {
 
         <div className="row align-items-center">
           <div className="col-lg-9">
-            <PhotoMap />
+            <PhotoMap photo={photo} />
           </div>
           <div className="col-lg-3">
             <DetectorInfo />

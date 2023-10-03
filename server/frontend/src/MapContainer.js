@@ -31,6 +31,13 @@ function MapContainer(props) {
 
     useEffect(() => {
       getLayers();
+
+      window.addEventListener('resize', changeMapScale);
+
+      // Clean up event handler
+      return _ => {
+        window.removeEventListener('resize', changeMapScale)
+      }
     }, []);
 
     useEffect(() => {
@@ -41,17 +48,7 @@ function MapContainer(props) {
           setLayerImage(`${host}${selectedLayer.imageUrl}?v=${selectedLayer.version}`);
         }
       }
-
-      setLayerLoaded(false);
-
-      window.addEventListener('resize', changeMapScale);
-
-      // Clean up event handler
-      return _ => {
-        window.removeEventListener('resize', changeMapScale)
-      }
     }, [selectedLayer]);
-
 
     const getLayers = () => {
       fetch(`${host}/locations/${props.locationId}/layers`)
@@ -69,6 +66,29 @@ function MapContainer(props) {
         });
     }
 
+    const changeMapScale = () => {
+      if (selectedLayer) {
+        var map_image = document.getElementById('map-image');
+
+        setMapScale({
+          x: map_image.offsetWidth / selectedLayer['viewBox']['width'],
+          y: map_image.offsetHeight / selectedLayer['viewBox']['height'],
+        });
+      }
+    }
+
+    const onMapLoad = () => {
+        setLayerLoaded(true);
+
+        setMapShape({
+          xmin: selectedLayer['viewBox']['left'],
+          ymin: selectedLayer['viewBox']['top'],
+          width: selectedLayer['viewBox']['width'],
+          height: selectedLayer['viewBox']['height'],
+        });
+
+        changeMapScale();
+    }
 
     const convert2Pixel = (r) => {
         return mapScale.x * r;
@@ -127,30 +147,6 @@ function MapContainer(props) {
         props.setClickCount(props.clickCount + 1);
     }
 
-    const changeMapScale = () => {
-      if (layerLoaded) {
-        var map_image = document.getElementById('map-image');
-
-        setMapScale({
-          x: map_image.offsetWidth / selectedLayer['viewBox']['width'],
-          y: map_image.offsetHeight / selectedLayer['viewBox']['height'],
-        });
-      }
-    }
-
-    const onMapLoad = () => {
-        setLayerLoaded(true);
-
-        setMapShape({
-          xmin: selectedLayer['viewBox']['left'],
-          ymin: selectedLayer['viewBox']['top'],
-          width: selectedLayer['viewBox']['width'],
-          height: selectedLayer['viewBox']['height'],
-        });
-
-        changeMapScale();
-    }
-
     const getCircleSvgSize = (r) => {
         return Math.max(convert2Pixel(r) * 2, document.getElementById('map-image').offsetHeight / 100.0 * circleSvgIconSize);
     }
@@ -158,15 +154,6 @@ function MapContainer(props) {
     const getCircleSvgShift = (r) => {
         return (Math.max(convert2Pixel(r) * 2, document.getElementById('map-image').offsetHeight / 100.0 * circleSvgIconSize)
             - document.getElementById('map-image').offsetHeight / 100.0 * mapIconSize) / 2.0;
-    }
-
-    const onLayerRadioChange = (e) => {
-        for (const i in props.layers) {
-            if (props.layers[i].id == e.target.id) {
-                props.setSelectedLayer(props.layers[i].id);
-                break;
-            }
-        }
     }
 
     const handleMouseOverPhoto = (ev, photo) => {
@@ -247,8 +234,8 @@ function MapContainer(props) {
             <div className="col-lg-9 map-image-container">
                 <img id="map-image" src={layerImage} alt="Map of the environment" onLoad={onMapLoad}
                      onClick={onMouseClick} style={{cursor: props.cursor}}/>
-                <NavigationTarget enabled={props.navigationChecked} target={props.navigationTarget} />
-                <NavigationRoute enabled={props.navigationChecked} route={props.navigationRoute} />
+                <NavigationTarget enabled={props.showNavigation} target={props.navigationTarget} />
+                <NavigationRoute enabled={props.showNavigation} route={props.navigationRoute} />
                 {
                   layerLoaded && props.showHistory && Object.keys(props.history).length > 0 &&
                     Object.entries(props.history).map(([id, item]) => {
@@ -442,9 +429,12 @@ MapContainer.defaultProps = {
   headsets: {},
   features: {},
   photos: {},
+  navigationTarget: {},
+  navigationRoute: [],
   showHeadsets: false,
   showFeatures: false,
   showPhotos: false,
+  showNavigation: false,
   defaultIconColor: "#808080",
 };
 
