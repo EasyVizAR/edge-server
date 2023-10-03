@@ -618,6 +618,7 @@ function Location(props) {
                 currentLocation ? (
                   <React.Fragment>
                     <MapContainer id="map-container" locationId={selectedLocation}
+                      layers={layers}
                       headsets={headsets} showHeadsets={headsetsChecked}
                       features={features} showFeatures={featuresChecked}
                       photos={photos} showPhotos={photosChecked}

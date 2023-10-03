@@ -41,8 +41,33 @@ function MapContainer(props) {
     }, []);
 
     useEffect(() => {
-      getLayers();
-    }, [props.locationId]);
+      // The parent component can set layers as a prop and update them.
+      // This will lead to the map refreshing as the layers change.
+      // On the other hand, if the parent did not pass the layers, we
+      // will just load the map image once.
+      if (props.layers === null) {
+        getLayers();
+      } else {
+        setLayers(props.layers);
+      }
+    }, [props.layers, props.locationId]);
+
+    useEffect(() => {
+      var found = false;
+      if (selectedLayer) {
+        for (var layer of layers) {
+          if (selectedLayer.id === layer.id) {
+            setSelectedLayer(layer);
+            found = true;
+            break;
+          }
+        }
+      }
+
+      if (!found && layers.length > 0) {
+        setSelectedLayer(layers[0]);
+      }
+    }, [layers]);
 
     useEffect(() => {
       if (selectedLayer) {
@@ -77,9 +102,6 @@ function MapContainer(props) {
               layerList.push(data[key]);
           }
           setLayers(layerList);
-          if (layerList.length > 0) {
-            setSelectedLayer(layerList[0]);
-          }
         });
     }
 
@@ -438,6 +460,7 @@ function MapContainer(props) {
 }
 
 MapContainer.defaultProps = {
+  layers: null,
   headsets: {},
   features: {},
   photos: {},

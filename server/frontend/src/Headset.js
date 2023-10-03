@@ -636,6 +636,7 @@ function Headset(props) {
             </div>
 
             <MapContainer id="map-container" locationId={selectedLocation}
+              layers={layers}
               headsets={headsets} showHeadsets={displayOptions.headsets}
               features={features} showFeatures={displayOptions.features}
               history={positionHistory} showHistory={displayOptions.history}
