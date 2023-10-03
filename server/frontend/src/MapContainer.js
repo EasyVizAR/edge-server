@@ -104,7 +104,7 @@ function MapContainer(props) {
         const width = selectedLayer['viewBox']['width'];
         const height = selectedLayer['viewBox']['height'];
 
-        list.push((px * mapScale.x + xmin));
+        list.push((px / mapScale.x + xmin));
         list.push((height - (py / mapScale.y) + ymin));
 
         return list;
