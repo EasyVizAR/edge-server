@@ -11,11 +11,18 @@ function MapContainer(props) {
     const mapIconSize = 7;
     const circleSvgIconSize = 11;
 
+    const [imgShape, setImgShape] = useState({
+      width: 0,
+      height: 0,
+    });
+
     const [mapShape, setMapShape] = useState({
       xmin: 0,
       ymin: 0,
       width: 0,
       height: 0,
+      xscale: 1,
+      yscale: 1,
     });
     const [thumbnailImage, setThumbnailImage] = useState(null);
 
@@ -24,17 +31,12 @@ function MapContainer(props) {
     const [layerImage, setLayerImage] = useState(null);
     const [layerLoaded, setLayerLoaded] = useState(false);
 
-    const [mapScale, setMapScale] = useState({
-      x: 1,
-      y: 1,
-    });
-
     useEffect(() => {
-      window.addEventListener('resize', changeMapScale);
+      window.addEventListener('resize', handleWindowResize);
 
       // Clean up event handler
       return _ => {
-        window.removeEventListener('resize', changeMapScale)
+        window.removeEventListener('resize', handleWindowResize);
       }
     }, []);
 
@@ -52,6 +54,19 @@ function MapContainer(props) {
       }
     }, [selectedLayer]);
 
+    useEffect(() => {
+      if (selectedLayer) {
+        setMapShape({
+          xmin: selectedLayer['viewBox']['left'],
+          ymin: selectedLayer['viewBox']['top'],
+          width: selectedLayer['viewBox']['width'],
+          height: selectedLayer['viewBox']['height'],
+          xscale: imgShape.width / selectedLayer['viewBox']['width'],
+          yscale: imgShape.height / selectedLayer['viewBox']['height'],
+        });
+      }
+    }, [selectedLayer, imgShape]);
+
     const getLayers = () => {
       fetch(`${host}/locations/${props.locationId}/layers`)
         .then(response => response.json())
@@ -68,13 +83,13 @@ function MapContainer(props) {
         });
     }
 
-    const changeMapScale = () => {
-      if (selectedLayer) {
-        var map_image = document.getElementById('map-image');
+    const handleWindowResize = () => {
+      const map_image = document.getElementById('map-image');
 
-        setMapScale({
-          x: map_image.offsetWidth / selectedLayer['viewBox']['width'],
-          y: map_image.offsetHeight / selectedLayer['viewBox']['height'],
+      if (map_image) {
+        setImgShape({
+          width: map_image.offsetWidth,
+          height: map_image.offsetHeight,
         });
       }
     }
@@ -82,18 +97,18 @@ function MapContainer(props) {
     const onMapLoad = () => {
         setLayerLoaded(true);
 
-        setMapShape({
-          xmin: selectedLayer['viewBox']['left'],
-          ymin: selectedLayer['viewBox']['top'],
-          width: selectedLayer['viewBox']['width'],
-          height: selectedLayer['viewBox']['height'],
-        });
+        var map_image = document.getElementById('map-image');
 
-        changeMapScale();
+        if (map_image) {
+          setImgShape({
+            width: map_image.offsetWidth,
+            height: map_image.offsetHeight,
+          });
+        }
     }
 
     const convert2Pixel = (r) => {
-        return mapScale.x * r;
+        return mapShape.xscale * r;
     }
 
     const convertScaled2Vector = (px, py) => {
@@ -104,8 +119,8 @@ function MapContainer(props) {
         const width = selectedLayer['viewBox']['width'];
         const height = selectedLayer['viewBox']['height'];
 
-        list.push((px / mapScale.x + xmin));
-        list.push((height - (py / mapScale.y) + ymin));
+        list.push((px / mapShape.xscale + xmin));
+        list.push((height - (py / mapShape.yscale) + ymin));
 
         return list;
     }
@@ -159,8 +174,8 @@ function MapContainer(props) {
     }
 
     const handleMouseOverPhoto = (ev, photo) => {
-      const x = mapScale.x * (photo.camera_position.x - mapShape.xmin);
-      const y = mapScale.y * (mapShape.height - (photo.camera_position.z - mapShape.ymin));
+      const x = mapShape.xscale * (photo.camera_position.x - mapShape.xmin);
+      const y = mapShape.yscale * (mapShape.height - (photo.camera_position.z - mapShape.ymin));
 
       // Bounding rect for the icon.
       // Use this to center the corner of the photo within the icon.
@@ -182,8 +197,8 @@ function MapContainer(props) {
       const target = props.target;
 
       if (layerLoaded && target && props.enabled) {
-        const x = mapScale.x * (target.position.x - mapShape.xmin);
-        const y = mapScale.y * (mapShape.height - (target.position.z - mapShape.ymin));
+        const x = mapShape.xscale * (target.position.x - mapShape.xmin);
+        const y = mapShape.yscale * (mapShape.height - (target.position.z - mapShape.ymin));
         return (
             <FontAwesomeIcon icon={solid('sun')}
               className="features"
@@ -206,16 +221,16 @@ function MapContainer(props) {
       if (route && route.length >= 2 && props.enabled) {
         const points = [];
         for (var p of route) {
-          const x = mapScale.x * (p.x - mapShape.xmin);
-          const y = mapScale.y * (mapShape.height - (p.z - mapShape.ymin));
+          const x = mapShape.xscale * (p.x - mapShape.xmin);
+          const y = mapShape.yscale * (mapShape.height - (p.z - mapShape.ymin));
           points.push(`${x},${y}`);
         }
 
         const polyline = points.join(" ");
 
         return (
-          <svg width={mapShape.width * mapScale.x}
-               height={mapShape.height * mapScale.y}
+          <svg width={mapShape.width * mapShape.xscale}
+               height={mapShape.height * mapShape.yscale}
                style={{
                  top: 0,
                  left: 0,
@@ -233,8 +248,8 @@ function MapContainer(props) {
     function MapMarker(props) {
       const icon = IconMap?.[props.type]?.['iconName'] || "bug"
 
-      const x = props.mapScale.x * (props.position.x - props.mapShape.xmin);
-      const y = props.mapScale.y * (props.mapShape.height - (props.position.z - props.mapShape.ymin));
+      const x = props.mapShape.xscale * (props.position.x - props.mapShape.xmin);
+      const y = props.mapShape.yscale * (props.mapShape.height - (props.position.z - props.mapShape.ymin));
 
       const rotation = () => {
         return (2 * Math.atan2(props.orientation.y, props.orientation.w)) - (0.5 * Math.PI);
@@ -289,9 +304,9 @@ function MapContainer(props) {
     }
 
     return (
-        <div className="container-lg map-layer-container">
+        <div className="map-layer-container">
           <div className="row">
-            <div className="col-lg-9 map-image-container">
+            <div className="col-lg-8 map-image-container">
                 <img id="map-image" src={layerImage} alt="Map of the environment" onLoad={onMapLoad}
                      onClick={onMouseClick} style={{cursor: props.cursor}}/>
                 <NavigationTarget enabled={props.showNavigation} target={props.navigationTarget} />
@@ -311,7 +326,6 @@ function MapContainer(props) {
                               color={color}
                               position={item.position}
                               priority={1}
-                              mapScale={mapScale}
                               mapShape={mapShape} />
                     })
                 }
@@ -333,15 +347,14 @@ function MapContainer(props) {
                               priority={2}
                               onMouseEnter={(e) => handleMouseOverPhoto(e, item)}
                               onMouseLeave={() => setThumbnailImage(null)}
-                              mapScale={mapScale}
                               mapShape={mapShape} />
                     })
                 }
                 {
                   layerLoaded && props.showFeatures && Object.keys(props.features).length > 0 &&
                     Object.entries(props.features).map(([id, item]) => {
-                      const x = mapScale.x * (item.position.x - mapShape.xmin);
-                      const y = mapScale.y * (mapShape.height - (item.position.z - mapShape.ymin));
+                      const x = mapShape.xscale * (item.position.x - mapShape.xmin);
+                      const y = mapShape.yscale * (mapShape.height - (item.position.z - mapShape.ymin));
                       if (item.style?.placement == "floating") {
                         return <div>
                           <MapMarker
@@ -350,7 +363,6 @@ function MapContainer(props) {
                             color={item.color}
                             position={item.position}
                             priority={3}
-                            mapScale={mapScale}
                             mapShape={mapShape} />
                                 <svg className="features"
                                      width={getCircleSvgSize(item.style?.radius || 1.0)}
@@ -390,7 +402,6 @@ function MapContainer(props) {
                               position={item.position}
                               orientation={item.orientation}
                               priority={4}
-                              mapScale={mapScale}
                               mapShape={mapShape} />
                     })
                 }
@@ -403,7 +414,7 @@ function MapContainer(props) {
                   }}/>
                 }
             </div>
-            <div className='col-lg-3'>
+            <div className='col-lg-4'>
               <Form className='layer-radio-form'>
                   <h5>Layers</h5>
                   {
