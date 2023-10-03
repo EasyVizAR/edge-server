@@ -438,7 +438,7 @@ function MapContainer(props) {
             </div>
             <div className='col-lg-4'>
               <Form className='layer-radio-form'>
-                  <h5>Layers</h5>
+                  <h5>Map Layers</h5>
                   {
                     layers.map((layer, idx) => {
                       return <FormCheck

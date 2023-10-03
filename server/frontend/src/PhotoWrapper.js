@@ -12,7 +12,7 @@ function PhotoWrapper(props) {
 
   const [photo, setPhoto] = useState(null);
   const [selectedBox, setSelectedBox] = useState(null);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImage, setSelectedImage] = useState("photo");
   const [imageSource, setImageSource] = useState(null);
 
   useEffect(() => {
@@ -61,6 +61,12 @@ function PhotoWrapper(props) {
   function ImageSelector() {
     const base_url = `${host}/photos/${photo_id}/`;
     var photo_found = false;
+
+    const changeImage = (purpose, url) => {
+      setImageSource(url);
+      setSelectedImage(purpose);
+    }
+
     return (
       <>
         <h2>Select Image</h2>
@@ -71,11 +77,17 @@ function PhotoWrapper(props) {
                 if (file.purpose === "photo") {
                   photo_found = true;
                 }
-                return <ListGroup.Item action key={ file.purpose } onClick={() => setImageSource(base_url + file.name)}>{ file.purpose }</ListGroup.Item>
+                return <ListGroup.Item action key={ file.purpose }
+                  onClick={() => changeImage(file.purpose, base_url + file.name)}
+                  active={ selectedImage === file.purpose }>
+                    { file.purpose }
+                </ListGroup.Item>
               })
           }
           {
-            photo_found || <ListGroup.Item action key="photo" onClick={() => setImageSource(photo.imageUrl)}>Photo</ListGroup.Item>
+            photo_found || <ListGroup.Item action key="photo"
+                            onClick={() => changeImage("photo", photo.imageUrl)}
+                            active={ selectedImage === "photo" }>Photo</ListGroup.Item>
           }
         </ListGroup>
       </>
