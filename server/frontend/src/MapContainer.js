@@ -70,12 +70,8 @@ function MapContainer(props) {
     }, [layers]);
 
     useEffect(() => {
-      if (selectedLayer) {
-        if (selectedLayer.ready && selectedLayer.imageUrl) {
-          setLayerImage(selectedLayer.imageUrl);
-        } else {
-          setLayerImage(`${host}${selectedLayer.imageUrl}?v=${selectedLayer.version}`);
-        }
+      if (selectedLayer && selectedLayer.ready) {
+        setLayerImage(`${host}${selectedLayer.imageUrl}?v=${selectedLayer.version}`);
       }
     }, [selectedLayer]);
 
