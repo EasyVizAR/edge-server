@@ -518,165 +518,158 @@ function Location(props) {
         <title>EasyVizAR Edge</title>
       </Helmet>
       <div className="home-body">
-        <Tabs activeKey={tab} className="mb-3 tabs" onSelect={(t) => setTab(t)}>
-          <Tab eventKey="location-view" title="Location View">
-            <div className="location-nav">
-              <div className="dropdown-container">
-                <DropdownButton id="location-dropdown" title="Select Location" onSelect={handleLocationSelection}
-                  defaultValue={null}>
-                  {
-                    Object.entries(locations).map(([id, loc]) => {
-                      return <Dropdown.Item eventKey={id}>{loc.name}</Dropdown.Item>
-                    })
-                  }
-                </DropdownButton>
-              </div>
-
+        <div className="location-nav">
+          <div className="dropdown-container">
+            <DropdownButton id="location-dropdown" title="Select Location" onSelect={handleLocationSelection}
+              defaultValue={null}>
               {
-                selectedLocation &&
-                  <React.Fragment>
-                    <div className="header-button">
-                      <Button variant="secondary" title="Add Feature" value="Add Feature"
-                        onClick={(e) => showFeature(e)}>Add Feature</Button>
-                    </div>
-
-                    <div className="QR-code-btn header-button">
-                      <Link className="btn btn-secondary" role="button" to={"/locations/" + selectedLocation + "/qrcode"}>Location QR Code</Link>
-                    </div>
-
-                    <div className="header-button">
-                      <a class="btn btn-secondary" href={`/locations/${selectedLocation}/layers/${selectedLayer}/image?features=1`}>Export Map</a>
-                    </div>
-
-                    <div className="header-button">
-                      <a class="btn btn-secondary" href={"/locations/" + selectedLocation + "/model"}>Location 3D Model</a>
-                    </div>
-
-                    <div className="header-button">
-                      <Button variant="secondary" title="Reset Surfaces" value="Reset Surfaces"
-                        onClick={(e) => resetSurfaces(e)}>Reset Surfaces</Button>
-                    </div>
-                  </React.Fragment>
+                Object.entries(locations).map(([id, loc]) => {
+                  return <Dropdown.Item eventKey={id}>{loc.name}</Dropdown.Item>
+                })
               }
-            </div>
+            </DropdownButton>
+          </div>
 
-            <Container fluid>
-              {
-                selectedLocation &&
-                  <NewFeature icons={icons}
-                    showNewFeature={showNewFeature} changeCursor={toggleCursor}
-                    changeIcon={changeIcon} pointCoordinates={pointCoordinates}
-                    changePointValue={changePointValue} mapID={selectedLocation}
-                    setIconIndex={setIconIndex} sliderValue={sliderValue}
-                    setSliderValue={setSliderValue} setPlacementType={setPlacementType}
-                    placementType={placementType} />
-              }
+          {
+            selectedLocation &&
+              <React.Fragment>
+                <div className="header-button">
+                  <Button variant="secondary" title="Add Feature" value="Add Feature"
+                    onClick={(e) => showFeature(e)}>Add Feature</Button>
+                </div>
 
-              <Row className="location-header">
-                <Col>
-                  <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Current Incident</p>
-                  <h4 style={{ marginTop: '0px' }}>{activeIncident ? activeIncident.name : 'No Active Incident'}</h4>
-                  <h5>{activeIncident?.id}</h5>
-                </Col>
-                <Col>
-                  <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Current Location</p>
-                  {
-                    currentLocation ? (
-                      <>
-                        <ClickToEdit
-                          tag='h4'
-                          initialValue={currentLocation.name}
-                          placeholder='Location name'
-                          onSave={(newValue) => saveLocationFieldChange('name', newValue)} />
-                        <h5>{currentLocation ? selectedLocation : ''}</h5>
-                      </>
-                    ) : (
-                      <h4>No Location Selected</h4>
-                    )
-                  }
-                </Col>
-                <Col xs={5}>
-                  {
-                    currentLocation ? (
-                      <>
-                        <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Description</p>
-                        <ClickToEdit
-                          textarea
-                          tag='p'
-                          initialValue={currentLocation.description}
-                          placeholder='Description'
-                          onSave={(newValue) => saveLocationFieldChange('description', newValue)} />
-                      </>
-                    ) : (
-                      null
-                    )
-                  }
-                </Col>
-              </Row>
+                <div className="QR-code-btn header-button">
+                  <Link className="btn btn-secondary" role="button" to={"/locations/" + selectedLocation + "/qrcode"}>Location QR Code</Link>
+                </div>
 
+                <div className="header-button">
+                  <a class="btn btn-secondary" href={`/locations/${selectedLocation}/layers/${selectedLayer}/image?features=1`}>Export Map</a>
+                </div>
+
+                <div className="header-button">
+                  <a class="btn btn-secondary" href={"/locations/" + selectedLocation + "/model"}>Location 3D Model</a>
+                </div>
+
+                <div className="header-button">
+                  <Button variant="secondary" title="Reset Surfaces" value="Reset Surfaces"
+                    onClick={(e) => resetSurfaces(e)}>Reset Surfaces</Button>
+                </div>
+              </React.Fragment>
+          }
+        </div>
+
+        <Container fluid>
+          {
+            selectedLocation &&
+              <NewFeature icons={icons}
+                showNewFeature={showNewFeature} changeCursor={toggleCursor}
+                changeIcon={changeIcon} pointCoordinates={pointCoordinates}
+                changePointValue={changePointValue} mapID={selectedLocation}
+                setIconIndex={setIconIndex} sliderValue={sliderValue}
+                setSliderValue={setSliderValue} setPlacementType={setPlacementType}
+                placementType={placementType} />
+          }
+
+          <Row className="location-header">
+            <Col>
+              <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Current Incident</p>
+              <h4 style={{ marginTop: '0px' }}>{activeIncident ? activeIncident.name : 'No Active Incident'}</h4>
+              <h5>{activeIncident?.id}</h5>
+            </Col>
+            <Col>
+              <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Current Location</p>
               {
                 currentLocation ? (
-                  <React.Fragment>
-                    <MapContainer id="map-container" locationId={selectedLocation}
-                      layers={layers}
-                      headsets={headsets} showHeadsets={headsetsChecked}
-                      features={features} showFeatures={featuresChecked}
-                      photos={photos} showPhotos={photosChecked}
-                      cursor={cursor} setClickCount={setClickCount}
-                      clickCount={clickCount} placementType={placementType} iconIndex={iconIndex}
-                      setPointCoordinates={setPointCoordinates}
-                      sliderValue={sliderValue}
-                      crossHairIcon={crossHairIcon}
-                    />
-                    <div style={{ width: 'max-content' }}>
-                      <Form>
-                        <Form.Check
-                          onChange={(e) => setHeadsetsChecked(e.target.checked)}
-                          type="switch"
-                          id="headsets-switch"
-                          label="Headsets"
-                          checked={headsetsChecked}
-                        />
-                        <Form.Check
-                          onChange={(e) => setFeaturesChecked(e.target.checked)}
-                          type="switch"
-                          id="features-switch"
-                          label="Features"
-                          checked={featuresChecked}
-                        />
-                        <Form.Check
-                          onChange={(e) => setPhotosChecked(e.target.checked)}
-                          type="switch"
-                          id="photos-switch"
-                          label="Photos"
-                          checked={photosChecked}
-                        />
-                      </Form>
-                    </div>
-
-                    <LayerTable locationId={selectedLocation} layers={layers} />
-
-                    <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
-                      setHeadsets={setHeadsets} features={features} />
-                    <FeatureTable icons={icons} features={features} locationId={selectedLocation} />
-
-                    <HeadsetConfiguration location={currentLocation} setLocation={setCurrentLocation} />
-
-                    <PhotoTable photos={photos} setPhotos={setPhotos} />
-                  </React.Fragment>
+                  <>
+                    <ClickToEdit
+                      tag='h4'
+                      initialValue={currentLocation.name}
+                      placeholder='Location name'
+                      onSave={(newValue) => saveLocationFieldChange('name', newValue)} />
+                    <h5>{currentLocation ? selectedLocation : ''}</h5>
+                  </>
                 ) : (
-                  <React.Fragment>
-                    <LocationTable />
-                    <NewLocation />
-                  </React.Fragment>
+                  <h4>No Location Selected</h4>
                 )
               }
-            </Container>
-          </Tab>
-          <Tab eventKey="create-layer" title="Create Layer">
-            <NewLayer getHeadsets={getHeadsets} getLayers={getLayers} setTab={setTab} />
-          </Tab>
-        </Tabs>
+            </Col>
+            <Col xs={5}>
+              {
+                currentLocation ? (
+                  <>
+                    <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Description</p>
+                    <ClickToEdit
+                      textarea
+                      tag='p'
+                      initialValue={currentLocation.description}
+                      placeholder='Description'
+                      onSave={(newValue) => saveLocationFieldChange('description', newValue)} />
+                  </>
+                ) : (
+                  null
+                )
+              }
+            </Col>
+          </Row>
+
+          {
+            currentLocation ? (
+              <React.Fragment>
+                <MapContainer id="map-container" locationId={selectedLocation}
+                  layers={layers}
+                  headsets={headsets} showHeadsets={headsetsChecked}
+                  features={features} showFeatures={featuresChecked}
+                  photos={photos} showPhotos={photosChecked}
+                  cursor={cursor} setClickCount={setClickCount}
+                  clickCount={clickCount} placementType={placementType} iconIndex={iconIndex}
+                  setPointCoordinates={setPointCoordinates}
+                  sliderValue={sliderValue}
+                  crossHairIcon={crossHairIcon}
+                />
+                <div style={{ width: 'max-content' }}>
+                  <Form>
+                    <Form.Check
+                      onChange={(e) => setHeadsetsChecked(e.target.checked)}
+                      type="switch"
+                      id="headsets-switch"
+                      label="Headsets"
+                      checked={headsetsChecked}
+                    />
+                    <Form.Check
+                      onChange={(e) => setFeaturesChecked(e.target.checked)}
+                      type="switch"
+                      id="features-switch"
+                      label="Features"
+                      checked={featuresChecked}
+                    />
+                    <Form.Check
+                      onChange={(e) => setPhotosChecked(e.target.checked)}
+                      type="switch"
+                      id="photos-switch"
+                      label="Photos"
+                      checked={photosChecked}
+                    />
+                  </Form>
+                </div>
+
+                <LayerTable locationId={selectedLocation} layers={layers} />
+
+                <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
+                  setHeadsets={setHeadsets} features={features} />
+                <FeatureTable icons={icons} features={features} locationId={selectedLocation} />
+
+                <HeadsetConfiguration location={currentLocation} setLocation={setCurrentLocation} />
+
+                <PhotoTable photos={photos} setPhotos={setPhotos} />
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                <LocationTable />
+                <NewLocation />
+              </React.Fragment>
+            )
+          }
+        </Container>
       </div>
     </div>
   );

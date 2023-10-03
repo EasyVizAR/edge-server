@@ -437,22 +437,24 @@ function MapContainer(props) {
                 }
             </div>
             <div className='col-lg-4'>
-              <Form className='layer-radio-form'>
-                  <h5>Map Layers</h5>
-                  {
-                    layers.map((layer, idx) => {
-                      return <FormCheck
-                          name="layer-radios"
-                          id={layer.id}
-                          label={layer.name}
-                          type="radio"
-                          value={layer.name}
-                          onChange={() => setSelectedLayer(layer)}
-                          checked={layer.id === selectedLayer?.id}
-                      />
-                    })
-                  }
-              </Form>
+              <h5>Map Layers</h5>
+              <div class="list-group" id="list-layers">
+                {
+                  layers.map((layer, idx) => {
+                    return <a
+                      className={
+                        layer.id === selectedLayer?.id ? (
+                          "list-group-item list-group-item-action active"
+                        ) : (
+                          "list-group-item list-group-item-action"
+                        )}
+                      onClick={() => setSelectedLayer(layer)}
+                      aria-controls={layer.name}>
+                        {layer.name}
+                    </a>
+                  })
+                }
+              </div>
             </div>
           </div>
         </div>
