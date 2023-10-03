@@ -230,6 +230,64 @@ function MapContainer(props) {
       }
     }
 
+    function MapMarker(props) {
+      const icon = IconMap?.[props.type]?.['iconName'] || "bug"
+
+      const x = props.mapScale.x * (props.position.x - props.mapShape.xmin);
+      const y = props.mapScale.y * (props.mapShape.height - (props.position.z - props.mapShape.ymin));
+
+      const rotation = () => {
+        return (2 * Math.atan2(props.orientation.y, props.orientation.w)) - (0.5 * Math.PI);
+      }
+
+      const pointerEvents = (props.onMouseEnter || props.onMouseLeave) ? "auto" : "none";
+
+      return (
+        <React.Fragment>
+        {
+          props.orientation ? (
+            /*
+             * 2*atan2(y, w) gives us the angle of rotation around
+             * the vertical Y axis, ie. the heading direction.  We
+             * subtract PI/2 because the arrow icon starts pointing
+             * in the positive X direction, but from the headset
+             * perspective, zero rotation points in the positive Z
+             * direction.
+             */
+            <FontAwesomeIcon
+              icon={solid('caret-right')}
+              className="heading"
+              color={props.color}
+              style={{
+                left: x,
+                top: y,
+                height: mapIconSize + "%",
+                pointerEvents: "none",
+                opacity: 0.75,
+                transform: "translate(-50%, -50%) rotate(" + rotation() + "rad) translateX(100%)"
+              }} />
+          ) : (
+            null
+          )
+        }
+        <FontAwesomeIcon
+          icon={icon}
+          className="features"
+          alt={props.name}
+          color={props.color}
+          onMouseEnter={props.onMouseEnter}
+          onMouseLeave={props.onMouseLeave}
+          style={{
+            left: x,
+            top: y,
+            height: mapIconSize + "%",
+            "z-index": props.priority || 1,
+            pointerEvents: pointerEvents,
+          }} />
+        </React.Fragment>
+      )
+    }
+
     return (
         <div className="container-lg map-layer-container">
           <div className="row">
@@ -241,26 +299,20 @@ function MapContainer(props) {
                 {
                   layerLoaded && props.showHistory && Object.keys(props.history).length > 0 &&
                     Object.entries(props.history).map(([id, item]) => {
-                      const x = mapScale.x * (item.position.x - mapShape.xmin);
-                      const y = mapScale.y * (mapShape.height - (item.position.z - mapShape.ymin));
-
                       // Get the point age in seconds, constrained to between 0 and 255-16.
                       // Then set the opacity such that older points are more transparent.
                       // Note: The -16 means the minimum opacity will be 0x10 (two digits).
                       const age = Math.max(0, Math.min(255-16, Date.now()/1000.0 - item.time));
                       const color = item.color + Math.round(255-age).toString(16);
 
-                      return <FontAwesomeIcon icon={IconMap?.[item.type]?.['iconName'] || "bug"}
-                                              className="features" id={item.id}
-                                              alt={item.name}
-                                              color={color}
-                                              style={{
-                                                  left: x,
-                                                  top: y,
-                                                  "z-index": 1,
-                                                  height: mapIconSize + "%",
-                                                  pointerEvents: "none"
-                                              }}/>
+                      return <MapMarker
+                              type={item.type}
+                              name={item.name}
+                              color={color}
+                              position={item.position}
+                              priority={1}
+                              mapScale={mapScale}
+                              mapShape={mapShape} />
                     })
                 }
                 {
@@ -270,45 +322,19 @@ function MapContainer(props) {
                         return null;
                       }
 
-                      /*
-                       * 2*atan2(y, w) gives us the angle of rotation around
-                       * the vertical Y axis, ie. the heading direction.  We
-                       * subtract PI/2 because the arrow icon starts pointing
-                       * in the positive X direction, but from the headset
-                       * perspective, zero rotation points in the positive Z
-                       * direction.
-                       */
-                      const rotation = (2 * Math.atan2(item.camera_orientation.y, item.camera_orientation.w)) - (0.5 * Math.PI);
-
-                      const x = mapScale.x * (item.camera_position.x - mapShape.xmin);
-                      const y = mapScale.y * (mapShape.height - (item.camera_position.z - mapShape.ymin));
                       const color = (item.created_by && props.headsets && props.headsets[item.created_by]) ? props.headsets[item.created_by].color : props.defaultIconColor;
 
-                      return <div>
-                        <FontAwesomeIcon icon={solid('caret-right')}
-                                        className="heading"
-                                        color={color}
-                                        style={{
-                                            left: x,
-                                            top: y,
-                                            height: mapIconSize + "%",
-                                            pointerEvents: "none",
-                                            opacity: 0.75,
-                                            transform: "translate(-50%, -50%) rotate(" + rotation + "rad) translateX(100%)"
-                                        }} />
-                          <FontAwesomeIcon icon={IconMap['photo']['iconName']}
-                                            className="features" id={"photo-" + item.id}
-                                            alt="Photo taken by a headset"
-                                            color={color}
-                                            onMouseEnter={(e) => handleMouseOverPhoto(e, item)}
-                                            onMouseLeave={() => setThumbnailImage(null)}
-                                            style={{
-                                                left: x,
-                                                top: y,
-                                                "z-index": 2,
-                                                height: mapIconSize + "%"
-                                            }}/>
-                        </div>
+                      return <MapMarker
+                              type="photo"
+                              name="photo"
+                              color={color}
+                              position={item.camera_position}
+                              orientation={item.camera_orientation}
+                              priority={2}
+                              onMouseEnter={(e) => handleMouseOverPhoto(e, item)}
+                              onMouseLeave={() => setThumbnailImage(null)}
+                              mapScale={mapScale}
+                              mapShape={mapShape} />
                     })
                 }
                 {
@@ -318,15 +344,14 @@ function MapContainer(props) {
                       const y = mapScale.y * (mapShape.height - (item.position.z - mapShape.ymin));
                       if (item.style?.placement == "floating") {
                         return <div>
-                                <FontAwesomeIcon icon={IconMap?.[item.type]?.['iconName'] || "bug"}
-                                                 className="features" id={item.id}
-                                                 alt={item.name} color={item.color} style={{
-                                    left: x,
-                                    top: y,
-                                    "z-index": 3,
-                                    height: mapIconSize + "%",
-                                    pointerEvents: "none"
-                                }}/>
+                          <MapMarker
+                            type={item.type}
+                            name={item.name}
+                            color={item.color}
+                            position={item.position}
+                            priority={3}
+                            mapScale={mapScale}
+                            mapShape={mapShape} />
                                 <svg className="features"
                                      width={getCircleSvgSize(item.style?.radius || 1.0)}
                                      height={getCircleSvgSize(item.style?.radius || 1.0)}
@@ -358,41 +383,15 @@ function MapContainer(props) {
                 {
                   layerLoaded && props.showHeadsets && Object.keys(props.headsets).length > 0 &&
                     Object.entries(props.headsets).map(([id, item]) => {
-                      const x = mapScale.x * (item.position.x - mapShape.xmin);
-                      const y = mapScale.y * (mapShape.height - (item.position.z - mapShape.ymin));
-
-                      /*
-                       * 2*atan2(y, w) gives us the angle of rotation around
-                       * the vertical Y axis, ie. the heading direction.  We
-                       * subtract PI/2 because the arrow icon starts pointing
-                       * in the positive X direction, but from the headset
-                       * perspective, zero rotation points in the positive Z
-                       * direction.
-                       */
-                      const rotation = (2 * Math.atan2(item.orientation.y, item.orientation.w)) - (0.5 * Math.PI);
-
-                      return <div>
-                              <FontAwesomeIcon icon={solid('caret-right')}
-                                              className="heading"
-                                              color={item.color}
-                                              style={{
-                                                  left: x,
-                                                  top: y,
-                                                  height: mapIconSize + "%",
-                                                  pointerEvents: "none",
-                                                  opacity: 0.75,
-                                                  transform: "translate(-50%, -50%) rotate(" + rotation + "rad) translateX(100%)"
-                                              }} />
-                              <FontAwesomeIcon icon={IconMap['headset']['iconName']}
-                                              className="features" id={item.id}
-                                              alt={item.name} color={item.color}
-                                              style={{
-                                                  left: x,
-                                                  top: y,
-                                                  height: mapIconSize + "%",
-                                                  pointerEvents: "none"
-                                              }}/>
-                        </div>
+                      return <MapMarker
+                              type="headset"
+                              name={item.name}
+                              color={item.color}
+                              position={item.position}
+                              orientation={item.orientation}
+                              priority={4}
+                              mapScale={mapScale}
+                              mapShape={mapShape} />
                     })
                 }
                 {
