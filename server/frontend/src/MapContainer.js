@@ -4,9 +4,13 @@ import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
 import IconMap from "./Icons";
 import "./MapContainer.css"
 import {Form, FormCheck} from "react-bootstrap";
+import {useNavigate} from 'react-router-dom';
+
 
 function MapContainer(props) {
     const host = process.env.PUBLIC_URL;
+
+    const navigate = useNavigate();
 
     const mapIconSize = 7;
     const circleSvgIconSize = 11;
@@ -273,7 +277,7 @@ function MapContainer(props) {
         return (2 * Math.atan2(props.orientation.y, props.orientation.w)) - (0.5 * Math.PI);
       }
 
-      const pointerEvents = (props.onMouseEnter || props.onMouseLeave) ? "auto" : "none";
+      const pointerEvents = (props.onClick || props.onMouseEnter || props.onMouseLeave) ? "auto" : "none";
 
       return (
         <React.Fragment>
@@ -308,6 +312,7 @@ function MapContainer(props) {
           className="features"
           alt={props.name}
           color={props.color}
+          onClick={props.onClick}
           onMouseEnter={props.onMouseEnter}
           onMouseLeave={props.onMouseLeave}
           style={{
@@ -363,6 +368,7 @@ function MapContainer(props) {
                               position={item.camera_position}
                               orientation={item.camera_orientation}
                               priority={2}
+                              onClick={() => navigate(`/photos/${item.id}`)}
                               onMouseEnter={(e) => handleMouseOverPhoto(e, item)}
                               onMouseLeave={() => setThumbnailImage(null)}
                               mapShape={mapShape} />
