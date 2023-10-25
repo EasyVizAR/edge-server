@@ -4,12 +4,26 @@ import sys
 
 
 SERVER_URL = os.environ.get("SERVER_URL", "http://localhost:5000")
+ADD_FAKE_ANNOTATION = True
 
 
 def upload_item(file_path):
     item = {
         "contentType": "image/jpeg"
     }
+
+    # Add a bounding box for an "object" for testing
+    if ADD_FAKE_ANNOTATION:
+        item['annotations'] = [{
+            "boundary": {
+                "height": 0.5,
+                "width": 0.5,
+                "top": 0.25,
+                "left": 0.25
+            },
+            "confidence": 0.9,
+            "label": "object"
+        }]
 
     req_url = "{}/photos".format(SERVER_URL)
     req = requests.post(req_url, json=item)
