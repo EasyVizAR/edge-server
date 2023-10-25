@@ -47,8 +47,8 @@ import {
   faTruckMedical,
   faUser,
 } from "@fortawesome/free-solid-svg-icons";
-import LayerContainer from "./LayerContainer";
 import NewLayer from "./NewLayer";
+import MapContainer from "./MapContainer";
 
 fontawesome.library.add(
   faBandage,
@@ -635,23 +635,19 @@ function Headset(props) {
               </div>
             </div>
 
-            <LayerContainer id="map-container" icons={icons}
-              headsets={headsets} headsetsChecked={displayOptions.headsets}
-              features={features} featuresChecked={displayOptions.features}
-              history={positionHistory} historyChecked={displayOptions.history}
-              histories={histories} setHistories={setHistories}
+            <MapContainer id="map-container" locationId={selectedLocation}
+              layers={layers}
+              headsets={headsets} showHeadsets={displayOptions.headsets}
+              features={features} showFeatures={displayOptions.features}
+              history={positionHistory} showHistory={displayOptions.history}
               navigationTarget={headset?.navigation_target}
               navigationRoute={navigationRoute}
-              navigationChecked={displayOptions.navigation}
-              setFeatures={setFeatures} setHeadsets={setHeadsets}
+              showNavigation={displayOptions.navigation}
               cursor={cursor} setClickCount={setClickCount}
               clickCount={clickCount} placementType={placementType} iconIndex={iconIndex}
               setPointCoordinates={setPointCoordinates}
               sliderValue={sliderValue}
               crossHairIcon={crossHairIcon}
-              layers={layers} setLayers={setLayers}
-              selectedLocation={selectedLocation}
-              selectedLayer={selectedLayer} setSelectedLayer={setSelectedLayer}
             />
 
             <div style={{ width: 'max-content' }}>
