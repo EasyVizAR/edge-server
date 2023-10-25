@@ -150,14 +150,15 @@ function WorkItems(props){
     }
   }
 
-  function paginateWorkItems(){
+  function handlePageChange(page){
+    setCurrentPage(page)
+  }
+
+  function handleSort(){
+    workItems.sort((a, b) => a[sortBy.attr] > b[sortBy.attr] ? sortBy.direction : -sortBy.direction)
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return workItems.slice(startIndex, endIndex);
-  }
-
-  function handlePageChange(page){
-    setCurrentPage(page)
   }
 
   return (
@@ -179,8 +180,8 @@ function WorkItems(props){
           </thead>
           <tbody>
             {
-            (paginateWorkItems().length > 0) ? (
-              paginateWorkItems().sort((a, b) => a[sortBy.attr] > b[sortBy.attr] ? sortBy.direction : -sortBy.direction).map((e, index) => {
+            (handleSort().length > 0) ? (
+              handleSort().map((e, index) => {
                   return <tr>
                     <td>
                       <Link to={"/photos/" + e.id}>
