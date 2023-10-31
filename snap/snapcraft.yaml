@@ -1,6 +1,6 @@
 name: easyvizar-edge
 base: core20
-version: "0.1"
+version: "1.0.0"
 summary: Central point for coordinating EasyVizAR headsets
 description: |
   This module coordinates interactions between multiple AR headsets, collects
