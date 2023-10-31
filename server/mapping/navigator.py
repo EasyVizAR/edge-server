@@ -11,7 +11,6 @@ import collections
 import os
 import time
 
-from server.location.models import LocationModel
 from server.resources.geometry import Vector3f
 
 from .datagrid import DataGrid

@@ -14,7 +14,7 @@ from server.headset.models import MobileDevice
 from server.utils.rate_limiter import rate_limit_expensive
 from server.utils.response import maybe_wrap
 
-from .models import DevicePose, PoseChange, PoseChangeSchema
+from .models import DevicePose, PoseChangeSchema
 
 
 pose_changes = Blueprint('pose-changes', __name__)

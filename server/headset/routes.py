@@ -12,13 +12,13 @@ import marshmallow
 import sqlalchemy as sa
 
 from server.check_in.models import TrackingSession
-from server.pose_changes.models import DevicePose, PoseChange, PoseChangeSchema
+from server.pose_changes.models import DevicePose, PoseChangeSchema
 from server.resources.filter import Filter
 from server.resources.geometry import Vector3f, Vector4f
 from server.utils.patch import patch_object
 from server.utils.response import maybe_wrap
 
-from .models import MobileDevice, HeadsetSchema, RegisteredHeadsetModel
+from .models import MobileDevice, HeadsetSchema
 
 headsets = Blueprint('headsets', __name__)
 

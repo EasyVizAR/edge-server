@@ -21,7 +21,7 @@ from server.utils.utils import save_image
 from server.utils.response import maybe_wrap
 
 from .cleanup import PhotoCleanupTask
-from .models import PhotoFile_dc, PhotoFile, PhotoRecord, DetectionTaskSchema, PhotoAnnotationSchema, PhotoSchema
+from .models import PhotoFile, PhotoRecord, DetectionTaskSchema, PhotoAnnotationSchema, PhotoSchema
 
 
 photos = Blueprint("photos", __name__)

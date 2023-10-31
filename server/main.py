@@ -16,22 +16,16 @@ from server.location.routes import locations
 from server.photo.routes import photos
 from server.pose_changes.routes import pose_changes
 from server.routes import routes
-from server.scene.routes import scenes
 from server.surface.routes import surfaces
 from server.utils.pool_limiter import PoolLimiter
 from server.utils.rate_limiter import main_rate_limiter
 from server.utils.utils import GenericJsonEncoder
 from server.websocket.routes import websockets
-from server.work_items.routes import work_items
 
 from server.auth import Authenticator
 from server.events import EventDispatcher
-from server.headset.models import Headset
-from server.incidents.models import IncidentLoader
 from server.mapping.navigator import Navigator
 from server.resources.db import Base
-
-from server.resources.abstractresource import AbstractCollection
 
 
 static_folder = os.environ.get("VIZAR_STATIC_FOLDER", "./frontend/build/")
@@ -71,7 +65,6 @@ if 'APPLICATION_CONFIG' in os.environ:
 # directory. Configuring them once at application initialization avoids
 # complicated dependencies on the app object.
 data_dir = app.config.get('VIZAR_DATA_DIR', 'data')
-AbstractCollection.data_directory = data_dir
 
 blueprints = [
     check_ins,
@@ -83,10 +76,8 @@ blueprints = [
     photos,
     pose_changes,
     routes,
-    scenes,
     surfaces,
-    websockets,
-    work_items
+    websockets
 ]
 
 for bp in blueprints:
@@ -127,9 +118,6 @@ async def before_request():
     g.authenticator = app.authenticator
     g.authenticator.authenticate_request()
 
-    g.Headset = Headset
-    g.Incident = IncidentLoader
-
     g.session_maker = session_maker
 
     # Make sure an active incident exists and is assigned to g.active_incident.
@@ -147,9 +135,6 @@ async def before_websocket():
 
     g.authenticator = app.authenticator
     g.authenticator.authenticate_websocket()
-
-    g.Headset = Headset
-    g.Incident = IncidentLoader
 
     g.session_maker = session_maker
 

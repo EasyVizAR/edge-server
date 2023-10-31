@@ -16,7 +16,6 @@ from server.layer import routes as layers
 from server.location import routes as locations
 from server.photo import routes as photos
 from server.pose_changes import routes as pose_changes
-from server.scene import routes as scenes
 from server.surface import routes as surfaces
 from server.websocket import routes as websockets
 from server import routes as other
