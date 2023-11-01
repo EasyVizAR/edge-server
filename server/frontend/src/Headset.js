@@ -137,6 +137,7 @@ function Headset(props) {
   const [placementType, setPlacementType] = useState('');
   const [tab, setTab] = useState('location-view');
   const [historyData, setHistoryData] = useState([]);
+  const [showDeviceQR, setShowDeviceQR] = useState(false);
 
   const [navigationTarget, setNavigationTarget] = useState(null);
   const [navigationRoute, setNavigationRoute] = useState(null);
@@ -569,6 +570,16 @@ function Headset(props) {
     }
   }
 
+  function DeviceQRCode(props) {
+    return (
+      headset !== null && showDeviceQR ? (
+        <img src={`${host}/headsets/${headset.id}/qrcode`} />
+      ) : (
+        null
+      )
+    )
+  }
+
   return (
     <div className="Home">
       <Helmet>
@@ -595,6 +606,13 @@ function Headset(props) {
             </div>
 
             <div className="QR-code-btn header-button">
+              <Button variant="secondary" title="Device QR Code"
+                onClick={() => setShowDeviceQR(!showDeviceQR)}>
+                Device QR Code
+              </Button>
+            </div>
+
+            <div className="QR-code-btn header-button">
               <Link className="btn btn-secondary" role="button" to={"/locations/" + selectedLocation + "/qrcode"}>Location QR Code</Link>
             </div>
 
@@ -616,6 +634,8 @@ function Headset(props) {
               setIconIndex={setIconIndex} sliderValue={sliderValue}
               setSliderValue={setSliderValue} setPlacementType={setPlacementType}
               placementType={placementType} />
+
+            <DeviceQRCode />
 
             <div style={{ textAlign: 'left', marginBottom: '15px' }}>
               <div style={{ display: 'inline-block' }}>

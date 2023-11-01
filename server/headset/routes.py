@@ -1,11 +1,14 @@
 import asyncio
 import datetime
+import os
 import time
 import uuid
 
 from http import HTTPStatus
 
-from quart import request, jsonify, Blueprint, current_app, g
+import pyqrcode
+
+from quart import request, jsonify, Blueprint, current_app, g, send_from_directory
 from werkzeug import exceptions
 
 import marshmallow
@@ -175,17 +178,13 @@ async def _create_headset(headset_id, body):
 
     result = headset_schema.dump(headset)
 
-    sec_result = headset_schema.dump(headset)
-    sec_result['token'] = g.authenticator.create_headset_token(str(headset.id))
-    g.authenticator.save()
-
     await current_app.dispatcher.dispatch_event("headsets:created",
             "/headsets/"+result['id'], current=result)
     if headset.location_id is not None:
         await current_app.dispatcher.dispatch_event("location-headsets:created",
                 "/locations/{}/headsets/{}".format(str(headset.location_id), result['id']), current=result)
 
-    return sec_result
+    return result
 
 
 @headsets.route('/headsets', methods=['POST'])
@@ -555,3 +554,43 @@ async def list_incident_headsets(incident_id):
             items.append(headset_schema.dump(row))
 
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
+
+
+@headsets.route('/headsets/<uuid:headset_id>/qrcode', methods=['GET'])
+async def get_headset_qrcode(headset_id):
+    """
+    Get a QR code for the device.
+    ---
+    get:
+        description: Get a QR code for the device.
+        tags:
+          - locations
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Location ID
+        responses:
+            200:
+                description: An SVG image file.
+                content:
+                    image/svg+xml: {}
+    """
+    async with g.session_maker() as session:
+        stmt = sa.select(MobileDevice) \
+                .where(MobileDevice.id == headset_id) \
+                .limit(1)
+
+        result = await session.execute(stmt)
+        headset = result.scalar()
+        if headset is None:
+            raise exceptions.NotFound(description="Headset {} was not found".format(id))
+
+        filename = "{}-qrcode.svg".format(headset_id.hex)
+        path = os.path.join(g.temp_dir, filename)
+
+        url = 'vizar://{}/devices/{}?token={}'.format(request.host, headset_id, headset.token)
+        code = pyqrcode.create(url, error='L')
+        code.svg(path, title=url, scale=16)
+
+    return await send_from_directory(g.temp_dir, filename)

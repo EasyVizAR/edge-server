@@ -1,10 +1,15 @@
 import datetime
+import secrets
 import uuid
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 
 from .base import Base
+
+
+def generate_token():
+    return secrets.token_urlsafe(16)
 
 
 class MobileDevice(Base):
@@ -37,14 +42,20 @@ class MobileDevice(Base):
     headset. The location-headsets:* events can be used to filter for headset
     changes in a particular location.
     """
-    __tablename__ = "mobile_devices"
     __allow_update__ = set(['name', 'type', 'color', 'navigation_target_id'])
+    __table_args__ = (
+        sa.UniqueConstraint("token"),
+    )
+    __tablename__ = "mobile_devices"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
 
     name: Mapped[str] = mapped_column(default="New Device")
     type: Mapped[str] = mapped_column(default="unknown")
     color: Mapped[str] = mapped_column(default="#4477aa")
+
+    # Authentication token to be used by the device
+    token: Mapped[str] = mapped_column(default=generate_token)
 
     location_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, sa.ForeignKey("locations.id"), nullable=True)
     tracking_session_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("tracking_sessions.id"), nullable=True)

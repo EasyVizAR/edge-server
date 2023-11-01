@@ -381,15 +381,14 @@ async def get_location_qrcode(location_id):
         if location is None:
             raise exceptions.NotFound(description="Location {} was not found".format(location_id))
 
-        location_dir = get_location_dir(location_id)
-        image_path = os.path.join(location_dir, 'qrcode.svg')
-        if not os.path.exists(image_path):
-            os.makedirs(location_dir, exist_ok=True)
-            url = 'vizar://{}/locations/{}'.format(request.host, location_id.hex)
-            code = pyqrcode.create(url, error='L')
-            code.svg(image_path, title=url, scale=16)
+        filename = "{}-qrcode.svg".format(location_id.hex)
+        path = os.path.join(g.temp_dir, filename)
 
-    return await send_from_directory(location_dir, "qrcode.svg")
+        url = 'vizar://{}/locations/{}'.format(request.host, location_id)
+        code = pyqrcode.create(url, error='L')
+        code.svg(path, title=url, scale=16)
+
+    return await send_from_directory(g.temp_dir, filename)
 
 
 @locations.route('/locations/<uuid:location_id>/model', methods=['GET'])

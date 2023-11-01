@@ -34,8 +34,11 @@ import sqlalchemy as sa
 
 from werkzeug.security import generate_password_hash
 
-from server.headset.models import Headset
-from server.incidents.models import IncidentLoader
+try:
+    from server.headset.models import Headset
+    from server.incidents.models import IncidentLoader
+except:
+    pass
 from server.resources.geometry import Vector3f, Vector4f
 
 

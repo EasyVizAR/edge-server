@@ -1,4 +1,5 @@
 import os
+import tempfile
 
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
@@ -117,10 +118,15 @@ def before_first_request():
     app.navigator = Navigator(data_dir=data_dir)
     app.dispatcher.add_event_listener("headsets:updated", "*", app.navigator.on_headset_updated)
 
+    # Create a temporary directory for transient files
+    app.temp_dir = tempfile.mkdtemp()
+
 
 @app.before_request
 async def before_request():
     g.data_dir = data_dir
+    g.temp_dir = app.temp_dir
+
     g.environment = os.environ.get("QUART_ENV", "production")
 
     # This will be set by the authenticator if the user
@@ -128,7 +134,7 @@ async def before_request():
     g.user_id = None
 
     g.authenticator = app.authenticator
-    g.authenticator.authenticate_request()
+    await g.authenticator.authenticate_request()
 
     g.session_maker = session_maker
 
@@ -139,6 +145,8 @@ async def before_request():
 @app.before_websocket
 async def before_websocket():
     g.data_dir = data_dir
+    g.temp_dir = app.temp_dir
+
     g.environment = os.environ.get("QUART_ENV", "production")
 
     # This will be set by the authenticator if the user
@@ -146,7 +154,7 @@ async def before_websocket():
     g.user_id = None
 
     g.authenticator = app.authenticator
-    g.authenticator.authenticate_websocket()
+    await g.authenticator.authenticate_websocket()
 
     g.session_maker = session_maker
 

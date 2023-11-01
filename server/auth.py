@@ -14,16 +14,37 @@ class Authenticator:
         self.headsets = dict()
         self.path = "auth.json"
 
-    def authenticate_request(self):
+        self.cache = dict()
+
+    async def find_device_by_token(self, token):
+        async with g.session_maker() as session:
+            stmt = sa.select(MobileDevice) \
+                    .where(MobileDevice.token == token) \
+                    .limit(1)
+            result = await session.execute(stmt)
+            return result.scalar()
+
+    async def lookup_token(self, token):
+        if token in self.cache:
+            g.headset_id, g.user_id = self.cache[token]
+            return True
+
+        device = await self.find_device_by_token(token)
+        if device is not None:
+            g.headset_id = device.id
+            g.user_id = device.user_id
+            self.cache[token] = (device.id, device.user_id)
+            return True
+
+        return False
+
+    async def authenticate_request(self):
         auth = request.headers.get("Authorization", "")
         parts = auth.split()
         if len(parts) >= 2 and parts[0] == "Bearer":
-            entry = self.headsets.get(parts[1])
-            if entry is not None:
-                g.headset_id = entry['id']
-                g.user_id = entry['id']
+            await self.lookup_token(parts[1])
 
-    def authenticate_websocket(self):
+    async def authenticate_websocket(self):
         # This is one way to do websocket authentication, check the HTTP
         # Authorization header.  There is another path that sets
         # websockets.authorization username and password and maybe other
@@ -31,24 +52,7 @@ class Authenticator:
         auth = websocket.headers.get("Authorization", "")
         parts = auth.split()
         if len(parts) >= 2 and parts[0] == "Bearer":
-            entry = self.headsets.get(parts[1])
-            if entry is not None:
-                g.headset_id = entry['id']
-                g.user_id = entry['id']
-
-    def create_headset_token(self, headset_id):
-        token = secrets.token_urlsafe(16)
-        self.headsets[token] = {
-            "type": "headset",
-            "id": headset_id,
-            "token": token
-        }
-        self.tokens.append(self.headsets[token])
-        return token
-
-    def save(self):
-        with open(self.path, "w") as output:
-            output.write(json.dumps(self.tokens, indent=2))
+            await self.lookup_token(parts[1])
 
     @classmethod
     def build_authenticator(_class, data_dir):
