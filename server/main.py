@@ -5,6 +5,7 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from quart import Quart, g
 from quart_sqlalchemy import SQLAlchemy
 
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from server.check_in.routes import check_ins
@@ -25,15 +26,26 @@ from server.websocket.routes import websockets
 from server.auth import Authenticator
 from server.events import EventDispatcher
 from server.mapping.navigator import Navigator
-from server.resources.db import Base
+from server.models.base import Base
 
+
+sqlite_file = "easyvizar-edge.sqlite"
 
 static_folder = os.environ.get("VIZAR_STATIC_FOLDER", "./frontend/build/")
 
 app = Quart(__name__, static_folder=static_folder, static_url_path='/')
 
-engine = create_async_engine("sqlite+aiosqlite:///easyvizar-edge.sqlite")
+engine = create_async_engine("sqlite+aiosqlite:///"+sqlite_file)
 session_maker = async_sessionmaker(engine, expire_on_commit=False)
+
+
+if os.path.exists(sqlite_file):
+    print("Skipping database initialization because {} exists".format(sqlite_file))
+else:
+    print("Initializing sqlite database, stored at {}".format(sqlite_file))
+    sync_engine = create_engine("sqlite:///"+sqlite_file)
+    Base.metadata.create_all(sync_engine)
+
 
 main_rate_limiter.init_app(app)
 
