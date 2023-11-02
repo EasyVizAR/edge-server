@@ -42,7 +42,7 @@ function NewDevice(props) {
     return (
       <div className="new-device">
         <h3 style={{textAlign: "left"}}>New Device</h3>
-        <Form className='new-device-form'>
+        <Form className='table-new-item-form'>
           <Row className="align-items-center">
             <Col xs="auto">
               <Form.Label htmlFor="new-device-name" visuallyHidden>

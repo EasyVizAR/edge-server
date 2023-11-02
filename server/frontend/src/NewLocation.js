@@ -39,25 +39,25 @@ function NewLocation(props) {
 
     return (
       <div className="new-location">
-        <div className='new-location-content'>
-          <h3 style={{textAlign: "left"}}>New Location</h3>
-          <Form onSubmit={handleSubmit} className='new-location-form'>
-            <Row className="align-items-center">
-              <Col xs="auto">
-                <Form.Group style={{width: '50%', margin: 'auto', display:'flex', flexFlow:'column'}} className="mb-3" controlId="location-name">
-                  <FloatingLabel controlId="floating-name" label="Location Name">
-                    <Form.Control type="text" placeholder="Location Name" name="formLocationName" ref={formReferences.name}/>
-                  </FloatingLabel>
-                </Form.Group>
-              </Col>
-              <Col xs="auto">
-                <Button variant="primary" onClick={handleSubmit}>
-                  Create
-                </Button>
-              </Col>
-            </Row>
-          </Form>
-        </div>
+        <h3 style={{textAlign: "left"}}>New Location</h3>
+        <Form className='table-new-item-form'>
+          <Row className="align-items-center">
+            <Col xs="auto">
+              <Form.Label htmlFor="new-location-name" visuallyHidden>
+                Name
+              </Form.Label>
+              <Form.Control
+                className="mb-2"
+                id="new-location-name"
+                placeholder="Name"
+                ref={formReferences.name}
+              />
+            </Col>
+            <Col xs="auto" className="my-1">
+              <Button onClick={handleSubmit}>Create</Button>
+            </Col>
+          </Row>
+        </Form>
       </div>
     );
 }
