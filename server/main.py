@@ -3,6 +3,8 @@ import tempfile
 
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
+import magic
+
 from quart import Quart, g
 from quart_sqlalchemy import SQLAlchemy
 
@@ -120,6 +122,15 @@ def before_first_request():
 
     # Create a temporary directory for transient files
     app.temp_dir = tempfile.mkdtemp()
+
+    # The magic library makes it easy to identify file types of uploaded files.
+    # Annoyingly, we need to track down the location of the magic database when
+    # installed as a snap.
+    if "SNAP" in os.environ:
+        magic_file = os.path.join(os.environ['SNAP'], "usr/lib/file/magic.mgc")
+        app.magic = magic.Magic(magic_file=magic_file, mime=True)
+    else:
+        app.magic = magic.Magic(mime=True)
 
 
 @app.before_request

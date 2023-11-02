@@ -9,7 +9,6 @@ from http import HTTPStatus
 from quart import Blueprint, current_app, g, jsonify, request
 from werkzeug import exceptions
 
-import magic
 import marshmallow
 import sqlalchemy as sa
 
@@ -25,8 +24,6 @@ from .models import Layer, LayerSchema
 layers = Blueprint("layers", __name__)
 
 layer_schema = LayerSchema()
-
-file_checker = magic.Magic(mime=True)
 
 
 def get_layer_dir(location_id, layer_id):
@@ -499,7 +496,7 @@ async def upload_layer_image(location_id, layer_id):
             with open(temp_path, "wb") as output:
                 output.write(body)
 
-        layer.image_type = file_checker.from_file(temp_path)
+        layer.image_type = current_app.magic.from_file(temp_path)
 
         if layer.image_type == "image/svg+xml":
             from svgelements import SVG
