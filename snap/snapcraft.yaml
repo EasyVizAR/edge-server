@@ -66,6 +66,7 @@ parts:
     stage-packages:
       - libcairo2
       - libjpeg-turbo8
+      - libmagic1
       - python3
     requirements:
       - requirements.txt
