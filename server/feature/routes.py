@@ -122,7 +122,7 @@ async def create_feature(location_id):
 
         # Choose a color for the feature by cycling through the palette.
         if body.get("color") in [None, ""]:
-            body['color'] = default_color_palette[marker.id % len(default_color_palette)]
+            marker.color = default_color_palette[marker.id % len(default_color_palette)]
             await session.commit()
 
     result = feature_schema.dump(marker)

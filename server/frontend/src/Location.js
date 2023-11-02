@@ -123,7 +123,10 @@ function Location(props) {
   const [features, setFeatures] = useState({}); // object indexed by feature.id
   const [headsets, setHeadsets] = useState({}); // object indexed by headset.id
   const [photos, setPhotos] = useState({});
+
   const [showNewFeature, displayNewFeature] = useState(false);
+  const [showNewLayer, setShowNewLayer] = useState(false);
+
   const [layers, setLayers] = useState([]);
   const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
   const [pointCoordinates, setPointCoordinates] = useState([]);
@@ -538,6 +541,12 @@ function Location(props) {
                     onClick={(e) => showFeature(e)}>Add Feature</Button>
                 </div>
 
+                <div className="header-button">
+                  <Button variant="secondary" title="Add Layer" value="Add Layer" onClick={() => setShowNewLayer(!showNewLayer)}>
+                    Add Layer
+                  </Button>
+                </div>
+
                 <div className="QR-code-btn header-button">
                   <Link className="btn btn-secondary" role="button" to={"/locations/" + selectedLocation + "/qrcode"}>Location QR Code</Link>
                 </div>
@@ -568,6 +577,11 @@ function Location(props) {
                 setIconIndex={setIconIndex} sliderValue={sliderValue}
                 setSliderValue={setSliderValue} setPlacementType={setPlacementType}
                 placementType={placementType} />
+          }
+
+          {
+            selectedLocation && showNewLayer &&
+              <NewLayer location={currentLocation} setLayers={setLayers} />
           }
 
           <Row className="location-header">
@@ -652,7 +666,7 @@ function Location(props) {
                   </Form>
                 </div>
 
-                <LayerTable locationId={selectedLocation} layers={layers} />
+                <LayerTable locationId={selectedLocation} layers={layers} setLayers={setLayers} />
 
                 <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
                   setHeadsets={setHeadsets} features={features} />

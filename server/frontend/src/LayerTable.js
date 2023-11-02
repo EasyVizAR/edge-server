@@ -81,7 +81,17 @@ function LayerTable(props) {
     };
 
     fetch(url, requestData).then(response => {
-      props.layers.pop(index);
+      if (props.setLayers) {
+        props.setLayers(prevLayers => {
+          let newLayers = [];
+          for (var layer of prevLayers) {
+            if (layer.id !== id) {
+              newLayers.push(layer);
+            }
+          }
+          return newLayers;
+        });
+      }
     });
   }
 

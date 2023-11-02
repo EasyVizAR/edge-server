@@ -9,6 +9,7 @@ from http import HTTPStatus
 from quart import Blueprint, current_app, g, jsonify, request
 from werkzeug import exceptions
 
+import magic
 import marshmallow
 import sqlalchemy as sa
 
@@ -24,6 +25,8 @@ from .models import Layer, LayerSchema
 layers = Blueprint("layers", __name__)
 
 layer_schema = LayerSchema()
+
+file_checker = magic.Magic(mime=True)
 
 
 def get_layer_dir(location_id, layer_id):
@@ -485,26 +488,32 @@ async def upload_layer_image(location_id, layer_id):
         layer_dir = get_layer_dir(location_id, layer_id)
         os.makedirs(layer_dir, exist_ok=True)
 
-        layer_fname = "image" + ext_from_type(layer.image_type)
-        path = os.path.join(layer_dir, layer_fname)
-
-        created = not os.path.exists(path)
+        temp_filename = "{}-{}".format(location_id.hex, layer_id)
+        temp_path = os.path.join(g.temp_dir, temp_filename)
 
         request_files = await request.files
         if 'image' in request_files:
-            await save_image(layer.imagePath, request_files['image'])
+            await save_image(temp_path, request_files['image'])
         else:
             body = await request.get_data()
-            with open(path, "wb") as output:
+            with open(temp_path, "wb") as output:
                 output.write(body)
+
+        layer.image_type = file_checker.from_file(temp_path)
 
         if layer.image_type == "image/svg+xml":
             from svgelements import SVG
-            vb = SVG.parse(layer.imagePath).viewbox
+            vb = SVG.parse(temp_path).viewbox
             layer.boundary_left = vb.x
             layer.boundary_top = vb.y
             layer.boundary_width = vb.width
             layer.boundary_height = vb.height
+
+        final_filename = "image" + ext_from_type(layer.image_type)
+        final_path = os.path.join(layer_dir, final_filename)
+        shutil.move(temp_path, final_path)
+
+        created = os.path.exists(final_path)
 
         layer.updated_time = datetime.datetime.now()
         layer.version += 1

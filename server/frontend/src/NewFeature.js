@@ -188,12 +188,6 @@ function NewFeature(props) {
                 "x": props.pointCoordinates[0],
                 "y": props.pointCoordinates[1],
                 "z": props.pointCoordinates[2]
-            },
-            "mapID": props.mapID,
-            "style": {
-                "placement": props.placementType,
-                "topOffset": top_offset_percent,
-                "leftOffset": left_offset_percent
             }
         }
 
@@ -252,6 +246,7 @@ function NewFeature(props) {
                                 </Form.Select>
                             </FloatingLabel>
                         </Form.Group>
+
                         <div style={{display: "flex", width: "100%"}}>
                             <Form.Group className="mb-3" controlId="top-offset-percent" style={{width: "50%"}}>
                                 <FloatingLabel controlId="top-offset-percent" label="Top Offset (%)">
@@ -266,6 +261,7 @@ function NewFeature(props) {
                                 </FloatingLabel>
                             </Form.Group>
                         </div>
+
                         <div style={{display: rangeSliderVisibility, height: 'contentMax'}}>
                             <RangeSlider
                                 value={props.sliderValue}
@@ -277,6 +273,7 @@ function NewFeature(props) {
                                 step={0.1}
                             />
                         </div>
+
                         <Form.Group className="mb-3" controlId="coord-location" style={coordStyle}>
                             <FloatingLabel controlId="coord-location" label="Placement Location">
                                 <Form.Select aria-label="coord Location"
