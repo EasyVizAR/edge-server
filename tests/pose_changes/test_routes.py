@@ -1,6 +1,8 @@
 import os
 import uuid
 
+from http import HTTPStatus
+
 import pytest
 
 from server.main import app
@@ -78,3 +80,7 @@ async def test_pose_change_routes():
         data = await response.get_json()
         assert isinstance(data, list)
         assert len(data) > 0
+
+        # Cleanup
+        response = await client.delete(headset_url)
+        assert response.status_code == HTTPStatus.OK

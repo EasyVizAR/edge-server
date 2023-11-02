@@ -18,7 +18,7 @@ async def test_feature_routes():
 
     async with app.test_client() as client:
         # Create a test location
-        response = await client.post("/locations", json=dict(name="Test"))
+        response = await client.post("/locations", json=dict(name="Feature Test"))
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         location = await response.get_json()
@@ -99,3 +99,7 @@ async def test_feature_routes():
         assert response.status_code == HTTPStatus.NOT_FOUND
         response = await client.patch(feature_url, json={test_field: "bar"})
         assert response.status_code == HTTPStatus.NOT_FOUND
+
+        # Clean up
+        response = await client.delete('/locations/{}'.format(location['id']))
+        assert response.status_code == HTTPStatus.OK

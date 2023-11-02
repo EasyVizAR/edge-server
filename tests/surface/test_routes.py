@@ -87,6 +87,10 @@ async def test_surface_routes():
         response = await client.get(surface_url)
         assert response.status_code == HTTPStatus.NOT_FOUND
 
+        # Clean up
+        response = await client.delete('/locations/{}'.format(location['id']))
+        assert response.status_code == HTTPStatus.OK
+
 
 @pytest.mark.asyncio
 async def test_surface_upload():
@@ -135,6 +139,10 @@ async def test_surface_upload():
         surface2 = await response.get_json()
         assert surface2['id'] == surface['id']
 
+        # Clean up
+        response = await client.delete('/locations/{}'.format(location['id']))
+        assert response.status_code == HTTPStatus.OK
+
 
 @pytest.mark.asyncio
 async def test_direct_surface_upload():
@@ -174,6 +182,10 @@ async def test_direct_surface_upload():
         assert response.is_json
         surface2 = await response.get_json()
         assert surface2['id'] == surface['id']
+
+        # Clean up
+        response = await client.delete('/locations/{}'.format(location['id']))
+        assert response.status_code == HTTPStatus.OK
 
 
 @pytest.mark.asyncio
@@ -221,3 +233,7 @@ async def test_clear_surfaces():
         surfaces = await response.get_json()
         assert isinstance(surfaces, list)
         assert len(surfaces) == 0
+
+        # Clean up
+        response = await client.delete('/locations/{}'.format(location['id']))
+        assert response.status_code == HTTPStatus.OK

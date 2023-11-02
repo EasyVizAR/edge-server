@@ -19,7 +19,7 @@ async def test_check_in_routes():
     async with app.test_client() as client:
         position = dict(x=0, y=0, z=0)
 
-        response = await client.post("/headsets", json=dict(name="Test", position=position))
+        response = await client.post("/headsets", json=dict(name="Checkin Test", position=position))
         assert response.status_code == 201
         assert response.is_json
         headset = await response.get_json()
@@ -71,6 +71,10 @@ async def test_check_in_routes():
         data = await response.get_json()
         assert isinstance(data, dict)
 
+        # Cleanup
+        response = await client.delete(headset_url)
+        assert response.status_code == HTTPStatus.OK
+
 
 @pytest.mark.asyncio
 async def test_automatic_check_in():
@@ -80,7 +84,7 @@ async def test_automatic_check_in():
     async with app.test_client() as client:
         position = dict(x=0, y=0, z=0)
 
-        response = await client.post("/headsets", json=dict(name="Test", location_id=test_location_id))
+        response = await client.post("/headsets", json=dict(name="Checkin Test", location_id=test_location_id))
         assert response.status_code == 201
         assert response.is_json
         headset = await response.get_json()
@@ -111,3 +115,7 @@ async def test_automatic_check_in():
         checkins = await response.get_json()
         assert isinstance(checkins, list)
         assert len(checkins) == 2
+
+        # Cleanup
+        response = await client.delete(headset_url)
+        assert response.status_code == HTTPStatus.OK
