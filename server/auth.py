@@ -4,8 +4,12 @@ import secrets
 
 from functools import wraps
 
+import sqlalchemy as sa
+
 from quart import g, request, websocket
 from werkzeug.exceptions import Unauthorized
+
+from server.models.mobile_devices import MobileDevice
 
 
 class Authenticator:
@@ -15,6 +19,14 @@ class Authenticator:
         self.path = "auth.json"
 
         self.cache = dict()
+
+    def create_temporary_token(self, bearer_id):
+        """
+        Create a temporary token that will last until system shutdown.
+        """
+        token = secrets.token_urlsafe(16)
+        self.cache[token] = bearer_id
+        return token
 
     async def find_device_by_token(self, token):
         async with g.session_maker() as session:
@@ -32,8 +44,8 @@ class Authenticator:
         device = await self.find_device_by_token(token)
         if device is not None:
             g.headset_id = device.id
-            g.user_id = device.user_id
-            self.cache[token] = (device.id, device.user_id)
+            g.user_id = None
+            self.cache[token] = (device.id, None)
             return True
 
         return False

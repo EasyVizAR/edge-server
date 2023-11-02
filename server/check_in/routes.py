@@ -21,7 +21,7 @@ check_in_schema = CheckInSchema()
 check_ins = Blueprint('check-ins', __name__)
 
 
-@check_ins.route('/headsets/<headset_id>/check-ins', methods=['GET'])
+@check_ins.route('/headsets/<uuid:headset_id>/check-ins', methods=['GET'])
 async def list_check_ins(headset_id):
     """
     List headset check-ins
@@ -50,8 +50,6 @@ async def list_check_ins(headset_id):
                             type: array
                             items: CheckIn
     """
-    headset_id = uuid.UUID(headset_id)
-
     items = []
     async with g.session_maker() as session:
         stmt = sa.select(TrackingSession).where(TrackingSession.mobile_device_id == headset_id)
@@ -69,7 +67,7 @@ async def list_check_ins(headset_id):
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
 
-@check_ins.route('/headsets/<headset_id>/check-ins', methods=['POST'])
+@check_ins.route('/headsets/<uuid:headset_id>/check-ins', methods=['POST'])
 @auth.requires_own_headset_id
 async def create_check_in(headset_id):
     """
@@ -91,8 +89,6 @@ async def create_check_in(headset_id):
                     application/json:
                         schema: CheckIn
     """
-    headset_id = uuid.UUID(headset_id)
-
     body = await request.get_json()
     body['id'] = 0
 
@@ -117,7 +113,7 @@ async def create_check_in(headset_id):
     return jsonify(result), HTTPStatus.CREATED
 
 
-@check_ins.route('/headsets/<headset_id>/check-ins/<check_in_id>', methods=['DELETE'])
+@check_ins.route('/headsets/<uuid:headset_id>/check-ins/<int:check_in_id>', methods=['DELETE'])
 async def delete_check_in(headset_id, check_in_id):
     """
     Delete a headset check-in
@@ -142,8 +138,6 @@ async def delete_check_in(headset_id, check_in_id):
                     application/json:
                         schema: CheckIn
     """
-    headset_id = uuid.UUID(headset_id)
-
     async with g.session_maker() as session:
         stmt = sa.select(TrackingSession) \
                 .where(TrackingSession.mobile_device_id == headset_id) \

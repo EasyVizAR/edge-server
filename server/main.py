@@ -133,10 +133,10 @@ async def before_request():
     # passed a valid credential.
     g.user_id = None
 
+    g.session_maker = session_maker
+
     g.authenticator = app.authenticator
     await g.authenticator.authenticate_request()
-
-    g.session_maker = session_maker
 
     # Make sure an active incident exists and is assigned to g.active_incident.
     await initialize_incidents(app)
@@ -153,10 +153,10 @@ async def before_websocket():
     # passed a valid credential.
     g.user_id = None
 
+    g.session_maker = session_maker
+
     g.authenticator = app.authenticator
     await g.authenticator.authenticate_websocket()
-
-    g.session_maker = session_maker
 
     # Make sure an active incident exists and is assigned to g.active_incident.
     await initialize_incidents(app)

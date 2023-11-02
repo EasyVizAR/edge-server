@@ -178,13 +178,18 @@ async def _create_headset(headset_id, body):
 
     result = headset_schema.dump(headset)
 
+    # Create a private copy of the headset including the authentication token
+    # and return that one to the caller.
+    private_result = headset_schema.dump(headset)
+    private_result['token'] = headset.token
+
     await current_app.dispatcher.dispatch_event("headsets:created",
             "/headsets/"+result['id'], current=result)
     if headset.location_id is not None:
         await current_app.dispatcher.dispatch_event("location-headsets:created",
                 "/locations/{}/headsets/{}".format(str(headset.location_id), result['id']), current=result)
 
-    return result
+    return private_result
 
 
 @headsets.route('/headsets', methods=['POST'])
