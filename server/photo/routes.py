@@ -166,6 +166,7 @@ async def list_photos():
 
         stmt = stmt.options(sa.orm.selectinload(PhotoRecord.annotations))
         stmt = stmt.options(sa.orm.selectinload(PhotoRecord.files))
+        stmt = stmt.options(sa.orm.selectinload(PhotoRecord.pose))
 
         result = await session.execute(stmt)
         for row in result.scalars():
@@ -358,7 +359,8 @@ async def get_photo(photo_id):
                 .where(PhotoRecord.id == photo_id) \
                 .limit(1) \
                 .options(sa.orm.selectinload(PhotoRecord.annotations)) \
-                .options(sa.orm.selectinload(PhotoRecord.files))
+                .options(sa.orm.selectinload(PhotoRecord.files)) \
+                .options(sa.orm.selectinload(PhotoRecord.pose))
 
         result = await session.execute(stmt)
         photo = result.scalar()

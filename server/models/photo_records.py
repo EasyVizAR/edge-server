@@ -60,3 +60,4 @@ class PhotoRecord(Base):
 
     annotations: Mapped[List['PhotoAnnotation']] = relationship(cascade="all, delete-orphan")
     files: Mapped[List['PhotoFile']] = relationship(back_populates="record", cascade="all, delete-orphan")
+    pose: Mapped['DevicePose'] = relationship(foreign_keys=[device_pose_id])

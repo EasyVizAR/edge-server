@@ -74,6 +74,8 @@ class PhotoSchema(MigrationSchema):
     created_by = auto_field('mobile_device_id', description="Mobile device ID which captured the photo")
     camera_location_id = auto_field('location_id', description="Location ID where the photo was captured")
 
+    device_pose_id = auto_field()
+
     created = auto_field('created_time', description="Time the photo was created")
     updated = auto_field('updated_time', description="Time the photo was last update")
 
@@ -105,4 +107,14 @@ class PhotoSchema(MigrationSchema):
         else:
             data['ready'] = True
             data['status'] = "error"
+        return data
+
+    @post_dump(pass_original=True)
+    def add_camera_pose(self, data, original, **kwargs):
+        """
+        Add position and orientation of camera if known.
+        """
+        if original.has('pose') and original.pose is not None:
+            data['camera_position'] = original.pose.position
+            data['camera_orientation'] = original.pose.orientation
         return data
