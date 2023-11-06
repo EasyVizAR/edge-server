@@ -41,7 +41,7 @@ async def test_feature_routes():
         assert isinstance(features2['items'], list)
 
         # Create an object
-        response = await client.post(features_url, json={test_field: "foo"})
+        response = await client.post(features_url, json={test_field: "foo", "style": "should-ignore"})
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         feature = await response.get_json()
@@ -66,6 +66,16 @@ async def test_feature_routes():
         feature2 = await response.get_json()
         assert int_equal(feature2['id'], feature['id'])
         assert feature2[test_field] == "bar"
+
+        # Test changing position
+        position = {"x": 1, "y": 2, "z": 3}
+        response = await client.patch(feature_url, json={"position": position})
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        feature2 = await response.get_json()
+        assert int_equal(feature2['id'], feature['id'])
+        assert feature2[test_field] == "bar"
+        assert feature2['position']['x'] == 1
 
         # Test replacement
         response = await client.put(feature_url, json=feature)

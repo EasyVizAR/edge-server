@@ -24,7 +24,7 @@ def ext_from_type(ctype):
     elif ctype == "image/svg+xml":
         return ".svg"
     else:
-        return None
+        return ""
 
 
 def hash_file(path, block_size=2**20, method=hashlib.sha1):

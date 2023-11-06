@@ -115,7 +115,7 @@ async def create_feature(location_id):
         if g.user_id is not None:
             body['user_id'] = uuid.UUID(g.user_id)
 
-        marker = feature_schema.load(body, transient=True)
+        marker = feature_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
         marker.location_id = location_id
         session.add(marker)
         await session.commit()
