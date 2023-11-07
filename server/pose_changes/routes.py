@@ -226,6 +226,56 @@ async def list_pose_changes_csv(headset_id):
     return csv_generator(), 200, headers
 
 
+@pose_changes.route('/headsets/<uuid:headset_id>/tracking-sessions/<int:tracking_session_id>/pose-changes.csv', methods=['GET'])
+async def list_tracking_session_pose_changes_csv(headset_id, tracking_session_id):
+    """
+    List headset pose changes for a single tracking session (CSV file)
+    ---
+    get:
+        summary: List headset pose changes for a single tracking session (CSV file)
+        tags:
+         - pose-changes
+        responses:
+            200:
+                description: A list of pose changes in CSV
+                content:
+                    text/csv
+    """
+    header = "time,position.x,position.y,position.z,orientation.x,orientation.y,orientation.z,orientation.w\n"
+
+    session_maker = g.session_maker
+
+    @stream_with_context
+    async def csv_generator():
+        yield header
+
+        async with session_maker() as session:
+            stmt = sa.select(DevicePose) \
+                    .where(DevicePose.mobile_device_id == headset_id) \
+                    .where(DevicePose.tracking_session_id == tracking_session_id) \
+                    .order_by(DevicePose.id)
+            result = await session.execute(stmt)
+            for c in result.scalars():
+                values = [
+                    c.created_time.timestamp(),
+                    c.position_x,
+                    c.position_y,
+                    c.position_z,
+                    c.orientation_x,
+                    c.orientation_y,
+                    c.orientation_z,
+                    c.orientation_w
+                ]
+                yield ",".join(str(v) for v in values) + "\n"
+
+    disposition = 'attachment; filename="pose-changes-{}.csv"'.format(tracking_session_id)
+    headers = {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': disposition
+    }
+    return csv_generator(), 200, headers
+
+
 @pose_changes.route('/headsets/<uuid:headset_id>/pose-changes', methods=['POST'])
 async def create_pose_change(headset_id):
     """
