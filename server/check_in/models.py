@@ -23,6 +23,7 @@ class CheckInSchema(MigrationSchema):
 
     id = auto_field(description="Tracking session ID")
 
+    headset_id = auto_field('mobile_device_id')
     location_id = auto_field()
 
     start_time = auto_field('created_time',

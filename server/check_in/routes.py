@@ -157,3 +157,38 @@ async def delete_check_in(headset_id, check_in_id):
     checkin = check_in_schema.dump(result)
 
     return jsonify(checkin), HTTPStatus.OK
+
+
+@check_ins.route('/locations/<uuid:location_id>/check-ins', methods=['GET'])
+async def list_location_check_ins(location_id):
+    """
+    List location check-ins
+    ---
+    get:
+        summary: List location check-ins
+        tags:
+         - check-ins
+        parameters:
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
+        responses:
+            200:
+                description: A list of objects.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: CheckIn
+    """
+    items = []
+    async with g.session_maker() as session:
+        stmt = sa.select(TrackingSession) \
+                .where(TrackingSession.location_id == location_id)
+
+        result = await session.execute(stmt)
+        for row in result.scalars():
+            items.append(check_in_schema.dump(row))
+
+    return jsonify(maybe_wrap(items)), HTTPStatus.OK
