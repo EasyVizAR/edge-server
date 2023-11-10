@@ -12,8 +12,10 @@ from werkzeug import exceptions
 import marshmallow
 import sqlalchemy as sa
 
+from server.layer.models import LayerSchema
 from server.mapping.obj_file import ObjFileMaker
 from server.mapping.map_maker import MapMaker
+from server.models.layers import Layer
 from server.utils.response import maybe_wrap
 
 from .models import Surface, SurfaceSchema
@@ -21,6 +23,7 @@ from .models import Surface, SurfaceSchema
 
 surfaces = Blueprint("surfaces", __name__)
 
+layer_schema = LayerSchema()
 surface_schema = SurfaceSchema()
 
 auto_build_obj = False
@@ -292,6 +295,7 @@ async def upload_surface_file(location_id, surface_id):
     dispatcher = current_app.dispatcher
     mapping_limiter = current_app.mapping_limiter
     modeling_limiter = current_app.modeling_limiter
+    session_maker = g.session_maker
 
     # The pool limiter helps us batch multiple surface updates. If there is
     # already a mapping task pending for this location, then we do not schedule
@@ -301,23 +305,35 @@ async def upload_surface_file(location_id, surface_id):
         map_maker = await MapMaker.build_maker(g.active_incident.id, location_id, get_surface_dir(location_id))
         future = current_app.mapping_pool.submit(map_maker.make_map)
 
+        # This code is horrifying.
+        async def async_map_ready(result):
+            async with session_maker() as session:
+                stmt = sa.select(Layer) \
+                        .where(Layer.id == result.layer_id) \
+                        .limit(1)
+                res = await session.execute(stmt)
+                layer = res.scalar()
+
+                layer.version += 1
+                layer.boundary_left = result.view_box['left']
+                layer.boundary_top = result.view_box['top']
+                layer.boundary_width = result.view_box['width']
+                layer.boundary_height = result.view_box['height']
+                layer.updated_time = datetime.datetime.now()
+                await session.commit()
+
+            output = layer_schema.dump(layer)
+            layer_uri = "/locations/{}/layers/{}".format(location_id, result.layer_id)
+            await dispatcher.dispatch_event("layers:updated", layer_uri, current=output)
+
+        # This callback fires when the map maker operation finishes.
+        # If any changes to the map were made, trigger the async callback above.
         def map_ready(future):
             mapping_limiter.finished(location_id)
 
             result = future.result()
-
-            # TODO: Need to update layer and send an event
-
-#            if result.changes > 0:
-#                layer = location.Layer.find_by_id(result.layer_id)
-#                layer.imagePath = result.image_path
-#                layer.ready = True
-#                layer.version += 1
-#                layer.viewBox = result.view_box
-#                layer.save()
-#
-#                layer_uri = "/locations/{}/layers/{}".format(location_id, layer.id)
-#                asyncio.run_coroutine_threadsafe(dispatcher.dispatch_event("layers:updated", layer_uri, current=layer), loop=loop)
+            if result.changes > 0:
+                asyncio.run_coroutine_threadsafe(async_map_ready(result), loop=loop)
 
         future.add_done_callback(map_ready)
 
