@@ -5,29 +5,36 @@ import sys
 
 SERVER_URL = os.environ.get("SERVER_URL", "http://localhost:5000")
 ADD_FAKE_ANNOTATION = True
+LOCATION_ID = "35c1ad19-b965-46d6-963a-dbef1435b5fc"
 
 
 def upload_item(file_path):
     item = {
+        "camera_location_id": LOCATION_ID,
         "contentType": "image/jpeg"
     }
-
-    # Add a bounding box for an "object" for testing
-    if ADD_FAKE_ANNOTATION:
-        item['annotations'] = [{
-            "boundary": {
-                "height": 0.5,
-                "width": 0.5,
-                "top": 0.25,
-                "left": 0.25
-            },
-            "confidence": 0.9,
-            "label": "object"
-        }]
 
     req_url = "{}/photos".format(SERVER_URL)
     req = requests.post(req_url, json=item)
     photo = req.json()
+
+    if ADD_FAKE_ANNOTATION:
+        # Add a bounding box for an "object" for testing
+        patch = {
+            'annotations': [{
+                "boundary": {
+                    "height": 0.5,
+                    "width": 0.5,
+                    "top": 0.25,
+                    "left": 0.25
+                },
+                "confidence": 0.9,
+                "label": "object"
+            }]
+        }
+
+        req_url = "{}/photos/{}".format(SERVER_URL, photo['id'])
+        req = requests.patch(req_url, json=patch)
 
     headers = {
         "Content-Type": "image/jpeg"
