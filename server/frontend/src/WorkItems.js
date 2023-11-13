@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Table } from 'react-bootstrap';
+import { Button, Table, Pagination } from 'react-bootstrap';
 import './WorkItems.css';
 import {Helmet} from 'react-helmet';
 import {Link} from "react-router-dom";
@@ -9,7 +9,8 @@ import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.m
 
 function WorkItems(props){
   const host = process.env.PUBLIC_URL;
-
+  const itemsPerPage = 10;
+  const [currentPage, setCurrentPage] = useState(1);
   const[workItems, setWorkItems] = useState([]);
   const [sortBy, setSortBy] = useState({
     attr: "created",
@@ -149,6 +150,17 @@ function WorkItems(props){
     }
   }
 
+  function handlePageChange(page){
+    setCurrentPage(page)
+  }
+
+  function handleSort(){
+    workItems.sort((a, b) => a[sortBy.attr] > b[sortBy.attr] ? sortBy.direction : -sortBy.direction)
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return workItems.slice(startIndex, endIndex);
+  }
+
   return (
     <div className="WorkItems">
       <Helmet>
@@ -168,8 +180,8 @@ function WorkItems(props){
           </thead>
           <tbody>
             {
-              (workItems.length > 0) ? (
-                workItems.sort((a, b) => a[sortBy.attr] > b[sortBy.attr] ? sortBy.direction : -sortBy.direction).map((e, index) => {
+            (handleSort().length > 0) ? (
+              handleSort().map((e, index) => {
                   return <tr>
                     <td>
                       <Link to={"/photos/" + e.id}>
@@ -202,6 +214,18 @@ function WorkItems(props){
             }
           </tbody>
       </Table>
+      <Pagination>
+        {Array.from({ length: Math.ceil(workItems.length / itemsPerPage) }).map((_, index) => (
+          <Pagination.Item
+            key={index}
+            active={index + 1 === currentPage}
+            onClick={() => handlePageChange(index + 1)}
+            style={{ display: "inline-block", margin: "5px" }}
+          >{index + 1}
+            
+          </Pagination.Item>
+        ))}
+      </Pagination>
     </div>
   );
 }
