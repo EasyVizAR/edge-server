@@ -55,7 +55,9 @@ class Mapper:
                 layers = [layer]
 
             for layer in layers:
-                svg_output = os.path.join(self.data_dir, "locations", location_id.hex, "layers", '{:08x}'.format(layer.id), 'image.svg')
+                output_dir = os.path.join(self.data_dir, "locations", location_id.hex, "layers", '{:08x}'.format(layer.id))
+                os.makedirs(output_dir, exist_ok=True)
+                svg_output = os.path.join(output_dir, 'image.svg')
                 config = LayerConfig(height=layer.reference_height, svg_output=svg_output)
                 configs.append(config)
 
@@ -80,6 +82,7 @@ class Mapper:
                 layer.boundary_top = result['top']
                 layer.boundary_width = result['width']
                 layer.boundary_height = result['height']
+                layer.image_type = "image/svg+xml"
                 layer.updated_time = datetime.datetime.now()
 
                 updated_layers.append(layer_schema.dump(layer))
