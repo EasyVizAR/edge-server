@@ -274,17 +274,16 @@ class MeshSoup:
                         self.walkable_graph.add_edge(i, j, type="inferred")
 
     def infer_walls(self, layers):
-        plane_origin = np.array([0, 0, 0])
-
-        # dot product of every vertex with plane
-        vertex_dots = np.dot(self.up, (self.mesh.vertices - plane_origin).T)
-
         paths = []
         for i, layer in enumerate(layers):
             # this is essentially the inner loop of trimesh.intersections.mesh_multiplane,
             # but their implementation includes some transformations that we do not need
-            new_origin = plane_origin + (self.up * layer.height)
-            new_dots = vertex_dots - layer.height
+            #
+            # Also, the dot product is greatly simplified because we know we are intersecting
+            # with horizontal planes. The dot product with the plane normal [0, 1, 0] simply
+            # extracts the Y values from the vertices.
+            new_origin = np.array([0, layer.height, 0])
+            new_dots = self.mesh.vertices[:, 1] - layer.height
 
             walls = trimesh.intersections.mesh_plane(self.mesh, self.up, new_origin, cached_dots=new_dots)
             path = trimesh.load_path(walls)
