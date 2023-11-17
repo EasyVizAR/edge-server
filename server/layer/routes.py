@@ -330,6 +330,11 @@ async def update_layer(location_id, layer_id):
             raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
 
         layer.update(body)
+
+        # Some clients might be sending 'cutting_height' instead.
+        if 'cutting_height' in body:
+            layer.reference_height = float(body['cutting_height'])
+
         layer.updated_time = datetime.datetime.now()
         await session.commit()
 
