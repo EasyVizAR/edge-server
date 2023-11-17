@@ -142,6 +142,7 @@ async def before_request():
 
     # This will be set by the authenticator if the user
     # passed a valid credential.
+    g.device_id = None
     g.user_id = None
 
     g.session_maker = session_maker
@@ -162,6 +163,7 @@ async def before_websocket():
 
     # This will be set by the authenticator if the user
     # passed a valid credential.
+    g.device_id = None
     g.user_id = None
 
     g.session_maker = session_maker

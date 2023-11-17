@@ -90,7 +90,7 @@ async def create_check_in(headset_id):
                         schema: CheckIn
     """
     body = await request.get_json()
-    body['id'] = 0
+    body['headset_id'] = headset_id
 
     checkin = check_in_schema.load(body, transient=True)
     checkin.mobile_device_id = headset_id

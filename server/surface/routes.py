@@ -247,7 +247,9 @@ async def get_surface_file(location_id, surface_id):
     return await send_from_directory(get_surface_dir(location_id), surface_fname)
 
 
-@surfaces.route('/locations/<uuid:location_id>/surfaces/<uuid:surface_id>/surface.ply', methods=['PUT'])
+# Set strict=False on this endpoint because headsets are passing UUIDs in a
+# different format from expected, e.g. "430A1A647B28677E-A618E129BADDB6AA".
+@surfaces.route('/locations/<uuid:location_id>/surfaces/<uuid(strict=False):surface_id>/surface.ply', methods=['PUT'])
 async def upload_surface_file(location_id, surface_id):
     """
     Upload a surface data file

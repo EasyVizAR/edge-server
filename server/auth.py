@@ -38,12 +38,12 @@ class Authenticator:
 
     async def lookup_token(self, token):
         if token in self.cache:
-            g.headset_id, g.user_id = self.cache[token]
+            g.device_id, g.user_id = self.cache[token]
             return True
 
         device = await self.find_device_by_token(token)
         if device is not None:
-            g.headset_id = device.id
+            g.device_id = device.id
             g.user_id = None
             self.cache[token] = (device.id, None)
             return True
@@ -96,7 +96,7 @@ def requires_own_headset_id(func):
         g.authenticator.authenticate_request()
 
         required_headset_id = kwargs.get('headset_id')
-        if required_headset_id is not None and required_headset_id != g.headset_id:
+        if required_headset_id is not None and required_headset_id != g.device_id:
             raise Unauthorized("Only headset {} may make this request".format(required_headset_id))
 
         return await func(*args, **kwargs)

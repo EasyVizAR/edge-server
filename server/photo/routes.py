@@ -250,6 +250,10 @@ async def create_photo():
     """
     body = await request.get_json()
 
+    # The caller should not be sending an ID, but check and dismiss it.
+    if 'id' in body:
+        del body['id']
+
     photo = photo_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
     photo.queue_name = "created"
     photo.annotations = []
