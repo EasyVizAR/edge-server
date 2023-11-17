@@ -306,41 +306,41 @@ async def upload_surface_file(location_id, surface_id):
     # already a mapping task pending for this location, then we do not schedule
     # another. This is not a perfect solution, as we may delay or miss
     # processing the last updates.
-    if mapping_limiter.try_submit(location_id):
-        map_maker = await MapMaker.build_maker(g.active_incident.id, location_id, get_surface_dir(location_id))
-        future = current_app.mapping_pool.submit(map_maker.make_map)
-
-        # This code is horrifying.
-        async def async_map_ready(result):
-            async with session_maker() as session:
-                stmt = sa.select(Layer) \
-                        .where(Layer.id == result.layer_id) \
-                        .limit(1)
-                res = await session.execute(stmt)
-                layer = res.scalar()
-
-                layer.version += 1
-                layer.boundary_left = result.view_box['left']
-                layer.boundary_top = result.view_box['top']
-                layer.boundary_width = result.view_box['width']
-                layer.boundary_height = result.view_box['height']
-                layer.updated_time = datetime.datetime.now()
-                await session.commit()
-
-            output = layer_schema.dump(layer)
-            layer_uri = "/locations/{}/layers/{}".format(location_id, result.layer_id)
-            await dispatcher.dispatch_event("layers:updated", layer_uri, current=output)
-
-        # This callback fires when the map maker operation finishes.
-        # If any changes to the map were made, trigger the async callback above.
-        def map_ready(future):
-            mapping_limiter.finished(location_id)
-
-            result = future.result()
-            if result.changes > 0:
-                asyncio.run_coroutine_threadsafe(async_map_ready(result), loop=loop)
-
-        future.add_done_callback(map_ready)
+#    if mapping_limiter.try_submit(location_id):
+#        map_maker = await MapMaker.build_maker(g.active_incident.id, location_id, get_surface_dir(location_id))
+#        future = current_app.mapping_pool.submit(map_maker.make_map)
+#
+#        # This code is horrifying.
+#        async def async_map_ready(result):
+#            async with session_maker() as session:
+#                stmt = sa.select(Layer) \
+#                        .where(Layer.id == result.layer_id) \
+#                        .limit(1)
+#                res = await session.execute(stmt)
+#                layer = res.scalar()
+#
+#                layer.version += 1
+#                layer.boundary_left = result.view_box['left']
+#                layer.boundary_top = result.view_box['top']
+#                layer.boundary_width = result.view_box['width']
+#                layer.boundary_height = result.view_box['height']
+#                layer.updated_time = datetime.datetime.now()
+#                await session.commit()
+#
+#            output = layer_schema.dump(layer)
+#            layer_uri = "/locations/{}/layers/{}".format(location_id, result.layer_id)
+#            await dispatcher.dispatch_event("layers:updated", layer_uri, current=output)
+#
+#        # This callback fires when the map maker operation finishes.
+#        # If any changes to the map were made, trigger the async callback above.
+#        def map_ready(future):
+#            mapping_limiter.finished(location_id)
+#
+#            result = future.result()
+#            if result.changes > 0:
+#                asyncio.run_coroutine_threadsafe(async_map_ready(result), loop=loop)
+#
+#        future.add_done_callback(map_ready)
 
     # auto_build_obj flag enables or disables rebuilding the model obj file
     # This is quite a bit of extra computation for an infrequently used file.
@@ -367,6 +367,10 @@ async def upload_surface_file(location_id, surface_id):
         future.add_done_callback(model_ready)
 
     result = surface_schema.dump(surface)
+
+    event_uri = "/locations/{}/surfaces/{}".format(location_id, surface_id)
+    await current_app.dispatcher.dispatch_event("surfaces:updated",
+            event_uri, current=result, previous=None)
 
     if created:
         return jsonify(result), HTTPStatus.CREATED

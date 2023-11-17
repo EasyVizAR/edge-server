@@ -29,6 +29,7 @@ from server.websocket.routes import websockets
 from server.auth import Authenticator
 from server.events import EventDispatcher
 from server.mapping.navigator import Navigator
+from server.mapping2.mapper import Mapper
 from server.models.base import Base
 
 
@@ -119,6 +120,9 @@ def before_first_request():
 
     app.navigator = Navigator(data_dir=data_dir)
     app.dispatcher.add_event_listener("headsets:updated", "*", app.navigator.on_headset_updated)
+
+    app.mapper = Mapper(data_dir=data_dir)
+    app.dispatcher.add_event_listener("surfaces:updated", "*", app.mapper.on_surface_updated)
 
     # Create a temporary directory for transient files
     app.temp_dir = tempfile.mkdtemp()
