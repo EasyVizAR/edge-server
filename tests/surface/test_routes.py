@@ -149,7 +149,16 @@ async def test_direct_surface_upload():
     """
     Test direct surface upload
     """
-    test_surface_id = str(uuid.uuid4())
+    # Test two different ways of formatting surface ID.
+    # We need to be flexible on the upload handling because
+    # some client devices use the alternate format.
+    surface_ids = [
+        str(uuid.uuid4())
+    ]
+
+    # Generate an alterative UUID of the format 060452F908CA4206-B44C35DEC978C89F.
+    x = str(uuid.uuid4()).upper().split("-")
+    surface_ids.append(x[0]+x[1]+x[2]+"-"+x[3]+x[4])
 
     async with app.test_client() as client:
         # Create a test location
@@ -158,30 +167,32 @@ async def test_direct_surface_upload():
         assert response.is_json
         location = await response.get_json()
 
-        surface_ply_url = "/locations/{}/surfaces/{}/surface.ply".format(location['id'], test_surface_id)
+        for test_surface_id in surface_ids:
+            surface_ply_url = "/locations/{}/surfaces/{}/surface.ply".format(location['id'], test_surface_id)
 
-        # Test upload process
-        response = await client.put(surface_ply_url, data="ply")
-        assert response.status_code == HTTPStatus.CREATED
-        assert response.is_json
-        surface = await response.get_json()
-        assert isinstance(surface, dict)
-        assert surface['id'] == test_surface_id
+            # Test upload process
+            response = await client.put(surface_ply_url, data="ply")
+            assert response.status_code == HTTPStatus.CREATED
+            assert response.is_json
+            surface = await response.get_json()
+            assert isinstance(surface, dict)
+            assert uuid.UUID(surface['id']) == uuid.UUID(test_surface_id)
 
-        # Test downloading the file
-        response = await client.get(surface_ply_url)
-        assert response.status_code == HTTPStatus.OK
-        data = await response.get_data()
-        assert data == "ply".encode('utf-8')
+            # Test downloading the file
+            surface_ply_url = "/locations/{}/surfaces/{}/surface.ply".format(location['id'], surface['id'])
+            response = await client.get(surface_ply_url)
+            assert response.status_code == HTTPStatus.OK
+            data = await response.get_data()
+            assert data == "ply".encode('utf-8')
 
-        surface_url = "/locations/{}/surfaces/{}".format(location['id'], surface['id'])
+            surface_url = "/locations/{}/surfaces/{}".format(location['id'], surface['id'])
 
-        # Test deleting the object
-        response = await client.delete(surface_url)
-        assert response.status_code == HTTPStatus.OK
-        assert response.is_json
-        surface2 = await response.get_json()
-        assert surface2['id'] == surface['id']
+            # Test deleting the object
+            response = await client.delete(surface_url)
+            assert response.status_code == HTTPStatus.OK
+            assert response.is_json
+            surface2 = await response.get_json()
+            assert surface2['id'] == surface['id']
 
         # Clean up
         response = await client.delete('/locations/{}'.format(location['id']))

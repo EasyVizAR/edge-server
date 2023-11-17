@@ -3,6 +3,7 @@ import datetime
 import os
 import shutil
 import time
+import uuid
 
 from http import HTTPStatus
 
@@ -247,9 +248,7 @@ async def get_surface_file(location_id, surface_id):
     return await send_from_directory(get_surface_dir(location_id), surface_fname)
 
 
-# Set strict=False on this endpoint because headsets are passing UUIDs in a
-# different format from expected, e.g. "430A1A647B28677E-A618E129BADDB6AA".
-@surfaces.route('/locations/<uuid:location_id>/surfaces/<uuid(strict=False):surface_id>/surface.ply', methods=['PUT'])
+@surfaces.route('/locations/<uuid:location_id>/surfaces/<surface_id>/surface.ply', methods=['PUT'])
 async def upload_surface_file(location_id, surface_id):
     """
     Upload a surface data file
@@ -263,6 +262,10 @@ async def upload_surface_file(location_id, surface_id):
             content:
                 application/ply: {}
     """
+    try:
+        surface_id = uuid.UUID(surface_id)
+    except ValueError:
+        raise exceptions.BadRequest("Surface ID was not a valid UUID")
 
     async with g.session_maker() as session:
         stmt = sa.select(Surface) \
