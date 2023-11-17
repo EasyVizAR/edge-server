@@ -11,6 +11,8 @@ from werkzeug import exceptions
 import sqlalchemy as sa
 
 from server.headset.models import MobileDevice
+from server.models.locations import Location
+from server.models.tracking_sessions import TrackingSession
 from server.utils.rate_limiter import rate_limit_expensive
 from server.utils.response import maybe_wrap
 
@@ -304,7 +306,7 @@ async def create_pose_change(headset_id):
         result = await session.execute(stmt)
         headset = result.scalar()
         if headset is None:
-            raise execptions.NotFound(description="Headset {} was not found".format(headset_id))
+            raise exceptions.NotFound(description="Headset {} was not found".format(headset_id))
 
         pose = pose_change_schema.load(body, transient=True)
         pose.mobile_device_id = headset_id

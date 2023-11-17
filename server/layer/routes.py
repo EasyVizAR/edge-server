@@ -91,7 +91,7 @@ async def create_layer(location_id):
         result = await session.execute(stmt)
         location = result.scalar()
         if location is None:
-            raise execptions.NotFound(description="Location {} was not found".format(location_id))
+            raise exceptions.NotFound(description="Location {} was not found".format(location_id))
 
         layer = layer_schema.load(body, transient=True)
         layer.location_id = location_id

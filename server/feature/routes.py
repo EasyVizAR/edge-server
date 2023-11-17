@@ -110,10 +110,10 @@ async def create_feature(location_id):
         result = await session.execute(stmt)
         location = result.scalar()
         if location is None:
-            raise execptions.NotFound(description="Location {} was not found".format(location_id))
+            raise exceptions.NotFound(description="Location {} was not found".format(location_id))
 
         if g.user_id is not None:
-            body['user_id'] = uuid.UUID(g.user_id)
+            body['user_id'] = g.user_id
 
         marker = feature_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
         marker.location_id = location_id
