@@ -59,6 +59,6 @@ class PhotoRecord(Base):
     updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
     expiration_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.max)
 
-    annotations: Mapped[List['PhotoAnnotation']] = relationship(cascade="all, delete-orphan")
-    files: Mapped[List['PhotoFile']] = relationship(back_populates="record", cascade="all, delete-orphan")
+    annotations: Mapped[List['PhotoAnnotation']] = relationship(cascade="all, delete-orphan") # noqa: F821
+    files: Mapped[List['PhotoFile']] = relationship(back_populates="record", cascade="all, delete-orphan") # noqa: F821
     pose: Mapped[DevicePose] = relationship(foreign_keys=[device_pose_id])
