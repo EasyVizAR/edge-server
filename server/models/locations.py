@@ -5,6 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 
 from .base import Base
+from .device_configurations import DeviceConfiguration
 
 
 class Location(Base):
@@ -29,4 +30,4 @@ class Location(Base):
     created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
     updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
 
-    device_configuration: Mapped['DeviceConfiguration'] = relationship(cascade="all, delete-orphan", uselist=False)
+    device_configuration: Mapped[DeviceConfiguration] = relationship(cascade="all, delete-orphan", uselist=False)

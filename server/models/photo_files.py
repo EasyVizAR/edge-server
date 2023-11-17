@@ -5,6 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 
 from .base import Base
+from .photo_records import PhotoRecord
 
 
 class PhotoFile(Base):
@@ -23,4 +24,4 @@ class PhotoFile(Base):
     created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
     updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
 
-    record: Mapped["PhotoRecord"] = relationship()
+    record: Mapped[PhotoRecord] = relationship()

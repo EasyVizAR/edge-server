@@ -7,6 +7,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 
 from .base import Base
+from .device_poses import DevicePose
 
 
 class PhotoRecord(Base):
@@ -60,4 +61,4 @@ class PhotoRecord(Base):
 
     annotations: Mapped[List['PhotoAnnotation']] = relationship(cascade="all, delete-orphan")
     files: Mapped[List['PhotoFile']] = relationship(back_populates="record", cascade="all, delete-orphan")
-    pose: Mapped['DevicePose'] = relationship(foreign_keys=[device_pose_id])
+    pose: Mapped[DevicePose] = relationship(foreign_keys=[device_pose_id])

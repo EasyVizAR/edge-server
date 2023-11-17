@@ -6,6 +6,8 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 
 from .base import Base
+from .device_poses import DevicePose
+from .map_markers import MapMarker
 
 
 def generate_token():
@@ -65,5 +67,5 @@ class MobileDevice(Base):
     created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
     updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
 
-    pose: Mapped['DevicePose'] = relationship(foreign_keys=[device_pose_id])
-    navigation_target: Mapped['MapMarker'] = relationship()
+    pose: Mapped[DevicePose] = relationship(foreign_keys=[device_pose_id])
+    navigation_target: Mapped[MapMarker] = relationship()
