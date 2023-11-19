@@ -105,6 +105,10 @@ async def create_feature(location_id):
     """
     body = await request.get_json()
 
+    # If client is sending ID, clear it so that it is automatically generated.
+    if 'id' in body:
+        del body['id']
+
     async with g.session_maker() as session:
         stmt = sa.select(Location).where(Location.id == location_id).limit(1)
         result = await session.execute(stmt)
