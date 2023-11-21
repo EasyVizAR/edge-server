@@ -69,6 +69,20 @@ class NavigationMesh:
         with open(path, "wb") as output:
             pickle.dump(self, output)
 
+    def show(self):
+        lines = []
+        for a, b in self.graph.edges:
+            confidence = self.graph.edges[a, b].get("confidence", 0.5)
+            color = [0, 0, int(confidence * 255), 255]
+            line = trimesh.path.entities.Line([a, b], color=color)
+            lines.append(line)
+        path = trimesh.path.path.Path3D(lines, self.mesh.triangles_center)
+
+        scene = trimesh.Scene()
+        scene.add_geometry(self.mesh)
+        scene.add_geometry(path)
+        scene.show()
+
     @classmethod
     def load(cls, path):
         with open(path, "rb") as source:

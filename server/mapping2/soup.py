@@ -25,6 +25,10 @@ class LayerConfig:
         self.svg_output = svg_output
 
 
+def logistic(x):
+    return 1 / (1 + np.exp(-x))
+
+
 def medial_axis_for_submesh(submesh):
     outline = submesh.outline()
     edges = outline.vertex_nodes
@@ -119,24 +123,71 @@ class MeshSoup:
     def create_navigation_mesh(self):
         graph = nx.Graph()
 
-        offset = 0
+        old_offset = 0
+        keep_faces = []
+        old_to_new = dict()
+
         for i, chunk in enumerate(self.chunks):
+            num_faces = len(chunk.mesh.faces)
+
             if i in self.visited_chunks:
+                for j in range(num_faces):
+                    old_index = old_offset + j
+
+                    if j in chunk.neighbors and len(list(chunk.neighbors.neighbors(j))) > 0:
+                    #if old_index in self.visited or len(list(chunk.neighbors.neighbors(j))) > 0:
+                        new_index = len(keep_faces)
+                        old_to_new[old_index] = new_index
+                        keep_faces.append(old_index)
+
                 for a, b in chunk.neighbors.edges:
-                    graph.add_edge(a+offset, b+offset, weight=chunk.neighbors.edges[a, b]['weight'])
-            offset += len(chunk.mesh.faces)
+                    # convert from old indexing to new indexing in submesh
+                    u = old_to_new.get(old_offset + a)
+                    v = old_to_new.get(old_offset + b)
+                    if u is None or v is None:
+                        continue
 
-        # TODO Add links as well
+                    hits = chunk.neighbors.edges[a, b].get("hits", 0)
 
-        return NavigationMesh(self.mesh, graph)
+                    confidence = logistic(hits) # range 0.5 - 1.0
+                    badness = 2.0 - confidence  # range 1 - 2 that makes unexplored edges look less desirable
+
+                    graph.add_edge(u, v,
+                            confidence=confidence,
+                            weight=badness*chunk.neighbors.edges[a, b]['weight']
+                    )
+
+            old_offset += num_faces
+
+        for a, b in self.links:
+            # convert from old indexing to new indexing in submesh
+            u = old_to_new.get(a)
+            v = old_to_new.get(b)
+            if u is None or v is None:
+                continue
+
+            distance = np.linalg.norm(self.mesh.triangles_center[a] - self.mesh.triangles_center[b])
+            graph.add_edge(u, v, weight=distance)
+
+        mesh = self.mesh.submesh([keep_faces], append=True)
+        return NavigationMesh(mesh, graph)
+
+    def face_local_to_global_index(self, chunk_index, face_index):
+        offset = 0
+        for i in range(chunk_index):
+            offset += len(self.chunks[i].mesh.faces)
+        return offset + face_index
 
     def observed_transition(self, face1, face2, sample1=None, sample2=None):
         lface1 = self.local_id[face1]
         lface2 = self.local_id[face2]
 
         # Visited chunks.
-        chunk1 = self.chunks[self.chunk_id[face1]]
-        chunk2 = self.chunks[self.chunk_id[face2]]
+        chunk1_index = self.chunk_id[face1]
+        chunk1 = self.chunks[chunk1_index]
+
+        chunk2_index = self.chunk_id[face2]
+        chunk2 = self.chunks[chunk2_index]
 
         if chunk1 == chunk2:
             chunk1.observed_transition(lface1, lface2)
@@ -147,16 +198,16 @@ class MeshSoup:
             # Exit point from the boundary of the component in the first chunk.
             target2 = chunk2.mesh.triangles_center[lface2]
             exit1 = chunk1.find_closest_boundary_face(lface1, target2)
-            self.observed_transition(lface1, exit1)
+            chunk1.observed_transition(lface1, exit1)
 
             # Entrance point to the boundary of the component in the second chunk.
             target1 = chunk1.mesh.triangles_center[exit1]
             entrance2 = chunk2.find_closest_boundary_face(lface2, target1)
-            self.observed_transition(entrance2, lface2)
+            chunk2.observed_transition(entrance2, lface2)
 
-            link1 = LinkEndpoint(chunk1.id, lface1, sample1)
-            link2 = LinkEndpoint(chunk2.id, lface2, sample2)
-            self.links.append((link1, link2))
+            u = self.face_local_to_global_index(chunk1_index, exit1)
+            v = self.face_local_to_global_index(chunk2_index, entrance2)
+            self.links.append((u, v))
 
     def add_trace(self, times, points, apply_cylinder=False):
         """

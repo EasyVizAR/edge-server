@@ -102,6 +102,8 @@ class Chunk:
         # intersection detection here to be more careful.
         try:
             path = nx.astar_path(self.neighbors, face1, face2, heuristic=self.face_distance)
+        except nx.NodeNotFound:
+            return
         except nx.NetworkXNoPath:
             return
 
@@ -120,7 +122,8 @@ class Chunk:
 
         self.neighbors = nx.Graph()
         for a, b in mesh.face_adjacency:
-            self.neighbors.add_edge(a, b, hits=0, weight=self.face_distance(a, b))
+            if mesh.face_normals[a, 1] >= walkable_threshold and mesh.face_normals[b, 1] >= walkable_threshold:
+                self.neighbors.add_edge(a, b, hits=0, weight=self.face_distance(a, b))
 
     @classmethod
     def load_from_cache(cls, path):
