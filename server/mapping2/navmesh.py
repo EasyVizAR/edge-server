@@ -1,3 +1,5 @@
+import pickle
+
 import networkx as nx
 import numpy as np
 import trimesh
@@ -48,6 +50,8 @@ class NavigationMesh:
         i = self.find_face(start)
         j = self.find_face(end)
 
+        print("Find path from {} ({}) to {} ({})".format(start, i, end, j))
+
         if i is None:
             raise Exception("No face found below starting point")
         if j is None:
@@ -60,3 +64,12 @@ class NavigationMesh:
             vertices.append(self.mesh.triangles_center[x])
 
         return vertices
+
+    def save(self, path):
+        with open(path, "wb") as output:
+            pickle.dump(self, output)
+
+    @classmethod
+    def load(cls, path):
+        with open(path, "rb") as source:
+            return pickle.load(source)

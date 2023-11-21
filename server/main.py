@@ -150,12 +150,20 @@ async def before_request():
     g.user_id = None
 
     g.session_maker = session_maker
+    g.session = session_maker()
 
     g.authenticator = app.authenticator
     await g.authenticator.authenticate_request()
 
     # Make sure an active incident exists and is assigned to g.active_incident.
     await initialize_incidents(app)
+
+
+@app.after_request
+async def after_request(response):
+    await g.session.close()
+
+    return response
 
 
 @app.before_websocket
@@ -171,9 +179,17 @@ async def before_websocket():
     g.user_id = None
 
     g.session_maker = session_maker
+    g.session = session_maker()
 
     g.authenticator = app.authenticator
     await g.authenticator.authenticate_websocket()
 
     # Make sure an active incident exists and is assigned to g.active_incident.
     await initialize_incidents(app)
+
+
+@app.after_websocket
+async def after_websocket(response):
+    await g.session.close()
+
+    return response

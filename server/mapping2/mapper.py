@@ -9,23 +9,45 @@ import sqlalchemy as sa
 
 from server.layer.models import Layer, LayerSchema
 from server.location.models import Location
+from server.models.device_poses import DevicePose
+from server.models.tracking_sessions import TrackingSession
 
+from .navmesh import NavigationMesh
 from .soup import LayerConfig, MeshSoup
 
 
 layer_schema = LayerSchema()
 
 
+def get_location_dir(data_dir, location_id):
+    return os.path.join(data_dir, "locations", location_id.hex)
+
+
+def get_layer_dir(data_dir, location_id, layer_id):
+    return os.path.join(get_location_dir(data_dir, location_id), "layers", "{:08x}".format(layer_id))
+
+
 class MappingTask:
-    def __init__(self, mesh_dir, layer_configs=None):
+    def __init__(self, mesh_dir, layer_configs=None, navmesh_path=None, traces=None):
         self.mesh_dir = mesh_dir
+        self.navmesh_path = navmesh_path
+
         self.layer_configs = layer_configs
+        self.traces = traces
 
     def run(self):
         soup = MeshSoup.from_directory(self.mesh_dir)
         if self.layer_configs is not None:
             soup.infer_walls(self.layer_configs)
+        if self.traces is not None:
+            for times, points in self.traces:
+                soup.add_trace(times, points)
 
+            if self.navmesh_path is not None:
+                navmesh = soup.create_navigation_mesh()
+                navmesh.save(self.navmesh_path)
+
+        print("Mapping completed with {} layers and {} traces".format(len(self.layer_configs), len(self.traces)))
         return soup.get_bounding_box()
 
 
@@ -33,37 +55,83 @@ class Mapper:
     def __init__(self, data_dir="data"):
         self.data_dir = data_dir
 
+    def find_path(self, location_id, start, end):
+        location_dir = get_location_dir(self.data_dir, location_id)
+        navmesh_path = os.path.join(location_dir, "navmesh.pickle")
+        if not os.path.exists(navmesh_path):
+            return [start, end]
+
+        try:
+            navmesh = NavigationMesh.load(navmesh_path)
+            path = navmesh.find_path(start, end)
+            return path
+
+        except:
+            return [start, end]
+
+    async def find_traces(self, location_id):
+        traces = []
+
+        stmt = sa.select(TrackingSession) \
+                .where(TrackingSession.location_id == location_id)
+
+        result = await g.session.execute(stmt)
+        for session in result.scalars():
+            stmt = sa.select(DevicePose) \
+                    .where(DevicePose.tracking_session_id == session.id) \
+                    .order_by(DevicePose.id.asc())
+
+            times = []
+            points = []
+
+            result = await g.session.execute(stmt)
+            for pose in result.scalars():
+                times.append(pose.created_time.timestamp())
+                points.append([
+                    pose.position_x,
+                    pose.position_y,
+                    pose.position_z
+                ])
+
+            if len(times) > 0:
+                traces.append((times, points))
+
+        return traces
+
     async def start_map_update(self, location_id):
-        async with g.session_maker() as session:
-            location = await session.get(Location, location_id)
+        location = await g.session.get(Location, location_id)
 
-            stmt = sa.select(Layer) \
-                    .where(Layer.location_id == location_id) \
-                    .where(Layer.type == "generated")
+        stmt = sa.select(Layer) \
+                .where(Layer.location_id == location_id) \
+                .where(Layer.type == "generated")
 
-            result = await session.execute(stmt)
-            layers = result.scalars().all()
+        result = await g.session.execute(stmt)
+        layers = result.scalars().all()
 
-            configs = []
-            if len(layers) == 0:
-                layer = Layer(location_id=location_id, name="Main", type="generated")
-                session.add(layer)
+        configs = []
+        if len(layers) == 0:
+            layer = Layer(location_id=location_id, name="Main", type="generated")
+            g.session.add(layer)
 
-                location.updated_time = datetime.datetime.now()
+            location.updated_time = datetime.datetime.now()
 
-                await session.commit()
-                layers = [layer]
+            await g.session.commit()
+            layers = [layer]
 
-            for layer in layers:
-                output_dir = os.path.join(self.data_dir, "locations", location_id.hex, "layers", '{:08x}'.format(layer.id))
-                os.makedirs(output_dir, exist_ok=True)
-                svg_output = os.path.join(output_dir, 'image.svg')
-                config = LayerConfig(height=layer.reference_height, svg_output=svg_output)
-                configs.append(config)
+        for layer in layers:
+            output_dir = get_layer_dir(self.data_dir, location_id, layer.id)
+            os.makedirs(output_dir, exist_ok=True)
+            svg_output = os.path.join(output_dir, 'image.svg')
+            config = LayerConfig(height=layer.reference_height, svg_output=svg_output)
+            configs.append(config)
 
-        mesh_dir = os.path.join(self.data_dir, "locations", location_id.hex, "surfaces")
+        location_dir = get_location_dir(self.data_dir, location_id)
+        mesh_dir = os.path.join(location_dir, "surfaces")
+        navmesh_path = os.path.join(location_dir, "navmesh.pickle")
 
-        return MappingTask(mesh_dir, layer_configs=configs)
+        traces = await self.find_traces(location_id)
+
+        return MappingTask(mesh_dir, layer_configs=configs, navmesh_path=navmesh_path, traces=traces)
 
     async def finish_map_update(self, location_id, result, session_maker, dispatcher):
         updated_layers = []

@@ -9,6 +9,7 @@ import trimesh
 
 from .chunk import Chunk
 from .navmesh import NavigationMesh
+from .link import LinkEndpoint
 
 
 walkable_threshold = 0.5
@@ -93,7 +94,6 @@ class MeshSoup:
     def __init__(self):
         self.mesh = None
 
-
         self.chunks = []
         self.visited_chunks = set()
 
@@ -103,9 +103,7 @@ class MeshSoup:
         # array, length is number of faces in mesh, maps from global index into chunk index
         self.local_id = []
 
-
-        # array, length = number of faces in mesh, index of body containing that face
-        self.body_id = []
+        self.links = []
 
         self.lower = None
         self.upper = None
@@ -118,11 +116,6 @@ class MeshSoup:
         self.touched = set()
         self.walkable = set()
 
-        self.body_graph = nx.Graph()
-        self.neighbor_graph = nx.Graph()
-        self.surface_graph = nx.Graph()
-        self.walkable_graph = nx.Graph()
-
     def create_navigation_mesh(self):
         graph = nx.Graph()
 
@@ -133,74 +126,37 @@ class MeshSoup:
                     graph.add_edge(a+offset, b+offset, weight=chunk.neighbors.edges[a, b]['weight'])
             offset += len(chunk.mesh.faces)
 
+        # TODO Add links as well
+
         return NavigationMesh(self.mesh, graph)
 
-    def face_distance(self, face1, face2, *args):
-        point_a = self.mesh.triangles_center[face1]
-        point_b = self.mesh.triangles_center[face2]
-        return np.linalg.norm(point_a - point_b)
-
-    def observed_transition(self, face1, face2):
+    def observed_transition(self, face1, face2, sample1=None, sample2=None):
         lface1 = self.local_id[face1]
         lface2 = self.local_id[face2]
 
         # Visited chunks.
-        chunk1 = self.chunk_id[face1]
-        chunk2 = self.chunk_id[face2]
+        chunk1 = self.chunks[self.chunk_id[face1]]
+        chunk2 = self.chunks[self.chunk_id[face2]]
 
         if chunk1 == chunk2:
-            chunk = self.chunks[chunk1]
-
-            # If the two faces are adjacent, update the hit count, and we are done.
-            # This should be a common condition.
-            if chunk.neighbors.has_edge(lface1, lface2):
-                chunk.neighbors.edges[lface1, lface2]['hits'] += 1
-                return
-
-            # If they belong to the same chunk, we can try to find a path among
-            # adjacent faces that connects them and label that as walkable. This
-            # is a bit risky, as it might cross obstacles. We could add some
-            # intersection detection here to be more careful.
-            try:
-                path = nx.astar_path(chunk.neighbors, lface1, lface2, heuristic=chunk.face_distance)
-            except nx.NetworkXNoPath:
-                return
-
-            #self.touched.update(path)
-            for i in range(len(path) - 1):
-                hits = chunk.neighbors.edges[path[i], path[i+1]].get("hits", 0) + 1
-                chunk.neighbors.add_edge(path[i], path[i+1], hits=hits, weight=chunk.face_distance(path[i], path[i+1]))
+            chunk1.observed_transition(lface1, lface2)
 
         # If they belong to different chunks, we should try to find
         # the boundary faces that connect the two chunks and stitch them.
         else:
-            body1 = self.body_id[face1]
-            body2 = self.body_id[face2]
+            # Exit point from the boundary of the component in the first chunk.
+            target2 = chunk2.mesh.triangles_center[lface2]
+            exit1 = chunk1.find_closest_boundary_face(lface1, target2)
+            self.observed_transition(lface1, exit1)
 
-            boundary1 = self.find_boundary_faces(body1)
-            boundary2 = self.find_boundary_faces(body2)
+            # Entrance point to the boundary of the component in the second chunk.
+            target1 = chunk1.mesh.triangles_center[exit1]
+            entrance2 = chunk2.find_closest_boundary_face(lface2, target1)
+            self.observed_transition(entrance2, lface2)
 
-            vertices1 = self.mesh.triangles_center[boundary1]
-            vertices2 = self.mesh.triangles_center[boundary2]
-
-            # Going from face1 on body1 to face2 on body2.
-            # Find the boundary face on body1 that is closest to target point.
-            # Assume we pathed from face1 to that boundary face, exit1.
-            v = self.mesh.triangles_center[face2]
-            distances = np.linalg.norm(v - vertices1, axis=1)
-            min_ind = np.argmin(distances)
-            exit1 = boundary1[min_ind]
-            self.observed_transition(face1, exit1)
-
-            # Then find the boundary face on body2 closest to exit1.
-            # Assume we pathed from exit2 to the target point, face2.
-            v = self.mesh.triangles_center[exit1]
-            distances = np.linalg.norm(v - vertices2, axis=1)
-            min_ind = np.argmin(distances)
-            exit2 = boundary2[min_ind]
-            self.observed_transition(exit2, face2)
-
-            # TODO: save edge between exit1 and exit2 somewhere for the navmesh
+            link1 = LinkEndpoint(chunk1.id, lface1, sample1)
+            link2 = LinkEndpoint(chunk2.id, lface2, sample2)
+            self.links.append((link1, link2))
 
     def add_trace(self, times, points, apply_cylinder=False):
         """
@@ -245,22 +201,7 @@ class MeshSoup:
                 print("Skipping edge of distance {}".format(dist))
                 continue
 
-            # Visited bodies, may be in the same chunk or not.
-            body1 = self.body_id[face1]
-            body2 = self.body_id[face2]
-
-            if body1 != body2:
-                self.body_graph.add_edge(body1, body2, link=(face1, face2), points=(hit1, hit2))
-
-            # Visited surfaces.
-            surf1 = self.chunk_id[face1]
-            surf2 = self.chunk_id[face2]
-
-            self.observed_transition(face1, face2)
-
-            # Check if we crossed between two different surfaces.
-            if surf1 != surf2:
-                self.surface_graph.add_edge(surf1, surf2, link=(face1, face2), points=(hit1, hit2))
+            self.observed_transition(face1, face2, points[i], points[i+1])
 
         # Move a human-sized cylinder along the path and add any touched faces.
         # This helps improve fill holes in the walkable mesh, but it might also
@@ -277,35 +218,22 @@ class MeshSoup:
                 locations, index_ray, index_tri = self.mesh.ray.intersects_location(ray_origins=cylinder, ray_directions=directions, multiple_hits=False)
                 self.touched.update(index_tri)
 
-    def infer_walkable(self):
-        """
-        Update walkable set by flood filling adjacent faces starting from those
-        that were visited or touched.
-        """
-        # All visited faces should probably be in the touched set as well,
-        # but it is not guaranteed.
-        work = set.union(self.visited, self.touched)
-
-        completed = set()
-        while len(work) > 0:
-            i = work.pop()
-
-            self.walkable.add(i)
-            completed.add(i)
-
-            for j in self.neighbor_graph.neighbors(i):
-                if j in completed:
-                    continue
-
-                if j in self.touched or self.is_walkable(j):
-                    self.walkable.add(j)
-                    work.add(j)
-                    if not self.walkable_graph.has_edge(i, j):
-                        self.walkable_graph.add_edge(i, j, type="inferred")
-
     def infer_walls(self, layers):
         paths = []
         for i, layer in enumerate(layers):
+            # this is essentially the inner loop of trimesh.intersections.mesh_multiplane,
+            # but their implementation includes some transformations that we do not need
+            #
+            # Also, the dot product is greatly simplified because we know we are intersecting
+            # with horizontal planes. The dot product with the plane normal [0, 1, 0] simply
+            # extracts the Y values from the vertices.
+            origin = np.array([0, layer.height, 0])
+            dots = self.mesh.vertices[:, 1] - layer.height
+
+            walls = trimesh.intersections.mesh_plane(self.mesh, self.up, origin, cached_dots=dots)
+            path = trimesh.load_path(walls)
+            paths.append(path)
+
             if layer.svg_output is not None:
                 size = self.upper - self.lower
                 viewBox="{} {} {} {}".format(self.lower[0], self.lower[2], size[0], size[2])
@@ -322,41 +250,17 @@ class MeshSoup:
                 wall_group = dwg.g(id="walls", fill="none", stroke='black', stroke_width=0.1)
                 transform_group.add(wall_group)
 
-                for j, chunk in enumerate(self.chunks):
-                    chunk_group = dwg.g(id="chunk-{}".format(j))
-
-                    path = chunk.infer_walls(heights=[layer.height])[0]
-                    for entity in path.entities:
-                        if len(entity.points) == 2:
-                            a, b = entity.points
-                            line = dwg.line(start=path.vertices[a, [0, 2]], end=path.vertices[b, [0, 2]])
-                        else:
-                            line = dwg.polyline(points=[path.vertices[x, [0, 2]] for x in entity.points])
-                        chunk_group.add(line)
-
-                    if len(chunk_group.elements) > 0:
-                        wall_group.add(chunk_group)
+                for entity in path.entities:
+                    if len(entity.points) == 2:
+                        a, b = entity.points
+                        line = dwg.line(start=path.vertices[a, [0, 2]], end=path.vertices[b, [0, 2]])
+                    else:
+                        line = dwg.polyline(points=[path.vertices[x, [0, 2]] for x in entity.points])
+                    wall_group.add(line)
 
                 dwg.save(pretty=True)
 
         return paths
-
-    def color_walkable(self):
-        """
-        Color the walkable faces of the mesh.
-
-        This should be called after adding one or more traces and calling
-        infer_walkable so that the various sets of faces have been updated.
-        """
-        self.mesh.visual.face_colors[:] = [96, 96, 96, 192]
-
-        for i in range(len(self.mesh.faces)):
-            if i in self.visited:
-                self.mesh.visual.face_colors[i] = [0, 255, 0, 255]
-            elif i in self.touched:
-                self.mesh.visual.face_colors[i] = [128, 255, 0, 255]
-            elif i in self.walkable:
-                self.mesh.visual.face_colors[i] = [255, 255, 0, 255]
 
     def is_walkable(self, index):
         """
@@ -452,28 +356,6 @@ class MeshSoup:
         edges = target_boundary[list(closest_indices), :]
         return closest_dist, edges
 
-    def extract_crossing_lines(self):
-        vertices = []
-        lines = []
-
-        def add_edges(edges):
-            for u, v in edges:
-                vertices.append(self.mesh.vertices[u, :])
-                vertices.append(self.mesh.vertices[v, :])
-                inds = [len(vertices)-2, len(vertices)-1]
-                line = trimesh.path.entities.Line(inds, color=[0, 96, 0, 255])
-                lines.append(line)
-
-        paths = []
-        for a, b in self.body_graph.edges:
-            dist, edges = self.closest_points_on_boundary(a, b)
-            add_edges(edges)
-
-            dist, edges = self.closest_points_on_boundary(b, a)
-            add_edges(edges)
-
-        return trimesh.path.path.Path3D(lines, np.array(vertices))
-
     def print_mesh_info(self):
         print("Mesh: {}".format(self.mesh))
         for x in ["edges_sorted", "edges_unique", "edges_face", "faces_unique_edges"]:
@@ -519,16 +401,22 @@ class MeshSoup:
     def from_directory(cls, dir_path):
         soup = cls()
 
-        origins = []
         meshes = []
+
+        chunk_ids = []
+        local_ids = []
+
         for i, fname in enumerate(os.listdir(dir_path)):
             path = os.path.join(dir_path, fname)
             chunk = Chunk.load_from_ply_file(path)
             soup.chunks.append(chunk)
             meshes.append(chunk.mesh)
-            origins.extend([i] * len(chunk.mesh.faces))
 
-        soup.chunk_id = np.array(origins)
+            chunk_ids.extend([i] * len(chunk.mesh.faces))
+            local_ids.extend(range(len(chunk.mesh.faces)))
+
+        soup.chunk_id = np.array(chunk_ids)
+        soup.local_id = np.array(local_ids)
 
         soup.mesh = trimesh.util.concatenate(meshes)
 
@@ -541,26 +429,23 @@ class MeshSoup:
     def from_meshes(cls, meshes):
         soup = cls()
 
+        local_ids = []
         origins = []
         for i, mesh in enumerate(meshes):
-            soup.surface_graph.add_node(i, centroid=mesh.centroid)
             origins.extend([i] * len(mesh.faces))
+            local_ids.extend(range(len(mesh.faces)))
 
             chunk = Chunk()
             chunk.set_mesh(mesh)
             soup.chunks.append(chunk)
 
         soup.chunk_id = np.array(origins)
+        soup.local_id = np.array(local_ids)
 
         soup.mesh = trimesh.util.concatenate(meshes)
         soup.components, soup.body_id = cls.split_mesh(soup.mesh)
 
         soup.lower = np.min(soup.mesh.vertices, axis=0)
         soup.upper = np.max(soup.mesh.vertices, axis=0)
-
-        for i in range(len(soup.mesh.faces)):
-            soup.walkable_graph.add_node(i, center=soup.mesh.triangles_center[i])
-
-        soup.neighbor_graph.add_edges_from(soup.mesh.face_adjacency)
 
         return soup
