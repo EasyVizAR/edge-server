@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from server.layer.models import Layer, LayerSchema
 from server.location.models import Location
 
-from .mesh_soup import LayerConfig, MeshSoup
+from .soup import LayerConfig, MeshSoup
 
 
 layer_schema = LayerSchema()
