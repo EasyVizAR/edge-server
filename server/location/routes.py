@@ -415,8 +415,8 @@ async def get_location_model(location_id):
 
     location_dir = get_location_dir(location_id)
     obj_path = os.path.join(location_dir, "model.obj")
-    if not os.path.exists(obj_path) or os.path.getmtime(obj_path) < location.surface_updated_time.timestamp():
-        obj_maker = ObjFileMaker.build_maker(g.active_incident.id, location_id)
+    if not os.path.exists(obj_path) or os.path.getmtime(obj_path) < location.updated_time.timestamp():
+        obj_maker = await ObjFileMaker.build_maker_from_db(location_id)
         future = current_app.modeling_pool.submit(obj_maker.make_obj)
         await asyncio.wrap_future(future)
 

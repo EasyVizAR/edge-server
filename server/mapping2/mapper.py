@@ -9,7 +9,9 @@ import sqlalchemy as sa
 
 from server.layer.models import Layer, LayerSchema
 from server.location.models import Location
+from server.mapping.obj_file import ObjFileMaker
 from server.models.device_poses import DevicePose
+from server.models.surfaces import Surface
 from server.models.tracking_sessions import TrackingSession
 
 from .navmesh import NavigationMesh
@@ -161,6 +163,11 @@ class Mapper:
             layer_uri = "/locations/{}/layers/{}".format(location_id, layer['id'])
             await dispatcher.dispatch_event("layers:updated", layer_uri, current=layer)
 
+    async def finish_model_build(self, location_id, result, session_maker, dispatcher):
+        # placeholder in case we need to write any changes to database,
+        # send any notifications to websocket clients, etc.
+        pass
+
     async def on_surface_updated(self, event, uri, *args, **kwargs):
         surface = kwargs['current']
 
@@ -171,13 +178,11 @@ class Mapper:
 
         loop = asyncio.get_event_loop()
         mapping_limiter = current_app.mapping_limiter
+        modeling_limiter = current_app.modeling_limiter
         dispatcher = current_app.dispatcher
         session_maker = g.session_maker
 
         if mapping_limiter.try_submit(location_id):
-            task = await self.start_map_update(location_id)
-            future = current_app.mapping_pool.submit(task.run)
-
             # This callback fires when the map maker operation finishes.
             # If any changes to the map were made, trigger the async callback above.
             def map_ready(future):
@@ -186,4 +191,17 @@ class Mapper:
                 result = future.result()
                 asyncio.run_coroutine_threadsafe(self.finish_map_update(location_id, result, session_maker, dispatcher), loop=loop)
 
+            task = await self.start_map_update(location_id)
+            future = current_app.mapping_pool.submit(task.run)
             future.add_done_callback(map_ready)
+
+        if modeling_limiter.try_submit(location_id):
+            def model_ready(future):
+                modeling_limiter.finished(location_id)
+
+                result = future.result()
+                asyncio.run_coroutine_threadsafe(self.finish_model_build(location_id, result, session_maker, dispatcher), loop=loop)
+
+            maker = await ObjFileMaker.build_maker_from_db(location_id)
+            future = current_app.modeling_pool.submit(maker.make_obj)
+            future.add_done_callback(model_ready)

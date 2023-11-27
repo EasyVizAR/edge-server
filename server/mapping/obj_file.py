@@ -1,14 +1,20 @@
 import os
 
+from quart import g
+
+import sqlalchemy as sa
+
 from .plyutil import read_ply_file
 
+from server.models.surfaces import Surface
 from server.incidents.models import Incident
 
 
 class ObjFileMaker:
-    def __init__(self, surfaces, output_path, precision=3):
+    def __init__(self, surfaces, output_path, surface_dir, precision=3):
         self.surfaces = surfaces
         self.output_path = output_path
+        self.surface_dir = surface_dir
         self.precision = precision
 
     def make_obj(self):
@@ -18,8 +24,9 @@ class ObjFileMaker:
                 vertex_count += self.write_surface(out, surface, voffset=vertex_count)
 
     def write_surface(self, out, surface, voffset=0):
-        ply = read_ply_file(surface.filePath)
+        source_path = os.path.join(self.surface_dir, "{}.ply".format(surface.id.hex))
 
+        ply = read_ply_file(source_path)
         if ply is None or len(ply.vertices) == 0 or len(ply.triangles) == 0:
             return 0
 
@@ -31,10 +38,14 @@ class ObjFileMaker:
         if ply.extra.get("system") == "unity":
             x_mult = -1
 
+        label = surface.mobile_device_id
+        if label is None:
+            label = "unknown"
+
         # The OBJ file format supports group/object designations, but the
         # interpretation is up to the loading application.  Unity seems to use
         # the group line, while Blender seems to use the object line.
-        out.write("g {} {}\n".format(surface.label, surface.id))
+        out.write("g {} {}\n".format(label, surface.id))
         out.write("o {}\n".format(surface.id))
 
         vertex_line = "v {{:0.0{0}f}} {{:0.0{0}f}} {{:0.0{0}f}}\n".format(self.precision)
@@ -70,3 +81,17 @@ class ObjFileMaker:
         output_path = os.path.join(location.get_dir(), "model.obj")
 
         return ObjFileMaker(surfaces, output_path)
+
+    @classmethod
+    async def build_maker_from_db(cls, location_id):
+        stmt = sa.select(Surface) \
+                .where(Surface.location_id == location_id)
+
+        result = await g.session.execute(stmt)
+        surfaces = result.scalars().all()
+
+        location_dir = os.path.join(g.data_dir, "locations", location_id.hex)
+        surface_dir = os.path.join(location_dir, "surfaces")
+        output_path = os.path.join(location_dir, "model.obj")
+
+        return ObjFileMaker(surfaces, output_path, surface_dir)
