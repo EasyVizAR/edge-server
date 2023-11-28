@@ -151,6 +151,10 @@ function MapContainer(props) {
         if (props.cursor != 'crosshair')
             return;
 
+        // Get a valid y-value based on the selected map layer.
+        // This allows us to place features roughly on different floors of a building.
+        const y = selectedLayer.reference_height || selectedLayer.cutting_height || 0;
+
         let f = []
         for (let i in props.features) {
             f.push(props.features[i]);
@@ -169,7 +173,7 @@ function MapContainer(props) {
             name: '(editing in map)',
             position: {
               x: scaled[0],
-              y: 0,
+              y: y,
               z: scaled[1],
             },
             scaledX: e.clientX - e.target.getBoundingClientRect().left,
@@ -182,7 +186,7 @@ function MapContainer(props) {
             }
         });
 
-        props.setPointCoordinates([scaled[0], 0, scaled[1]]);
+        props.setPointCoordinates([scaled[0], y, scaled[1]]);
         props.setClickCount(props.clickCount + 1);
     }
 
