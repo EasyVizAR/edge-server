@@ -17,35 +17,25 @@ function FeatureTable(props){
     name: React.createRef(),
     color: React.createRef(),
     type: React.createRef(),
-    position_x: React.createRef(),
-    position_y: React.createRef(),
-    position_z: React.createRef(),
   };
-
-  const [editMode, setEditMode] = useState({
-    enabled: false,
-    featureId: null
-  });
 
   const [checkedItems, setCheckedItems] = useState({});
 
-  const enableEditMode = (e, id) => {
-    if (editMode.status) {
+  const enableEditMode = (e, id, feature) => {
+    if (props.editFeature?.status) {
       alert("Only one row can be open for editing at a time. Please save or cancel the currently open row.");
       return;
     }
 
-    setEditMode({
+    props.setEditFeature({
       status: true,
-      featureId: id
+      featureId: id,
+      position: Object.assign({}, feature.position),
     });
   }
 
   const cancelEditMode = (e, id) => {
-    setEditMode({
-      status: false,
-      featureId: null
-    });
+    props.setEditFeature(null);
   }
 
   // saves the headset data
@@ -65,9 +55,9 @@ function FeatureTable(props){
         'name': newName,
         'color': newColor,
         'type': newType,
-        'position.x': formReferences.position_x.current.value,
-        'position.y': formReferences.position_y.current.value,
-        'position.z': formReferences.position_z.current.value,
+        'position.x': props.editFeature.position.x,
+        'position.y': props.editFeature.position.y,
+        'position.z': props.editFeature.position.z,
       })
     };
 
@@ -163,6 +153,14 @@ function FeatureTable(props){
     );
   }
 
+  function setPositionValue(k, value) {
+    props.setEditFeature(previous => {
+      let newState = Object.assign({}, previous);
+      newState.position[k] = value;
+      return newState;
+    });
+  }
+
   return(
     <div style={{marginTop: "20px"}}>
       <div>
@@ -195,7 +193,7 @@ function FeatureTable(props){
                   <td>{id}</td>
                   <td id={"featureName" + id}>
                     {
-                      editMode.status && editMode.featureId === id ? (
+                      props.editFeature?.featureId === id ? (
                         <input
                           defaultValue={feature.name}
                           placeholder="Edit Feature Name"
@@ -210,7 +208,7 @@ function FeatureTable(props){
                   </td>
                   <td>
                     {
-                      editMode.status && editMode.featureId === id ? (
+                      props.editFeature?.featureId === id ? (
                         <input
                           defaultValue={feature.color}
                           placeholder="Edit Feature Color"
@@ -228,7 +226,7 @@ function FeatureTable(props){
                   </td>
                   <td>
                     {
-                      editMode.status && editMode.featureId === id ? (
+                      props.editFeature?.featureId === id ? (
                         <select
                           id="feature-type-dropdown"
                           title="Change Type"
@@ -248,13 +246,13 @@ function FeatureTable(props){
                   <td>{moment.unix(feature.updated).fromNow()}</td>
                   <td>
                     {
-                      editMode.status && editMode.featureId === id ? (
+                      props.editFeature?.featureId === id ? (
                         <input
-                          defaultValue={feature.position.x.toFixed(3)}
+                          value={props.editFeature.position.x}
                           placeholder="X"
                           name={"feature-position-x"}
                           type="number"
-                          ref={formReferences.position_x}
+                          onChange={(e) => setPositionValue("x", e.target.value)}
                           id={"feature-position-x"} />
                       ) : (
                         feature.position.x.toFixed(3)
@@ -263,13 +261,13 @@ function FeatureTable(props){
                   </td>
                   <td>
                     {
-                      editMode.status && editMode.featureId === id ? (
+                      props.editFeature?.featureId === id ? (
                         <input
-                          defaultValue={feature.position.y.toFixed(3)}
+                          value={props.editFeature.position.y}
                           placeholder="Y"
                           name={"feature-position-y"}
                           type="number"
-                          ref={formReferences.position_y}
+                          onChange={(e) => setPositionValue("y", e.target.value)}
                           id={"feature-position-y"} />
                       ) : (
                         feature.position.y.toFixed(3)
@@ -278,13 +276,13 @@ function FeatureTable(props){
                   </td>
                   <td>
                     {
-                      editMode.status && editMode.featureId === id ? (
+                      props.editFeature?.featureId === id ? (
                         <input
-                          defaultValue={feature.position.z.toFixed(3)}
+                          value={props.editFeature.position.z}
                           placeholder="Z"
                           name={"feature-position-z"}
                           type="number"
-                          ref={formReferences.position_z}
+                          onChange={(e) => setPositionValue("z", e.target.value)}
                           id={"feature-position-z"} />
                       ) : (
                         feature.position.z.toFixed(3)
@@ -293,7 +291,7 @@ function FeatureTable(props){
                   </td>
                   <td>
                     {
-                      (editMode.status && editMode.featureId === id) ? (
+                      (props.editFeature?.featureId === id) ? (
                         <React.Fragment>
                           <Button
                             className={"btn-success table-btns"}
@@ -313,7 +311,7 @@ function FeatureTable(props){
                       ) : (
                         <Button
                           className={"btn-primary table-btns"}
-                          onClick={(e) => enableEditMode(e, id)}
+                          onClick={(e) => enableEditMode(e, id, feature)}
                           title='Edit'>
                           Edit
                         </Button>

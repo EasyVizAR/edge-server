@@ -127,9 +127,12 @@ function Headset(props) {
   const [positionHistory, setPositionHistory] = useState([]);
   const [showNewFeature, setShowNewFeature] = useState(false);
   const [layers, setLayers] = useState([]);
+
   const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
   const [pointCoordinates, setPointCoordinates] = useState([]);
   const [cursor, setCursor] = useState('auto');
+  const [editFeature, setEditFeature] = useState(null);
+
   const [iconIndex, setIconIndex] = useState(null);
   const [sliderValue, setSliderValue] = useState(0);
   const [currLocationName, setCurrLocationName] = useState('');
@@ -238,12 +241,28 @@ function Headset(props) {
 
   // Change the cursor when entering or exiting a feature edit mode.
   useEffect(() => {
-    if (showNewFeature) {
+    if (showNewFeature || editFeature) {
       setCursor("crosshair");
     } else {
       setCursor("auto");
     }
-  }, [showNewFeature]);
+  }, [showNewFeature, editFeature]);
+
+  // If a feature is being edited and the user clicks on the map,
+  // forward the clicked coordinate to the active feature.
+  // Avoid overwriting the Y value because that could be surprising.
+  useEffect(() => {
+    setEditFeature(previous => {
+      if (previous) {
+        let newState = Object.assign({}, previous);
+        newState.position.x = pointCoordinates[0];
+        newState.position.z = pointCoordinates[2];
+        return newState;
+      } else {
+        return previous;
+      }
+    });
+  }, [pointCoordinates]);
 
   // time goes off every 10 seconds to refresh headset data
   //    useEffect(() => {
@@ -691,7 +710,8 @@ function Headset(props) {
 
             <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
               setHeadsets={setHeadsets} locations={locations} features={features} />
-            <FeatureTable icons={icons} features={features} locationId={selectedLocation} />
+            <FeatureTable icons={icons} features={features} locationId={selectedLocation}
+              editFeature={editFeature} setEditFeature={setEditFeature} />
           </div>
 
       </div>

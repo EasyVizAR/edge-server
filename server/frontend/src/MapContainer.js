@@ -155,39 +155,31 @@ function MapContainer(props) {
         // This allows us to place features roughly on different floors of a building.
         const y = selectedLayer.reference_height || selectedLayer.cutting_height || 0;
 
-        let f = []
-        for (let i in props.features) {
-            f.push(props.features[i]);
-        }
-        if (props.clickCount > 0)
-            f.pop();
-
         const scaled = convertScaled2Vector(
           e.clientX - e.target.getBoundingClientRect().left,
           e.clientY - e.target.getBoundingClientRect().top
         );
 
-        f.push({
-            id: 'undefined',
-            mapId: selectedLayer.id,
-            name: '(editing in map)',
-            position: {
-              x: scaled[0],
-              y: y,
-              z: scaled[1],
-            },
-            scaledX: e.clientX - e.target.getBoundingClientRect().left,
-            scaledY: e.clientY - e.target.getBoundingClientRect().top,
-            icon: props.crossHairIcon,
-            type: props.iconIndex,
-            editing: 'true',
-            style: {
-              placement: props.placementType
-            }
-        });
+//        f.push({
+//            id: 'undefined',
+//            mapId: selectedLayer.id,
+//            name: '(editing in map)',
+//            position: {
+//              x: scaled[0],
+//              y: y,
+//              z: scaled[1],
+//            },
+//            scaledX: e.clientX - e.target.getBoundingClientRect().left,
+//            scaledY: e.clientY - e.target.getBoundingClientRect().top,
+//            icon: props.crossHairIcon,
+//            type: props.iconIndex,
+//            editing: 'true',
+//            style: {
+//              placement: props.placementType
+//            }
+//        });
 
         props.setPointCoordinates([scaled[0], y, scaled[1]]);
-        props.setClickCount(props.clickCount + 1);
     }
 
     const getCircleSvgSize = (r) => {
