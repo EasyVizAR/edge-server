@@ -17,6 +17,9 @@ function FeatureTable(props){
     name: React.createRef(),
     color: React.createRef(),
     type: React.createRef(),
+    position_x: React.createRef(),
+    position_y: React.createRef(),
+    position_z: React.createRef(),
   };
 
   const [editMode, setEditMode] = useState({
@@ -62,13 +65,13 @@ function FeatureTable(props){
         'name': newName,
         'color': newColor,
         'type': newType,
+        'position.x': formReferences.position_x.current.value,
+        'position.y': formReferences.position_y.current.value,
+        'position.z': formReferences.position_z.current.value,
       })
     };
 
     fetch(url, requestData).then(response => {
-      props.features[id]['name'] = newName;
-      props.features[id]['color'] = newColor;
-      props.features[id]['type'] = newType;
       cancelEditMode(null, id);
       props.getFeatures();
     });
@@ -243,9 +246,51 @@ function FeatureTable(props){
                     }
                   </td>
                   <td>{moment.unix(feature.updated).fromNow()}</td>
-                  <td>{feature.position.x.toFixed(3)}</td>
-                  <td>{feature.position.y.toFixed(3)}</td>
-                  <td>{feature.position.z.toFixed(3)}</td>
+                  <td>
+                    {
+                      editMode.status && editMode.featureId === id ? (
+                        <input
+                          defaultValue={feature.position.x.toFixed(3)}
+                          placeholder="X"
+                          name={"feature-position-x"}
+                          type="number"
+                          ref={formReferences.position_x}
+                          id={"feature-position-x"} />
+                      ) : (
+                        feature.position.x.toFixed(3)
+                      )
+                    }
+                  </td>
+                  <td>
+                    {
+                      editMode.status && editMode.featureId === id ? (
+                        <input
+                          defaultValue={feature.position.y.toFixed(3)}
+                          placeholder="Y"
+                          name={"feature-position-y"}
+                          type="number"
+                          ref={formReferences.position_y}
+                          id={"feature-position-y"} />
+                      ) : (
+                        feature.position.y.toFixed(3)
+                      )
+                    }
+                  </td>
+                  <td>
+                    {
+                      editMode.status && editMode.featureId === id ? (
+                        <input
+                          defaultValue={feature.position.z.toFixed(3)}
+                          placeholder="Z"
+                          name={"feature-position-z"}
+                          type="number"
+                          ref={formReferences.position_z}
+                          id={"feature-position-z"} />
+                      ) : (
+                        feature.position.z.toFixed(3)
+                      )
+                    }
+                  </td>
                   <td>
                     {
                       (editMode.status && editMode.featureId === id) ? (
