@@ -54,12 +54,7 @@ function NewFeature(props) {
     const [feature_type, changeIcon] = useState(null);
     const [rangeSliderVisibility, setRangeSliderVisibility] = useState("none")
 
-    const [mapMode, setMapMode] = useState(false);
     const [featureType, setFeatureType] = useState("point")
-
-    if (!props.showNewFeature) {
-        return null;
-    }
 
     function setIcon(type) {
         //changeIcon(type);
@@ -93,11 +88,6 @@ function NewFeature(props) {
         setRangeSliderVisibility("none")
         console.log("resetting sections " + coordStyle.display);
     }
-
-    const changeInputMode = (e) => {
-        setMapMode(!mapMode);
-        props.changeCursor();
-    };
 
     const handleSubmit = (event) => {
         let formData = formVal;
@@ -149,27 +139,20 @@ function NewFeature(props) {
               Position
             </Form.Label>
 
-            <Col sm="1">
-              <Form.Group>
-                <input checked={mapMode} onClick={(e) => changeInputMode(e)} type='checkbox' name='map-mode' />
-                <Form.Label>choose on map</Form.Label>
-              </Form.Group>
-            </Col>
-
             <Col sm="3">
-              <Form.Control type="number" disabled={mapMode} placeholder="X"
+              <Form.Control type="number" placeholder="X"
                 value={props.pointCoordinates[0]} defaultValue='0'
                 name="x_pos" onChange={e => props.changePointValue(e.target.value, 0)}/>
             </Col>
 
             <Col sm="3">
-              <Form.Control type="number" disabled={mapMode} placeholder="Y"
+              <Form.Control type="number" placeholder="Y"
                 value={props.pointCoordinates[1]} defaultValue='0'
                 name="y_pos" onChange={e => props.changePointValue(e.target.value, 1)}/>
             </Col>
 
             <Col sm="3">
-              <Form.Control type="number" disabled={mapMode} placeholder="Z"
+              <Form.Control type="number" placeholder="Z"
                 value={props.pointCoordinates[2]} defaultValue='0'
                 name="z_pos" onChange={e => props.changePointValue(e.target.value, 2)}/>
             </Col>
