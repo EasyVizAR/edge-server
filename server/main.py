@@ -20,6 +20,7 @@ from server.location.routes import locations
 from server.photo.routes import photos
 from server.pose_changes.routes import pose_changes
 from server.routes import routes
+from server.streams import streams
 from server.surface.routes import surfaces
 from server.utils.pool_limiter import PoolLimiter
 from server.utils.rate_limiter import main_rate_limiter
@@ -92,6 +93,7 @@ blueprints = [
     photos,
     pose_changes,
     routes,
+    streams,
     surfaces,
     websockets
 ]
