@@ -94,5 +94,5 @@ async def ws():
 
     conn = WebsocketConnection(websocket)
     handler = WebsocketHandler(current_app.dispatcher, conn,
-            subprotocol=chosen_subprotocol, user_id=g.user_id)
+            subprotocol=chosen_subprotocol, device_id=g.device_id, user_id=g.user_id)
     await asyncio.create_task(handler.listen())
