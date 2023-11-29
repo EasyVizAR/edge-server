@@ -34,7 +34,7 @@ class StreamSchema(SQLAlchemySchema):
         # These are not stored in the database but may be useful for clients.
         data['dash_path'] = "/dash/{}/index.mpd".format(original.id)
         data['hls_path'] = "/hls/{}/index.m3u8".format(original.id)
-        data['publish_path'] = "/live/{}?token={}".format(original.id, original.token)
+        data['publish_url'] = "rtmp://{}/live/{}?token={}".format(request.host, original.id, original.token)
         return data
 
 
@@ -169,4 +169,4 @@ async def delete_stream(stream_id):
 
     result = stream_schema.dump(stream)
 
-    return jsonif(result), HTTPStatus.OK
+    return jsonify(result), HTTPStatus.OK
