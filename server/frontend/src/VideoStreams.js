@@ -93,7 +93,7 @@ function VideoStreams(props) {
             <th><SortByLink attr="description" text="Description" /></th>
             <th><SortByLink attr="publisher_addr" text="Source Address" /></th>
             <th><SortByLink attr="updated_time" text="Updated Time" /></th>
-            <th><SortByLink attr="publish_path" text="Publish URL" /></th>
+            <th><SortByLink attr="stream_url" text="Stream URL" /></th>
             <th></th>
           </tr>
         </thead>
@@ -106,7 +106,7 @@ function VideoStreams(props) {
                   <td>{stream.description}</td>
                   <td>{stream.publisher_addr || "N/A"}</td>
                   <td>{moment(stream.updated_time).fromNow()}</td>
-                  <td><small>{stream.publish_url}</small></td>
+                  <td><small>{stream.stream_url}</small></td>
                   <td>
                     <div>
                       <TrashIcon item='stream' id={id} name={stream.id}/>

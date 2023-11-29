@@ -34,7 +34,7 @@ class StreamSchema(SQLAlchemySchema):
         # These are not stored in the database but may be useful for clients.
         data['dash_path'] = "/dash/{}/index.mpd".format(original.id)
         data['hls_path'] = "/hls/{}/index.m3u8".format(original.id)
-        data['publish_url'] = "rtmp://{}/live/{}?token={}".format(request.host, original.id, original.token)
+        data['stream_url'] = "rtmp://{}/live/{}?token={}".format(request.host, original.id, original.token)
         return data
 
 
@@ -76,7 +76,7 @@ async def on_publish():
     form = await request.form
 
     stream_id = uuid.UUID(form.get("name", ""))
-    token = request.args.get("token", "")
+    token = form.get("token", "")
 
     log_stream_event(form)
 
@@ -108,17 +108,11 @@ async def on_publish_done():
 
     stream_id = uuid.UUID(form.get("name", ""))
 
-    stmt = sa.select(Stream) \
+    stmt = sa.update(Stream) \
             .where(Stream.id == stream_id) \
-            .limit(1)
+            .values(publisher_addr=None, updated_time=datetime.datetime.now())
 
-    result = await g.session.execute(stmt)
-    stream = result.scalar()
-    if stream is None:
-        return '', HTTPStatus.NO_CONTENT
-
-    stream.publisher_addr = None
-    stream.updated_time = datetime.datetime.now()
+    await g.session.execute(stmt)
     await g.session.commit()
 
     return '', HTTPStatus.NO_CONTENT
