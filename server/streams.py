@@ -75,7 +75,7 @@ async def on_publish():
     """
     form = await request.form
 
-    stream_id = form.get("name", "")
+    stream_id = uuid.UUID(form.get("name", ""))
     token = request.args.get("token", "")
 
     log_stream_event(form)
@@ -106,7 +106,7 @@ async def on_publish_done():
 
     log_stream_event(form)
 
-    stream_id = form.get("name", "")
+    stream_id = uuid.UUID(form.get("name", ""))
 
     stmt = sa.select(Stream) \
             .where(Stream.id == stream_id) \
