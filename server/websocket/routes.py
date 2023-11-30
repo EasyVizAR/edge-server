@@ -2,7 +2,7 @@ import asyncio
 import os
 
 from http import HTTPStatus
-from quart import Blueprint, current_app, g, make_response, jsonify, websocket
+from quart import Blueprint, current_app, g, make_response, jsonify, redirect, request, websocket
 from werkzeug import exceptions
 
 from .connection import WebsocketConnection, WebsocketHandler
@@ -47,6 +47,20 @@ async def delete_websocket(websocket_id):
     await handler.close()
 
     return jsonify(handler.dump()), HTTPStatus.OK
+
+
+@websockets.route("/ws", methods=['GET'])
+async def get_ws():
+    """
+    Get the websocket URL
+
+    This route is offered as a convenience for clients to determine
+    the URL for opening a websocket connection.
+
+    The answer will be in the response 'Location' header.
+    """
+    url = "ws://{}/ws".format(request.host)
+    return redirect(url, code=300)
 
 
 @websockets.websocket('/ws')

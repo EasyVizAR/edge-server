@@ -93,7 +93,7 @@ async def create_location():
     location = location_schema.load(body, transient=True)
 
     g.session.add(location)
-    await session.commit()
+    await g.session.commit()
 
     # Create a default configuration set
     location.device_configuration = DeviceConfiguration(location_id=location.id)
