@@ -18,6 +18,10 @@ class Stream(Base):
     """
     A video stream.
     """
+    __allow_update__ = set(["description"])
+    __table_args__ = (
+        sa.UniqueConstraint("token"),
+    )
     __tablename__ = "streams"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True)

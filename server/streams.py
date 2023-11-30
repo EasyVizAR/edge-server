@@ -147,6 +147,44 @@ async def create_stream():
     return jsonify(result), HTTPStatus.CREATED
 
 
+@streams.route('/streams/<uuid:stream_id>', methods=['GET'])
+async def get_stream(stream_id):
+    stmt = sa.select(Stream) \
+            .where(Stream.id == stream_id) \
+            .limit(1)
+
+    result = await g.session.execute(stmt)
+    stream = result.scalar()
+    if stream is None:
+        raise exceptions.NotFound(description="Stream {} was not found".format(stream_id))
+
+    result = stream_schema.dump(stream)
+
+    return jsonify(result), HTTPStatus.OK
+
+
+@streams.route('/streams/<uuid:stream_id>', methods=['PATCH'])
+async def update_stream(stream_id):
+    body = await request.get_json()
+
+    stmt = sa.select(Stream) \
+            .where(Stream.id == stream_id) \
+            .limit(1)
+
+    result = await g.session.execute(stmt)
+    stream = result.scalar()
+    if stream is None:
+        raise exceptions.NotFound(description="Stream {} was not found".format(stream_id))
+
+    stream.update(body)
+    stream.updated_time = datetime.datetime.now()
+    await g.session.commit()
+
+    result = stream_schema.dump(stream)
+
+    return jsonify(result), HTTPStatus.OK
+
+
 @streams.route('/streams/<uuid:stream_id>', methods=['DELETE'])
 async def delete_stream(stream_id):
     stmt = sa.select(Stream) \

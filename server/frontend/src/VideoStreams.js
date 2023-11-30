@@ -102,7 +102,7 @@ function VideoStreams(props) {
             Object.keys(streams).length > 0 ? (
               Object.entries(streams).sort((a, b) => a[1][sortBy.attr] > b[1][sortBy.attr] ? sortBy.direction : -sortBy.direction).map(([id, stream]) => {
                 return <tr>
-                  <td>{id}</td>
+                  <td><Link to={`/streams/${id}`}>{id}</Link></td>
                   <td>{stream.description}</td>
                   <td>{stream.publisher_addr || "N/A"}</td>
                   <td>{moment(stream.updated_time).fromNow()}</td>

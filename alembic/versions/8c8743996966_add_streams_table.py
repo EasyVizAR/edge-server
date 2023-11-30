@@ -24,7 +24,8 @@ def upgrade() -> None:
         sa.Column('publisher_addr', sa.String(), nullable=True),
         sa.Column('created_time', sa.DateTime(), nullable=False),
         sa.Column('updated_time', sa.DateTime(), nullable=False),
-        sa.PrimaryKeyConstraint('id')
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('token')
     )
 
 
