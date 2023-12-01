@@ -71,6 +71,12 @@ parts:
       - on armhf:
         - libxml2-dev
         - libxslt1-dev
+      - on ppc64el:
+        - libxml2-dev
+        - libxslt1-dev
+      - on s390x:
+        - libxml2-dev
+        - libxslt1-dev
     requirements:
       - requirements.txt
 

@@ -256,7 +256,11 @@ function AllHeadsets(props) {
                           }
                           </select>
                       ) : (
-                        locations[headset.location_id] ? locations[headset.location_id]['name'] : 'Unknown'
+                        locations[headset.location_id] ? (
+                          <Link to={`/locations/${headset.location_id}`}>{locations[headset.location_id]['name']}</Link>
+                        ) : (
+                          "Unknown"
+                        )
                       )
                     }
                   </td>
