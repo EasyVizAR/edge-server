@@ -521,7 +521,7 @@ async def update_photo(photo_id):
             detection_task = detection_task_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
             detection_task.photo_record_id = photo_id
             session.add(detection_task)
-            await session.commit()
+            await session.flush()
 
             photo.annotations = []
 

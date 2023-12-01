@@ -312,7 +312,7 @@ async def create_pose_change(headset_id):
         pose.mobile_device_id = headset_id
         pose.tracking_session_id = headset.tracking_session_id
         session.add(pose)
-        await session.commit()
+        await session.flush()
 
         headset.device_pose_id = pose.id
         headset.update_time = datetime.datetime.now()

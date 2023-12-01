@@ -158,7 +158,7 @@ async def _create_headset(headset_id, body):
                 location_id=headset.location_id
             )
             session.add(checkin)
-            await session.commit()
+            await session.flush()
 
             headset.tracking_session_id = checkin.id
 
@@ -391,50 +391,49 @@ async def replace_headset(headset_id):
 
 
 async def _update_headset(headset_id, patch):
-    async with g.session_maker() as session:
-        stmt = sa.select(MobileDevice) \
-                .where(MobileDevice.id == headset_id) \
-                .limit(1) \
-                .options(sa.orm.selectinload(MobileDevice.pose)) \
-                .options(sa.orm.selectinload(MobileDevice.navigation_target))
+    stmt = sa.select(MobileDevice) \
+            .where(MobileDevice.id == headset_id) \
+            .limit(1) \
+            .options(sa.orm.selectinload(MobileDevice.pose)) \
+            .options(sa.orm.selectinload(MobileDevice.navigation_target))
 
-        result = await session.execute(stmt)
-        device = result.scalar()
-        if device is None:
-            raise exceptions.NotFound(description="Headset {} was not found".format(id))
+    result = await g.session.execute(stmt)
+    device = result.scalar()
+    if device is None:
+        raise exceptions.NotFound(description="Headset {} was not found".format(id))
 
-        previous = headset_schema.dump(device)
-        device.update(patch)
+    previous = headset_schema.dump(device)
+    device.update(patch)
 
-        if patch.get('location_id') is not None:
-            location_id = uuid.UUID(patch['location_id'])
-            if location_id != device.location_id:
-                checkin = TrackingSession(
-                    mobile_device_id=device.id,
-                    incident_id=g.active_incident_id,
-                    location_id=location_id
-                )
-                session.add(checkin)
-                await session.commit()
+    if patch.get('location_id') is not None:
+        location_id = uuid.UUID(patch['location_id'])
+        if location_id != device.location_id:
+            checkin = TrackingSession(
+                mobile_device_id=device.id,
+                incident_id=g.active_incident_id,
+                location_id=location_id
+            )
+            g.session.add(checkin)
+            await g.session.flush()
 
-                device.location_id = location_id
-                device.tracking_session_id = checkin.id
+            device.location_id = location_id
+            device.tracking_session_id = checkin.id
 
-        # If we have a valid location set and the caller provided a
-        # position and orientation, we can create a DevicePose record.
-        if device.tracking_session_id is not None and 'position' in patch and 'orientation' in patch:
-            pose = pose_change_schema.load(patch, transient=True, unknown=marshmallow.EXCLUDE)
-            pose.tracking_session_id = device.tracking_session_id
-            pose.mobile_device_id = device.id
-            session.add(pose)
-            await session.commit()
+    # If we have a valid location set and the caller provided a
+    # position and orientation, we can create a DevicePose record.
+    if device.tracking_session_id is not None and 'position' in patch and 'orientation' in patch:
+        pose = pose_change_schema.load(patch, transient=True, unknown=marshmallow.EXCLUDE)
+        pose.tracking_session_id = device.tracking_session_id
+        pose.mobile_device_id = device.id
+        g.session.add(pose)
+        await g.session.flush()
 
-            device.device_pose_id = pose.id
-            device.pose = pose
+        device.device_pose_id = pose.id
+        device.pose = pose
 
-        device.updated_time = datetime.datetime.now()
+    device.updated_time = datetime.datetime.now()
 
-        await session.commit()
+    await g.session.commit()
 
     result = headset_schema.dump(device)
 
