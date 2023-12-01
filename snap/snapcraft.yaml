@@ -68,6 +68,9 @@ parts:
       - libjpeg-turbo8
       - libmagic1
       - python3
+      - on armhf:
+        - libxml2-dev
+        - libxslt1-dev
     requirements:
       - requirements.txt
 
