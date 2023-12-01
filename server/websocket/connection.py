@@ -9,6 +9,7 @@ from quart import g
 
 from server.headset.routes import _update_headset
 from server.utils.counter import Counter
+from server.utils.token_bucket import TokenBucket
 from server.utils.utils import GenericJsonEncoder
 
 
@@ -91,7 +92,7 @@ class WebsocketHandler:
         self.receive_count = Counter(name="received")
         self.dropped_messages_count = 0
 
-        self.has_pending_move = False
+        self.move_tbf = TokenBucket()
 
         self.id = WebsocketHandler.next_handler_id
         WebsocketHandler.next_handler_id += 1
@@ -213,23 +214,31 @@ class WebsocketHandler:
                 self.echo_own_events = True
 
         elif args.command == "move":
-            if self.has_pending_move:
+            if self.device_id is None:
+                return
+
+            if self.move_tbf.check():
+                self.move_tbf.drain()
+            else:
                 self.dropped_messages_count += 1
                 return
 
-            if self.device_id is not None:
-                patch = {
-                    "position": dict(zip(["x", "y", "z"], args.position)),
-                    "orientation": dict(zip(["x", "y", "z", "w"], args.orientation))
-                }
+            patch = {
+                "position": dict(zip(["x", "y", "z"], args.position)),
+                "orientation": dict(zip(["x", "y", "z", "w"], args.orientation))
+            }
 
-                # _update_headset may be slower than the sending interval of the client,
-                # which results in buffering of updates and increasing delay. Silently
-                # dropping updates in excess of what we can handle should help for now.
-                # TODO: fix performance issue with _update_headset
-                self.has_pending_move = True
-                await _update_headset(self.device_id, patch)
-                self.has_pending_move = False
+            # _update_headset may be slower than the sending interval of the client,
+            # which results in buffering of updates and increasing delay. Silently
+            # dropping updates in excess of what we can handle should help for now.
+            # TODO: fix performance issue with _update_headset
+            start = time.time()
+            await _update_headset(self.device_id, patch)
+            delay = time.time() - start
+
+            # Update the token bucket drain rate so that we drop messages
+            # if they arrive faster than we can process.
+            self.move_tbf.update_rate(0.8 / delay)
 
         elif args.command == "ping":
             await self.send_text("pong")
