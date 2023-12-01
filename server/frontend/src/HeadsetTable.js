@@ -31,6 +31,7 @@ function HeadsetTable(props) {
     type: React.createRef(),
   };
 
+  const [checkedItems, setCheckedItems] = useState({});
   const [navigationTargetIndex, setNavigationTargetIndex] = useState(0);
   const [inEditModeHeadset, setInEditModeHeadset] = useState({
     status: false,
@@ -167,6 +168,58 @@ function HeadsetTable(props) {
     });
   }
 
+  const toggleCheckAll = () => {
+    if (Object.keys(checkedItems).length > 0) {
+      setCheckedItems({});
+    } else {
+      var result = {};
+      for (const [id, feature] of Object.entries(props.headsets)) {
+        result[id] = true;
+      }
+      setCheckedItems(result);
+    }
+  }
+
+  const deleteCheckedItems = async () => {
+    const del = window.confirm("Are you sure you want to delete the checked items?");
+    if (!del) {
+      return;
+    }
+
+    await Object.entries(checkedItems)
+      .filter(([id, checked]) => checked)
+      .reduce((chain, [id]) => {
+        const url = `${host}/headsets/${id}`;
+        const requestData = {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        };
+
+        return chain.then(() => new Promise(resolve => {
+          setTimeout(() => {
+            fetch(url, requestData)
+              .then(response => {
+                props.features.pop(id);
+                resolve();
+              })
+              .catch(error => {
+                console.error(`Error deleting headset ${id}: ${error.message}`);
+                resolve();
+              });
+          }, 100); // Delay by 100ms to avoid triggering rate limit
+        }));
+      }, Promise.resolve());
+
+    setCheckedItems({});
+  }
+
+  const toggleCheck = (id) => {
+    checkedItems[id] = !checkedItems[id];
+    setCheckedItems({...checkedItems});
+  }
+
   const handleRemoveClicked = (id) => {
     const url = `${host}/headsets/${id}`;
 
@@ -224,6 +277,7 @@ function HeadsetTable(props) {
       <Table striped bordered hover>
         <thead>
           <tr>
+            <th rowSpan='2'><input type="checkbox" checked={Object.keys(checkedItems).length > 0} onChange={toggleCheckAll} /></th>
             <th rowSpan='2'>Headset ID</th>
             <th rowSpan='2'>Name</th>
             <th rowSpan='2'>Icon / Color</th>
@@ -253,6 +307,7 @@ function HeadsetTable(props) {
             Object.keys(props.headsets).length > 0 ? (
               Object.entries(props.headsets).map(([id, headset]) => {
                 return <tr>
+                  <td><input type="checkbox" id={"check-"+id} checked={checkedItems[id]} onChange={() => toggleCheck(id)} /></td>
                   <td><Link to={`/headsets/${id}`}>{id}</Link></td>
                   <td id={"headsetName" + id}>
                     {
@@ -384,6 +439,12 @@ function HeadsetTable(props) {
           }
         </tbody>
       </Table>
+
+      {
+        Object.keys(checkedItems).length > 0 ? (
+          <Button variant="danger" onClick={deleteCheckedItems}>Delete Checked</Button>
+        ) : (null)
+      }
     </div>
   );
 }
