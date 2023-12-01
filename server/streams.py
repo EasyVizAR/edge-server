@@ -75,7 +75,11 @@ async def on_publish():
     """
     form = await request.form
 
-    stream_id = uuid.UUID(form.get("name", ""))
+    try:
+        stream_id = uuid.UUID(form['name'])
+    except ValueError:
+        raise exceptions.BadRequest("Invalid stream ID")
+
     token = form.get("token", "")
 
     log_stream_event(form)
@@ -106,7 +110,10 @@ async def on_publish_done():
 
     log_stream_event(form)
 
-    stream_id = uuid.UUID(form.get("name", ""))
+    try:
+        stream_id = uuid.UUID(form['name'])
+    except ValueError:
+        raise exceptions.BadRequest("Invalid stream ID")
 
     stmt = sa.update(Stream) \
             .where(Stream.id == stream_id) \
