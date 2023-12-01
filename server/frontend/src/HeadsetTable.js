@@ -82,12 +82,11 @@ function HeadsetTable(props) {
 
     // Find the current navigation target as an index in our list of options.
     var target_index = 0;
-    if (headset.navigation_target) {
-      const target_type = headset.navigation_target.type;
+    if (headset.navigation_target_id) {
       const target_id = headset.navigation_target.target_id;
 
       navigationTargetOptions.forEach((option, index) => {
-        if (target_type === option.value?.type && target_id == option.value?.target_id) {
+        if (target_id === option.id) {
           target_index = index;
         }
       });
@@ -208,17 +207,12 @@ function HeadsetTable(props) {
   }
 
   function NavigationTarget(child_props) {
-    const target = child_props.target;
+    const target_id = child_props.target_id;
 
-    switch(target?.type) {
-      case "point":
-        return <p>{target.position.x}</p>;
-      case "feature":
-        return <p>{props.features[target.target_id] ? props.features[target.target_id].name : "invalid"}</p>;
-      case "headset":
-        return <p>{props.headsets[target.target_id] ? props.headsets[target.target_id].name : "invalid"}</p>;
-      default:
-        return <p>None</p>;
+    if (target_id) {
+      return <p>{props.features[target_id]?.name || "invalid"}</p>;
+    } else {
+      return <p>None</p>;
     }
   }
 
@@ -324,7 +318,7 @@ function HeadsetTable(props) {
                         <select
                           id="navigation-target-dropdown"
                           title="Change Target"
-                          defaultValue={navigationTargetIndex}
+                          value={navigationTargetIndex}
                           onChange={(e) => setNavigationTargetIndex(e.target.value)}>
                           {
                             navigationTargetOptions.map((option, index) => {
@@ -335,8 +329,8 @@ function HeadsetTable(props) {
                       </td>
                     ) : (
                       <React.Fragment>
-                        <td>{headset.navigation_target_id ? headset.navigation_target_id : '0'}</td>
-                        <td><NavigationTarget target={headset.navigation_target} /></td>
+                        <td>{headset.navigation_target_id}</td>
+                        <td><NavigationTarget target_id={headset.navigation_target_id} /></td>
                       </React.Fragment>
                     )
                   }

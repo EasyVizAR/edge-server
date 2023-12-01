@@ -214,7 +214,7 @@ function MapContainer(props) {
     function NavigationTarget(props) {
       const target = props.target;
 
-      if (layerLoaded && target && props.enabled) {
+      if (layerLoaded && target && target.position && props.enabled) {
         const x = mapShape.xscale * (target.position.x - mapShape.xmin);
         const y = mapShape.yscale * (mapShape.height - (target.position.z - mapShape.ymin));
         return (
