@@ -188,12 +188,16 @@ function LayerTable(props) {
                           </Button>
                         </React.Fragment>
                       ) : (
-                        <Button
-                          className={"btn-primary table-btns"}
-                          onClick={(e) => enableEditMode(e, layer.id)}
-                          title='Edit'>
-                          Edit
-                        </Button>
+                        <React.Fragment>
+                          <Button
+                            className={"btn-primary table-btns"}
+                            onClick={(e) => enableEditMode(e, layer.id)}
+                            title='Edit'>
+                            Edit
+                          </Button>
+                          <a class="btn btn-secondary table-btns" href={`/locations/${props.locationId}/layers/${layer.id}/image`}>SVG</a>
+                          <a class="btn btn-secondary table-btns" href={`/locations/${props.locationId}/layers/${layer.id}/image.png`}>PNG</a>
+                        </React.Fragment>
                       )
                     }
                   </td>

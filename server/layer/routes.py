@@ -14,7 +14,7 @@ import sqlalchemy as sa
 
 from server.location.models import Location
 from server.mapping.map_maker import MapMaker
-from server.utils.images import ext_from_type, try_send_image
+from server.utils.images import ext_from_type, try_send_image, try_send_png
 from server.utils.response import maybe_wrap
 from server.utils.utils import save_image
 
@@ -346,6 +346,30 @@ async def update_layer(location_id, layer_id):
     return jsonify(result), HTTPStatus.OK
 
 
+async def _get_layer(location_id, layer_id):
+    stmt = sa.select(Layer) \
+            .where(Layer.location_id == location_id) \
+            .where(Layer.id == layer_id)
+
+    result = await g.session.execute(stmt)
+    layer = result.scalar()
+
+    # Fix for clients that hard-coded layer ID = 1,
+    # find the layer with lowest ID.
+    if layer is None and layer_id == 1:
+        stmt = sa.select(Layer) \
+                .where(Layer.location_id == location_id) \
+                .order_by(Layer.id) \
+                .limit(1)
+        result = await g.session.execute(stmt)
+        layer = result.scalar()
+
+    if layer is None:
+        raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
+
+    return layer
+
+
 @layers.route('/locations/<uuid:location_id>/layers/<int:layer_id>/image', methods=['GET'])
 async def get_layer_file(location_id, layer_id):
     """
@@ -435,30 +459,30 @@ async def get_layer_file(location_id, layer_id):
 #        result = await asyncio.wrap_future(future)
 #        return await try_send_image(result.image_path, layer.contentType, request.headers)
 
-    async with g.session_maker() as session:
-        stmt = sa.select(Layer) \
-                .where(Layer.location_id == location_id) \
-                .where(Layer.id == layer_id)
-
-        result = await session.execute(stmt)
-        layer = result.scalar()
-
-        # Fix for clients that hard-coded layer ID = 1,
-        # find the layer with lowest ID.
-        if layer is None and layer_id == 1:
-            stmt = sa.select(Layer) \
-                    .where(Layer.location_id == location_id) \
-                    .order_by(Layer.id) \
-                    .limit(1)
-            result = await session.execute(stmt)
-            layer = result.scalar()
-
-        if layer is None:
-            raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
+    layer = await _get_layer(location_id, layer_id)
 
     layer_dir = get_layer_dir(location_id, layer.id)
     layer_fname = "image" + ext_from_type(layer.image_type)
     return await try_send_image(os.path.join(layer_dir, layer_fname), layer.image_type, request.headers)
+
+
+@layers.route('/locations/<uuid:location_id>/layers/<int:layer_id>/image.png', methods=['GET'])
+async def get_layer_file_png(location_id, layer_id):
+    """
+    Request layer image as a PNG
+    """
+    layer = await _get_layer(location_id, layer_id)
+
+    layer_dir = get_layer_dir(location_id, layer_id)
+    layer_fname = "image" + ext_from_type(layer.image_type)
+
+    width = request.args.get("width", 900)
+    try:
+        width = int(width)
+    except:
+        raise exceptions.BadRequest("Cannot interpret PNG width argument")
+
+    return await try_send_png(os.path.join(layer_dir, layer_fname), layer.image_type, width=width)
 
 
 @layers.route('/locations/<uuid:location_id>/layers/<int:layer_id>/image', methods=['PUT'])
