@@ -89,6 +89,9 @@ class WebsocketHandler:
 
         self.send_count = Counter(name="sent")
         self.receive_count = Counter(name="received")
+        self.dropped_messages_count = 0
+
+        self.has_pending_move = False
 
         self.id = WebsocketHandler.next_handler_id
         WebsocketHandler.next_handler_id += 1
@@ -166,7 +169,8 @@ class WebsocketHandler:
             "last_successful_send": self.last_successful_send,
             "start_time": self.start_time,
             "subscriptions": list(self.subscriptions),
-            "subprotocol": self.subprotocol
+            "subprotocol": self.subprotocol,
+            "dropped_messages": self.dropped_messages_count
         }
         info.update(self.send_count.dump())
         info.update(self.receive_count.dump())
@@ -209,12 +213,23 @@ class WebsocketHandler:
                 self.echo_own_events = True
 
         elif args.command == "move":
+            if self.has_pending_move:
+                self.dropped_messages_count += 1
+                return
+
             if self.device_id is not None:
                 patch = {
                     "position": dict(zip(["x", "y", "z"], args.position)),
                     "orientation": dict(zip(["x", "y", "z", "w"], args.orientation))
                 }
+
+                # _update_headset may be slower than the sending interval of the client,
+                # which results in buffering of updates and increasing delay. Silently
+                # dropping updates in excess of what we can handle should help for now.
+                # TODO: fix performance issue with _update_headset
+                self.has_pending_move = True
                 await _update_headset(self.device_id, patch)
+                self.has_pending_move = False
 
         elif args.command == "ping":
             await self.send_text("pong")
