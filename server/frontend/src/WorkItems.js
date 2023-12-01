@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { Button, Table, Pagination } from 'react-bootstrap';
 import './WorkItems.css';
 import {Helmet} from 'react-helmet';
@@ -7,9 +7,15 @@ import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 
+import { LocationsContext } from './Contexts.js';
+
+
 function WorkItems(props){
   const host = process.env.PUBLIC_URL;
   const itemsPerPage = 10;
+
+  const { locations, setLocations } = useContext(LocationsContext);
+
   const [currentPage, setCurrentPage] = useState(1);
   const[workItems, setWorkItems] = useState([]);
   const [sortBy, setSortBy] = useState({
@@ -66,31 +72,17 @@ function WorkItems(props){
           }
         }
 
-        if (boundaryIndex >= 0){
-          temp_data.push({
-            'id': photo['id'],
-            'created': photo['created'],
-            'ready': Boolean(photo['ready']),
-            'status': photo['status'],
-            'imageUrl': photo['imageUrl'],
-            'contentType': photo['contentType'],
-            'hasBoundary': true,
-            'topOffset': photo['annotations'][boundaryIndex]['boundary']['top'],
-            'leftOffset': photo['annotations'][boundaryIndex]['boundary']['left'],
-            'divWidth': photo['annotations'][boundaryIndex]['boundary']['width'],
-            'divHeight': photo['annotations'][boundaryIndex]['boundary']['height']
-          });
-        }else{
-          temp_data.push({
-            'id': photo['id'],
-            'created': photo['created'],
-            'ready': Boolean(photo['ready']),
-            'status': photo['status'],
-            'imageUrl': photo['imageUrl'],
-            'contentType': photo['contentType'],
-            'hasBoundary': false
-          });
+        if (boundaryIndex >= 0) {
+          photo.hasBoundary = true;
+          photo.topOffset = photo['annotations'][boundaryIndex]['boundary']['top'];
+          photo.leftOffset = photo['annotations'][boundaryIndex]['boundary']['left'];
+          photo.divWidth = photo['annotations'][boundaryIndex]['boundary']['width'];
+          photo.divHeight = photo['annotations'][boundaryIndex]['boundary']['height'];
+        } else {
+          photo.hasBoundary = false;
         }
+
+        temp_data.push(photo);
       }
 
       temp_data.sort((photo1, photo2) => (photo1.created < photo2.created) ? 1 : -1);
@@ -162,17 +154,13 @@ function WorkItems(props){
   }
 
   return (
-    <div className="WorkItems">
-      <Helmet>
-        <title>EasyVizAR Edge - Image Processing</title>
-      </Helmet>
-      <h1 className="main-header">Image Processing - Work Items</h1>
-      <Table className="work-items-table" striped bordered hover>
+    <div>
+      <Table striped bordered hover>
         <thead>
             <tr>
               <th><SortByLink attr="id" text="Photo ID" /></th>
               <th><SortByLink attr="created" text="Created" /></th>
-              <th><SortByLink attr="contentType" text="Content Type" /></th>
+              <th><SortByLink attr="camera_location_id" text="Location" /></th>
               <th><SortByLink attr="status" text="Status" /></th>
               <th>Image</th>
               <th></th>
@@ -189,7 +177,17 @@ function WorkItems(props){
                       </Link>
                     </td>
                     <td>{moment.unix(e.created).fromNow()}</td>
-                    <td>{e.contentType}</td>
+                    <td>
+                      {
+                        e.camera_location_id ? (
+                          <Link to={`/locations/${e.camera_location_id}`}>
+                            {locations[e.camera_location_id]?.name || e.camera_location_id}
+                          </Link>
+                        ) : (
+                          "N/A"
+                        )
+                      }
+                    </td>
                     <td>{e.status}</td>
                     <td>
                       <div>
@@ -222,7 +220,7 @@ function WorkItems(props){
             onClick={() => handlePageChange(index + 1)}
             style={{ display: "inline-block", margin: "5px" }}
           >{index + 1}
-            
+
           </Pagination.Item>
         ))}
       </Pagination>

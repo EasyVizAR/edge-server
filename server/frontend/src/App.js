@@ -53,9 +53,9 @@ function App() {
                         <Route path="/streams" element={<VideoStreams />}/>
                         <Route path="/streams/:stream_id" element={<VideoPlayer />}/>
                         <Route path="/websockets" element={<WebsocketConnections />}/>
-                        <Route path="/workitems" element={<WorkItems />}/>
                         <Route path="/locations/:location_id/qrcode" element={<LocationQrCodeWrapper />}/>
                         <Route path="/locations/:location_id" element={<Location />}/>
+                        <Route path="/photos" element={<WorkItems />}/>
                         <Route path="/photos/:photo_id" element={<PhotoWrapper />} />
                     </Routes>
                   </LocationsContext.Provider>
