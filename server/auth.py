@@ -1,6 +1,7 @@
 import json
 import os
 import secrets
+import uuid
 
 from functools import wraps
 
@@ -8,7 +9,7 @@ import sqlalchemy as sa
 
 from quart import g, request, websocket, after_this_request, current_app
 from werkzeug.exceptions import Unauthorized
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from server.models.mobile_devices import MobileDevice
 from server.models.users import User
@@ -94,8 +95,6 @@ class Authenticator:
                 g.user_id = user.id
                 g.user = user
 
-                session['user_id'] = user.id
-
         # Bearer token, for authenticated devices.
         else:
             auth = request.headers.get("Authorization", "")
@@ -129,6 +128,66 @@ class Authenticator:
             print("Warning: failed to load {} ({})".format(auth.path, error))
 
         return auth
+
+
+async def initialize_users_table(app):
+    async with app.session_maker() as session:
+        # Make sure an admin account exists
+        stmt = sa.select(User) \
+                .where(User.name == "admin") \
+                .limit(1)
+        result = await session.execute(stmt)
+        admin = result.scalar()
+
+        if admin is None:
+            admin = User(
+                id=uuid.uuid4(),
+                name="admin",
+                password=generate_password_hash("admin"),
+                display_name="Default Admin",
+                type="admin"
+            )
+            session.add(admin)
+
+        # Make sure a default user account exists
+        stmt = sa.select(User) \
+                .where(User.name == "user") \
+                .limit(1)
+        result = await session.execute(stmt)
+        user = result.scalar()
+
+        if user is None:
+            user = User(
+                id=uuid.uuid4(),
+                name="user",
+                password=generate_password_hash(""),
+                display_name="Default User",
+                type="user"
+            )
+            session.add(user)
+
+        # Make sure a guest user account exists
+        stmt = sa.select(User) \
+                .where(User.name == "guest") \
+                .limit(1)
+        result = await session.execute(stmt)
+        guest = result.scalar()
+
+        if guest is None:
+            guest = User(
+                id=uuid.uuid4(),
+                name="guest",
+                password=generate_password_hash(""),
+                display_name="Guest",
+                type="user"
+            )
+            session.add(guest)
+
+        await session.commit()
+
+        # Save the default user ID to use as a placeholder when the user ID is
+        # unknown
+        app.default_user_id = user.id
 
 
 def requires_admin(func):

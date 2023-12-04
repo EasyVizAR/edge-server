@@ -27,7 +27,7 @@ from server.utils.rate_limiter import main_rate_limiter
 from server.utils.utils import GenericJsonEncoder
 from server.websocket.routes import websockets
 
-from server.auth import Authenticator
+from server.auth import Authenticator, initialize_users_table
 from server.events import EventDispatcher
 from server.mapping.navigator import Navigator
 from server.mapping2.mapper import Mapper
@@ -103,8 +103,10 @@ for bp in blueprints:
 
 
 @app.before_first_request
-def before_first_request():
+async def before_first_request():
     app.authenticator = Authenticator.build_authenticator(data_dir)
+
+    app.session_maker = session_maker
 
     app.dispatcher = EventDispatcher()
 
@@ -137,6 +139,9 @@ def before_first_request():
         app.magic = magic.Magic(magic_file=magic_file, mime=True)
     else:
         app.magic = magic.Magic(mime=True)
+
+    # Make sure some users are defined
+    await initialize_users_table(app)
 
 
 @app.before_request
