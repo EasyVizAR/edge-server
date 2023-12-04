@@ -13,6 +13,7 @@ from werkzeug import exceptions
 import marshmallow
 import sqlalchemy as sa
 
+from server import auth
 from server.layer.models import Layer
 from server.mapping.obj_file import ObjFileMaker
 from server.resources.geometry import Vector3f
@@ -106,6 +107,7 @@ async def create_location():
 
 
 @locations.route('/locations/<uuid:location_id>', methods=['DELETE'])
+@auth.requires_admin
 async def delete_location(location_id):
     """
     Delete location

@@ -114,6 +114,7 @@ async def create_check_in(headset_id):
 
 
 @check_ins.route('/headsets/<uuid:headset_id>/check-ins/<int:check_in_id>', methods=['DELETE'])
+@auth.requires_admin
 async def delete_check_in(headset_id, check_in_id):
     """
     Delete a headset check-in

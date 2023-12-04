@@ -15,6 +15,7 @@ from PIL import Image
 import marshmallow
 import sqlalchemy as sa
 
+from server import auth
 from server.resources.filter import Filter
 from server.utils.rate_limiter import rate_limit_exempt
 from server.utils.utils import save_image
@@ -277,6 +278,7 @@ async def create_photo():
 
 
 @photos.route('/photos/<int:photo_id>', methods=['DELETE'])
+@auth.requires_admin
 async def delete_photo(photo_id):
     """
     Delete photo

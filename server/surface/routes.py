@@ -13,6 +13,7 @@ from werkzeug import exceptions
 import marshmallow
 import sqlalchemy as sa
 
+from server import auth
 from server.layer.models import LayerSchema
 from server.mapping.obj_file import ObjFileMaker
 from server.mapping.map_maker import MapMaker
@@ -70,6 +71,7 @@ async def list_surfaces(location_id):
 
 
 @surfaces.route('/locations/<uuid:location_id>/surfaces', methods=['DELETE'])
+@auth.requires_admin
 async def clear_surfaces(location_id):
     """
     Clear surfaces
@@ -91,6 +93,7 @@ async def clear_surfaces(location_id):
 
 
 @surfaces.route('/locations/<uuid:location_id>/surfaces/<uuid:surface_id>', methods=['DELETE'])
+@auth.requires_admin
 async def delete_surface(location_id, surface_id):
     """
     Delete surface

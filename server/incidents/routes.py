@@ -9,6 +9,7 @@ from werkzeug import exceptions
 import marshmallow
 import sqlalchemy as sa
 
+from server import auth
 from server.utils.response import maybe_wrap
 
 from .models import Incident, IncidentSchema
@@ -139,6 +140,7 @@ async def create_incident():
 
 
 @incidents.route('/incidents/<uuid:incident_id>', methods=['DELETE'])
+@auth.requires_admin
 async def delete_incident(incident_id):
     """
     Delete incident

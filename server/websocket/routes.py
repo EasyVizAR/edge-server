@@ -7,6 +7,7 @@ from werkzeug import exceptions
 
 from .connection import WebsocketConnection, WebsocketHandler
 
+from server import auth
 from server.utils.response import maybe_wrap
 
 
@@ -31,6 +32,7 @@ async def list_websockets():
 
 
 @websockets.route("/websockets/<int:websocket_id>", methods=['DELETE'])
+@auth.requires_admin
 async def delete_websocket(websocket_id):
     """
     Force closed a websocket connection

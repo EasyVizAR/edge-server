@@ -8,6 +8,7 @@ from werkzeug import exceptions
 import marshmallow
 import sqlalchemy as sa
 
+from server import auth
 from server.location.models import Location
 from server.utils.response import maybe_wrap
 
@@ -139,6 +140,7 @@ async def create_feature(location_id):
 
 
 @features.route('/locations/<uuid:location_id>/features/<int:feature_id>', methods=['DELETE'])
+@auth.requires_admin
 async def delete_feature(location_id, feature_id):
     """
     Delete feature

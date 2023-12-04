@@ -150,6 +150,7 @@ async def before_request():
     # passed a valid credential.
     g.device_id = None
     g.user_id = None
+    g.user = None
 
     g.session_maker = session_maker
     g.session = session_maker()
@@ -179,6 +180,7 @@ async def before_websocket():
     # passed a valid credential.
     g.device_id = None
     g.user_id = None
+    g.user = None
 
     g.session_maker = session_maker
     g.session = session_maker()

@@ -11,6 +11,8 @@ on:
 
 jobs:
   build:
+    env:
+      QUART_ENV: testing
 
     runs-on: ubuntu-latest
 

@@ -14,6 +14,7 @@ from werkzeug import exceptions
 import marshmallow
 import sqlalchemy as sa
 
+from server import auth
 from server.check_in.models import TrackingSession
 from server.pose_changes.models import DevicePose, PoseChangeSchema
 from server.resources.filter import Filter
@@ -255,6 +256,7 @@ async def create_headset():
 
 
 @headsets.route('/headsets/<uuid:headset_id>', methods=['DELETE'])
+@auth.requires_admin
 async def delete_headset(headset_id):
     """
     Delete a headset
