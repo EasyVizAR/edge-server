@@ -204,7 +204,7 @@ def requires_admin(func):
         # of course, authentication does not get tested.
         not_in_testing = current_app.config.get("ENV", "production") != "testing"
 
-        if not_intesting and (g.user is None or g.user.type != "admin"):
+        if not_in_testing and (g.user is None or g.user.type != "admin"):
             authenticate = ('Basic realm="Admin access to EasyVizAR Edge", charset="UTF-8"',)
             raise Unauthorized(www_authenticate=authenticate)
 
