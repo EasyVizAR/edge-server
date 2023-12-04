@@ -10,6 +10,7 @@ import PhotoWrapper from './PhotoWrapper.js';
 import VideoStreams from './VideoStreams.js';
 import VideoPlayer from './VideoPlayer.js';
 import WebsocketConnections from './WebsocketConnections.js';
+import Users from './Users.js';
 import NavBar from './NavBar.js';
 import { ActiveIncidentContext, LocationsContext } from './Contexts.js';
 
@@ -57,6 +58,7 @@ function App() {
                         <Route path="/locations/:location_id" element={<Location />}/>
                         <Route path="/photos" element={<WorkItems />}/>
                         <Route path="/photos/:photo_id" element={<PhotoWrapper />} />
+                        <Route path="/users" element={<Users />} />
                     </Routes>
                   </LocationsContext.Provider>
                   </ActiveIncidentContext.Provider>

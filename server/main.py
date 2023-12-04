@@ -22,6 +22,8 @@ from server.pose_changes.routes import pose_changes
 from server.routes import routes
 from server.streams import streams
 from server.surface.routes import surfaces
+from server.users import users
+
 from server.utils.pool_limiter import PoolLimiter
 from server.utils.rate_limiter import main_rate_limiter
 from server.utils.utils import GenericJsonEncoder
@@ -95,6 +97,7 @@ blueprints = [
     routes,
     streams,
     surfaces,
+    users,
     websockets
 ]
 

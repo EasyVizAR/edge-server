@@ -11,7 +11,7 @@ class User(Base):
     """
     A user.
     """
-    __allow_update__ = set(['display_name'])
+    __allow_update__ = set(['display_name', 'type'])
     __tablename__ = "users"
     __table_args__ = (
         sa.UniqueConstraint("name"),
