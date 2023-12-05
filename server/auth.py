@@ -16,17 +16,23 @@ from server.models.users import User
 
 
 class Authenticator:
+    # This will be set at startup by the initialize function and used by
+    # authenticated headsets.
+    default_device_user = None
+    default_device_user_id = None
+
     def __init__(self):
         self.tokens = []
         self.headsets = dict()
         self.path = "auth.json"
 
         self.cache = dict()
-        self.user_cache = dict()
 
     def create_temporary_token(self, bearer_id):
         """
         Create a temporary token that will last until system shutdown.
+
+        (deprecated)
         """
         token = secrets.token_urlsafe(16)
         self.cache[token] = bearer_id
@@ -41,15 +47,15 @@ class Authenticator:
 
     async def lookup_token(self, token):
         if token in self.cache:
-            g.device_id, g.user_id = self.cache[token]
+            g.device_id, g.user_id, g.user = self.cache[token]
             return True
 
         device = await self.find_device_by_token(token)
         if device is not None:
             g.device_id = device.id
-            g.user_id = None
-            g.user = None
-            self.cache[token] = (device.id, None)
+            g.user_id = self.default_device_user_id
+            g.user = self.default_device_user
+            self.cache[token] = (device.id, g.user_id, g.user)
             return True
 
         return False
@@ -65,24 +71,23 @@ class Authenticator:
         else:
             return None
 
-    async def authenticate_request(self):
+    async def _authenticate_request(self, context):
         # If we have a valid user_session cookie, we can skip the DB lookup and
         # password hash check.
-        token = request.cookies.get("user_session")
-        if token is not None and token in self.user_cache:
-            g.user = self.user_cache[token]
-            g.user_id = g.user.id
+        token = context.cookies.get("user_session")
+        if token is not None and token in self.cache:
+            g.device_id, g.user_id, g.user = self.cache[token]
             return
 
         # Basic auth path, ie. username and password.
-        if request.authorization is not None:
-            username = request.authorization.get("username")
-            password = request.authorization.get("password")
+        if context.authorization is not None:
+            username = context.authorization.get("username")
+            password = context.authorization.get("password")
             user = await self.lookup_user(username, password)
 
             if user is not None:
                 token = secrets.token_urlsafe(16)
-                self.user_cache[token] = user
+                self.cache[token] = (None, user.id, user)
 
                 # Return a user_session token cookie with the response to this
                 # request.  If the client browser sends that cookie, we can
@@ -92,25 +97,22 @@ class Authenticator:
                     response.set_cookie("user_session", token)
                     return response
 
+                g.device_id = None
                 g.user_id = user.id
                 g.user = user
 
         # Bearer token, for authenticated devices.
         else:
-            auth = request.headers.get("Authorization", "")
+            auth = context.headers.get("Authorization", "")
             parts = auth.split()
             if len(parts) >= 2 and parts[0] == "Bearer":
                 await self.lookup_token(parts[1])
 
+    async def authenticate_request(self):
+        return await self._authenticate_request(request)
+
     async def authenticate_websocket(self):
-        # This is one way to do websocket authentication, check the HTTP
-        # Authorization header.  There is another path that sets
-        # websockets.authorization username and password and maybe other
-        # fields.
-        auth = websocket.headers.get("Authorization", "")
-        parts = auth.split()
-        if len(parts) >= 2 and parts[0] == "Bearer":
-            await self.lookup_token(parts[1])
+        return await self._authenticate_request(websocket)
 
     @classmethod
     def build_authenticator(_class, data_dir):
@@ -188,6 +190,8 @@ async def initialize_users_table(app):
         # Save the default user ID to use as a placeholder when the user ID is
         # unknown
         app.default_user_id = user.id
+        Authenticator.default_device_user = user
+        Authenticator.default_device_user_id = user.id
 
 
 def requires_admin(func):
