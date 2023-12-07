@@ -71,7 +71,7 @@ class Authenticator:
         else:
             return None
 
-    async def _authenticate_request(self, context):
+    async def _authenticate_request(self, context, can_set_cookie=False):
         # If we have a valid user_session cookie, we can skip the DB lookup and
         # password hash check.
         token = context.cookies.get("user_session")
@@ -86,30 +86,33 @@ class Authenticator:
             user = await self.lookup_user(username, password)
 
             if user is not None:
-                token = secrets.token_urlsafe(16)
-                self.cache[token] = (None, user.id, user)
+                if can_set_cookie:
+                    token = secrets.token_urlsafe(16)
+                    self.cache[token] = (None, user.id, user)
 
-                # Return a user_session token cookie with the response to this
-                # request.  If the client browser sends that cookie, we can
-                # avoid DB lookups on future requests.
-                @after_this_request
-                def after_index(response):
-                    response.set_cookie("user_session", token)
-                    return response
+                    # Return a user_session token cookie with the response to this
+                    # request.  If the client browser sends that cookie, we can
+                    # avoid DB lookups on future requests.
+                    @after_this_request
+                    def set_cookie(response):
+                        response.set_cookie("user_session", token)
+                        return response
 
                 g.device_id = None
                 g.user_id = user.id
                 g.user = user
+                return
 
         # Bearer token, for authenticated devices.
-        else:
-            auth = context.headers.get("Authorization", "")
-            parts = auth.split()
-            if len(parts) >= 2 and parts[0] == "Bearer":
-                await self.lookup_token(parts[1])
+        auth = context.headers.get("Authorization", "")
+        parts = auth.split()
+        if len(parts) >= 2 and parts[0] == "Bearer":
+            await self.lookup_token(parts[1])
 
     async def authenticate_request(self):
-        return await self._authenticate_request(request)
+        # We can only return cookies on regular web requests, not websocket
+        # upgrade requests.
+        return await self._authenticate_request(request, can_set_cookie=True)
 
     async def authenticate_websocket(self):
         return await self._authenticate_request(websocket)
