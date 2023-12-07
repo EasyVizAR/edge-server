@@ -16,7 +16,7 @@ walkable_threshold = 0.5
 min_layer_size = 1
 min_height_clearance = 1
 cylinder_radius = 0.2
-max_connection_distance = 1
+max_connection_distance = 2
 
 
 class LayerConfig:
@@ -120,6 +120,8 @@ class MeshSoup:
         self.touched = set()
         self.walkable = set()
 
+        self.component_graph = nx.Graph()
+
     def create_navigation_mesh(self):
         graph = nx.Graph()
 
@@ -127,50 +129,39 @@ class MeshSoup:
         keep_faces = []
         old_to_new = dict()
 
-        for i, chunk in enumerate(self.chunks):
-            num_faces = len(chunk.mesh.faces)
+        components = dict()
+        new_component_ids = []
 
-            if i in self.visited_chunks:
-                for j in range(num_faces):
-                    old_index = old_offset + j
+        for chunk_id, comp_id in self.component_graph.nodes:
+            chunk_global_offset = self.face_local_to_global_index(chunk_id, 0)
 
-                    if j in chunk.neighbors and len(list(chunk.neighbors.neighbors(j))) > 0:
-                    #if old_index in self.visited or len(list(chunk.neighbors.neighbors(j))) > 0:
-                        new_index = len(keep_faces)
-                        old_to_new[old_index] = new_index
-                        keep_faces.append(old_index)
+            # list of faces belonging to this component, local to chunk
+            comp_faces = self.chunks[chunk_id].components[comp_id]
+            for face in comp_faces:
+                old_index = face + chunk_global_offset
+                new_index = len(keep_faces)
 
-                for a, b in chunk.neighbors.edges:
-                    # convert from old indexing to new indexing in submesh
-                    u = old_to_new.get(old_offset + a)
-                    v = old_to_new.get(old_offset + b)
-                    if u is None or v is None:
-                        continue
+                keep_faces.append(old_index)
+                old_to_new[old_index] = new_index
 
-                    hits = chunk.neighbors.edges[a, b].get("hits", 0)
+            this_component_id = len(components)
+            new_component_ids.extend([this_component_id] * len(comp_faces))
+            components[(chunk_id, comp_id)] = this_component_id
 
-                    confidence = logistic(hits) # range 0.5 - 1.0
-                    badness = 2.0 - confidence  # range 1 - 2 that makes unexplored edges look less desirable
+            center = self.chunks[chunk_id].find_component_center(comp_id)
+            graph.add_node(this_component_id, center=center)
 
-                    graph.add_edge(u, v,
-                            confidence=confidence,
-                            weight=badness*chunk.neighbors.edges[a, b]['weight']
-                    )
+        for a, b in self.component_graph.edges:
+            u = components[a]
+            v = components[b]
 
-            old_offset += num_faces
+            dist = np.linalg.norm(graph.nodes[u]['center'] - graph.nodes[v]['center'])
+            graph.add_edge(u, v, weight=dist)
 
-        for a, b in self.links:
-            # convert from old indexing to new indexing in submesh
-            u = old_to_new.get(a)
-            v = old_to_new.get(b)
-            if u is None or v is None:
-                continue
-
-            distance = np.linalg.norm(self.mesh.triangles_center[a] - self.mesh.triangles_center[b])
-            graph.add_edge(u, v, weight=distance)
+        component_ids = np.array(new_component_ids, dtype=int)
 
         mesh = self.mesh.submesh([keep_faces], append=True)
-        return NavigationMesh(mesh, graph)
+        return NavigationMesh(mesh, graph, component_ids)
 
     def face_local_to_global_index(self, chunk_index, face_index):
         offset = 0
@@ -189,25 +180,14 @@ class MeshSoup:
         chunk2_index = self.chunk_id[face2]
         chunk2 = self.chunks[chunk2_index]
 
-        if chunk1 == chunk2:
-            chunk1.observed_transition(lface1, lface2)
+        # Component IDs, local to the chunks
+        comp1 = chunk1.get_component_id(lface1)
+        comp2 = chunk2.get_component_id(lface2)
 
-        # If they belong to different chunks, we should try to find
-        # the boundary faces that connect the two chunks and stitch them.
-        else:
-            # Exit point from the boundary of the component in the first chunk.
-            target2 = chunk2.mesh.triangles_center[lface2]
-            exit1 = chunk1.find_closest_boundary_face(lface1, target2)
-            chunk1.observed_transition(lface1, exit1)
-
-            # Entrance point to the boundary of the component in the second chunk.
-            target1 = chunk1.mesh.triangles_center[exit1]
-            entrance2 = chunk2.find_closest_boundary_face(lface2, target1)
-            chunk2.observed_transition(entrance2, lface2)
-
-            u = self.face_local_to_global_index(chunk1_index, exit1)
-            v = self.face_local_to_global_index(chunk2_index, entrance2)
-            self.links.append((u, v))
+        # This is a movement between components / bodies,
+        # so we update the component graph.
+        if chunk1 != chunk2 or comp1 != comp2:
+            self.component_graph.add_edge((chunk1_index, comp1), (chunk2_index, comp2))
 
     def add_trace(self, times, points, apply_cylinder=False):
         """

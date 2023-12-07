@@ -32,6 +32,13 @@ class Chunk:
         self.components = []
         self.component_id = []
 
+    def get_component_id(self, face):
+        return self.component_id[face]
+
+    def find_component_center(self, comp):
+        faces = self.components[comp]
+        return np.mean(self.mesh.triangles_center[faces, :], axis=0)
+
     def face_distance(self, face1, face2, *args):
         """
         Compute distance between two faces.
