@@ -249,7 +249,7 @@ class MeshSoup:
             # Check if the distance between the two points is great.
             dist = np.linalg.norm(hit1 - hit2)
             if dist > max_connection_distance:
-                print("Skipping edge of distance {}".format(dist))
+                #print("Skipping edge of distance {}".format(dist))
                 continue
 
             self.observed_transition(face1, face2, points[i], points[i+1])
@@ -449,7 +449,7 @@ class MeshSoup:
         return components, body_indices
 
     @classmethod
-    def from_directory(cls, dir_path):
+    def from_directory(cls, dir_path, cache_dir=None):
         soup = cls()
 
         meshes = []
@@ -459,7 +459,12 @@ class MeshSoup:
 
         for i, fname in enumerate(os.listdir(dir_path)):
             path = os.path.join(dir_path, fname)
-            chunk = Chunk.load_from_ply_file(path)
+
+            if cache_dir is None:
+                chunk = Chunk.load_from_ply_file(path)
+            else:
+                chunk = Chunk.load_from_cache_or_ply(cache_dir, path)
+
             soup.chunks.append(chunk)
             meshes.append(chunk.mesh)
 

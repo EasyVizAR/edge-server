@@ -132,7 +132,11 @@ class Chunk:
             return chunk
 
     @classmethod
-    def load_from_cache_or_ply(cls, cache_path, ply_path):
+    def load_from_cache_or_ply(cls, cache_dir, ply_path):
+        chunk_fname = os.path.basename(ply_path)
+        chunk_name = os.path.splitext(chunk_fname)[0]
+        cache_path = os.path.join(cache_dir, chunk_name + ".pickle")
+
         if not os.path.exists(cache_path) or os.path.getmtime(ply_path) > os.path.getmtime(cache_path):
             chunk = cls.load_from_ply_file(ply_path)
             chunk.save(cache_path)

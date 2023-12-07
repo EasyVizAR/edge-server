@@ -1,6 +1,9 @@
 import asyncio
 import datetime
 import os
+import sys
+import tempfile
+import time
 import uuid
 
 from quart import current_app, g
@@ -30,17 +33,19 @@ def get_layer_dir(data_dir, location_id, layer_id):
 
 
 class MappingTask:
-    def __init__(self, mesh_dir, layer_configs=None, navmesh_path=None, traces=None):
+    def __init__(self, mesh_dir, cache_dir=None, layer_configs=None, navmesh_path=None, traces=None):
         self.mesh_dir = mesh_dir
         self.navmesh_path = navmesh_path
 
+        self.cache_dir = cache_dir
         self.layer_configs = layer_configs
         self.traces = traces
 
     def run(self):
-        soup = MeshSoup.from_directory(self.mesh_dir)
+        soup = MeshSoup.from_directory(self.mesh_dir, cache_dir=self.cache_dir)
         if self.layer_configs is not None:
             soup.infer_walls(self.layer_configs)
+
         if self.traces is not None:
             for times, points in self.traces:
                 soup.add_trace(times, points)
@@ -133,7 +138,10 @@ class Mapper:
 
         traces = await self.find_traces(location_id)
 
-        return MappingTask(mesh_dir, layer_configs=configs, navmesh_path=navmesh_path, traces=traces)
+        cache_dir = os.path.join(g.temp_dir, "chunks", location_id.hex)
+        os.makedirs(cache_dir, exist_ok=True)
+
+        return MappingTask(mesh_dir, cache_dir=cache_dir, layer_configs=configs, navmesh_path=navmesh_path, traces=traces)
 
     async def finish_map_update(self, location_id, result, session_maker, dispatcher):
         updated_layers = []
@@ -205,3 +213,16 @@ class Mapper:
             maker = await ObjFileMaker.build_maker_from_db(location_id)
             future = current_app.modeling_pool.submit(maker.make_obj)
             future.add_done_callback(model_ready)
+
+
+if __name__=="__main__":
+    if len(sys.argv) < 2:
+        print("Usage: {} <surfaces directory> [cache_dir]".format(sys.argv[0]))
+        sys.exit(1)
+
+    if len(sys.argv) >= 3:
+        cache_dir = sys.argv[2]
+    else:
+        cache_dir = None
+
+    soup = MeshSoup.from_directory(sys.argv[1], cache_dir=cache_dir)
