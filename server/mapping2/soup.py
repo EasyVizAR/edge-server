@@ -2,6 +2,8 @@ import collections
 import copy
 import os
 
+from pathlib import Path
+
 import networkx as nx
 import numpy as np
 import svgwrite
@@ -17,6 +19,8 @@ min_layer_size = 1
 min_height_clearance = 1
 cylinder_radius = 0.2
 max_connection_distance = 2
+
+iou_pruning_threshold = 0.6
 
 
 class LayerConfig:
@@ -429,7 +433,7 @@ class MeshSoup:
         return components, body_indices
 
     @classmethod
-    def from_directory(cls, dir_path, cache_dir=None):
+    def from_directory(cls, dir_path, cache_dir=None, exclude=set()):
         soup = cls()
 
         meshes = []
@@ -437,24 +441,57 @@ class MeshSoup:
         chunk_ids = []
         local_ids = []
 
-        for i, fname in enumerate(os.listdir(dir_path)):
-            path = os.path.join(dir_path, fname)
+        if isinstance(dir_path, str):
+            path = Path(dir_path)
+
+        skipped = set()
+        for path in sorted(path.iterdir(), key=os.path.getmtime, reverse=True):
+            if path in exclude:
+                skipped.add(path)
+                continue
 
             if cache_dir is None:
                 chunk = Chunk.load_from_ply_file(path)
             else:
                 chunk = Chunk.load_from_cache_or_ply(cache_dir, path)
 
+            # If chunk has no bounding box defined, it is not meaningful.
+            if not chunk.has_bounding_box():
+                skipped.add(path)
+                continue
+
+            # Skip chunks if they overlap significantly with other, newer
+            # chunks.  We calculate overlap as the ratio intersection over
+            # union (IOU), which is between 0 and 1.  We ensure freshness by
+            # sorting the files by modified time, newest first.
+            #
+            # This approach is O(N^2), which is a little risky. We have a few
+            # options for optimization, the most obvious being to save the list
+            # of skipped chunks and delete or never load them again.
+            skip_chunk = False
+            for other in soup.chunks:
+                iou = chunk.compute_iou(other)
+                if iou > iou_pruning_threshold:
+                    skip_chunk = True
+                    break
+            if skip_chunk:
+                skipped.add(path)
+                continue
+
+            chunk_index = len(meshes)
+
             soup.chunks.append(chunk)
             meshes.append(chunk.mesh)
 
-            chunk_ids.extend([i] * len(chunk.mesh.faces))
+            chunk_ids.extend([chunk_index] * len(chunk.mesh.faces))
             local_ids.extend(range(len(chunk.mesh.faces)))
 
         soup.chunk_id = np.array(chunk_ids)
         soup.local_id = np.array(local_ids)
 
         soup.mesh = trimesh.util.concatenate(meshes)
+
+        print("Skipped {} and included {} chunks".format(len(skipped), len(meshes)))
 
         soup.lower = np.min(soup.mesh.vertices, axis=0)
         soup.upper = np.max(soup.mesh.vertices, axis=0)

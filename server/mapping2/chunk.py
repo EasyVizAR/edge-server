@@ -32,6 +32,29 @@ class Chunk:
         self.components = []
         self.component_id = []
 
+    def compute_iou(self, other, verbose=False):
+        """
+        Compute intersection over union (IOU) between two chunks.
+        """
+        this_bbox = self.mesh.bounding_box
+        other_bbox = other.mesh.bounding_box
+
+        # Lower and upper bounds of the intersection box
+        inter_lower = np.maximum(this_bbox.bounds[0], other_bbox.bounds[0])
+        inter_upper = np.minimum(this_bbox.bounds[1], other_bbox.bounds[1])
+
+        # If the upper bound ended up less than the lower bound in any dimension,
+        # it means there is no overlap, and the IOU is automatically zero.
+        if np.any(inter_upper < inter_lower):
+            return 0
+
+        inter_volume = np.product(inter_upper - inter_lower)
+        union_volume = this_bbox.volume + other_bbox.volume - inter_volume
+        return inter_volume / union_volume
+
+    def has_bounding_box(self):
+        return self.mesh.bounds is not None
+
     def get_component_id(self, face):
         return self.component_id[face]
 
