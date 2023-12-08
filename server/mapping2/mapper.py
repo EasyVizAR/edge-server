@@ -32,17 +32,24 @@ def get_layer_dir(data_dir, location_id, layer_id):
     return os.path.join(get_location_dir(data_dir, location_id), "layers", "{:08x}".format(layer_id))
 
 
+class MappingTaskResult:
+    def __init__(self, soup, excluded):
+        self.bounding_box = soup.get_bounding_box()
+        self.excluded = excluded
+
+
 class MappingTask:
-    def __init__(self, mesh_dir, cache_dir=None, layer_configs=None, navmesh_path=None, traces=None):
+    def __init__(self, mesh_dir, cache_dir=None, exclude_chunks=set(), layer_configs=None, navmesh_path=None, traces=None):
         self.mesh_dir = mesh_dir
         self.navmesh_path = navmesh_path
 
         self.cache_dir = cache_dir
+        self.exclude_chunks = exclude_chunks
         self.layer_configs = layer_configs
         self.traces = traces
 
     def run(self):
-        soup = MeshSoup.from_directory(self.mesh_dir, cache_dir=self.cache_dir)
+        soup, excluded = MeshSoup.from_directory(self.mesh_dir, cache_dir=self.cache_dir, exclude=self.exclude_chunks)
         if self.layer_configs is not None:
             soup.infer_walls(self.layer_configs)
 
@@ -55,12 +62,14 @@ class MappingTask:
                 navmesh.save(self.navmesh_path)
 
         print("Mapping completed with {} layers and {} traces".format(len(self.layer_configs), len(self.traces)))
-        return soup.get_bounding_box()
+        result = MappingTaskResult(soup, excluded)
+        return result
 
 
 class Mapper:
     def __init__(self, data_dir="data"):
         self.data_dir = data_dir
+        self.exclude_chunks = set()
 
     def find_path(self, location_id, start, end):
         location_dir = get_location_dir(self.data_dir, location_id)
@@ -141,10 +150,14 @@ class Mapper:
         cache_dir = os.path.join(g.temp_dir, "chunks", location_id.hex)
         os.makedirs(cache_dir, exist_ok=True)
 
-        return MappingTask(mesh_dir, cache_dir=cache_dir, layer_configs=configs, navmesh_path=navmesh_path, traces=traces)
+        return MappingTask(mesh_dir, cache_dir=cache_dir, exclude_chunks=self.exclude_chunks, layer_configs=configs, navmesh_path=navmesh_path, traces=traces)
 
     async def finish_map_update(self, location_id, result, session_maker, dispatcher):
         updated_layers = []
+
+        # Update our set of surface IDs to be excluded from future tasks.
+        # These are surfaces which are made redundant by newer surfaces.
+        self.exclude_chunks.update(result.excluded)
 
         async with session_maker() as session:
             stmt = sa.select(Layer) \
@@ -156,10 +169,10 @@ class Mapper:
 
             for layer in layers:
                 layer.version += 1
-                layer.boundary_left = result['left']
-                layer.boundary_top = result['top']
-                layer.boundary_width = result['width']
-                layer.boundary_height = result['height']
+                layer.boundary_left = result.bounding_box['left']
+                layer.boundary_top = result.bounding_box['top']
+                layer.boundary_width = result.bounding_box['width']
+                layer.boundary_height = result.bounding_box['height']
                 layer.image_type = "image/svg+xml"
                 layer.updated_time = datetime.datetime.now()
 

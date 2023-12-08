@@ -446,18 +446,17 @@ class MeshSoup:
 
         skipped = set()
         for path in sorted(path.iterdir(), key=os.path.getmtime, reverse=True):
-            if path in exclude:
-                skipped.add(path)
-                continue
-
             if cache_dir is None:
                 chunk = Chunk.load_from_ply_file(path)
             else:
                 chunk = Chunk.load_from_cache_or_ply(cache_dir, path)
 
+            if chunk.id in exclude:
+                continue
+
             # If chunk has no bounding box defined, it is not meaningful.
             if not chunk.has_bounding_box():
-                skipped.add(path)
+                skipped.add(chunk.id)
                 continue
 
             # Skip chunks if they overlap significantly with other, newer
@@ -475,7 +474,7 @@ class MeshSoup:
                     skip_chunk = True
                     break
             if skip_chunk:
-                skipped.add(path)
+                skipped.add(chunk.id)
                 continue
 
             chunk_index = len(meshes)
@@ -491,12 +490,12 @@ class MeshSoup:
 
         soup.mesh = trimesh.util.concatenate(meshes)
 
-        print("Skipped {} and included {} chunks".format(len(skipped), len(meshes)))
+        print("Loaded {} chunks, eliminated {} chunks".format(len(meshes), len(skipped)))
 
         soup.lower = np.min(soup.mesh.vertices, axis=0)
         soup.upper = np.max(soup.mesh.vertices, axis=0)
 
-        return soup
+        return soup, skipped
 
     @classmethod
     def from_meshes(cls, meshes):
