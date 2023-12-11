@@ -75,33 +75,6 @@ function WorkItems(props){
           }
         }
 
-<<<<<<< HEAD
-        if (boundaryIndex >= 0){
-          temp_data.push({
-            'id': photo['id'],
-            'created': photo['created'],
-            'ready': Boolean(photo['ready']),
-            'status': photo['status'],
-            'imageUrl': photo['imageUrl'],
-            'contentType': photo['contentType'],
-            'hasBoundary': true,
-            'topOffset': photo['annotations'][boundaryIndex]['boundary']['top'],
-            'leftOffset': photo['annotations'][boundaryIndex]['boundary']['left'],
-            'divWidth': photo['annotations'][boundaryIndex]['boundary']['width'],
-            'divHeight': photo['annotations'][boundaryIndex]['boundary']['height'],
-            'annotations': photo['annotations']
-          });
-        }else{
-          temp_data.push({
-            'id': photo['id'],
-            'created': photo['created'],
-            'ready': Boolean(photo['ready']),
-            'status': photo['status'],
-            'imageUrl': photo['imageUrl'],
-            'contentType': photo['contentType'],
-            'hasBoundary': false
-          });
-=======
         if (boundaryIndex >= 0) {
           photo.hasBoundary = true;
           photo.topOffset = photo['annotations'][boundaryIndex]['boundary']['top'];
@@ -110,7 +83,6 @@ function WorkItems(props){
           photo.divHeight = photo['annotations'][boundaryIndex]['boundary']['height'];
         } else {
           photo.hasBoundary = false;
->>>>>>> main
         }
 
         temp_data.push(photo);
@@ -214,12 +186,7 @@ function WorkItems(props){
   };
 
   return (
-<<<<<<< HEAD
     <div className="WorkItems">
-      <Helmet>
-        <title>EasyVizAR Edge - Image Processing</title>
-      </Helmet>
-      <h1 className="main-header">Image Processing - Work Items</h1>
       <Dropdown>
       <Dropdown.Toggle variant="success" id="dropdown-basic">
         Filter
@@ -234,10 +201,6 @@ function WorkItems(props){
       </Dropdown.Menu>
     </Dropdown>
       <Table className="work-items-table" striped bordered hover>
-=======
-    <div>
-      <Table striped bordered hover>
->>>>>>> main
         <thead>
             <tr>
               <th><SortByLink attr="id" text="Photo ID" /></th>
