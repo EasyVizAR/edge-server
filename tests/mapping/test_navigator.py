@@ -1,10 +1,7 @@
 from unittest.mock import Mock
 from unittest.mock import create_autospec
 from server.mapping.navigator import Navigator
-from server.layer.models import LayerModel
-from server.location.models import LocationModel
-from server.headset.models import HeadsetModel
-from server.resources.jsonresource import JsonCollection
+from server.location.models import Location
 
 # TODO: Create mock objects (doesn't matter how correct they are)
 
@@ -35,7 +32,7 @@ def test_navigator_find_path():
 
 # Test navigation with no headset
 def test_navigator_find_path_no_headset():
-    location = LocationModel(id="1b06203d-0ef4-477d-bfb3-923ae0376c83",
+    location = Location(id="1b06203d-0ef4-477d-bfb3-923ae0376c83",
                              name="Lance's House Remapped",
                              #model_path="data/incidents/82bf469a-6b48-42b0-aa7f-9365f5fa71e3/locations/1b06203d-0ef4-477d-bfb3-923ae0376c83/model.obj",
                              #model_url="/locations/1b06203d-0ef4-477d-bfb3-923ae0376c83/model"

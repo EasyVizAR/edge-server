@@ -106,6 +106,7 @@ function CheckInTable(props){
                       </Button>
                     )
                   }
+                  <a class="btn btn-secondary table-btns" href={`/headsets/${props.headsetId}/tracking-sessions/${item.id}/pose-changes.csv`}>CSV</a>
                 </td>
                 <td>
                   <TrashIcon index={index} id={item.id}/>

@@ -17,8 +17,10 @@ function NavBar(props){
           <Link className="links" to="/">Locations</Link>
           <Link className="links" to="/headsets">Headsets</Link>
           <Link className="links" to="/incidents">Incidents</Link>
-          <Link className="links" to="/workitems">Photos</Link>
+          <Link className="links" to="/photos">Photos</Link>
+          <Link className="links" to="/streams">Video Streams</Link>
           <Link className="links" to="/websockets">Websockets</Link>
+          <Link className="links" to="/users">Users</Link>
         </div>
         <UserInfo />
     </Navbar>

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="easyvizar-edge",
-    version="0.1",
+    version="1.0.0",
     description="Central point for coordinating AR headsets",
     url="https://github.com/EasyVizAR/edge-server/",
 

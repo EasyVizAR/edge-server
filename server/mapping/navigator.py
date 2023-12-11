@@ -11,7 +11,6 @@ import collections
 import os
 import time
 
-from server.location.models import LocationModel
 from server.resources.geometry import Vector3f
 
 from .datagrid import DataGrid
@@ -29,18 +28,14 @@ class Navigator:
         self.floors = dict()
         self.last_saved = collections.defaultdict(float)
 
-    def find_path(self, location: LocationModel, start, end):
-        layers = location.Layer.find(type="generated")
-        # from server/location/models
-
+    def find_path(self, location, layer, start, end):
         # Try to load a wall grid from one of the layers
         wall_grid = None
-        for layer in layers:
-            if layer.type == "generated":
-                npz_path = os.path.join(os.path.dirname(layer.imagePath), "walls.npz")
-                if os.path.exists(npz_path):
-                    wall_grid = DataGrid.load(npz_path)
-                    break
+        if layer is not None:
+            layer_dir = os.path.join(self.data_dir, 'locations', location.id.hex, 'layers', '{:08x}'.format(layer.id))
+            npz_path = os.path.join(layer_dir, "walls.npz")
+            if os.path.exists(npz_path):
+                wall_grid = DataGrid.load(npz_path)
 
         floor_grid = self.get_floor_grid(location.id)
 
@@ -96,7 +91,7 @@ class Navigator:
             return self.floors[location_id]
 
         # Otherwise, try to load from file
-        dname = os.path.join(self.data_dir, "navigator", location_id)
+        dname = os.path.join(self.data_dir, "navigator", location_id.hex)
         path = os.path.join(dname, "floor.npz")
         if os.path.exists(path):
             grid = DataGrid.load(path)
@@ -117,7 +112,7 @@ class Navigator:
 
         now = time.time()
         if now - self.last_saved[location_id] > interval:
-            dname = os.path.join(self.data_dir, "navigator", location_id)
+            dname = os.path.join(self.data_dir, "navigator", location_id.hex)
             os.makedirs(dname, exist_ok=True)
 
             floor_grid.save_image(os.path.join(dname, "floor.png"))
@@ -161,13 +156,13 @@ class Navigator:
 
         # server/headset/models: describes the Headset class that the code is receiving
 
-        if current.location_id is None:
+        if current['location_id'] is None:
             return
 
-        if current.position is None or previous.position is None:
+        if current['position'] is None or previous['position'] is None:
             return
 
-        if not current.is_valid_spatial_sensor():
+        if current['type'] not in ['phone', 'headset']:
             return
 
         # If the time difference is too long, we cannot safely infer that

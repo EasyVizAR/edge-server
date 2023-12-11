@@ -1,4 +1,5 @@
 import os
+import uuid
 
 from http import HTTPStatus
 
@@ -14,6 +15,8 @@ async def test_surface_routes():
     """
     # Name of a field within the resource which we can change and test.
     test_field = "uploadedBy"
+
+    test_surface_id = str(uuid.uuid4())
 
     async with app.test_client() as client:
         # Create a test location
@@ -40,15 +43,13 @@ async def test_surface_routes():
         assert isinstance(surfaces2['items'], list)
 
         # Create an object
-        response = await client.post(surfaces_url, json={test_field: "foo"})
+        surface_url = "/locations/{}/surfaces/{}".format(location['id'], test_surface_id)
+        response = await client.put(surface_url, json={})
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         surface = await response.get_json()
         assert isinstance(surface, dict)
-        assert surface['id'] is not None
-        assert surface[test_field] == "foo"
-
-        surface_url = "{}/{}".format(surfaces_url, surface['id'])
+        assert surface['id'] == test_surface_id
 
         # Test getting the object back
         response = await client.get(surface_url)
@@ -56,15 +57,6 @@ async def test_surface_routes():
         assert response.is_json
         surface2 = await response.get_json()
         assert surface2['id'] == surface['id']
-        assert surface2[test_field] == surface[test_field]
-
-        # Test changing the name
-        response = await client.patch(surface_url, json={"id": "bad", test_field: "bar"})
-        assert response.status_code == HTTPStatus.OK
-        assert response.is_json
-        surface2 = await response.get_json()
-        assert surface2['id'] == surface['id']
-        assert surface2[test_field] == "bar"
 
         # Test replacement
         response = await client.put(surface_url, json=surface)
@@ -72,7 +64,6 @@ async def test_surface_routes():
         assert response.is_json
         surface2 = await response.get_json()
         assert surface2['id'] == surface['id']
-        assert surface2[test_field] == surface[test_field]
 
         # Test deleting the object
         response = await client.delete(surface_url)
@@ -87,7 +78,6 @@ async def test_surface_routes():
         assert response.is_json
         surface2 = await response.get_json()
         assert surface2['id'] == surface['id']
-        assert surface2[test_field] == surface[test_field]
 
         # Test that object does not exist after DELETE
         response = await client.delete(surface_url)
@@ -96,8 +86,10 @@ async def test_surface_routes():
         assert response.status_code == HTTPStatus.NOT_FOUND
         response = await client.get(surface_url)
         assert response.status_code == HTTPStatus.NOT_FOUND
-        response = await client.patch(surface_url, json={test_field: "bar"})
-        assert response.status_code == HTTPStatus.NOT_FOUND
+
+        # Clean up
+        response = await client.delete('/locations/{}'.format(location['id']))
+        assert response.status_code == HTTPStatus.OK
 
 
 @pytest.mark.asyncio
@@ -105,6 +97,8 @@ async def test_surface_upload():
     """
     Test surface upload
     """
+    test_surface_id = str(uuid.uuid4())
+
     async with app.test_client() as client:
         # Create a test location
         response = await client.post("/locations", json=dict(name="Surface Test"))
@@ -115,18 +109,17 @@ async def test_surface_upload():
         surfaces_url = "/locations/{}/surfaces".format(location['id'])
 
         # Create an object
-        response = await client.post(surfaces_url, json={"type": "uploaded"})
+        surface_url = "{}/{}".format(surfaces_url, test_surface_id)
+        response = await client.put(surface_url, json={})
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         surface = await response.get_json()
         assert isinstance(surface, dict)
-        assert surface['id'] is not None
-
-        surface_url = "{}/{}".format(surfaces_url, surface['id'])
+        assert surface['id'] == test_surface_id
 
         # Test upload process
         response = await client.put(surface['fileUrl'], data="ply")
-        assert response.status_code == HTTPStatus.CREATED
+        assert response.status_code == HTTPStatus.OK
         assert response.is_json
         surface2 = await response.get_json()
         assert isinstance(surface, dict)
@@ -146,12 +139,73 @@ async def test_surface_upload():
         surface2 = await response.get_json()
         assert surface2['id'] == surface['id']
 
+        # Clean up
+        response = await client.delete('/locations/{}'.format(location['id']))
+        assert response.status_code == HTTPStatus.OK
+
+
+@pytest.mark.asyncio
+async def test_direct_surface_upload():
+    """
+    Test direct surface upload
+    """
+    # Test two different ways of formatting surface ID.
+    # We need to be flexible on the upload handling because
+    # some client devices use the alternate format.
+    surface_ids = [
+        str(uuid.uuid4())
+    ]
+
+    # Generate an alterative UUID of the format 060452F908CA4206-B44C35DEC978C89F.
+    x = str(uuid.uuid4()).upper().split("-")
+    surface_ids.append(x[0]+x[1]+x[2]+"-"+x[3]+x[4])
+
+    async with app.test_client() as client:
+        # Create a test location
+        response = await client.post("/locations", json=dict(name="Surface Test"))
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        location = await response.get_json()
+
+        for test_surface_id in surface_ids:
+            surface_ply_url = "/locations/{}/surfaces/{}/surface.ply".format(location['id'], test_surface_id)
+
+            # Test upload process
+            response = await client.put(surface_ply_url, data="ply")
+            assert response.status_code == HTTPStatus.CREATED
+            assert response.is_json
+            surface = await response.get_json()
+            assert isinstance(surface, dict)
+            assert uuid.UUID(surface['id']) == uuid.UUID(test_surface_id)
+
+            # Test downloading the file
+            surface_ply_url = "/locations/{}/surfaces/{}/surface.ply".format(location['id'], surface['id'])
+            response = await client.get(surface_ply_url)
+            assert response.status_code == HTTPStatus.OK
+            data = await response.get_data()
+            assert data == "ply".encode('utf-8')
+
+            surface_url = "/locations/{}/surfaces/{}".format(location['id'], surface['id'])
+
+            # Test deleting the object
+            response = await client.delete(surface_url)
+            assert response.status_code == HTTPStatus.OK
+            assert response.is_json
+            surface2 = await response.get_json()
+            assert surface2['id'] == surface['id']
+
+        # Clean up
+        response = await client.delete('/locations/{}'.format(location['id']))
+        assert response.status_code == HTTPStatus.OK
+
 
 @pytest.mark.asyncio
 async def test_clear_surfaces():
     """
     Test clear surfaces
     """
+    test_surface_id = str(uuid.uuid4())
+
     async with app.test_client() as client:
         # Create a test location
         response = await client.post("/locations", json=dict(name="Surface Test"))
@@ -162,18 +216,17 @@ async def test_clear_surfaces():
         surfaces_url = "/locations/{}/surfaces".format(location['id'])
 
         # Create an object
-        response = await client.post(surfaces_url, json={"type": "uploaded"})
+        surface_url = "/locations/{}/surfaces/{}".format(location['id'], test_surface_id)
+        response = await client.put(surface_url, json={})
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         surface = await response.get_json()
         assert isinstance(surface, dict)
-        assert surface['id'] is not None
-
-        surface_url = "{}/{}".format(surfaces_url, surface['id'])
+        assert surface['id'] == test_surface_id
 
         # Test upload process
         response = await client.put(surface['fileUrl'], data="ply")
-        assert response.status_code == HTTPStatus.CREATED
+        assert response.status_code == HTTPStatus.OK
         assert response.is_json
         surface2 = await response.get_json()
         assert isinstance(surface, dict)
@@ -191,3 +244,7 @@ async def test_clear_surfaces():
         surfaces = await response.get_json()
         assert isinstance(surfaces, list)
         assert len(surfaces) == 0
+
+        # Clean up
+        response = await client.delete('/locations/{}'.format(location['id']))
+        assert response.status_code == HTTPStatus.OK

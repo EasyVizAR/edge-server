@@ -1,5 +1,7 @@
 import asyncio
+import datetime
 import os
+import uuid
 
 from http import HTTPStatus
 
@@ -8,13 +10,27 @@ import pyqrcode
 from quart import Blueprint, current_app, g, jsonify, request, send_from_directory
 from werkzeug import exceptions
 
+import marshmallow
+import sqlalchemy as sa
+
+from server import auth
+from server.layer.models import Layer
 from server.mapping.obj_file import ObjFileMaker
 from server.resources.geometry import Vector3f
 from server.pose_changes.routes import do_list_check_in_pose_changes
+from server.utils.response import maybe_wrap
 
+from .models import DeviceConfiguration, DeviceConfigurationSchema, Location, LocationSchema
 
 
 locations = Blueprint("locations", __name__)
+
+device_configuration_schema = DeviceConfigurationSchema()
+location_schema = LocationSchema()
+
+
+def get_location_dir(location_id):
+    return os.path.join(g.data_dir, 'locations', location_id.hex)
 
 
 @locations.route('/locations', methods=['GET'])
@@ -40,17 +56,15 @@ async def list_locations():
                             type: array
                             items: Location
     """
+    items = []
 
-    locations = g.active_incident.Location.find()
+    stmt = sa.select(Location) \
+            .options(sa.orm.selectinload(Location.device_configuration))
+    result = await g.session.execute(stmt)
+    for row in result.scalars():
+        items.append(location_schema.dump(row))
 
-    # Wrap the list if the caller requested an envelope.
-    query = request.args
-    if "envelope" in query:
-        result = {query.get("envelope"): locations}
-    else:
-        result = locations
-
-    return jsonify(result), HTTPStatus.OK
+    return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
 
 @locations.route('/locations', methods=['POST'])
@@ -75,14 +89,25 @@ async def create_location():
                         schema: Location
     """
     body = await request.get_json()
+    body['id'] = uuid.uuid4()
 
-    location = g.active_incident.Location.load(body, replace_id=True)
-    location.save()
+    location = location_schema.load(body, transient=True)
 
-    return jsonify(location), HTTPStatus.CREATED
+    g.session.add(location)
+    await g.session.commit()
+
+    # Create a default configuration set
+    location.device_configuration = DeviceConfiguration(location_id=location.id)
+    g.session.add(location.device_configuration)
+    await g.session.commit()
+
+    result = location_schema.dump(location)
+
+    return jsonify(result), HTTPStatus.CREATED
 
 
-@locations.route('/locations/<location_id>', methods=['DELETE'])
+@locations.route('/locations/<uuid:location_id>', methods=['DELETE'])
+@auth.requires_admin
 async def delete_location(location_id):
     """
     Delete location
@@ -103,17 +128,24 @@ async def delete_location(location_id):
                     application/json:
                         schema: Location
     """
+    stmt = sa.select(Location) \
+            .where(Location.id == location_id) \
+            .limit(1)
 
-    location = g.active_incident.Location.find_by_id(location_id)
+    result = await g.session.execute(stmt)
+    location = result.scalar()
     if location is None:
         raise exceptions.NotFound(description="Location {} was not found".format(location_id))
 
-    location.delete()
+    await g.session.delete(location)
+    await g.session.commit()
 
-    return jsonify(location), HTTPStatus.OK
+    result = location_schema.dump(location)
+
+    return jsonify(result), HTTPStatus.OK
 
 
-@locations.route('/locations/<location_id>', methods=['GET'])
+@locations.route('/locations/<uuid:location_id>', methods=['GET'])
 async def get_location(location_id):
     """
     Get location
@@ -134,14 +166,22 @@ async def get_location(location_id):
                     application/json:
                         schema: Location
     """
-    location = g.active_incident.Location.find_by_id(location_id)
+    stmt = sa.select(Location) \
+            .where(Location.id == location_id) \
+            .options(sa.orm.selectinload(Location.device_configuration)) \
+            .limit(1)
+
+    result = await g.session.execute(stmt)
+    location = result.scalar()
     if location is None:
         raise exceptions.NotFound(description="Location {} was not found".format(location_id))
 
-    return jsonify(location), HTTPStatus.OK
+    result = location_schema.dump(location)
+
+    return jsonify(result), HTTPStatus.OK
 
 
-@locations.route('/locations/<location_id>', methods=['PUT'])
+@locations.route('/locations/<uuid:location_id>', methods=['PUT'])
 async def replace_location(location_id):
     """
     Replace location
@@ -168,18 +208,39 @@ async def replace_location(location_id):
                         schema: Location
     """
     body = await request.get_json()
+    if body is None:
+        body = {}
     body['id'] = location_id
 
-    location = g.active_incident.Location.load(body)
-    created = location.save()
+    stmt = sa.select(Location) \
+            .where(Location.id == location_id) \
+            .options(sa.orm.selectinload(Location.device_configuration)) \
+            .limit(1)
+
+    result = await g.session.execute(stmt)
+    location = result.scalar()
+
+    if location is None:
+        location = location_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
+        g.session.add(location)
+        created = True
+
+    else:
+        location.update(body)
+        location.updated_time = datetime.datetime.now()
+        created = False
+
+    await g.session.commit()
+
+    result = location_schema.dump(location)
 
     if created:
-        return jsonify(location), HTTPStatus.CREATED
+        return jsonify(result), HTTPStatus.CREATED
     else:
-        return jsonify(location), HTTPStatus.OK
+        return jsonify(result), HTTPStatus.OK
 
 
-@locations.route('/locations/<location_id>', methods=['PATCH'])
+@locations.route('/locations/<uuid:location_id>', methods=['PATCH'])
 async def update_location(location_id):
     """
     Update location
@@ -206,24 +267,87 @@ async def update_location(location_id):
                     application/json:
                         schema: Location
     """
+    body = await request.get_json()
 
-    location = g.active_incident.Location.find_by_id(location_id)
+    stmt = sa.select(Location) \
+            .where(Location.id == location_id) \
+            .options(sa.orm.selectinload(Location.device_configuration)) \
+            .limit(1)
+
+    result = await g.session.execute(stmt)
+    location = result.scalar()
     if location is None:
         raise exceptions.NotFound(description="Location {} was not found".format(location_id))
 
+    location.update(body)
+    location.updated_time = datetime.datetime.now()
+    await g.session.commit()
+
+    result = location_schema.dump(location)
+
+    return jsonify(result), HTTPStatus.OK
+
+
+@locations.route('/locations/<uuid:location_id>/device_configuration', methods=['PUT'])
+async def replace_location_device_configuration(location_id):
+    """
+    Replace location device configuration
+    ---
+    put:
+        summary: Replace location device configuration
+        tags:
+         - locations
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: The object ID
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: DeviceConfiguration
+        responses:
+            200:
+                description: The new object
+                content:
+                    application/json:
+                        schema: DeviceConfiguration
+    """
     body = await request.get_json()
 
-    # Do not allow changing the object's ID
-    if 'id' in body:
-        del body['id']
+    stmt = sa.select(Location) \
+            .where(Location.id == location_id) \
+            .options(sa.orm.selectinload(Location.device_configuration)) \
+            .limit(1)
 
-    location.update(body)
-    location.save()
+    result = await g.session.execute(stmt)
+    location = result.scalar()
 
-    return jsonify(location), HTTPStatus.OK
+    if location.device_configuration is None:
+        config = device_configuration_schema.load(body, transient=True)
+        config.location_id = location_id
+        config.mobile_device_id = None
+        g.session.add(config)
+        created = True
+        location.device_configuration = config
+
+    else:
+        location.device_configuration.update(body)
+        location.updated_time = datetime.datetime.now()
+        created = False
+
+    await g.session.commit()
+
+    result = device_configuration_schema.dump(location.device_configuration)
+
+    if created:
+        return jsonify(result), HTTPStatus.CREATED
+    else:
+        return jsonify(result), HTTPStatus.OK
 
 
-@locations.route('/locations/<location_id>/qrcode', methods=['GET'])
+@locations.route('/locations/<uuid:location_id>/qrcode', methods=['GET'])
 async def get_location_qrcode(location_id):
     """
     Get a QR code for the location.
@@ -243,20 +367,26 @@ async def get_location_qrcode(location_id):
                 content:
                     image/svg+xml: {}
     """
-    location = g.active_incident.Location.find_by_id(location_id)
+    stmt = sa.select(Location) \
+            .where(Location.id == location_id) \
+            .limit(1)
+
+    result = await g.session.execute(stmt)
+    location = result.scalar()
     if location is None:
         raise exceptions.NotFound(description="Location {} was not found".format(location_id))
 
-    image_path = os.path.join(location.get_dir(), "qrcode.svg")
-    if not os.path.exists(image_path):
-        url = 'vizar://{}/locations/{}'.format(request.host, location_id)
-        code = pyqrcode.create(url, error='L')
-        code.svg(image_path, title=url, scale=16)
+    filename = "{}-qrcode.svg".format(location_id.hex)
+    path = os.path.join(g.temp_dir, filename)
 
-    return await send_from_directory(location.get_dir(), "qrcode.svg")
+    url = 'vizar://{}/locations/{}'.format(request.host, location_id)
+    code = pyqrcode.create(url, error='L')
+    code.svg(path, title=url, scale=16)
+
+    return await send_from_directory(g.temp_dir, filename)
 
 
-@locations.route('/locations/<location_id>/model', methods=['GET'])
+@locations.route('/locations/<uuid:location_id>/model', methods=['GET'])
 async def get_location_model(location_id):
     """
     Get a 3D model for the location.
@@ -276,25 +406,27 @@ async def get_location_model(location_id):
                 content:
                     model/obj: {}
     """
-    location = g.active_incident.Location.find_by_id(location_id)
+    stmt = sa.select(Location) \
+            .where(Location.id == location_id) \
+            .limit(1)
+
+    result = await g.session.execute(stmt)
+    location = result.scalar()
     if location is None:
         raise exceptions.NotFound(description="Location {} was not found".format(location_id))
 
-    obj_path = os.path.join(location.get_dir(), "model.obj")
-    if not os.path.exists(obj_path) or os.path.getmtime(obj_path) < location.last_surface_update:
-        obj_maker = ObjFileMaker.build_maker(g.active_incident.id, location_id)
+    location_dir = get_location_dir(location_id)
+    obj_path = os.path.join(location_dir, "model.obj")
+    if not os.path.exists(obj_path) or os.path.getmtime(obj_path) < location.updated_time.timestamp():
+        obj_maker = await ObjFileMaker.build_maker_from_db(location_id)
         future = current_app.modeling_pool.submit(obj_maker.make_obj)
         await asyncio.wrap_future(future)
 
-        location.model_path = obj_path
-        location.model_url = "/locations/{}/model".format(location_id)
-        location.save()
-
-    return await send_from_directory(location.get_dir(), "model.obj",
+    return await send_from_directory(location_dir, "model.obj",
             as_attachment=True, attachment_filename="model.obj")
 
 
-@locations.route('/locations/<location_id>/route', methods=['GET'])
+@locations.route('/locations/<uuid:location_id>/route', methods=['GET'])
 async def get_location_route(location_id):
     """
     Get a route between two points.
@@ -346,16 +478,11 @@ async def get_location_route(location_id):
                             type: array
                             items: Vector3f
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
-
     query = request.args
 
     def get_vector_from_query(name):
         value = query.get(name, "0,0,0")
-        parts = [float(v) for v in value.split(",")]
-        return Vector3f(*parts)
+        return [float(v) for v in value.split(",")]
 
     try:
         start = get_vector_from_query("from")
@@ -363,12 +490,17 @@ async def get_location_route(location_id):
     except:
         raise exceptions.BadRequest("Invalid starting or destination point")
 
-    path = current_app.navigator.find_path(location, start, end)
+    path = current_app.mapper.find_path(location_id, start, end)
+
+    output = []
+    for point in path:
+        p = dict(zip(("x", "y", "z"), point))
+        output.append(p)
 
     # Wrap the list if the caller requested an envelope.
     if "envelope" in query:
-        result = {query.get("envelope"): path}
+        result = {query.get("envelope"): output}
     else:
-        result = path
+        result = output
 
     return jsonify(result), HTTPStatus.OK

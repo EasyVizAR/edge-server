@@ -16,21 +16,19 @@ from server.layer import routes as layers
 from server.location import routes as locations
 from server.photo import routes as photos
 from server.pose_changes import routes as pose_changes
-from server.scene import routes as scenes
 from server.surface import routes as surfaces
 from server.websocket import routes as websockets
 from server import routes as other
 
-from server.check_in.models import CheckInModel
-from server.feature.models import FeatureModel
-from server.headset.models import HeadsetModel, RegisteredHeadsetModel
-from server.incidents.models import IncidentModel
-from server.layer.models import LayerModel
-from server.location.models import LocationModel
-from server.photo.models import PhotoModel
-from server.pose_changes.models import PoseChangeModel
-from server.scene.models import SceneDescriptor, SceneModel
-from server.surface.models import SurfaceModel
+from server.check_in.models import TrackingSession, CheckInSchema
+from server.feature.models import MapMarker, FeatureSchema
+from server.headset.models import MobileDevice, HeadsetSchema, RegisteredHeadsetSchema
+from server.incidents.models import Incident, IncidentSchema
+from server.layer.models import Layer, LayerSchema
+from server.location.models import Location, LocationSchema
+from server.photo.models import PhotoRecord, PhotoSchema
+from server.pose_changes.models import DevicePose, PoseChangeSchema
+from server.surface.models import Surface, SurfaceSchema
 
 from server.websocket.connection import WebsocketHandler
 
@@ -49,28 +47,26 @@ async def create_openapi_spec(app):
         ]
     )
 
-    spec.components.schema("CheckIn", schema=CheckInModel.Schema())
-    spec.components.schema("Feature", schema=FeatureModel.Schema())
-    spec.components.schema("Headset", schema=HeadsetModel.Schema())
-    spec.components.schema("RegisteredHeadset", schema=RegisteredHeadsetModel.Schema())
-    spec.components.schema("Incident", schema=IncidentModel.Schema())
-    spec.components.schema("Layer", schema=LayerModel.Schema())
-    spec.components.schema("Location", schema=LocationModel.Schema())
-    spec.components.schema("Photo", schema=PhotoModel.Schema())
-    spec.components.schema("PoseChange", schema=PoseChangeModel.Schema())
-    spec.components.schema("SceneDescriptor", schema=SceneDescriptor.Schema())
-    spec.components.schema("Surface", schema=SurfaceModel.Schema())
+    spec.components.schema("CheckIn", schema=CheckInSchema())
+    spec.components.schema("Feature", schema=FeatureSchema())
+    spec.components.schema("Headset", schema=HeadsetSchema())
+    spec.components.schema("RegisteredHeadset", schema=RegisteredHeadsetSchema())
+    spec.components.schema("Incident", schema=IncidentSchema())
+    spec.components.schema("Layer", schema=LayerSchema())
+    spec.components.schema("Location", schema=LocationSchema())
+    spec.components.schema("Photo", schema=PhotoSchema())
+    spec.components.schema("PoseChange", schema=PoseChangeSchema())
+    spec.components.schema("Surface", schema=SurfaceSchema())
 
-    spec.tag(dict(name="check-ins", description=CheckInModel.__doc__))
-    spec.tag(dict(name="features", description=FeatureModel.__doc__))
-    spec.tag(dict(name="headsets", description=HeadsetModel.__doc__))
-    spec.tag(dict(name="incidents", description=IncidentModel.__doc__))
-    spec.tag(dict(name="layers", description=LayerModel.__doc__))
-    spec.tag(dict(name="locations", description=LocationModel.__doc__))
-    spec.tag(dict(name="photos", description=PhotoModel.__doc__))
-    spec.tag(dict(name="pose-changes", description=PoseChangeModel.__doc__))
-    spec.tag(dict(name="scenes", description=SceneModel.__doc__))
-    spec.tag(dict(name="surfaces", description=SurfaceModel.__doc__))
+    spec.tag(dict(name="check-ins", description=TrackingSession.__doc__))
+    spec.tag(dict(name="features", description=MapMarker.__doc__))
+    spec.tag(dict(name="headsets", description=MobileDevice.__doc__))
+    spec.tag(dict(name="incidents", description=Incident.__doc__))
+    spec.tag(dict(name="layers", description=Layer.__doc__))
+    spec.tag(dict(name="locations", description=Location.__doc__))
+    spec.tag(dict(name="photos", description=PhotoRecord.__doc__))
+    spec.tag(dict(name="pose-changes", description=DevicePose.__doc__))
+    spec.tag(dict(name="surfaces", description=Surface.__doc__))
 
     # The websocket command parser has useful information about
     # the supported websocket client commands.
@@ -141,17 +137,11 @@ async def create_openapi_spec(app):
         spec.path(view=pose_changes.list_check_in_pose_changes)
         spec.path(view=pose_changes.create_pose_change)
 
-        spec.path(view=scenes.list_scenes)
-        spec.path(view=scenes.get_scene)
-        spec.path(view=scenes.replace_scene)
-
         spec.path(view=surfaces.list_surfaces)
-        spec.path(view=surfaces.create_surface)
         spec.path(view=surfaces.clear_surfaces)
         spec.path(view=surfaces.delete_surface)
         spec.path(view=surfaces.get_surface)
         spec.path(view=surfaces.replace_surface)
-        spec.path(view=surfaces.update_surface)
         spec.path(view=surfaces.get_surface_file)
         spec.path(view=surfaces.upload_surface_file)
 

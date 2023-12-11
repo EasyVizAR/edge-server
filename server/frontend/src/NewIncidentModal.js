@@ -41,30 +41,26 @@ function NewIncidentModal(props) {
   }
 
   return (
-    <div className="newIncidentForm">
-      <div>
-        <h3 style={{textAlign: "left"}}>New Incident</h3>
-        <Form onSubmit={createNewIncident}>
-          <Row className="align-items-center">
-            <Col xs="auto">
-              <Form.Group controlId="incident-name">
-                <FloatingLabel controlId="incident-floating-name" label="Incident Name">
-                  <Form.Control
-                    type="text"
-                    placeholder="Incident Name"
-                    name="incidentName"
-                    ref={formReferences.name}/>
-                </FloatingLabel>
-              </Form.Group>
-            </Col>
-            <Col xs="auto">
-              <Button variant="primary" onClick={createNewIncident}>
-                Create
-              </Button>
-            </Col>
-          </Row>
-        </Form>
-      </div>
+    <div className="new-incident">
+      <h3 style={{textAlign: "left"}}>New Incident</h3>
+      <Form className='table-new-item-form'>
+        <Row className="align-items-center">
+          <Col xs="auto">
+            <Form.Label htmlFor="new-incident-name" visuallyHidden>
+              Name
+            </Form.Label>
+            <Form.Control
+              className="mb-2"
+              id="new-incident-name"
+              placeholder="Name"
+              ref={formReferences.name}
+            />
+          </Col>
+          <Col xs="auto" className="my-1">
+            <Button onClick={createNewIncident}>Create</Button>
+          </Col>
+        </Row>
+      </Form>
     </div>
   );
 }

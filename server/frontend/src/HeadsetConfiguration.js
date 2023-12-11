@@ -16,23 +16,27 @@ function HeadsetConfiguration(props) {
 
   function saveConfiguration() {
     const requestData = {
-      method: 'PATCH',
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        "headset_configuration.enable_mesh_capture": formReferences.enable_mesh_capture.current.checked,
-        "headset_configuration.enable_photo_capture": formReferences.enable_photo_capture.current.checked,
-        "headset_configuration.enable_extended_capture": formReferences.enable_extended_capture.current.checked
+        "enable_mesh_capture": formReferences.enable_mesh_capture.current.checked,
+        "enable_photo_capture": formReferences.enable_photo_capture.current.checked,
+        "enable_extended_capture": formReferences.enable_extended_capture.current.checked
       })
     };
 
-    const url = `${host}/locations/${props.location.id}`;
+    const url = `${host}/locations/${props.location.id}/device_configuration`;
 
     fetch(url, requestData)
       .then(response => response.json())
       .then(data => {
-        props.setLocation(data);
+        var new_location = {
+          ...props.location,
+          headset_configuration: data
+        };
+        props.setLocation(new_location);
       });
   }
 

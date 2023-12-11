@@ -151,39 +151,35 @@ function MapContainer(props) {
         if (props.cursor != 'crosshair')
             return;
 
-        let f = []
-        for (let i in props.features) {
-            f.push(props.features[i]);
-        }
-        if (props.clickCount > 0)
-            f.pop();
+        // Get a valid y-value based on the selected map layer.
+        // This allows us to place features roughly on different floors of a building.
+        const y = selectedLayer.reference_height || selectedLayer.cutting_height || 0;
 
         const scaled = convertScaled2Vector(
           e.clientX - e.target.getBoundingClientRect().left,
           e.clientY - e.target.getBoundingClientRect().top
         );
 
-        f.push({
-            id: 'undefined',
-            mapId: selectedLayer.id,
-            name: '(editing in map)',
-            position: {
-              x: scaled[0],
-              y: 0,
-              z: scaled[1],
-            },
-            scaledX: e.clientX - e.target.getBoundingClientRect().left,
-            scaledY: e.clientY - e.target.getBoundingClientRect().top,
-            icon: props.crossHairIcon,
-            type: props.iconIndex,
-            editing: 'true',
-            style: {
-              placement: props.placementType
-            }
-        });
+//        f.push({
+//            id: 'undefined',
+//            mapId: selectedLayer.id,
+//            name: '(editing in map)',
+//            position: {
+//              x: scaled[0],
+//              y: y,
+//              z: scaled[1],
+//            },
+//            scaledX: e.clientX - e.target.getBoundingClientRect().left,
+//            scaledY: e.clientY - e.target.getBoundingClientRect().top,
+//            icon: props.crossHairIcon,
+//            type: props.iconIndex,
+//            editing: 'true',
+//            style: {
+//              placement: props.placementType
+//            }
+//        });
 
-        props.setPointCoordinates([scaled[0], 0, scaled[1]]);
-        props.setClickCount(props.clickCount + 1);
+        props.setPointCoordinates([scaled[0], y, scaled[1]]);
     }
 
     const getCircleSvgSize = (r) => {
@@ -218,7 +214,7 @@ function MapContainer(props) {
     function NavigationTarget(props) {
       const target = props.target;
 
-      if (layerLoaded && target && props.enabled) {
+      if (layerLoaded && target && target.position && props.enabled) {
         const x = mapShape.xscale * (target.position.x - mapShape.xmin);
         const y = mapShape.yscale * (mapShape.height - (target.position.z - mapShape.ymin));
         return (

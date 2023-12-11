@@ -1,6 +1,8 @@
 import asyncio
+import datetime
 import os
 import time
+import uuid
 
 from http import HTTPStatus
 
@@ -10,20 +12,33 @@ from werkzeug.utils import secure_filename
 
 from PIL import Image
 
+import marshmallow
+import sqlalchemy as sa
+
+from server import auth
 from server.resources.filter import Filter
 from server.utils.rate_limiter import rate_limit_exempt
 from server.utils.utils import save_image
+from server.utils.response import maybe_wrap
 
 from .cleanup import PhotoCleanupTask
-from .models import PhotoFile_dc
+from .models import PhotoFile, PhotoRecord, DetectionTaskSchema, PhotoAnnotationSchema, PhotoSchema
 
 
 photos = Blueprint("photos", __name__)
+
+photo_schema = PhotoSchema()
+detection_task_schema = DetectionTaskSchema()
+photo_annotation_schema = PhotoAnnotationSchema()
 
 # Interval for purging temporary photos (in seconds)
 cleanup_interval = 300
 
 thumbnail_max_size = (320, 320)
+
+
+def get_photo_dir(location_id, photo_id):
+    return os.path.join(g.data_dir, 'locations', location_id.hex, 'photos', '{:08x}'.format(photo_id))
 
 
 def get_photo_extension(photo):
@@ -122,43 +137,55 @@ async def list_photos():
                             type: array
                             items: Photo
     """
-    filt = Filter()
-    if "camera_location_id" in request.args:
-        filt.target_equal_to("camera_location_id", request.args.get("camera_location_id"))
-    if "created_by" in request.args:
-        filt.target_equal_to("created_by", request.args.get("created_by"))
-    if "ready" in request.args:
-        filt.target_equal_to("ready", True)
-    if "retention" in request.args:
-        filt.target_equal_to("retention", request.args.get("retention"))
-    if "since" in request.args:
-        filt.target_greater_than("updated", float(request.args.get("since")))
-    if "status" in request.args:
-        filt.target_equal_to("status", request.args.get("status"))
-    if "until" in request.args:
-        filt.target_less_than("updated", float(request.args.get("until")))
+    items = []
+    async with g.session_maker() as session:
+        stmt = sa.select(PhotoRecord)
 
-    items = g.active_incident.Photo.find(filt=filt)
+        try:
+            camera_location_id = uuid.UUID(request.args.get('camera_location_id'))
+            stmt = stmt.where(PhotoRecord.location_id == camera_location_id)
+        except:
+            pass
+
+        try:
+            created_by = uuid.UUID(request.args.get('created_by'))
+            stmt = stmt.where(PhotoRecord.mobile_device_id == created_by)
+        except:
+            pass
+
+        ready = request.args.get("ready")
+        if ready is not None:
+            stmt = stmt.where(PhotoRecord.queue_name == "detection")
+
+        since = request.args.get('since')
+        if since is not None:
+            stmt = stmt.where(PhotoRecord.updated_time > since)
+
+        until = request.args.get('until')
+        if until is not None:
+            stmt = stmt.where(PhotoRecord.updated_time < until)
+
+        stmt = stmt.options(sa.orm.selectinload(PhotoRecord.annotations))
+        stmt = stmt.options(sa.orm.selectinload(PhotoRecord.files))
+        stmt = stmt.options(sa.orm.selectinload(PhotoRecord.pose))
+
+        result = await session.execute(stmt)
+        for row in result.scalars():
+            items.append(photo_schema.dump(row))
 
     # Wait for new objects if the query returned no results and the caller
     # specified a wait timeout. If there are still no results, we return a 204
     # No Content code.
-    wait = float(request.args.get("wait", 0))
-    if len(items) == 0 and wait > 0:
-        try:
-            item = await asyncio.wait_for(g.active_incident.Photo.wait_for(filt=filt), timeout=wait)
-            items.append(item)
-        except asyncio.TimeoutError:
-            return jsonify([]), HTTPStatus.NO_CONTENT
-
-    # Wrap the list if the caller requested an envelope.
-    if "envelope" in request.args:
-        result = {request.args.get("envelope"): items}
-    else:
-        result = items
+#    wait = float(request.args.get("wait", 0))
+#    if len(items) == 0 and wait > 0:
+#        try:
+#            item = await asyncio.wait_for(g.active_incident.Photo.wait_for(filt=filt), timeout=wait)
+#            items.append(item)
+#        except asyncio.TimeoutError:
+#            return jsonify([]), HTTPStatus.NO_CONTENT
 
     await current_app.dispatcher.dispatch_event("photos:viewed", "/photos")
-    return jsonify(result), HTTPStatus.OK
+    return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
 
 @photos.route('/photos', methods=['POST'])
@@ -224,35 +251,34 @@ async def create_photo():
     """
     body = await request.get_json()
 
-    photo = g.active_incident.Photo.load(body, replace_id=True)
+    # The caller should not be sending an ID, but check and dismiss it.
+    if 'id' in body:
+        del body['id']
 
-    # The photo object should either specify an external imageUrl, or the caller
-    # will need to upload a file after creating this object.
-    if photo.imageUrl is None or photo.imageUrl.strip() == "":
-        upload_file_name = "image.{}".format(get_photo_extension(photo))
-        photo.imagePath = os.path.join(photo.get_dir(), upload_file_name)
-        photo.imageUrl = "/photos/{}/image".format(photo.id)
-        photo.ready = False
-        photo.status = "created"
+    photo = photo_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
+    photo.queue_name = "created"
+    photo.annotations = []
+    photo.files = []
 
-    else:
-        photo.ready = True
-        photo.status = "ready"
+    if photo.incident_id is None:
+        photo.incident_id = g.active_incident_id
 
     if g.user_id is not None:
-        photo.created_by = g.user_id
+        photo.mobile_device_id = g.user_id
 
-    photo.infer_missing_annotation_positions()
+    async with g.session_maker() as session:
+        session.add(photo)
+        await session.commit()
 
-    photo.save()
-    schedule_cleanup()
+    result = photo_schema.dump(photo)
 
     await current_app.dispatcher.dispatch_event("photos:created",
-            "/photos/"+photo.id, current=photo)
-    return jsonify(photo), HTTPStatus.CREATED
+            "/photos/"+str(photo.id), current=result)
+    return jsonify(result), HTTPStatus.CREATED
 
 
-@photos.route('/photos/<photo_id>', methods=['DELETE'])
+@photos.route('/photos/<int:photo_id>', methods=['DELETE'])
+@auth.requires_admin
 async def delete_photo(photo_id):
     """
     Delete photo
@@ -273,19 +299,28 @@ async def delete_photo(photo_id):
                     application/json:
                         schema: Photo
     """
+    async with g.session_maker() as session:
+        stmt = sa.select(PhotoRecord) \
+                .where(PhotoRecord.id == photo_id) \
+                .limit(1)
 
-    photo = g.active_incident.Photo.find_by_id(photo_id)
-    if photo is None:
-        raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+        result = await session.execute(stmt)
+        photo = result.scalar()
+        if photo is None:
+            raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
-    photo.delete()
+        await session.delete(photo)
+        await session.commit()
+
+    result = photo_schema.dump(photo)
 
     await current_app.dispatcher.dispatch_event("photos:deleted",
-            "/photos/"+photo.id, previous=photo)
-    return jsonify(photo), HTTPStatus.OK
+            "/photos/"+str(photo.id), previous=result)
+
+    return jsonify(result), HTTPStatus.OK
 
 
-@photos.route('/photos/<photo_id>', methods=['GET'])
+@photos.route('/photos/<int:photo_id>', methods=['GET'])
 async def get_photo(photo_id):
     """
     Get photo
@@ -325,31 +360,28 @@ async def get_photo(photo_id):
                     application/json:
                         schema: Photo
     """
-    photo = g.active_incident.Photo.find_by_id(photo_id)
-    if photo is None:
-        raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(PhotoRecord) \
+                .where(PhotoRecord.id == photo_id) \
+                .limit(1) \
+                .options(sa.orm.selectinload(PhotoRecord.annotations)) \
+                .options(sa.orm.selectinload(PhotoRecord.files)) \
+                .options(sa.orm.selectinload(PhotoRecord.pose))
 
-    filt = Filter()
-    filt.target_equal_to("id", photo_id)
-    if "status" in request.args:
-        filt.target_equal_to("status", request.args.get("status"))
+        result = await session.execute(stmt)
+        photo = result.scalar()
+        if photo is None:
+            raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
-    # Wait for new objects if the query returned no results and the caller
-    # specified a wait timeout. If there are still no results, we return a 204
-    # No Content code.
-    wait = float(request.args.get("wait", 0))
-    if not filt.matches(photo) and wait > 0:
-        try:
-            photo = await asyncio.wait_for(g.active_incident.Photo.wait_for(filt=filt), timeout=wait)
-        except asyncio.TimeoutError:
-            return jsonify([]), HTTPStatus.NO_CONTENT
+    result = photo_schema.dump(photo)
 
     await current_app.dispatcher.dispatch_event("photos:viewed",
-            "/photos/"+photo.id, current=photo)
-    return jsonify(photo), HTTPStatus.OK
+            "/photos/"+str(photo.id), current=result)
+
+    return jsonify(result), HTTPStatus.OK
 
 
-@photos.route('/photos/<photo_id>', methods=['PUT'])
+@photos.route('/photos/<int:photo_id>', methods=['PUT'])
 async def replace_photo(photo_id):
     """
     Replace photo
@@ -376,24 +408,49 @@ async def replace_photo(photo_id):
                         schema: Photo
     """
     body = await request.get_json()
+    if body is None:
+        body = {}
     body['id'] = photo_id
 
-    previous = g.active_incident.Photo.find_by_id(photo_id)
-    photo = g.active_incident.Photo.load(body)
-    photo.infer_missing_annotation_positions()
-    created = photo.save()
+    async with g.session_maker() as session:
+        stmt = sa.select(PhotoRecord) \
+                .where(PhotoRecord.id == photo_id) \
+                .limit(1) \
+                .options(sa.orm.selectinload(PhotoRecord.annotations)) \
+                .options(sa.orm.selectinload(PhotoRecord.files))
+
+        result = await session.execute(stmt)
+        photo = result.scalar()
+
+        if photo is None:
+            previous = None
+            photo = photo_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
+            if photo.incident_id is None:
+                photo.incident_id = g.active_incident_id
+            session.add(photo)
+            created = True
+
+        else:
+            previous = photo_schema.dump(photo)
+            photo.update(body)
+            photo.updated_time = datetime.datetime.now()
+            created = False
+
+        await session.commit()
+
+    result = photo_schema.dump(photo)
 
     if created:
         await current_app.dispatcher.dispatch_event("photos:created",
-                "/photos/"+photo.id, current=photo)
-        return jsonify(photo), HTTPStatus.CREATED
+                "/photos/"+str(photo.id), current=result)
+        return jsonify(result), HTTPStatus.CREATED
     else:
         await current_app.dispatcher.dispatch_event("photos:updated",
-                "/photos/"+photo.id, current=photo, previous=previous)
-        return jsonify(photo), HTTPStatus.OK
+                "/photos/"+str(photo.id), current=result, previous=previous)
+        return jsonify(result), HTTPStatus.OK
 
 
-@photos.route('/photos/<photo_id>', methods=['PATCH'])
+@photos.route('/photos/<int:photo_id>', methods=['PATCH'])
 async def update_photo(photo_id):
     """
     Update photo
@@ -443,30 +500,55 @@ async def update_photo(photo_id):
                     application/json:
                         schema: Photo
     """
-
-    photo = g.active_incident.Photo.find_by_id(photo_id)
-    if photo is None:
-        raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
-
-    previous = photo.clone()
-
     body = await request.get_json()
 
-    # Do not allow changing the object's ID
-    if 'id' in body:
-        del body['id']
+    async with g.session_maker() as session:
+        stmt = sa.select(PhotoRecord) \
+                .where(PhotoRecord.id == photo_id) \
+                .limit(1) \
+                .options(sa.orm.selectinload(PhotoRecord.annotations)) \
+                .options(sa.orm.selectinload(PhotoRecord.files))
 
-    photo.update(body)
-    photo = photo.rebuild()
-    photo.infer_missing_annotation_positions()
-    photo.save()
+        result = await session.execute(stmt)
+        photo = result.scalar()
+        if photo is None:
+            raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+
+        previous = photo_schema.dump(photo)
+        photo.update(body)
+        photo.updated_time = datetime.datetime.now()
+
+        # Support creating photo annotations through patching the photo record
+        if "annotations" in body:
+            detection_task = detection_task_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
+            detection_task.photo_record_id = photo_id
+            session.add(detection_task)
+            await session.flush()
+
+            photo.annotations = []
+
+            for item in body['annotations']:
+                annotation = photo_annotation_schema.load(item, transient=True)
+                annotation.photo_record_id = photo_id
+                annotation.detection_task_id = detection_task.id
+                session.add(annotation)
+                photo.annotations.append(annotation)
+
+        # Support older clients that set a status flag
+        if body.get("status") == "done":
+            photo.queue_name = "done"
+
+        await session.commit()
+
+    result = photo_schema.dump(photo)
 
     await current_app.dispatcher.dispatch_event("photos:updated",
-            "/photos/"+photo.id, current=photo, previous=previous)
-    return jsonify(photo), HTTPStatus.OK
+            "/photos/"+str(photo.id), current=result, previous=previous)
+
+    return jsonify(result), HTTPStatus.OK
 
 
-@photos.route('/photos/<photo_id>/image', methods=['GET'])
+@photos.route('/photos/<int:photo_id>/image', methods=['GET'])
 async def get_photo_file(photo_id):
     """
     Get a photo data file
@@ -482,14 +564,24 @@ async def get_photo_file(photo_id):
                     image/jpeg: {}
                     image/png: {}
     """
-    photo = g.active_incident.Photo.find_by_id(photo_id)
-    if photo is None:
-        raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(PhotoFile) \
+                .where(PhotoFile.photo_record_id == photo_id) \
+                .where(PhotoFile.purpose == "photo") \
+                .limit(1) \
+                .options(sa.orm.selectinload(PhotoFile.record))
 
-    return await send_from_directory(photo.get_dir(), os.path.basename(photo.imagePath))
+        result = await session.execute(stmt)
+        photo = result.scalar()
+        if photo is None:
+            raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+
+        photo_dir = get_photo_dir(photo.record.location_id, photo_id)
+
+    return await send_from_directory(photo_dir, photo.name)
 
 
-@photos.route('/photos/<photo_id>/thumbnail', methods=['GET'])
+@photos.route('/photos/<int:photo_id>/thumbnail', methods=['GET'])
 @rate_limit_exempt
 async def get_photo_thumbnail(photo_id):
     """
@@ -506,25 +598,49 @@ async def get_photo_thumbnail(photo_id):
                     image/jpeg: {}
                     image/png: {}
     """
-    photo = g.active_incident.Photo.find_by_id(photo_id)
-    if photo is None:
-        raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(PhotoFile) \
+                .where(PhotoFile.photo_record_id == photo_id) \
+                .options(sa.orm.selectinload(PhotoFile.record))
 
-    thumbnail_file = "thumbnail."+get_photo_extension(photo)
-    thumbnail_path = os.path.join(photo.get_dir(), thumbnail_file)
-    if not os.path.exists(thumbnail_path):
-        original_path = os.path.join(photo.imagePath)
-        if not os.path.exists(original_path):
-            raise exceptions.NotFound(description="Photo {} image file was not found".format(photo_id))
+        photo = None
+        thumbnail = None
 
-        with Image.open(original_path) as im:
-            im.thumbnail(thumbnail_max_size)
-            im.save(thumbnail_path, im.format)
+        result = await session.execute(stmt)
+        for row in result.scalars():
+            if row.purpose == "photo":
+                photo = row
+            elif row.purpose == "thumbnail":
+                thumbnail = row
 
-    return await send_from_directory(photo.get_dir(), os.path.basename(thumbnail_file))
+        if photo is None and thumbnail is None:
+            raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+
+        photo_dir = get_photo_dir(photo.record.location_id, photo_id)
+
+        if thumbnail is None:
+            thumbnail = PhotoFile(
+                    name="thumbnail.png",
+                    photo_record_id=photo_id,
+                    purpose="thumbnail",
+                    content_type="image/png"
+            )
+
+            with Image.open(os.path.join(photo_dir, photo.name)) as im:
+                im.thumbnail(thumbnail_max_size)
+                im.save(os.path.join(photo_dir, thumbnail.name))
 
 
-@photos.route('/photos/<photo_id>/<filename>', methods=['GET'])
+                thumbnail.width = im.width
+                thumbnail.height = im.height
+
+            session.add(thumbnail)
+            await session.commit()
+
+    return await send_from_directory(photo_dir, thumbnail.name)
+
+
+@photos.route('/photos/<int:photo_id>/<filename>', methods=['GET'])
 @rate_limit_exempt
 async def get_photo_file_by_name(photo_id, filename):
     """
@@ -541,66 +657,21 @@ async def get_photo_file_by_name(photo_id, filename):
                     image/jpeg: {}
                     image/png: {}
     """
-    photo = g.active_incident.Photo.find_by_id(photo_id)
-    if photo is None:
-        raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(PhotoRecord) \
+                .where(PhotoRecord.id == photo_id) \
+                .limit(1)
 
-    return await send_from_directory(photo.get_dir(), secure_filename(filename))
+        result = await session.execute(stmt)
+        photo = result.scalar()
+        if photo is None:
+            raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
-
-def process_uploaded_photo_file(photo, upload_file_path, upload_file_name, file_purpose):
-    def index_of_file_name(name):
-        for i in range(len(photo.files)):
-            if photo.files[i].name == name:
-                return i
-        return None
-
-    with Image.open(upload_file_path) as image:
-        content_type = "image/{}".format(image.format.lower())
-
-        new_entry = PhotoFile_dc(upload_file_name, file_purpose,
-            width = image.width,
-            height = image.height,
-            content_type = content_type
-        )
-
-        # If the filename matches an existing entry, then replace it, else append.
-        # We could have used a dictionary, but API users are expecting a list.
-        i = index_of_file_name(upload_file_name)
-        if i is not None:
-            photo.files[i] = new_entry
-        else:
-            photo.files.append(new_entry)
-
-        if file_purpose == "photo":
-            photo.imagePath = upload_file_path
-            photo.width = image.width
-            photo.height = image.height
-            photo.contentType = content_type
-
-            # If the photo exceeds the thumbnail size, then generate a smaller
-            # thumbnail version.  Otherwise, there is no need to make a thumbnail.
-            if photo.width > thumbnail_max_size[0] or photo.height > thumbnail_max_size[1]:
-                thumbnail_file = "thumbnail."+get_photo_extension(photo)
-                thumbnail_path = os.path.join(photo.get_dir(), thumbnail_file)
-                image.thumbnail(thumbnail_max_size)
-                image.save(thumbnail_path, image.format)
-
-                new_entry = PhotoFile_dc(thumbnail_file, "thumbnail",
-                    width = image.width,
-                    height = image.height,
-                    content_type = photo.contentType
-                )
-
-                # If the filename matches an existing entry, then replace it, else append.
-                i = index_of_file_name(thumbnail_file)
-                if i is not None:
-                    photo.files[i] = new_entry
-                else:
-                    photo.files.append(new_entry)
+    photo_dir = get_photo_dir(photo.location_id, photo_id)
+    return await send_from_directory(photo_dir, secure_filename(filename))
 
 
-@photos.route('/photos/<photo_id>/image', methods=['PUT'])
+@photos.route('/photos/<int:photo_id>/image', methods=['PUT'])
 async def upload_photo_file(photo_id):
     """
     Upload a photo data file
@@ -615,49 +686,79 @@ async def upload_photo_file(photo_id):
                 image/jpeg: {}
                 image/png: {}
     """
-    photo = g.active_incident.Photo.find_by_id(photo_id)
-    if photo is None:
-        raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(PhotoRecord) \
+                .where(PhotoRecord.id == photo_id) \
+                .limit(1) \
+                .options(sa.orm.selectinload(PhotoRecord.annotations)) \
+                .options(sa.orm.selectinload(PhotoRecord.files))
 
-    previous = photo.clone()
+        result = await session.execute(stmt)
+        photo = result.scalar()
+        if photo is None:
+            raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
-    # In case the image path was not set correctly or even was set maliciously,
-    # reconstruct it here before writing the file.
-    upload_file_name = "image.{}".format(get_photo_extension(photo))
-    photo.imagePath = os.path.join(photo.get_dir(), upload_file_name)
+        previous = photo_schema.dump(photo)
 
-    created = not os.path.exists(photo.imagePath)
+        photo_dir = get_photo_dir(photo.location_id, photo_id)
+        os.makedirs(photo_dir, exist_ok=True)
 
-    request_files = await request.files
-    if 'image' in request_files:
-        await save_image(photo.imagePath, request_files['image'])
-    else:
-        body = await request.get_data()
-        with open(photo.imagePath, "wb") as output:
-            output.write(body)
+        photo_file = None
+        for file in photo.files:
+            if file.purpose == "photo":
+                photo_file = file
+                break
 
-    try:
-        process_uploaded_photo_file(photo, photo.imagePath, upload_file_name, "photo")
-    except:
-        pass
+        if photo_file is None:
+            photo_file = PhotoFile(
+                name="photo.png",
+                photo_record_id=photo_id,
+                purpose="photo",
+                content_type="image/png"
+            )
+            session.add(photo_file)
+            photo.files.append(photo_file)
+            created = True
+        else:
+            created = False
 
-    photo.imageUrl = "/photos/{}/image".format(photo_id)
-    photo.ready = True
-    photo.status = "ready"
-    photo.updated = time.time()
-    photo.save()
+        photo_path = os.path.join(photo_dir, photo_file.name)
+
+        request_files = await request.files
+        if 'image' in request_files:
+            await save_image(photo_path, request_files['image'])
+        else:
+            body = await request.get_data()
+            with open(photo_path, "wb") as output:
+                output.write(body)
+
+        try:
+            with Image.open(photo_path) as im:
+                photo_file.content_type = im.get_format_mimetype()
+                photo_file.width = im.width
+                photo_file.height = im.height
+        except:
+            pass
+
+        photo.queue_name = "detection"
+        photo.updated_time = datetime.datetime.now()
+        photo_file.updated_time = datetime.datetime.now()
+
+        await session.commit()
+
+    result = photo_schema.dump(photo)
 
     if created:
         await current_app.dispatcher.dispatch_event("photos:created",
-                "/photos/"+photo.id, current=photo)
-        return jsonify(photo), HTTPStatus.CREATED
+                "/photos/"+str(photo_id), current=result)
+        return jsonify(result), HTTPStatus.CREATED
     else:
         await current_app.dispatcher.dispatch_event("photos:updated",
-                "/photos/"+photo.id, current=photo, previous=previous)
-        return jsonify(photo), HTTPStatus.OK
+                "/photos/"+str(photo_id), current=result, previous=previous)
+        return jsonify(result), HTTPStatus.OK
 
 
-@photos.route('/photos/<photo_id>/<filename>', methods=['PUT'])
+@photos.route('/photos/<int:photo_id>/<filename>', methods=['PUT'])
 async def upload_photo_file_by_name(photo_id, filename):
     """
     Upload a photo file by name
@@ -687,46 +788,82 @@ async def upload_photo_file_by_name(photo_id, filename):
                 image/jpeg: {}
                 image/png: {}
     """
-    photo = g.active_incident.Photo.find_by_id(photo_id)
-    if photo is None:
-        raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(PhotoRecord) \
+                .where(PhotoRecord.id == photo_id) \
+                .limit(1) \
+                .options(sa.orm.selectinload(PhotoRecord.annotations))
 
-    previous = photo.clone()
+        result = await session.execute(stmt)
+        photo = result.scalar()
+        if photo is None:
+            raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
-    # In case the image path was not set correctly or even was set maliciously,
-    # reconstruct it here before writing the file.
-    upload_file_name = secure_filename(filename)
-    upload_file_path = os.path.join(photo.get_dir(), upload_file_name)
-    file_purpose, file_ext = os.path.splitext(upload_file_name)
-    file_purpose = file_purpose.lower()
+        previous = photo_schema.dump(photo)
 
-    created = not os.path.exists(upload_file_path)
+        photo_dir = get_photo_dir(photo.location_id, photo_id)
+        os.makedirs(photo_dir, exist_ok=True)
 
-    request_files = await request.files
-    if 'image' in request_files:
-        await save_image(upload_file_path, request_files['image'])
-    else:
-        body = await request.get_data()
-        with open(upload_file_path, "wb") as output:
-            output.write(body)
+        upload_file_name = secure_filename(filename)
 
-    try:
-        process_uploaded_photo_file(photo, upload_file_path, upload_file_name, file_purpose)
-    except:
-        pass
+        stmt = sa.select(PhotoFile) \
+                .where(PhotoFile.photo_record_id == photo_id) \
+                .where(PhotoFile.name == upload_file_name) \
+                .limit(1)
 
-    photo.imageUrl = "/photos/{}/image".format(photo_id)
-    if file_purpose == "photo":
-        photo.ready = True
-        photo.status = "ready"
-    photo.updated = time.time()
-    photo.save()
+        result = await session.execute(stmt)
+        file = result.scalar()
+
+        if file is None:
+            file_purpose, file_ext = os.path.splitext(upload_file_name)
+            file_purpose = file_purpose.lower()
+
+            file = PhotoFile(
+                name=upload_file_name,
+                photo_record_id=photo_id,
+                purpose=file_purpose,
+                content_type="image/png"
+            )
+            session.add(file)
+            created = True
+        else:
+            created = False
+
+        photo_path = os.path.join(photo_dir, upload_file_name)
+
+        request_files = await request.files
+        if 'image' in request_files:
+            await save_image(photo_path, request_files['image'])
+        else:
+            body = await request.get_data()
+            with open(photo_path, "wb") as output:
+                output.write(body)
+
+        try:
+            with Image.open(photo_path) as im:
+                file.content_type = im.get_format_mimetype()
+                file.width = im.width
+                file.height = im.height
+        except:
+            pass
+
+        # If the photo was uploaded, and not some other type of file,
+        # then send to detection queue.
+        if file_purpose == "photo":
+            photo.queue_name = "detection"
+
+        photo.updated_time = datetime.datetime.now()
+        file.updated_time = datetime.datetime.now()
+
+        await session.commit()
+
+    result = photo_schema.dump(photo)
 
     if created:
         await current_app.dispatcher.dispatch_event("photos:created",
-                "/photos/"+photo.id, current=photo)
-        return jsonify(photo), HTTPStatus.CREATED
+                "/photos/"+str(photo_id), current=result)
+        return jsonify(result), HTTPStatus.CREATED
     else:
         await current_app.dispatcher.dispatch_event("photos:updated",
-                "/photos/"+photo.id, current=photo, previous=previous)
-        return jsonify(photo), HTTPStatus.OK
+                "/photos/"+str(photo_id), current=result, previous=previous)
+        return jsonify(result), HTTPStatus.OK

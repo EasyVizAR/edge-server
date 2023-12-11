@@ -18,7 +18,7 @@ async def test_layer_routes():
 
     async with app.test_client() as client:
         # Create a test location
-        response = await client.post("/locations", json=dict(name="Test"))
+        response = await client.post("/locations", json=dict(name="Layer Test"))
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         location = await response.get_json()
@@ -100,6 +100,10 @@ async def test_layer_routes():
         response = await client.patch(layer_url, json={test_field: "bar"})
         assert response.status_code == HTTPStatus.NOT_FOUND
 
+        # Clean up
+        response = await client.delete('/locations/{}'.format(location['id']))
+        assert response.status_code == HTTPStatus.OK
+
 
 @pytest.mark.asyncio
 async def test_layer_upload():
@@ -108,7 +112,7 @@ async def test_layer_upload():
     """
     async with app.test_client() as client:
         # Create a test location
-        response = await client.post("/locations", json=dict(name="Test"))
+        response = await client.post("/locations", json=dict(name="Layer Test"))
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         location = await response.get_json()
@@ -123,19 +127,16 @@ async def test_layer_upload():
         assert isinstance(layer, dict)
         assert layer['id'] is not None
         assert layer['type'] == "uploaded"
-        assert layer['ready'] is False
 
         layer_url = "{}/{}".format(layers_url, layer['id'])
 
         # Test upload process
-        print(layer['imageUrl'])
         response = await client.put(layer['imageUrl'], data="test")
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         layer2 = await response.get_json()
         assert isinstance(layer, dict)
         assert int_equal(layer2['id'], layer['id'])
-        assert layer2['ready'] is True
         assert layer2['updated'] > layer['updated']
 
         # Test downloading the file
@@ -150,3 +151,7 @@ async def test_layer_upload():
         assert response.is_json
         layer2 = await response.get_json()
         assert int_equal(layer2['id'], layer['id'])
+
+        # Clean up
+        response = await client.delete('/locations/{}'.format(location['id']))
+        assert response.status_code == HTTPStatus.OK

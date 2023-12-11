@@ -2,11 +2,12 @@ import asyncio
 import os
 
 from http import HTTPStatus
-from quart import Blueprint, current_app, g, make_response, jsonify, websocket
+from quart import Blueprint, current_app, g, make_response, jsonify, redirect, request, websocket
 from werkzeug import exceptions
 
 from .connection import WebsocketConnection, WebsocketHandler
 
+from server import auth
 from server.utils.response import maybe_wrap
 
 
@@ -31,6 +32,7 @@ async def list_websockets():
 
 
 @websockets.route("/websockets/<int:websocket_id>", methods=['DELETE'])
+@auth.requires_admin
 async def delete_websocket(websocket_id):
     """
     Force closed a websocket connection
@@ -47,6 +49,20 @@ async def delete_websocket(websocket_id):
     await handler.close()
 
     return jsonify(handler.dump()), HTTPStatus.OK
+
+
+@websockets.route("/ws", methods=['GET'])
+async def get_ws():
+    """
+    Get the websocket URL
+
+    This route is offered as a convenience for clients to determine
+    the URL for opening a websocket connection.
+
+    The answer will be in the response 'Location' header.
+    """
+    url = "ws://{}/ws".format(request.host)
+    return redirect(url, code=300)
 
 
 @websockets.websocket('/ws')
@@ -94,5 +110,5 @@ async def ws():
 
     conn = WebsocketConnection(websocket)
     handler = WebsocketHandler(current_app.dispatcher, conn,
-            subprotocol=chosen_subprotocol, user_id=g.user_id)
+            subprotocol=chosen_subprotocol, device_id=g.device_id, user_id=g.user_id)
     await asyncio.create_task(handler.listen())

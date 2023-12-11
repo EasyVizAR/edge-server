@@ -1,9 +1,21 @@
 from dataclasses import field
 from marshmallow_dataclass import dataclass
+from sqlalchemy.ext.mutable import MutableComposite
+
+
+class MutableCompositeBase(MutableComposite):
+    def __setattr__(self, key, value):
+        """Intercept set events"""
+
+        # set the attribute
+        object.__setattr__(self, key, value)
+
+        # alert all parents to the change
+        self.changed()
 
 
 @dataclass
-class Box:
+class Box(MutableCompositeBase):
     left:   float = field(default=0.0)
     top:    float = field(default=0.0)
     width:  float = field(default=0.0)
@@ -17,7 +29,7 @@ class Box:
 
 
 @dataclass
-class Vector3f:
+class Vector3f(MutableCompositeBase):
     x: float = field(default=0.0)
     y: float = field(default=0.0)
     z: float = field(default=0.0)
@@ -27,7 +39,7 @@ class Vector3f:
 
 
 @dataclass
-class Vector4f:
+class Vector4f(MutableCompositeBase):
     x: float = field(default=0.0)
     y: float = field(default=0.0)
     z: float = field(default=0.0)

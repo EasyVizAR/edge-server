@@ -1,17 +1,33 @@
 import asyncio
+import datetime
+import os
 import time
+import uuid
 
 from http import HTTPStatus
 
-from quart import request, jsonify, Blueprint, current_app, g
+import pyqrcode
+
+from quart import request, jsonify, Blueprint, current_app, g, send_from_directory
 from werkzeug import exceptions
 
-from server.pose_changes.models import PoseChange
-from server.resources.filter import Filter
+import marshmallow
+import sqlalchemy as sa
 
-from .models import RegisteredHeadsetModel
+from server import auth
+from server.check_in.models import TrackingSession
+from server.pose_changes.models import DevicePose, PoseChangeSchema
+from server.resources.filter import Filter
+from server.resources.geometry import Vector3f, Vector4f
+from server.utils.patch import patch_object
+from server.utils.response import maybe_wrap
+
+from .models import MobileDevice, HeadsetSchema
 
 headsets = Blueprint('headsets', __name__)
+
+headset_schema = HeadsetSchema()
+pose_change_schema = PoseChangeSchema()
 
 
 # Color palette for headsets.  This is the Tol palette, which is
@@ -81,18 +97,6 @@ async def list_headsets():
             schema:
                 type: float
             description: Only show items that were created or updated before this time.
-          - name: wait
-            in: query
-            required: false
-            schema:
-                type: float
-            description: >-
-                Request that the server wait a time limit (in seconds) for a
-                new result if none are immediately available. The server will
-                return one or more results as soon as they are available, or if
-                the time limit has passed, the server will return a No Content
-                204 result indicating timeout. A time limit of 30-60 seconds is
-                recommended.
         responses:
             200:
                 description: A list of headsets.
@@ -102,41 +106,91 @@ async def list_headsets():
                             type: array
                             items: Headset
     """
-    filt = Filter()
-    if "location_id" in request.args:
-        location_id = request.args.get("location_id").lower()
-        if location_id in ["", "none", "null"]:
-            location_id = None
-        filt.target_equal_to("location_id", location_id)
-    if "name" in request.args:
-        filt.target_string_match("name", request.args.get("name"))
-    if "since" in request.args:
-        filt.target_greater_than("updated", float(request.args.get("since")))
-    if "until" in request.args:
-        filt.target_less_than("updated", float(request.args.get("until")))
+    items = []
+    async with g.session_maker() as session:
+        stmt = sa.select(MobileDevice)
 
-    items = g.Headset.find(filt=filt)
-
-    # Wait for new objects if the query returned no results and the caller
-    # specified a wait timeout. If there are still no results, we return a 204
-    # No Content code.
-    wait = float(request.args.get("wait", 0))
-    if len(items) == 0 and wait > 0:
         try:
-            item = await asyncio.wait_for(g.Headset.wait_for(filt=filt), timeout=wait)
-            items.append(item)
-        except asyncio.TimeoutError:
-            return jsonify([]), HTTPStatus.NO_CONTENT
+            location_id = uuid.UUID(request.args.get('location_id'))
+            stmt = stmt.where(MobileDevice.location_id == location_id)
+        except:
+            pass
 
-    # Wrap the results list if the caller requested an envelope.
-    query = request.args
-    if "envelope" in query:
-        result = {query.get("envelope"): items}
-    else:
-        result = items
+        name = request.args.get('name')
+        if name is not None:
+            stmt = stmt.where(MobileDevice.name == name)
+
+        since = request.args.get('since')
+        if since is not None:
+            stmt = stmt.where(MobileDevice.updated_time > since)
+
+        until = request.args.get('until')
+        if until is not None:
+            stmt = stmt.where(MobileDevice.updated_time < until)
+
+        stmt = stmt.options(sa.orm.selectinload(MobileDevice.pose))
+        stmt = stmt.options(sa.orm.selectinload(MobileDevice.navigation_target))
+
+        result = await session.execute(stmt)
+        for row in result.scalars():
+            items.append(headset_schema.dump(row))
 
     await current_app.dispatcher.dispatch_event("headsets:viewed", "/headsets")
-    return jsonify(result), HTTPStatus.OK
+
+    return jsonify(maybe_wrap(items)), HTTPStatus.OK
+
+
+async def _create_headset(headset_id, body):
+    # Choose a color for the headset by cycling through the palette.
+    if body.get("color") in [None, ""]:
+        body['color'] = default_color_palette[headset_id.int % len(default_color_palette)]
+
+    body['id'] = headset_id
+    headset = headset_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
+    headset.pose = None
+
+    async with g.session_maker() as session:
+        # If the headset is created with location_id set, we can automatically
+        # create a check-in record for the headset at that location.
+        if headset.location_id is not None:
+            checkin = TrackingSession(
+                mobile_device_id=headset.id,
+                incident_id=g.active_incident_id,
+                location_id=headset.location_id
+            )
+            session.add(checkin)
+            await session.flush()
+
+            headset.tracking_session_id = checkin.id
+
+            # If we have created a TrackingSession and also have position and
+            # orientation defined, we can create a DevicePose record.
+            if 'position' in body and 'orientation' in body:
+                pose = pose_change_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
+                pose.tracking_session_id = checkin.id
+                pose.mobile_device_id = headset.id
+                session.add(pose)
+
+                headset.device_pose_id = pose.id
+                headset.pose = pose
+
+        session.add(headset)
+        await session.commit()
+
+    result = headset_schema.dump(headset)
+
+    # Create a private copy of the headset including the authentication token
+    # and return that one to the caller.
+    private_result = headset_schema.dump(headset)
+    private_result['token'] = headset.token
+
+    await current_app.dispatcher.dispatch_event("headsets:created",
+            "/headsets/"+result['id'], current=result)
+    if headset.location_id is not None:
+        await current_app.dispatcher.dispatch_event("location-headsets:created",
+                "/locations/{}/headsets/{}".format(str(headset.location_id), result['id']), current=result)
+
+    return private_result
 
 
 @headsets.route('/headsets', methods=['POST'])
@@ -197,56 +251,12 @@ async def create_headset():
     if body is None:
         body = {}
 
-    # Choose a color for the headset by cycling through the palette.
-    if body.get("color") in [None, ""]:
-        headsets = g.active_incident.Headset.find()
-        n = len(headsets)
-        body['color'] = default_color_palette[n % len(default_color_palette)]
-
-    # TODO: Finalize authentication method
-
-    headset = g.Headset.load(body, replace_id=True)
-    headset.save()
-
-    folder = g.active_incident.Headset.add(headset.id)
-
-    # If the headset is created with location_id set, we can automatically
-    # create a check-in record for the headset at that location.
-    if headset.location_id is not None:
-        checkin = folder.CheckIn.load({'location_id': headset.location_id}, replace_id=True)
-        checkin.save()
-
-        headset.last_check_in_id = checkin.id
-        headset.save()
-
-        if 'position' in body and 'orientation' in body:
-            change = PoseChange(
-                    incident_id=g.active_incident.id,
-                    headset_id=headset.id,
-                    check_in_id=checkin.id,
-                    position=headset.position,
-                    orientation=headset.orientation
-            )
-
-            async with g.session_maker() as session:
-                session.add(change)
-                await session.commit()
-
-    tmp = headset.Schema().dump(headset)
-    rheadset = RegisteredHeadsetModel.Schema().load(tmp)
-
-    rheadset.token = g.authenticator.create_headset_token(headset.id)
-    g.authenticator.save()
-
-    await current_app.dispatcher.dispatch_event("headsets:created",
-            "/headsets/"+headset.id, current=headset)
-    if headset.location_id is not None:
-        await current_app.dispatcher.dispatch_event("location-headsets:created",
-                "/locations/{}/headsets/{}".format(headset.location_id, headset.id), current=headset)
-    return jsonify(rheadset), HTTPStatus.CREATED
+    result = await _create_headset(uuid.uuid4(), body)
+    return jsonify(result), HTTPStatus.CREATED
 
 
-@headsets.route('/headsets/<headset_id>', methods=['DELETE'])
+@headsets.route('/headsets/<uuid:headset_id>', methods=['DELETE'])
+@auth.requires_admin
 async def delete_headset(headset_id):
     """
     Delete a headset
@@ -267,28 +277,31 @@ async def delete_headset(headset_id):
                     application/json:
                         schema: Headset
     """
+    async with g.session_maker() as session:
+        stmt = sa.select(MobileDevice) \
+                .where(MobileDevice.id == headset_id) \
+                .limit(1) \
+                .options(sa.orm.selectinload(MobileDevice.pose))
 
-    headset = g.Headset.find_by_id(headset_id)
-    if headset is None:
-        raise exceptions.NotFound(description="Headset {} was not found".format(headset_id))
+        result = await session.execute(stmt)
+        headset = result.scalar()
+        if headset is None:
+            raise exceptions.NotFound(description="Headset {} was not found".format(id))
 
-    # TODO check authorization
+        await session.delete(headset)
+        await session.commit()
 
-    headset.delete()
+    result = headset_schema.dump(headset)
 
-    folder = g.active_incident.Headset.find_by_id(headset_id)
-    if folder is not None:
-        folder.delete()
-
-    await current_app.dispatcher.dispatch_event("headsets:deleted", "/headsets/"+headset.id, previous=headset)
+    await current_app.dispatcher.dispatch_event("headsets:deleted", "/headsets/"+result['id'], previous=result)
     if headset.location_id is not None:
         await current_app.dispatcher.dispatch_event("location-headsets:deleted",
-                "/locations/{}/headsets/{}".format(headset.location_id, headset.id), previous=headset)
-    return jsonify(headset), HTTPStatus.OK
+                "/locations/{}/headsets/{}".format(headset.location_id, headset.id), previous=result)
+    return jsonify(result), HTTPStatus.OK
 
 
-@headsets.route('/headsets/<id>', methods=['GET'])
-async def get_headset(id):
+@headsets.route('/headsets/<uuid:headset_id>', methods=['GET'])
+async def get_headset(headset_id):
     """
     Get headset
     ---
@@ -308,31 +321,25 @@ async def get_headset(id):
                     application/json:
                         schema: Headset
     """
-    headset = g.Headset.find_by_id(id)
-    if headset is None:
-        raise exceptions.NotFound(description="Headset {} was not found".format(id))
+    async with g.session_maker() as session:
+        stmt = sa.select(MobileDevice) \
+                .where(MobileDevice.id == headset_id) \
+                .limit(1) \
+                .options(sa.orm.selectinload(MobileDevice.pose))
 
-    await current_app.dispatcher.dispatch_event("headsets:viewed", "/headsets/"+headset.id, current=headset)
-    return jsonify(headset), HTTPStatus.OK
+        result = await session.execute(stmt)
+        headset = result.scalar()
+        if headset is None:
+            raise exceptions.NotFound(description="Headset {} was not found".format(id))
 
+    result = headset_schema.dump(headset)
 
-def valid_check_in_or_none(incident_folder, previous, current):
-    if current.last_check_in_id is None:
-        return None
-
-    # Triggers a new check-in if the headset left its location and returned
-    if previous.location_id is None:
-        return None
-
-    checkin = incident_folder.CheckIn.find_by_id(current.last_check_in_id)
-    if checkin is None or checkin.location_id != current.location_id:
-        return None
-
-    return checkin
+    await current_app.dispatcher.dispatch_event("headsets:viewed", "/headsets/"+result['id'], current=result)
+    return jsonify(result), HTTPStatus.OK
 
 
-@headsets.route('/headsets/<headsetId>', methods=['PUT'])
-async def replace_headset(headsetId):
+@headsets.route('/headsets/<uuid:headset_id>', methods=['PUT'])
+async def replace_headset(headset_id):
     """
     Replace a headset
     ---
@@ -356,116 +363,92 @@ async def replace_headset(headsetId):
                     schema: Headset
         responses:
             200:
-                description: New headset object
+                description: The new object
                 content:
                     application/json:
                         schema: Headset
     """
     body = await request.get_json()
-    body['id'] = headsetId
+    if body is None:
+        body = {}
+    body['id'] = headset_id
 
-    headset = g.Headset.load(body)
-    headset.updated = time.time()
+    async with g.session_maker() as session:
+        stmt = sa.select(MobileDevice) \
+                .where(MobileDevice.id == headset_id) \
+                .limit(1) \
+                .options(sa.orm.selectinload(MobileDevice.pose)) \
+                .options(sa.orm.selectinload(MobileDevice.navigation_target))
 
-    previous = g.Headset.find_by_id(headsetId)
+        result = await session.execute(stmt)
+        existing = result.scalar()
 
-    incident_folder = g.active_incident.Headset.find_by_id(headsetId)
-    if incident_folder is None:
-        incident_folder = g.active_incident.Headset.add(headset.id)
+    if existing is None:
+        result = await _create_headset(headset_id, body)
+        return jsonify(result), HTTPStatus.CREATED
 
-    checkin = valid_check_in_or_none(incident_folder, previous, headset)
-
-    # Automatically create a check-in record for this headset
-    if checkin is None and headset.location_id != None:
-        checkin = incident_folder.CheckIn.load({'location_id': headset.location_id}, replace_id=True)
-        checkin.save()
-
-        headset.last_check_in_id = checkin.id
-
-    if checkin is not None and ('position' in body or 'orientation' in body):
-        change = PoseChange(
-                incident_id=g.active_incident.id,
-                headset_id=headset.id,
-                check_in_id=checkin.id,
-                position=headset.position,
-                orientation=headset.orientation
-        )
-
-        async with g.session_maker() as session:
-            session.add(change)
-            await session.commit()
-
-    created = headset.save()
-
-    if created:
-        await current_app.dispatcher.dispatch_event("headsets:created",
-                "/headsets/"+headset.id, current=headset, previous=previous)
-        if headset.location_id is not None:
-            await current_app.dispatcher.dispatch_event("location-headsets:created",
-                    "/locations/{}/headsets/{}".format(headset.location_id, headset.id), current=headset, previous=previous)
-        return jsonify(headset), HTTPStatus.CREATED
     else:
-        await current_app.dispatcher.dispatch_event("headsets:updated",
-                "/headsets/"+headset.id, current=headset, previous=previous)
-        if headset.location_id is not None:
-            await current_app.dispatcher.dispatch_event("location-headsets:updated",
-                    "/locations/{}/headsets/{}".format(headset.location_id, headset.id), current=headset, previous=previous)
-        return jsonify(headset), HTTPStatus.OK
+        result = await _update_headset(headset_id, body)
+        return jsonify(result), HTTPStatus.OK
 
 
 async def _update_headset(headset_id, patch):
-    headset = g.Headset.find_by_id(headset_id)
-    if headset is None:
+    stmt = sa.select(MobileDevice) \
+            .where(MobileDevice.id == headset_id) \
+            .limit(1) \
+            .options(sa.orm.selectinload(MobileDevice.pose)) \
+            .options(sa.orm.selectinload(MobileDevice.navigation_target))
+
+    result = await g.session.execute(stmt)
+    device = result.scalar()
+    if device is None:
         raise exceptions.NotFound(description="Headset {} was not found".format(id))
 
-    previous = headset.clone()
+    previous = headset_schema.dump(device)
+    device.update(patch)
 
-    # Do not allow changing the object's ID
-    if 'id' in patch:
-        del patch['id']
+    if patch.get('location_id') is not None:
+        location_id = uuid.UUID(patch['location_id'])
+        if location_id != device.location_id:
+            checkin = TrackingSession(
+                mobile_device_id=device.id,
+                incident_id=g.active_incident_id,
+                location_id=location_id
+            )
+            g.session.add(checkin)
+            await g.session.flush()
 
-    headset.update(patch)
-    headset.updated = time.time()
+            device.location_id = location_id
+            device.tracking_session_id = checkin.id
 
-    folder = g.active_incident.Headset.find_by_id(headset_id)
-    if folder is None:
-        # This is the first time the headset appears under the current incident.
-        folder = g.active_incident.Headset.add(headset.id)
+    # If we have a valid location set and the caller provided a
+    # position and orientation, we can create a DevicePose record.
+    if device.tracking_session_id is not None and 'position' in patch and 'orientation' in patch:
+        pose = pose_change_schema.load(patch, transient=True, unknown=marshmallow.EXCLUDE)
+        pose.tracking_session_id = device.tracking_session_id
+        pose.mobile_device_id = device.id
+        g.session.add(pose)
+        await g.session.flush()
 
-    checkin = valid_check_in_or_none(folder, previous, headset)
+        device.device_pose_id = pose.id
+        device.pose = pose
 
-    # Automatically create a check-in record for this headset
-    if checkin is None and headset.location_id != None:
-        checkin = folder.CheckIn.load({'location_id': headset.location_id}, replace_id=True)
-        checkin.save()
+    device.updated_time = datetime.datetime.now()
 
-        headset.last_check_in_id = checkin.id
+    await g.session.commit()
 
-    if checkin is not None and ('position' in patch or 'orientation' in patch):
-        change = PoseChange(
-                incident_id=g.active_incident.id,
-                headset_id=headset_id,
-                check_in_id=checkin.id,
-                position=headset.position,
-                orientation=headset.orientation
-        )
-
-        async with g.session_maker() as session:
-            session.add(change)
-            await session.commit()
-
-    headset.save()
+    result = headset_schema.dump(device)
 
     await current_app.dispatcher.dispatch_event("headsets:updated",
-            "/headsets/"+headset.id, current=headset, previous=previous)
-    if headset.location_id is not None:
+            "/headsets/"+str(device.id), current=result, previous=previous)
+    if device.location_id is not None:
         await current_app.dispatcher.dispatch_event("location-headsets:updated",
-                "/locations/{}/headsets/{}".format(headset.location_id, headset.id), current=headset, previous=previous)
+                "/locations/{}/headsets/{}".format(result['location_id'], str(device.id)), current=result, previous=previous)
 
-    return headset
+    return result
 
 
-@headsets.route('/headsets/<headset_id>', methods=['PATCH'])
+@headsets.route('/headsets/<uuid:headset_id>', methods=['PATCH'])
 async def update_headset(headset_id):
     """
     Update a headset
@@ -513,8 +496,8 @@ async def update_headset(headset_id):
                         schema: Headset
     """
     body = await request.get_json()
-    headset = await _update_headset(headset_id, body)
-    return jsonify(headset), HTTPStatus.OK
+    result = await _update_headset(headset_id, body)
+    return jsonify(result), HTTPStatus.OK
 
 
 @headsets.route('/incidents/<incident_id>/headsets', methods=['GET'])
@@ -557,29 +540,63 @@ async def list_incident_headsets(incident_id):
                             type: array
                             items: Headset
     """
-    incident_id = incident_id.lower()
     if incident_id == "active":
-        incident = g.active_incident
+        incident_id = g.active_incident_id
     else:
-        incident = g.Incident.find_by_id(incident_id)
+        try:
+            incident_id = uuid.UUID(incident_id)
+        except:
+            raise exceptions.BadRequest('Could not parse string "{}" as a UUID'.format(incident_id))
 
-    if incident is None:
-        raise exceptions.NotFound(description="Incident {} was not found".format(incident_id))
+    items = []
+    async with g.session_maker() as session:
+        stmt = sa.select(MobileDevice) \
+                .join(TrackingSession, TrackingSession.id == MobileDevice.tracking_session_id) \
+                .where(TrackingSession.incident_id == incident_id) \
+                .options(sa.orm.selectinload(MobileDevice.pose))
 
-    headsets = []
+        result = await session.execute(stmt)
+        for row in result.scalars():
+            items.append(headset_schema.dump(row))
 
-    # Find the headset IDs which have records in the incident folder.
-    # Then use the headset ID to find the headset object.
-    for incid_headset in incident.Headset.find():
-        headset = g.Headset.find_by_id(incid_headset.id)
-        if headset is not None:
-            headsets.append(headset)
+    return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
-    # Wrap the maps list if the caller requested an envelope.
-    query = request.args
-    if "envelope" in query:
-        result = {query.get("envelope"): headsets}
-    else:
-        result = headsets
 
-    return jsonify(result), HTTPStatus.OK
+@headsets.route('/headsets/<uuid:headset_id>/qrcode', methods=['GET'])
+async def get_headset_qrcode(headset_id):
+    """
+    Get a QR code for the device.
+    ---
+    get:
+        description: Get a QR code for the device.
+        tags:
+          - locations
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Location ID
+        responses:
+            200:
+                description: An SVG image file.
+                content:
+                    image/svg+xml: {}
+    """
+    async with g.session_maker() as session:
+        stmt = sa.select(MobileDevice) \
+                .where(MobileDevice.id == headset_id) \
+                .limit(1)
+
+        result = await session.execute(stmt)
+        headset = result.scalar()
+        if headset is None:
+            raise exceptions.NotFound(description="Headset {} was not found".format(id))
+
+        filename = "{}-qrcode.svg".format(headset_id.hex)
+        path = os.path.join(g.temp_dir, filename)
+
+        url = 'vizar://{}/devices/{}?token={}'.format(request.host, headset_id, headset.token)
+        code = pyqrcode.create(url, error='L')
+        code.svg(path, title=url, scale=16)
+
+    return await send_from_directory(g.temp_dir, filename)

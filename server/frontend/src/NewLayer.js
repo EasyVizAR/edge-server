@@ -1,6 +1,6 @@
 import './NewLayer.css';
 import App from './App.js';
-import {Form, Button, FloatingLabel, FormText, FormControl, Dropdown, DropdownButton} from 'react-bootstrap';
+import {Form, Button, FloatingLabel, FormText, FormControl, Dropdown, DropdownButton, Row, Col} from 'react-bootstrap';
 import React from "react";
 import { useContext, useState } from 'react';
 import { LocationsContext } from './Contexts.js';
@@ -11,29 +11,22 @@ function NewLayer(props) {
 
     const { locations, setLocations } = useContext(LocationsContext);
 
-    const [layerName, setLayerName] = useState(null);
-    const [imageMode, setImageMode] = useState('uploaded');
-    const [dropdownValue, setDropdownValue] = useState('');
-    const [selectedLocation, setSelectedLocation] = useState('');
+    const formReferences = {
+      name: React.createRef(),
+      cutting_height: React.createRef(),
+    }
+
+    const [layerType, setLayerType] = useState("generated");
     const [file, setFile] = useState('');
 
     const handleSubmit = (e) => {
-
-        if ((dropdownValue === '' || file === '' || file == null)  && imageMode === 'uploaded') {
-            alert("Please select in content type and file");
-            return;
-        } else if (layerName === '' || layerName == null) {
-            alert("Please fill in layer name");
-            return;
-        } else if (selectedLocation === '') {
-            alert("Please select location");
-            return;
+        const new_layer = {
+            name: formReferences.name.current.value,
+            type: layerType
         }
 
-        const new_layer = {
-            name: layerName,
-            contentType: dropdownValue,
-            type: imageMode
+        if (new_layer.type === "generated") {
+          new_layer.cutting_height = formReferences.cutting_height.current.value;
         }
 
         const requestData = {
@@ -44,101 +37,102 @@ function NewLayer(props) {
             body: JSON.stringify(new_layer)
         };
 
-        let url = `${host}/locations/${selectedLocation}/layers`;
+        let url = `${host}/locations/${props.location.id}/layers`;
         fetch(url, requestData)
             .then(response => response.json())
             .then(data => {
-                const url =  `${host}/locations/${selectedLocation}/layers/${data.id}/image`;
-                const formData = new FormData();
-                formData.append('image', file);
-                const config = {
-                    method: 'PUT',
-                    body: formData
-                };
-                fetch(url, config)
-                    .then(response => response.json())
-                    .then(data => {
-                        console.log("done");
-                        props.getLayers();
-                        e.target.form.elements.formLayerName.value = ""
-                        props.setTab('layer-view');
-                    });
-            });
-    }
+                if (props.setLayers) {
+                  props.setLayers(prevLayers => {
+                    let newLayers = [...prevLayers];
+                    newLayers.push(data);
+                    return newLayers;
+                  });
+                }
 
-    const updateState = (e, type) => {
-        let val = e.target.value;
-        switch (type) {
-            case "layer-name":
-                setLayerName(val);
-                break;
-            default:
-                console.log('bad type');
-                break;
-        }
+                if (layerType === "uploaded") {
+                  const url =  `${host}/locations/${props.location.id}/layers/${data.id}/image`;
+                  const formData = new FormData();
+                  formData.append('image', file);
+                  const config = {
+                      method: 'PUT',
+                      body: formData
+                  };
+                  fetch(url, config)
+                      .then(response => response.json());
+                }
+            });
     }
 
     const onFileSelect = (e) => {
         setFile(e.target.files[0])
     }
 
-    const changeImageMode = (e) => {
-        setImageMode(e.target.value);
-    };
-
-    const handleLocationSelection = (e) => {
-        setSelectedLocation(e);
-    }
-
-    const onImageTypeSelection = (e) => {
-        if (e === 'jpeg')
-            setDropdownValue('image/jpeg');
-        else if (e === 'png')
-            setDropdownValue('image/png');
-        else if (e === 'svg')
-            setDropdownValue('image/svg+xml');
-    }
-
     return (
-        <div className="new-layer">
-            <div className='new-layer-content'>
-                <h2>Create Layer</h2>
-                <Form onSubmit={handleSubmit} className='new-layer-form'>
-                    <Form.Group style={{width: '70%', margin: 'auto', display: 'flex', flexFlow: 'column'}}
-                                className="mb-3" controlId="layer-name">
-                        <DropdownButton id="location-dropdown" title="Select Location" onSelect={handleLocationSelection}>
-                            {
-                                Object.entries(locations).map(([id, loc]) => {
-                                    return <Dropdown.Item eventKey={id}>{loc.name}</Dropdown.Item>
-                                })
-                            }
-                        </DropdownButton>
-                        <FloatingLabel controlId="floating-name" label="Layer Name">
-                            <Form.Control type="text" placeholder="Layer Name" name="formLayerName"
-                                          onChange={(e) => updateState(e, "layer-name")}/>
-                        </FloatingLabel>
-                        <div className='radio-container'>
-                            <input type='radio' value='uploaded' checked={imageMode === 'uploaded'} name='image-mode-radio' onClick={changeImageMode}/>
-                            <label htmlFor="onmap" style={{paddingLeft: '1%'}}>Upload Image: </label>
-                            <input type="file" name="file" disabled={!(imageMode === 'uploaded')} onChange={onFileSelect}/>
-                            <DropdownButton title='Select Image Type' onSelect={onImageTypeSelection} disabled={!(imageMode === 'uploaded')}>
-                                <Dropdown.Item eventKey='jpeg'>JPEG</Dropdown.Item>
-                                <Dropdown.Item eventKey='svg'>SVG</Dropdown.Item>
-                                <Dropdown.Item eventKey='png'>PNG</Dropdown.Item>
-                            </DropdownButton>
-                        </div>
-                        <div className='radio-container'>
-                            <input type='radio' value='external' name='image-mode-radio' onClick={changeImageMode}/>
-                            <label htmlFor="onmap" style={{paddingLeft: '1%'}}>Input Image Url: </label>
-                            <FormControl type="text" placeholder="Image Url"  style={{width: '50%'}} disabled={!(imageMode === 'external')}/>
-                        </div>
-                    </Form.Group>
-                    <Button variant="primary" onClick={handleSubmit}>
-                        Create
-                    </Button>
-                </Form>
-            </div>
-        </div>
+      <div className="new-layer">
+        <h3 style={{textAlign: "left"}}>New Layer</h3>
+        <Form className='table-new-item-form new-layer-form'>
+          <Form.Group as={Row} className="mb-3">
+            <Form.Label column sm="2">
+              Name
+            </Form.Label>
+            <Col sm="10">
+              <Form.Control
+                className="mb-2"
+                id="new-layer-name"
+                placeholder="Name"
+                ref={formReferences.name}
+              />
+            </Col>
+          </Form.Group>
+
+          <Form.Group as={Row} className="mb-3">
+            <Form.Label column sm="2">
+              Layer Type
+            </Form.Label>
+            <Col sm="10">
+              <select
+                id="layer-type-dropdown"
+                title="Select Layer Type"
+                defaultValue="generated"
+                onChange={e => setLayerType(e.target.value)}
+                value={layerType}>
+                <option value="generated">Generated</option>
+                <option value="uploaded">Uploaded</option>
+              </select>
+            </Col>
+          </Form.Group>
+
+          <Form.Group as={Row} className="mb-3">
+            <Form.Label column sm="2">
+              Cutting Plane Height
+            </Form.Label>
+            <Col sm="10">
+              <Form.Control
+                className="mb-2"
+                type="number"
+                id="new-layer-cutting-heightt"
+                disabled={layerType !== "generated"}
+                placeholder="Cutting Height"
+                defaultValue="0"
+                ref={formReferences.cutting_height}
+              />
+            </Col>
+          </Form.Group>
+
+          <Form.Group as={Row} className="mb-3">
+            <Form.Label column sm="2">
+              Image File
+            </Form.Label>
+            <Col sm="10">
+              <Form.Control type="file" name="file" disabled={layerType !== 'uploaded'} onChange={onFileSelect} />
+            </Col>
+          </Form.Group>
+
+          <Button variant="primary" onClick={handleSubmit}>
+            Create Layer
+          </Button>
+        </Form>
+      </div>
     );
 }
 

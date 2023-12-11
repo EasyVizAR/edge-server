@@ -1,4 +1,7 @@
 import os
+import uuid
+
+from http import HTTPStatus
 
 import pytest
 
@@ -10,14 +13,18 @@ async def test_pose_change_routes():
     """
     Test pose change routes.
     """
-    async with app.test_client() as client:
-        position = dict(x=0, y=0, z=0)
+    test_location_id = str(uuid.uuid4())
 
-        response = await client.post("/headsets", json=dict(name="Test", position=position, location_id="location"))
+    async with app.test_client() as client:
+        position = dict(x=2, y=5, z=7)
+        orientation = dict(x=0, y=0, z=0, w=1)
+
+        response = await client.post("/headsets", json=dict(name="Test", position=position, orientation=orientation, location_id=test_location_id))
         assert response.status_code == 201
         assert response.is_json
         headset = await response.get_json()
         assert isinstance(headset, dict)
+        assert headset['name'] == 'Test'
 
         headset_url = "/headsets/{}".format(headset['id'])
         pose_changes_url = headset_url + "/pose-changes"
@@ -73,3 +80,7 @@ async def test_pose_change_routes():
         data = await response.get_json()
         assert isinstance(data, list)
         assert len(data) > 0
+
+        # Cleanup
+        response = await client.delete(headset_url)
+        assert response.status_code == HTTPStatus.OK

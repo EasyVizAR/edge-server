@@ -5,12 +5,6 @@ import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
 
-const placementTypes = [
-  "point",
-  "floating",
-  "surface"
-]
-
 function FeatureTable(props){
   const host = process.env.PUBLIC_URL;
   const icons = props.icons;
@@ -23,33 +17,25 @@ function FeatureTable(props){
     name: React.createRef(),
     color: React.createRef(),
     type: React.createRef(),
-    placement: React.createRef()
   };
-
-  const [editMode, setEditMode] = useState({
-    enabled: false,
-    featureId: null
-  });
 
   const [checkedItems, setCheckedItems] = useState({});
 
-  const enableEditMode = (e, id) => {
-    if (editMode.status) {
+  const enableEditMode = (e, id, feature) => {
+    if (props.editFeature?.status) {
       alert("Only one row can be open for editing at a time. Please save or cancel the currently open row.");
       return;
     }
 
-    setEditMode({
+    props.setEditFeature({
       status: true,
-      featureId: id
+      featureId: id,
+      position: Object.assign({}, feature.position),
     });
   }
 
   const cancelEditMode = (e, id) => {
-    setEditMode({
-      status: false,
-      featureId: null
-    });
+    props.setEditFeature(null);
   }
 
   // saves the headset data
@@ -59,7 +45,6 @@ function FeatureTable(props){
     const newName = formReferences.name.current.value;
     const newColor = formReferences.color.current.value;
     const newType = formReferences.type.current.value;
-    const newPlacement = formReferences.placement.current.value;
 
     const requestData = {
       method: 'PATCH',
@@ -70,15 +55,13 @@ function FeatureTable(props){
         'name': newName,
         'color': newColor,
         'type': newType,
-        'style.placement': newPlacement
+        'position.x': props.editFeature.position.x,
+        'position.y': props.editFeature.position.y,
+        'position.z': props.editFeature.position.z,
       })
     };
 
     fetch(url, requestData).then(response => {
-      props.features[id]['name'] = newName;
-      props.features[id]['color'] = newColor;
-      props.features[id]['type'] = newType;
-      props.features[id]['placement'] = newPlacement;
       cancelEditMode(null, id);
       props.getFeatures();
     });
@@ -170,6 +153,14 @@ function FeatureTable(props){
     );
   }
 
+  function setPositionValue(k, value) {
+    props.setEditFeature(previous => {
+      let newState = Object.assign({}, previous);
+      newState.position[k] = value;
+      return newState;
+    });
+  }
+
   return(
     <div style={{marginTop: "20px"}}>
       <div>
@@ -185,17 +176,12 @@ function FeatureTable(props){
             <th rowSpan='2'>Type</th>
             <th rowSpan='2'>Last Update</th>
             <th colSpan='3'>Position</th>
-            <th colSpan='4'>Style</th>
             <th colSpan='2' rowSpan='2'></th>
           </tr>
           <tr>
             <th>X</th>
             <th>Y</th>
             <th>Z</th>
-            <th>Placement</th>
-            <th>Radius</th>
-            <th>Left Offset</th>
-            <th>Top Offset</th>
           </tr>
         </thead>
         <tbody>
@@ -207,7 +193,7 @@ function FeatureTable(props){
                   <td>{id}</td>
                   <td id={"featureName" + id}>
                     {
-                      editMode.status && editMode.featureId === id ? (
+                      props.editFeature?.featureId === id ? (
                         <input
                           defaultValue={feature.name}
                           placeholder="Edit Feature Name"
@@ -222,7 +208,7 @@ function FeatureTable(props){
                   </td>
                   <td>
                     {
-                      editMode.status && editMode.featureId === id ? (
+                      props.editFeature?.featureId === id ? (
                         <input
                           defaultValue={feature.color}
                           placeholder="Edit Feature Color"
@@ -240,7 +226,7 @@ function FeatureTable(props){
                   </td>
                   <td>
                     {
-                      editMode.status && editMode.featureId === id ? (
+                      props.editFeature?.featureId === id ? (
                         <select
                           id="feature-type-dropdown"
                           title="Change Type"
@@ -258,36 +244,54 @@ function FeatureTable(props){
                     }
                   </td>
                   <td>{moment.unix(feature.updated).fromNow()}</td>
-                  <td>{feature.position.x.toFixed(3)}</td>
-                  <td>{feature.position.y.toFixed(3)}</td>
-                  <td>{feature.position.z.toFixed(3)}</td>
                   <td>
                     {
-                      editMode.status && editMode.featureId === id ? (
-                        <select
-                          id="feature-placement-dropdown"
-                          title="Change Placement"
-                          defaultValue={feature.style?.placement || "point"}
-                          ref={formReferences.placement}>
-                          {
-                            placementTypes.map((name, index) => {
-                              return <option style={{textTransform: 'capitalize'}} value={name}>{name}</option>
-                            })
-                          }
-                          </select>
+                      props.editFeature?.featureId === id ? (
+                        <input
+                          value={props.editFeature.position.x}
+                          placeholder="X"
+                          name={"feature-position-x"}
+                          type="number"
+                          onChange={(e) => setPositionValue("x", e.target.value)}
+                          id={"feature-position-x"} />
                       ) : (
-                        /* If style.placement is undefined, show a bug icon. */
-                        feature.style?.placement ?
-                          feature.style.placement : <FontAwesomeIcon icon="bug" size="lg" />
+                        feature.position.x.toFixed(3)
                       )
                     }
                   </td>
-                  <td>{feature.style?.radius}</td>
-                  <td>{feature.style?.leftOffset}</td>
-                  <td>{feature.style?.topOffset}</td>
                   <td>
                     {
-                      (editMode.status && editMode.featureId === id) ? (
+                      props.editFeature?.featureId === id ? (
+                        <input
+                          value={props.editFeature.position.y}
+                          placeholder="Y"
+                          name={"feature-position-y"}
+                          type="number"
+                          onChange={(e) => setPositionValue("y", e.target.value)}
+                          id={"feature-position-y"} />
+                      ) : (
+                        feature.position.y.toFixed(3)
+                      )
+                    }
+                  </td>
+                  <td>
+                    {
+                      props.editFeature?.featureId === id ? (
+                        <input
+                          value={props.editFeature.position.z}
+                          placeholder="Z"
+                          name={"feature-position-z"}
+                          type="number"
+                          onChange={(e) => setPositionValue("z", e.target.value)}
+                          id={"feature-position-z"} />
+                      ) : (
+                        feature.position.z.toFixed(3)
+                      )
+                    }
+                  </td>
+                  <td>
+                    {
+                      (props.editFeature?.featureId === id) ? (
                         <React.Fragment>
                           <Button
                             className={"btn-success table-btns"}
@@ -307,7 +311,7 @@ function FeatureTable(props){
                       ) : (
                         <Button
                           className={"btn-primary table-btns"}
-                          onClick={(e) => enableEditMode(e, id)}
+                          onClick={(e) => enableEditMode(e, id, feature)}
                           title='Edit'>
                           Edit
                         </Button>

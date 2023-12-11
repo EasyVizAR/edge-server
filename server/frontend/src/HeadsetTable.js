@@ -31,6 +31,7 @@ function HeadsetTable(props) {
     type: React.createRef(),
   };
 
+  const [checkedItems, setCheckedItems] = useState({});
   const [navigationTargetIndex, setNavigationTargetIndex] = useState(0);
   const [inEditModeHeadset, setInEditModeHeadset] = useState({
     status: false,
@@ -40,33 +41,17 @@ function HeadsetTable(props) {
   const navigationTargetOptions = ((props) => {
     const options = [
       {
+        id: null,
         name: "None",
-        value: null
       }
     ];
 
     if (Object.keys(props.features).length > 0) {
       Object.entries(props.features).map(([id, feature]) => {
         options.push({
-          name: "Feature: " + feature.name,
-          value: {
-            type: "feature",
-            target_id: feature.id,
-            position: feature.position
-          }
-        });
-      });
-    }
-
-    if (Object.keys(props.headsets).length > 0) {
-      Object.entries(props.headsets).map(([id, headset]) => {
-        options.push({
-          name: "Headset: " + headset.name,
-          value: {
-            type: "headset",
-            target_id: headset.id,
-            position: headset.position
-          }
+          id: feature.id,
+          name: feature.id + " - " + feature.name,
+          position: feature.position,
         });
       });
     }
@@ -98,12 +83,11 @@ function HeadsetTable(props) {
 
     // Find the current navigation target as an index in our list of options.
     var target_index = 0;
-    if (headset.navigation_target) {
-      const target_type = headset.navigation_target.type;
+    if (headset.navigation_target_id) {
       const target_id = headset.navigation_target.target_id;
 
       navigationTargetOptions.forEach((option, index) => {
-        if (target_type === option.value?.type && target_id == option.value?.target_id) {
+        if (target_id === option.id) {
           target_index = index;
         }
       });
@@ -136,7 +120,7 @@ function HeadsetTable(props) {
         'name': newName,
         'color': newColor,
         'type': formReferences.type.current.value,
-        'navigation_target': navigationTargetOptions[navigationTargetIndex].value
+        'navigation_target_id': navigationTargetOptions[navigationTargetIndex].id
       })
     };
 
@@ -184,6 +168,58 @@ function HeadsetTable(props) {
     });
   }
 
+  const toggleCheckAll = () => {
+    if (Object.keys(checkedItems).length > 0) {
+      setCheckedItems({});
+    } else {
+      var result = {};
+      for (const [id, feature] of Object.entries(props.headsets)) {
+        result[id] = true;
+      }
+      setCheckedItems(result);
+    }
+  }
+
+  const deleteCheckedItems = async () => {
+    const del = window.confirm("Are you sure you want to delete the checked items?");
+    if (!del) {
+      return;
+    }
+
+    await Object.entries(checkedItems)
+      .filter(([id, checked]) => checked)
+      .reduce((chain, [id]) => {
+        const url = `${host}/headsets/${id}`;
+        const requestData = {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        };
+
+        return chain.then(() => new Promise(resolve => {
+          setTimeout(() => {
+            fetch(url, requestData)
+              .then(response => {
+                props.features.pop(id);
+                resolve();
+              })
+              .catch(error => {
+                console.error(`Error deleting headset ${id}: ${error.message}`);
+                resolve();
+              });
+          }, 100); // Delay by 100ms to avoid triggering rate limit
+        }));
+      }, Promise.resolve());
+
+    setCheckedItems({});
+  }
+
+  const toggleCheck = (id) => {
+    checkedItems[id] = !checkedItems[id];
+    setCheckedItems({...checkedItems});
+  }
+
   const handleRemoveClicked = (id) => {
     const url = `${host}/headsets/${id}`;
 
@@ -224,17 +260,12 @@ function HeadsetTable(props) {
   }
 
   function NavigationTarget(child_props) {
-    const target = child_props.target;
+    const target_id = child_props.target_id;
 
-    switch(target?.type) {
-      case "point":
-        return <p>{target.position.x}</p>;
-      case "feature":
-        return <p>{props.features[target.target_id] ? props.features[target.target_id].name : "invalid"}</p>;
-      case "headset":
-        return <p>{props.headsets[target.target_id] ? props.headsets[target.target_id].name : "invalid"}</p>;
-      default:
-        return <p>None</p>;
+    if (target_id) {
+      return <p>{props.features[target_id]?.name || "invalid"}</p>;
+    } else {
+      return <p>None</p>;
     }
   }
 
@@ -246,6 +277,7 @@ function HeadsetTable(props) {
       <Table striped bordered hover>
         <thead>
           <tr>
+            <th rowSpan='2'><input type="checkbox" checked={Object.keys(checkedItems).length > 0} onChange={toggleCheckAll} /></th>
             <th rowSpan='2'>Headset ID</th>
             <th rowSpan='2'>Name</th>
             <th rowSpan='2'>Icon / Color</th>
@@ -254,7 +286,7 @@ function HeadsetTable(props) {
             <th rowSpan='2'>Type</th>
             <th colSpan='3'>Position</th>
             <th colSpan='4'>Orientation</th>
-            <th colSpan='2'>Navigation</th>
+            <th colSpan='2'>Target</th>
             <th colSpan='1'></th>
           </tr>
           <tr>
@@ -265,8 +297,8 @@ function HeadsetTable(props) {
             <th>Y</th>
             <th>Z</th>
             <th>W</th>
-            <th>Type</th>
-            <th>Target</th>
+            <th>ID</th>
+            <th>Name</th>
             <th></th>
           </tr>
         </thead>
@@ -275,6 +307,7 @@ function HeadsetTable(props) {
             Object.keys(props.headsets).length > 0 ? (
               Object.entries(props.headsets).map(([id, headset]) => {
                 return <tr>
+                  <td><input type="checkbox" id={"check-"+id} checked={checkedItems[id]} onChange={() => toggleCheck(id)} /></td>
                   <td><Link to={`/headsets/${id}`}>{id}</Link></td>
                   <td id={"headsetName" + id}>
                     {
@@ -340,7 +373,7 @@ function HeadsetTable(props) {
                         <select
                           id="navigation-target-dropdown"
                           title="Change Target"
-                          defaultValue={navigationTargetIndex}
+                          value={navigationTargetIndex}
                           onChange={(e) => setNavigationTargetIndex(e.target.value)}>
                           {
                             navigationTargetOptions.map((option, index) => {
@@ -351,8 +384,8 @@ function HeadsetTable(props) {
                       </td>
                     ) : (
                       <React.Fragment>
-                        <td>{headset.navigation_target ? headset.navigation_target.type : 'None'}</td>
-                        <td><NavigationTarget target={headset.navigation_target} /></td>
+                        <td>{headset.navigation_target_id}</td>
+                        <td><NavigationTarget target_id={headset.navigation_target_id} /></td>
                       </React.Fragment>
                     )
                   }
@@ -406,6 +439,12 @@ function HeadsetTable(props) {
           }
         </tbody>
       </Table>
+
+      {
+        Object.keys(checkedItems).length > 0 ? (
+          <Button variant="danger" onClick={deleteCheckedItems}>Delete Checked</Button>
+        ) : (null)
+      }
     </div>
   );
 }

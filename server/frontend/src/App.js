@@ -7,7 +7,10 @@ import Headset from './Headset.js';
 import IncidentHistory from './IncidentHistory.js';
 import LocationQrCodeWrapper from './LocationQrCodeWrapper.js';
 import PhotoWrapper from './PhotoWrapper.js';
+import VideoStreams from './VideoStreams.js';
+import VideoPlayer from './VideoPlayer.js';
 import WebsocketConnections from './WebsocketConnections.js';
+import Users from './Users.js';
 import NavBar from './NavBar.js';
 import { ActiveIncidentContext, LocationsContext } from './Contexts.js';
 
@@ -48,11 +51,14 @@ function App() {
                         <Route path="/headsets" element={<AllHeadsets />}/>
                         <Route path="/headsets/:headset_id" element={<Headset />}/>
                         <Route path="/incidents" element={<IncidentHistory />}/>
+                        <Route path="/streams" element={<VideoStreams />}/>
+                        <Route path="/streams/:stream_id" element={<VideoPlayer />}/>
                         <Route path="/websockets" element={<WebsocketConnections />}/>
-                        <Route path="/workitems" element={<WorkItems />}/>
                         <Route path="/locations/:location_id/qrcode" element={<LocationQrCodeWrapper />}/>
                         <Route path="/locations/:location_id" element={<Location />}/>
+                        <Route path="/photos" element={<WorkItems />}/>
                         <Route path="/photos/:photo_id" element={<PhotoWrapper />} />
+                        <Route path="/users" element={<Users />} />
                     </Routes>
                   </LocationsContext.Provider>
                   </ActiveIncidentContext.Provider>

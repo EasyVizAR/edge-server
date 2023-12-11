@@ -123,12 +123,16 @@ function Location(props) {
   const [features, setFeatures] = useState({}); // object indexed by feature.id
   const [headsets, setHeadsets] = useState({}); // object indexed by headset.id
   const [photos, setPhotos] = useState({});
-  const [showNewFeature, displayNewFeature] = useState(false);
+
+  const [showNewFeature, setShowNewFeature] = useState(false);
+  const [showNewLayer, setShowNewLayer] = useState(false);
+
   const [layers, setLayers] = useState([]);
   const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
   const [pointCoordinates, setPointCoordinates] = useState([]);
   const [cursor, setCursor] = useState('auto');
-  const [clickCount, setClickCount] = useState(0);
+  const [editFeature, setEditFeature] = useState(null);
+
   const [iconIndex, setIconIndex] = useState(null);
   const [headsetsChecked, setHeadsetsChecked] = useState(true);
   const [featuresChecked, setFeaturesChecked] = useState(false);
@@ -172,6 +176,31 @@ function Location(props) {
     // event handler.
     selectedLocationRef.current = selectedLocation;
   }, [selectedLocation]);
+
+  // Change the cursor when entering or exiting a feature edit mode.
+  useEffect(() => {
+    if (showNewFeature || editFeature) {
+      setCursor("crosshair");
+    } else {
+      setCursor("auto");
+    }
+  }, [showNewFeature, editFeature]);
+
+  // If a feature is being edited and the user clicks on the map,
+  // forward the clicked coordinate to the active feature.
+  // Avoid overwriting the Y value because that could be surprising.
+  useEffect(() => {
+    setEditFeature(previous => {
+      if (previous) {
+        let newState = Object.assign({}, previous);
+        newState.position.x = pointCoordinates[0];
+        newState.position.z = pointCoordinates[2];
+        return newState;
+      } else {
+        return previous;
+      }
+    });
+  }, [pointCoordinates]);
 
   // function that sends request to server to get headset data
   function getHeadsets() {
@@ -233,14 +262,9 @@ function Location(props) {
   }
 
   const changePointValue = (value, idx) => {
-    var coordinates = pointCoordinates;
+    var coordinates = [...pointCoordinates];
     coordinates[idx] = value;
     setPointCoordinates(coordinates);
-  }
-
-  // shows the new feature popup
-  const showFeature = (e) => {
-    displayNewFeature(showNewFeature ? false : true);
   }
 
   const resetSurfaces = (e) => {
@@ -290,28 +314,6 @@ function Location(props) {
   //}
   //return false;
   //}
-
-  const toggleCursor = (e) => {
-    if (cursor == 'crosshair') {
-      setCursor('auto');
-      if (clickCount > 0) {
-        let f = []
-        for (let i in features) {
-          f.push(features[i]);
-        }
-        f.pop();
-        setFeatures(f);
-        setClickCount(0);
-      }
-    } else {
-      setCursor('crosshair');
-      setClickCount(0);
-    }
-  }
-
-  const changeIcon = (v) => {
-    setCrossHairIcon(v);
-  }
 
   const getLayers = () => {
     fetch(`${host}/locations/${selectedLocation}/layers`)
@@ -535,15 +537,17 @@ function Location(props) {
               <React.Fragment>
                 <div className="header-button">
                   <Button variant="secondary" title="Add Feature" value="Add Feature"
-                    onClick={(e) => showFeature(e)}>Add Feature</Button>
+                    onClick={() => setShowNewFeature(!showNewFeature)}>Add Feature</Button>
+                </div>
+
+                <div className="header-button">
+                  <Button variant="secondary" title="Add Layer" value="Add Layer" onClick={() => setShowNewLayer(!showNewLayer)}>
+                    Add Layer
+                  </Button>
                 </div>
 
                 <div className="QR-code-btn header-button">
                   <Link className="btn btn-secondary" role="button" to={"/locations/" + selectedLocation + "/qrcode"}>Location QR Code</Link>
-                </div>
-
-                <div className="header-button">
-                  <a class="btn btn-secondary" href={`/locations/${selectedLocation}/layers/${selectedLayer}/image?features=1`}>Export Map</a>
                 </div>
 
                 <div className="header-button">
@@ -560,14 +564,19 @@ function Location(props) {
 
         <Container fluid>
           {
-            selectedLocation &&
+            selectedLocation && showNewFeature &&
               <NewFeature icons={icons}
-                showNewFeature={showNewFeature} changeCursor={toggleCursor}
-                changeIcon={changeIcon} pointCoordinates={pointCoordinates}
+                showNewFeature={showNewFeature}
+                pointCoordinates={pointCoordinates}
                 changePointValue={changePointValue} mapID={selectedLocation}
                 setIconIndex={setIconIndex} sliderValue={sliderValue}
                 setSliderValue={setSliderValue} setPlacementType={setPlacementType}
                 placementType={placementType} />
+          }
+
+          {
+            selectedLocation && showNewLayer &&
+              <NewLayer location={currentLocation} setLayers={setLayers} />
           }
 
           <Row className="location-header">
@@ -620,8 +629,8 @@ function Location(props) {
                   headsets={headsets} showHeadsets={headsetsChecked}
                   features={features} showFeatures={featuresChecked}
                   photos={photos} showPhotos={photosChecked}
-                  cursor={cursor} setClickCount={setClickCount}
-                  clickCount={clickCount} placementType={placementType} iconIndex={iconIndex}
+                  cursor={cursor}
+                  placementType={placementType} iconIndex={iconIndex}
                   setPointCoordinates={setPointCoordinates}
                   sliderValue={sliderValue}
                   crossHairIcon={crossHairIcon}
@@ -652,11 +661,12 @@ function Location(props) {
                   </Form>
                 </div>
 
-                <LayerTable locationId={selectedLocation} layers={layers} />
+                <LayerTable locationId={selectedLocation} layers={layers} setLayers={setLayers} />
 
                 <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
                   setHeadsets={setHeadsets} features={features} />
-                <FeatureTable icons={icons} features={features} locationId={selectedLocation} />
+                <FeatureTable icons={icons} features={features} locationId={selectedLocation}
+                  editFeature={editFeature} setEditFeature={setEditFeature} />
 
                 <HeadsetConfiguration location={currentLocation} setLocation={setCurrentLocation} />
 

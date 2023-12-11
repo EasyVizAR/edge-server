@@ -94,6 +94,7 @@ function WebsocketConnections(props) {
             <th rowSpan='2'><SortByLink attr="id" text="ID" /></th>
             <th rowSpan='2'><SortByLink attr="client" text="Client" /></th>
             <th rowSpan='2'><SortByLink attr="user_id" text="User" /></th>
+            <th rowSpan='2'><SortByLink attr="device_id" text="Device" /></th>
             <th rowSpan='2'><SortByLink attr="start_time" text="Start Time" /></th>
             <th colSpan='5'>Received (from client)</th>
             <th colSpan='5'>Sent (to client)</th>
@@ -120,8 +121,9 @@ function WebsocketConnections(props) {
                 return <tr>
                   <td>{id}</td>
                   <td>{websocket.client}</td>
+                  <td>{websocket.user_id ? websocket.user_id : "N/A" }</td>
                   <td>
-                    { websocket.user_id ? <Link to={`/headsets/${websocket.user_id}`}>{ websocket.user_id }</Link> : "N/A" }
+                    { websocket.device_id ? <Link to={`/headsets/${websocket.device_id}`}>{ websocket.device_id }</Link> : "N/A" }
                   </td>
                   <td>{moment.unix(websocket.start_time).fromNow()}</td>
                   <td>{websocket.messages_received}</td>

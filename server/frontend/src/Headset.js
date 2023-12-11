@@ -125,18 +125,21 @@ function Headset(props) {
   const [features, setFeatures] = useState({}); // object indexed by feature.id
   const [headsets, setHeadsets] = useState({}); // object indexed by headset.id
   const [positionHistory, setPositionHistory] = useState([]);
-  const [showNewFeature, displayNewFeature] = useState(false);
+  const [showNewFeature, setShowNewFeature] = useState(false);
   const [layers, setLayers] = useState([]);
+
   const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
   const [pointCoordinates, setPointCoordinates] = useState([]);
   const [cursor, setCursor] = useState('auto');
-  const [clickCount, setClickCount] = useState(0);
+  const [editFeature, setEditFeature] = useState(null);
+
   const [iconIndex, setIconIndex] = useState(null);
   const [sliderValue, setSliderValue] = useState(0);
   const [currLocationName, setCurrLocationName] = useState('');
   const [placementType, setPlacementType] = useState('');
   const [tab, setTab] = useState('location-view');
   const [historyData, setHistoryData] = useState([]);
+  const [showDeviceQR, setShowDeviceQR] = useState(false);
 
   const [navigationTarget, setNavigationTarget] = useState(null);
   const [navigationRoute, setNavigationRoute] = useState(null);
@@ -235,6 +238,31 @@ function Headset(props) {
       setNavigationRoute(null);
     }
   }, [navigationTarget]);
+
+  // Change the cursor when entering or exiting a feature edit mode.
+  useEffect(() => {
+    if (showNewFeature || editFeature) {
+      setCursor("crosshair");
+    } else {
+      setCursor("auto");
+    }
+  }, [showNewFeature, editFeature]);
+
+  // If a feature is being edited and the user clicks on the map,
+  // forward the clicked coordinate to the active feature.
+  // Avoid overwriting the Y value because that could be surprising.
+  useEffect(() => {
+    setEditFeature(previous => {
+      if (previous) {
+        let newState = Object.assign({}, previous);
+        newState.position.x = pointCoordinates[0];
+        newState.position.z = pointCoordinates[2];
+        return newState;
+      } else {
+        return previous;
+      }
+    });
+  }, [pointCoordinates]);
 
   // time goes off every 10 seconds to refresh headset data
   //    useEffect(() => {
@@ -336,14 +364,9 @@ function Headset(props) {
   }
 
   const changePointValue = (value, idx) => {
-    var coordinates = pointCoordinates;
+    var coordinates = [...pointCoordinates];
     coordinates[idx] = value;
     setPointCoordinates(coordinates);
-  }
-
-  // shows the new feature popup
-  const showFeature = (e) => {
-    displayNewFeature(showNewFeature ? false : true);
   }
 
   const resetSurfaces = (e) => {
@@ -406,28 +429,6 @@ function Headset(props) {
   //}
   //return false;
   //}
-
-  const toggleCursor = (e) => {
-    if (cursor == 'crosshair') {
-      setCursor('auto');
-      if (clickCount > 0) {
-        let f = []
-        for (let i in features) {
-          f.push(features[i]);
-        }
-        f.pop();
-        setFeatures(f);
-        setClickCount(0);
-      }
-    } else {
-      setCursor('crosshair');
-      setClickCount(0);
-    }
-  }
-
-  const changeIcon = (v) => {
-    setCrossHairIcon(v);
-  }
 
   const getLayers = () => {
     fetch(`${host}/locations/${selectedLocation}/layers`)
@@ -569,6 +570,16 @@ function Headset(props) {
     }
   }
 
+  function DeviceQRCode(props) {
+    return (
+      headset !== null && showDeviceQR ? (
+        <img src={`${host}/headsets/${headset.id}/qrcode`} />
+      ) : (
+        null
+      )
+    )
+  }
+
   return (
     <div className="Home">
       <Helmet>
@@ -591,7 +602,14 @@ function Headset(props) {
 
             <div className="header-button">
               <Button variant="secondary" title="Add Feature" value="Add Feature"
-                onClick={(e) => showFeature(e)}>Add Feature</Button>
+                onClick={() => setShowNewFeature(!showNewFeature)}>Add Feature</Button>
+            </div>
+
+            <div className="QR-code-btn header-button">
+              <Button variant="secondary" title="Device QR Code"
+                onClick={() => setShowDeviceQR(!showDeviceQR)}>
+                Device QR Code
+              </Button>
             </div>
 
             <div className="QR-code-btn header-button">
@@ -609,13 +627,17 @@ function Headset(props) {
           </div>
 
           <div className='home-content'>
-            <NewFeature icons={icons}
-              showNewFeature={showNewFeature} changeCursor={toggleCursor}
-              changeIcon={changeIcon} pointCoordinates={pointCoordinates}
-              changePointValue={changePointValue} mapID={selectedLocation}
-              setIconIndex={setIconIndex} sliderValue={sliderValue}
-              setSliderValue={setSliderValue} setPlacementType={setPlacementType}
-              placementType={placementType} />
+            {
+              showNewFeature &&
+                <NewFeature icons={icons}
+                  pointCoordinates={pointCoordinates}
+                  changePointValue={changePointValue} mapID={selectedLocation}
+                  setIconIndex={setIconIndex} sliderValue={sliderValue}
+                  setSliderValue={setSliderValue} setPlacementType={setPlacementType}
+                  placementType={placementType} />
+            }
+
+            <DeviceQRCode />
 
             <div style={{ textAlign: 'left', marginBottom: '15px' }}>
               <div style={{ display: 'inline-block' }}>
@@ -643,8 +665,8 @@ function Headset(props) {
               navigationTarget={headset?.navigation_target}
               navigationRoute={navigationRoute}
               showNavigation={displayOptions.navigation}
-              cursor={cursor} setClickCount={setClickCount}
-              clickCount={clickCount} placementType={placementType} iconIndex={iconIndex}
+              cursor={cursor}
+              placementType={placementType} iconIndex={iconIndex}
               setPointCoordinates={setPointCoordinates}
               sliderValue={sliderValue}
               crossHairIcon={crossHairIcon}
@@ -688,7 +710,8 @@ function Headset(props) {
 
             <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
               setHeadsets={setHeadsets} locations={locations} features={features} />
-            <FeatureTable icons={icons} features={features} locationId={selectedLocation} />
+            <FeatureTable icons={icons} features={features} locationId={selectedLocation}
+              editFeature={editFeature} setEditFeature={setEditFeature} />
           </div>
 
       </div>

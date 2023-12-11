@@ -5,6 +5,15 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
 import moment from 'moment';
 import { LocationsContext } from './Contexts.js';
+import NewDevice from './NewDevice.js';
+
+
+const deviceTypeOptions = [
+  "unknown",
+  "headset",
+  "phone",
+  "editor",
+];
 
 
 function AllHeadsets(props) {
@@ -20,6 +29,7 @@ function AllHeadsets(props) {
   // key press.
   const formReferences = {
     name: React.createRef(),
+    type: React.createRef(),
     location_id: React.createRef()
   }
 
@@ -105,6 +115,7 @@ function AllHeadsets(props) {
         },
         body: JSON.stringify({
           'name': newName,
+          'type': formReferences.type.current.value,
           'location_id': newLocationId
         })
       };
@@ -172,6 +183,7 @@ function AllHeadsets(props) {
           <tr>
             <th rowSpan='2'><SortByLink attr="id" text="Headset ID" /></th>
             <th rowSpan='2'><SortByLink attr="name" text="Name" /></th>
+            <th rowSpan='2'><SortByLink attr="type" text="Type" /></th>
             <th rowSpan='2'><SortByLink attr="location_id" text="Location" /></th>
             <th rowSpan='2'><SortByLink attr="updated" text="Last Update" /></th>
             <th colSpan='3'>Position</th>
@@ -212,6 +224,25 @@ function AllHeadsets(props) {
                   </td>
                   <td>
                     {
+                      inEditModeHeadset.status && inEditModeHeadset.rowKey === id ? (
+                        <select
+                          id="device-type-dropdown"
+                          title="Change Device Type"
+                          defaultValue={headset.type}
+                          ref={formReferences.type}>
+                          {
+                            deviceTypeOptions.map((type) => {
+                              return <option value={type}>{type}</option>
+                            })
+                          }
+                        </select>
+                      ) : (
+                        headset.type
+                      )
+                    }
+                  </td>
+                  <td>
+                    {
                       (inEditModeHeadset.rowKey === id) ? (
                         <select
                           id="headset-location-dropdown"
@@ -225,7 +256,11 @@ function AllHeadsets(props) {
                           }
                           </select>
                       ) : (
-                        locations[headset.location_id] ? locations[headset.location_id]['name'] : 'Unknown'
+                        locations[headset.location_id] ? (
+                          <Link to={`/locations/${headset.location_id}`}>{locations[headset.location_id]['name']}</Link>
+                        ) : (
+                          "Unknown"
+                        )
                       )
                     }
                   </td>
@@ -280,6 +315,8 @@ function AllHeadsets(props) {
           }
         </tbody>
       </Table>
+
+      <NewDevice setDevices={setHeadsets} />
     </div>
   );
 }

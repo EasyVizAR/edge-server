@@ -31,6 +31,24 @@ def upload_item(file_path):
     req = requests.post(req_url, json=item)
     photo = req.json()
 
+    if ADD_FAKE_ANNOTATION:
+        # Add a bounding box for an "object" for testing
+        patch = {
+            'annotations': [{
+                "boundary": {
+                    "height": 0.5,
+                    "width": 0.5,
+                    "top": 0.25,
+                    "left": 0.25
+                },
+                "confidence": 0.9,
+                "label": "object"
+            }]
+        }
+
+        req_url = "{}/photos/{}".format(SERVER_URL, photo['id'])
+        req = requests.patch(req_url, json=patch)
+
     headers = {
         "Content-Type": "image/jpeg"
     }

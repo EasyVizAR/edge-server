@@ -22,7 +22,7 @@ def patch_by_path(obj, path_components, value):
         setattr(current, path_components[-1], value)
 
 
-def patch_object(obj, changes):
+def patch_object(obj, changes, allowed=None):
     """
     Patch an object from a dictionary of changes.
 
@@ -44,6 +44,9 @@ def patch_object(obj, changes):
         patch_object(headset, {"position.y": 1})
     """
     for key, value in changes.items():
+        if allowed is not None and key not in allowed:
+            continue
+
         components = key.split(".")
         if len(components) == 1:
             patch_by_path(obj, [key], value)

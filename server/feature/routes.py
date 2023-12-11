@@ -1,12 +1,23 @@
+import datetime
 
 from http import HTTPStatus
 
 from quart import Blueprint, current_app, g, jsonify, request
 from werkzeug import exceptions
 
+import marshmallow
+import sqlalchemy as sa
+
+from server import auth
+from server.location.models import Location
+from server.utils.response import maybe_wrap
+
+from .models import MapMarker, FeatureSchema
 
 
 features = Blueprint("features", __name__)
+
+feature_schema = FeatureSchema()
 
 
 # Color palette for features.  This is the Tol muted palette, which is
@@ -23,7 +34,7 @@ default_color_palette = [
 ]
 
 
-@features.route('/locations/<location_id>/features', methods=['GET'])
+@features.route('/locations/<uuid:location_id>/features', methods=['GET'])
 async def list_features(location_id):
     """
     List features
@@ -46,24 +57,19 @@ async def list_features(location_id):
                             type: array
                             items: Feature
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    items = []
+    async with g.session_maker() as session:
+        stmt = sa.select(MapMarker).where(MapMarker.location_id == location_id)
+        result = await session.execute(stmt)
+        for row in result.scalars():
+            items.append(feature_schema.dump(row))
 
-    features = location.Feature.find()
+    await current_app.dispatcher.dispatch_event("features:viewed", "/locations/{}/features".format(str(location_id)))
 
-    # Wrap the list if the caller requested an envelope.
-    query = request.args
-    if "envelope" in query:
-        result = {query.get("envelope"): features}
-    else:
-        result = features
-
-    await current_app.dispatcher.dispatch_event("features:viewed", "/locations/{}/features".format(location_id))
-    return jsonify(result), HTTPStatus.OK
+    return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
 
-@features.route('/locations/<location_id>/features', methods=['POST'])
+@features.route('/locations/<uuid:location_id>/features', methods=['POST'])
 async def create_feature(location_id):
     """
     Create feature
@@ -100,28 +106,41 @@ async def create_feature(location_id):
     """
     body = await request.get_json()
 
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    # If client is sending ID, clear it so that it is automatically generated.
+    if 'id' in body:
+        del body['id']
 
-    # Choose a color for the feature by cycling through the palette.
-    if body.get("color") in [None, ""]:
-        features = location.Feature.find()
-        count = len(features)
-        body['color'] = default_color_palette[count % len(default_color_palette)]
+    async with g.session_maker() as session:
+        stmt = sa.select(Location).where(Location.id == location_id).limit(1)
+        result = await session.execute(stmt)
+        location = result.scalar()
+        if location is None:
+            raise exceptions.NotFound(description="Location {} was not found".format(location_id))
 
-    feature = location.Feature.load(body, replace_id=True)
-    if g.user_id is not None:
-        feature.createdBy = g.user_id
-    feature.save()
+        if g.user_id is not None:
+            body['user_id'] = g.user_id
+
+        marker = feature_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
+        marker.location_id = location_id
+        session.add(marker)
+        await session.commit()
+
+        # Choose a color for the feature by cycling through the palette.
+        if body.get("color") in [None, ""]:
+            marker.color = default_color_palette[marker.id % len(default_color_palette)]
+            await session.commit()
+
+    result = feature_schema.dump(marker)
 
     await current_app.dispatcher.dispatch_event("features:created",
-            "/locations/{}/features/{}".format(location_id, feature.id),
-            current=feature)
-    return jsonify(feature), HTTPStatus.CREATED
+            "/locations/{}/features/{}".format(location_id, marker.id),
+            current=result)
+
+    return jsonify(result), HTTPStatus.CREATED
 
 
-@features.route('/locations/<location_id>/features/<feature_id>', methods=['DELETE'])
+@features.route('/locations/<uuid:location_id>/features/<int:feature_id>', methods=['DELETE'])
+@auth.requires_admin
 async def delete_feature(location_id, feature_id):
     """
     Delete feature
@@ -142,24 +161,28 @@ async def delete_feature(location_id, feature_id):
                     application/json:
                         schema: Feature
     """
+    async with g.session_maker() as session:
+        stmt = sa.select(MapMarker) \
+                .where(MapMarker.location_id == location_id) \
+                .where(MapMarker.id == feature_id)
 
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+        result = await session.execute(stmt)
+        marker = result.scalar()
+        if marker is None:
+            raise exceptions.NotFound(description="Feature {} was not found".format(feature_id))
 
-    feature = location.Feature.find_by_id(feature_id)
-    if feature is None:
-        raise exceptions.NotFound(description="Feature {} was not found".format(feature_id))
+        await session.delete(marker)
+        await session.commit()
 
-    feature.delete()
+    result = feature_schema.dump(marker)
 
     await current_app.dispatcher.dispatch_event("features:deleted",
-            "/locations/{}/features/{}".format(location_id, feature.id),
-            previous=feature)
-    return jsonify(feature), HTTPStatus.OK
+            "/locations/{}/features/{}".format(location_id, feature_id),
+            previous=result)
+    return jsonify(result), HTTPStatus.OK
 
 
-@features.route('/locations/<location_id>/features/<feature_id>', methods=['GET'])
+@features.route('/locations/<uuid:location_id>/features/<int:feature_id>', methods=['GET'])
 async def get_feature(location_id, feature_id):
     """
     Get feature
@@ -180,21 +203,26 @@ async def get_feature(location_id, feature_id):
                     application/json:
                         schema: Feature
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(MapMarker) \
+                .where(MapMarker.location_id == location_id) \
+                .where(MapMarker.id == feature_id)
 
-    feature = location.Feature.find_by_id(feature_id)
-    if feature is None:
-        raise exceptions.NotFound(description="Feature {} was not found".format(feature_id))
+        result = await session.execute(stmt)
+        marker = result.scalar()
+        if marker is None:
+            raise exceptions.NotFound(description="Feature {} was not found".format(feature_id))
+
+    result = feature_schema.dump(marker)
 
     await current_app.dispatcher.dispatch_event("features:viewed",
-            "/locations/{}/features/{}".format(location_id, feature.id),
-            current=feature)
-    return jsonify(feature), HTTPStatus.OK
+            "/locations/{}/features/{}".format(location_id, feature_id),
+            current=result)
+
+    return jsonify(result), HTTPStatus.OK
 
 
-@features.route('/locations/<location_id>/features/<feature_id>', methods=['PUT'])
+@features.route('/locations/<uuid:location_id>/features/<int:feature_id>', methods=['PUT'])
 async def replace_feature(location_id, feature_id):
     """
     Replace feature
@@ -221,29 +249,48 @@ async def replace_feature(location_id, feature_id):
                         schema: Feature
     """
     body = await request.get_json()
+    if body is None:
+        body = {}
     body['id'] = feature_id
 
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(MapMarker) \
+                .where(MapMarker.location_id == location_id) \
+                .where(MapMarker.id == feature_id)
 
-    feature = location.Feature.load(body)
-    previous = location.Feature.find_by_id(feature_id)
-    created = feature.save()
+        result = await session.execute(stmt)
+        marker = result.scalar()
+
+        if marker is None:
+            previous = None
+            marker = feature_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
+            marker.location_id = location_id
+            session.add(marker)
+            created = True
+
+        else:
+            previous = feature_schema.dump(marker)
+            marker.update(body)
+            marker.updated_time = datetime.datetime.now()
+            created = False
+
+        await session.commit()
+
+    result = feature_schema.dump(marker)
 
     if created:
         await current_app.dispatcher.dispatch_event("features:created",
-                "/locations/{}/features/{}".format(location_id, feature.id),
-                current=feature, previous=previous)
-        return jsonify(feature), HTTPStatus.CREATED
+                "/locations/{}/features/{}".format(location_id, feature_id),
+                current=result, previous=previous)
+        return jsonify(result), HTTPStatus.CREATED
     else:
         await current_app.dispatcher.dispatch_event("features:updated",
-                "/locations/{}/features/{}".format(location_id, feature.id),
-                current=feature, previous=previous)
-        return jsonify(feature), HTTPStatus.OK
+                "/locations/{}/features/{}".format(location_id, feature_id),
+                current=result, previous=previous)
+        return jsonify(result), HTTPStatus.OK
 
 
-@features.route('/locations/<location_id>/features/<feature_id>', methods=['PATCH'])
+@features.route('/locations/<uuid:location_id>/features/<int:feature_id>', methods=['PATCH'])
 async def update_feature(location_id, feature_id):
     """
     Update feature
@@ -270,27 +317,29 @@ async def update_feature(location_id, feature_id):
                     application/json:
                         schema: Feature
     """
-
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
-
-    feature = location.Feature.find_by_id(feature_id)
-    if feature is None:
-        raise exceptions.NotFound(description="Feature {} was not found".format(feature_id))
-
-    previous = feature.clone()
-
     body = await request.get_json()
+    if body is None:
+        body = {}
 
-    # Do not allow changing the object's ID
-    if 'id' in body:
-        del body['id']
+    async with g.session_maker() as session:
+        stmt = sa.select(MapMarker) \
+                .where(MapMarker.location_id == location_id) \
+                .where(MapMarker.id == feature_id)
 
-    feature.update(body)
-    feature.save()
+        result = await session.execute(stmt)
+        marker = result.scalar()
+        if marker is None:
+            raise exceptions.NotFound(description="Feature {} was not found".format(feature_id))
+
+        previous = feature_schema.dump(marker)
+
+        marker.update(body)
+        marker.updated_time = datetime.datetime.now()
+        await session.commit()
+
+    result = feature_schema.dump(marker)
 
     await current_app.dispatcher.dispatch_event("features:updated",
-            "/locations/{}/features/{}".format(location_id, feature.id),
-            current=feature, previous=previous)
-    return jsonify(feature), HTTPStatus.OK
+            "/locations/{}/features/{}".format(location_id, feature_id),
+            current=result, previous=previous)
+    return jsonify(result), HTTPStatus.OK

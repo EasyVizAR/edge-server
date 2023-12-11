@@ -1,10 +1,17 @@
+import datetime
 import os
 
 from dataclasses import dataclass
 
-from server.headset.models import Headset
-from server.incidents.models import IncidentLoader
+from quart import current_app, g
+
+import marshmallow
+import sqlalchemy as sa
+
+from server.layer.models import Layer
+from server.location.models import Location
 from server.mapping.floorplanner import Floorplanner
+from server.surface.models import Surface
 
 
 @dataclass
@@ -16,8 +23,8 @@ class MapMakerResult:
 
 
 class MapMaker:
-    def __init__(self, layer, surfaces, mapping_state_path, output_path, cutting_height=0.0, features=None, headsets=None, slices=None):
-        self.layer = layer
+    def __init__(self, layer_id, surfaces, mapping_state_path, output_path, cutting_height=0.0, features=None, headsets=None, slices=None):
+        self.layer_id = layer_id
         self.surfaces = surfaces
         self.mapping_state_path = mapping_state_path
         self.output_path = output_path
@@ -32,7 +39,8 @@ class MapMaker:
 
         This should be called outside the main thread.
         """
-        surface_files = [surface.filePath for surface in self.surfaces]
+        #surface_files = [surface.filePath for surface in self.surfaces]
+        surface_files = self.surfaces
 
         floorplanner = Floorplanner(surface_files,
                 json_data_path=self.mapping_state_path,
@@ -42,9 +50,9 @@ class MapMaker:
                 slices=self.slices)
         changes = floorplanner.update_lines(initialize=False)
 
-        result = MapMakerResult(self.layer.id, self.output_path, changes=changes)
+        result = MapMakerResult(self.layer_id, self.output_path, changes=changes)
         if changes > 0 or self.features is not None or self.headsets is not None or self.slices is not None:
-            result.layer_id = self.layer.id
+            result.layer_id = self.layer_id
             result.view_box = floorplanner.write_image(self.output_path)
             result.changes = changes
             result.image_path = self.output_path
@@ -56,43 +64,53 @@ class MapMaker:
         return result
 
     @classmethod
-    def build_maker(cls, incident_id, location_id, show_features=False, show_headsets=False, slices=None):
+    async def build_maker(cls, incident_id, location_id, surface_dir, show_features=False, show_headsets=False, slices=None):
         """
         Build a MapMaker instance.
 
         This should be called from the main thread.
         """
-        incident = IncidentLoader.find_by_id(incident_id)
-        location = incident.Location.find_by_id(location_id)
-        surfaces = location.Surface.find()
+        async with g.session_maker() as session:
+            location = await session.get(Location, location_id)
 
-        layers = location.Layer.find(type="generated")
-        if len(layers) == 0:
-            layer = location.Layer(id=None, name="Division 0", type="generated", contentType="image/svg+xml")
-            layer.contentType = "image/svg+xml"
-            layer.imageUrl = "/locations/{}/layers/{}/image".format(location.id, layer.id)
-            layer.cutting_height = 0.0
-            layer.save()
-        else:
-            # TODO: different layers for the floors of a building
-            layer = layers[0]
+            stmt = sa.select(Layer) \
+                    .where(Layer.location_id == location_id) \
+                    .where(Layer.type == "generated")
 
-        features = None
-        headsets = None
+            result = await session.execute(stmt)
+            layers = result.scalars().all()
 
-        if show_features:
-            output_path = os.path.join(layer.get_dir(), "floor_plan_features.svg")
-            features = location.Feature.find()
-        elif show_headsets:
-            output_path = os.path.join(layer.get_dir(), "floor_plan_headsets.svg")
-            headsets = Headset.find(location_id=location_id)
-        elif slices is not None:
-            output_path = os.path.join(layer.get_dir(), "floor_plan_slices.svg")
-        else:
-            output_path = os.path.join(layer.get_dir(), "floor_plan.svg")
+            if len(layers) == 0:
+                layer = Layer(location_id=location_id, name="Division 0", type="generated")
+                session.add(layer)
 
-        mapping_state_path = os.path.join(layer.get_dir(), "floor_plan.json")
+                location.updated_time = datetime.datetime.now()
 
-        return MapMaker(layer, surfaces, mapping_state_path, output_path,
-                cutting_height=float(layer.cutting_height), features=features,
-                headsets=headsets, slices=slices)
+                await session.commit()
+
+            else:
+                # TODO: different layers for the floors of a building
+                layer = layers[0]
+
+#        if show_features:
+#            output_path = os.path.join(layer.get_dir(), "floor_plan_features.svg")
+#            features = location.Feature.find()
+#        elif show_headsets:
+#            output_path = os.path.join(layer.get_dir(), "floor_plan_headsets.svg")
+#            headsets = Headset.find(location_id=location_id)
+#        elif slices is not None:
+#            output_path = os.path.join(layer.get_dir(), "floor_plan_slices.svg")
+#        else:
+#            output_path = os.path.join(layer.get_dir(), "floor_plan.svg")
+
+        surfaces = []
+        if os.path.exists(surface_dir):
+            for fname in os.listdir(surface_dir):
+                surfaces.append(os.path.join(surface_dir, fname))
+
+        layer_dir = os.path.join(g.data_dir, 'locations', location_id.hex, 'layers', '{:08x}'.format(layer.id))
+        mapping_state_path = os.path.join(layer_dir, "floor_plan.json")
+        output_path = os.path.join(layer_dir, "image.svg")
+
+        return MapMaker(layer.id, surfaces, mapping_state_path, output_path,
+                cutting_height=float(layer.reference_height))

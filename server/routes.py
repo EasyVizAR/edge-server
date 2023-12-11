@@ -4,6 +4,7 @@ import os
 from http import HTTPStatus
 from quart import Blueprint, current_app, g, make_response, jsonify, websocket
 
+from . import auth
 from .apispec import create_openapi_spec
 
 
@@ -11,6 +12,7 @@ routes = Blueprint('routes', __name__)
 
 
 @routes.route('/', methods=['GET'])
+@auth.requires_user
 async def index():
     return await current_app.send_static_file('index.html')
 

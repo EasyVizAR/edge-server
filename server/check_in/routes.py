@@ -1,19 +1,27 @@
 import time
+import uuid
 
 from http import HTTPStatus
 
 from quart import Blueprint, g, jsonify, request
 from werkzeug import exceptions
 
+import sqlalchemy as sa
+
 from server import auth
+from server.headset.models import MobileDevice
 from server.resources.filter import Filter
 from server.utils.response import maybe_wrap
 
+from .models import TrackingSession, CheckInSchema
+
+
+check_in_schema = CheckInSchema()
 
 check_ins = Blueprint('check-ins', __name__)
 
 
-@check_ins.route('/headsets/<headset_id>/check-ins', methods=['GET'])
+@check_ins.route('/headsets/<uuid:headset_id>/check-ins', methods=['GET'])
 async def list_check_ins(headset_id):
     """
     List headset check-ins
@@ -42,24 +50,24 @@ async def list_check_ins(headset_id):
                             type: array
                             items: CheckIn
     """
+    items = []
+    async with g.session_maker() as session:
+        stmt = sa.select(TrackingSession).where(TrackingSession.mobile_device_id == headset_id)
 
-    filt = Filter()
-    if "location_id" in request.args:
-        location_id = request.args.get("location_id").lower()
-        if location_id in ["", "none", "null"]:
-            location_id = None
-        filt.target_equal_to("location_id", location_id)
+        try:
+            location_id = uuid.UUID(request.args.get('location_id'))
+            stmt = stmt.where(TrackingSession.location_id == location_id)
+        except:
+            pass
 
-    headset = g.active_incident.Headset.find_by_id(headset_id)
-    if headset is None:
-        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
-
-    items = headset.CheckIn.find(filt=filt)
+        result = await session.execute(stmt)
+        for row in result.scalars():
+            items.append(check_in_schema.dump(row))
 
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
 
-@check_ins.route('/headsets/<headset_id>/check-ins', methods=['POST'])
+@check_ins.route('/headsets/<uuid:headset_id>/check-ins', methods=['POST'])
 @auth.requires_own_headset_id
 async def create_check_in(headset_id):
     """
@@ -81,32 +89,33 @@ async def create_check_in(headset_id):
                     application/json:
                         schema: CheckIn
     """
-    headset = g.Headset.find_by_id(headset_id)
-    if headset is None:
-        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
-
-    incident_folder = g.active_incident.Headset.find_by_id(headset_id)
-    if incident_folder is None:
-        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
-
     body = await request.get_json()
+    body['headset_id'] = headset_id
 
-    checkin = incident_folder.CheckIn.load(body, replace_id=True)
-    checkin.save()
+    checkin = check_in_schema.load(body, transient=True)
+    checkin.mobile_device_id = headset_id
+    checkin.incident_id = g.active_incident_id
 
-    # Also update relevant fields in the headset object.
-    if body.get("location_id") is not None:
-        headset.location_id = checkin.location_id
+    async with g.session_maker() as session:
+        session.add(checkin)
+        await session.commit()
 
-    headset.last_check_in_id = checkin.id
-    headset.updated = time.time()
-    headset.save()
+        device = await session.get(MobileDevice, headset_id)
+        if device is None:
+            raise exceptions.NotFound(description="Headset {} was not found".format(headset_id))
 
-    return jsonify(checkin), HTTPStatus.CREATED
+        device.location_id = checkin.location_id
+        device.tracking_session_id = checkin.id
+        await session.commit()
+
+    result = check_in_schema.dump(checkin)
+
+    return jsonify(result), HTTPStatus.CREATED
 
 
-@check_ins.route('/headsets/<headset_id>/check-ins/<check_in_id>', methods=['DELETE'])
-async def delete_headset(headset_id, check_in_id):
+@check_ins.route('/headsets/<uuid:headset_id>/check-ins/<int:check_in_id>', methods=['DELETE'])
+@auth.requires_admin
+async def delete_check_in(headset_id, check_in_id):
     """
     Delete a headset check-in
     ---
@@ -130,20 +139,57 @@ async def delete_headset(headset_id, check_in_id):
                     application/json:
                         schema: CheckIn
     """
+    async with g.session_maker() as session:
+        stmt = sa.select(TrackingSession) \
+                .where(TrackingSession.mobile_device_id == headset_id) \
+                .where(TrackingSession.id == check_in_id)
+        res = await session.execute(stmt)
+        result = res.fetchone()
 
-    headset = g.Headset.find_by_id(headset_id)
-    if headset is None:
-        raise exceptions.NotFound(description="Headset {} was not found".format(headset_id))
+        if result is None:
+            raise exceptions.NotFound(description="Headset {} check-in was not found".format(headset_id))
 
-    incident_folder = g.active_incident.Headset.find_by_id(headset_id)
-    if incident_folder is None:
-        raise exceptions.NotFound(description="Headset {} was not found in the current incident".format(headset_id))
+        stmt = sa.delete(TrackingSession) \
+                .where(TrackingSession.mobile_device_id == headset_id) \
+                .where(TrackingSession.id == check_in_id)
+        await session.execute(stmt)
+        await session.commit()
 
-    checkin = incident_folder.CheckIn.find_by_id(check_in_id)
-    if checkin is None:
-        raise exceptions.NotFound(description="Headset {} check-in was not found".format(headset_id))
-
-    checkin.delete()
+    checkin = check_in_schema.dump(result)
 
     return jsonify(checkin), HTTPStatus.OK
 
+
+@check_ins.route('/locations/<uuid:location_id>/check-ins', methods=['GET'])
+async def list_location_check_ins(location_id):
+    """
+    List location check-ins
+    ---
+    get:
+        summary: List location check-ins
+        tags:
+         - check-ins
+        parameters:
+          - name: envelope
+            in: query
+            required: false
+            description: If set, the returned list will be wrapped in an envelope with this name.
+        responses:
+            200:
+                description: A list of objects.
+                content:
+                    application/json:
+                        schema:
+                            type: array
+                            items: CheckIn
+    """
+    items = []
+    async with g.session_maker() as session:
+        stmt = sa.select(TrackingSession) \
+                .where(TrackingSession.location_id == location_id)
+
+        result = await session.execute(stmt)
+        for row in result.scalars():
+            items.append(check_in_schema.dump(row))
+
+    return jsonify(maybe_wrap(items)), HTTPStatus.OK

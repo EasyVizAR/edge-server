@@ -9,6 +9,7 @@ from quart import g
 
 from server.headset.routes import _update_headset
 from server.utils.counter import Counter
+from server.utils.token_bucket import TokenBucket
 from server.utils.utils import GenericJsonEncoder
 
 
@@ -64,7 +65,7 @@ class WebsocketHandler:
     open_handlers = dict()
     next_handler_id = 1
 
-    def __init__(self, dispatcher, websocket, subprotocol="json", user_id=None, close_after_seconds=60):
+    def __init__(self, dispatcher, websocket, subprotocol="json", device_id=None, user_id=None, close_after_seconds=60):
         self.dispatcher = dispatcher
         self.websocket = websocket
         self.subprotocol = subprotocol
@@ -79,6 +80,7 @@ class WebsocketHandler:
         self.last_successful_send = time.time()
 
         self.echo_own_events = True
+        self.device_id = device_id
         self.user_id = user_id
         self.close_after_seconds = close_after_seconds
 
@@ -88,6 +90,9 @@ class WebsocketHandler:
 
         self.send_count = Counter(name="sent")
         self.receive_count = Counter(name="received")
+        self.dropped_messages_count = 0
+
+        self.move_tbf = TokenBucket()
 
         self.id = WebsocketHandler.next_handler_id
         WebsocketHandler.next_handler_id += 1
@@ -134,8 +139,14 @@ class WebsocketHandler:
         except:
             now = time.time()
             if now - self.last_successful_send > self.close_after_seconds:
-                print("WS [{}]: closing connection after repeated send failures".format(self.user_id))
+                print("WS [{}]: closing connection after repeated send failures".format(self.get_device_or_user()))
                 await self.close()
+
+    def get_device_or_user(self):
+        if self.device_id is not None:
+            return self.device_id
+        else:
+            return self.user_id
 
     async def send_text(self, text):
         await self.websocket.send(text)
@@ -153,12 +164,14 @@ class WebsocketHandler:
         """
         info = {
             "id": self.id,
+            "device_id": self.device_id,
             "user_id": self.user_id,
             "client": self.websocket.remote_addr,
             "last_successful_send": self.last_successful_send,
             "start_time": self.start_time,
             "subscriptions": list(self.subscriptions),
-            "subprotocol": self.subprotocol
+            "subprotocol": self.subprotocol,
+            "dropped_messages": self.dropped_messages_count
         }
         info.update(self.send_count.dump())
         info.update(self.receive_count.dump())
@@ -170,20 +183,20 @@ class WebsocketHandler:
         try:
             args = self.parser.parse_args(shlex.split(message))
         except Exception as err:
-            print("WS [{}]: error parsing command from client: {}".format(self.user_id, err))
+            print("WS [{}]: error parsing command from client: {}".format(self.get_device_or_user(), err))
             return
 
         if args.command == "subscribe":
             # Disallow duplicate subscriptions.
             # If the client subscribes multiple times, it is probably a bug.
             if (args.event, args.uri_filter) not in self.subscriptions:
-                print("WS [{}]: subscribe {} {}".format(self.user_id, args.event, args.uri_filter))
+                print("WS [{}]: subscribe {} {}".format(self.get_device_or_user(), args.event, args.uri_filter))
                 self.dispatcher.add_event_listener(args.event, args.uri_filter, self._send_event_notification)
                 self.subscriptions.add((args.event, args.uri_filter))
 
         elif args.command == "unsubscribe":
             if (args.event, args.uri_filter) in self.subscriptions:
-                print("WS [{}]: unsubscribe {} {}".format(self.user_id, args.event, args.uri_filter))
+                print("WS [{}]: unsubscribe {} {}".format(self.get_device_or_user(), args.event, args.uri_filter))
                 self.dispatcher.remove_event_listener(args.event, args.uri_filter, self._send_event_notification)
                 self.subscriptions.remove((args.event, args.uri_filter))
 
@@ -201,12 +214,31 @@ class WebsocketHandler:
                 self.echo_own_events = True
 
         elif args.command == "move":
-            if self.user_id is not None:
-                patch = {
-                    "position": dict(zip(["x", "y", "z"], args.position)),
-                    "orientation": dict(zip(["x", "y", "z", "w"], args.orientation))
-                }
-                await _update_headset(self.user_id, patch)
+            if self.device_id is None:
+                return
+
+            if self.move_tbf.check():
+                self.move_tbf.drain()
+            else:
+                self.dropped_messages_count += 1
+                return
+
+            patch = {
+                "position": dict(zip(["x", "y", "z"], args.position)),
+                "orientation": dict(zip(["x", "y", "z", "w"], args.orientation))
+            }
+
+            # _update_headset may be slower than the sending interval of the client,
+            # which results in buffering of updates and increasing delay. Silently
+            # dropping updates in excess of what we can handle should help for now.
+            # TODO: fix performance issue with _update_headset
+            start = time.time()
+            await _update_headset(self.device_id, patch)
+            delay = time.time() - start
+
+            # Update the token bucket drain rate so that we drop messages
+            # if they arrive faster than we can process.
+            self.move_tbf.update_rate(0.8 / delay)
 
         elif args.command == "ping":
             await self.send_text("pong")
@@ -233,11 +265,11 @@ class WebsocketHandler:
                     # that the websocket is still open.
                     now = time.time()
                     if now - self.last_successful_send > self.close_after_seconds:
-                        print("WS [{}]: closing connection due to inactivity".format(self.user_id))
+                        print("WS [{}]: closing connection due to inactivity".format(self.get_device_or_user()))
                         await self.close()
 
         except asyncio.CancelledError:
-            print("WS [{}]: connection closed, removing {} subscriptions".format(self.user_id, len(self.subscriptions)))
+            print("WS [{}]: connection closed, removing {} subscriptions".format(self.get_device_or_user(), len(self.subscriptions)))
             self._cleanup_handler()
 
             # Quart documentation warns that the cancellation error needs to be re-raised.

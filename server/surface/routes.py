@@ -1,22 +1,41 @@
 import asyncio
+import datetime
 import os
+import shutil
 import time
+import uuid
 
 from http import HTTPStatus
 
 from quart import Blueprint, current_app, g, jsonify, request, send_from_directory
 from werkzeug import exceptions
 
+import marshmallow
+import sqlalchemy as sa
+
+from server import auth
+from server.layer.models import LayerSchema
 from server.mapping.obj_file import ObjFileMaker
 from server.mapping.map_maker import MapMaker
+from server.models.layers import Layer
+from server.utils.response import maybe_wrap
+
+from .models import Surface, SurfaceSchema
 
 
 surfaces = Blueprint("surfaces", __name__)
 
+layer_schema = LayerSchema()
+surface_schema = SurfaceSchema()
+
 auto_build_obj = False
 
 
-@surfaces.route('/locations/<location_id>/surfaces', methods=['GET'])
+def get_surface_dir(location_id):
+    return os.path.join(g.data_dir, 'locations', location_id.hex, 'surfaces')
+
+
+@surfaces.route('/locations/<uuid:location_id>/surfaces', methods=['GET'])
 async def list_surfaces(location_id):
     """
     List surfaces
@@ -39,58 +58,20 @@ async def list_surfaces(location_id):
                             type: array
                             items: Surface
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    items = []
+    async with g.session_maker() as session:
+        stmt = sa.select(Surface).where(Surface.location_id == location_id)
+        result = await session.execute(stmt)
+        for row in result.scalars():
+            items.append(surface_schema.dump(row))
 
-    surfaces = location.Surface.find()
+    await current_app.dispatcher.dispatch_event("features:viewed", "/locations/{}/features".format(str(location_id)))
 
-    # Wrap the list if the caller requested an envelope.
-    query = request.args
-    if "envelope" in query:
-        result = {query.get("envelope"): surfaces}
-    else:
-        result = surfaces
-
-    return jsonify(result), HTTPStatus.OK
+    return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
 
-@surfaces.route('/locations/<location_id>/surfaces', methods=['POST'])
-async def create_surface(location_id):
-    """
-    Create surface
-    ---
-    post:
-        summary: Create surface
-        tags:
-         - surfaces
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema: Surface
-        responses:
-            200:
-                description: The created object
-                content:
-                    application/json:
-                        schema: Surface
-    """
-    body = await request.get_json()
-
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
-
-    surface = location.Surface.load(body, replace_id=True)
-    surface.filePath = os.path.join(surface.get_dir(), "surface.ply")
-    surface.fileUrl = "/locations/{}/surfaces/{}/surface.ply".format(location.id, surface.id)
-    surface.save()
-
-    return jsonify(surface), HTTPStatus.CREATED
-
-
-@surfaces.route('/locations/<location_id>/surfaces', methods=['DELETE'])
+@surfaces.route('/locations/<uuid:location_id>/surfaces', methods=['DELETE'])
+@auth.requires_admin
 async def clear_surfaces(location_id):
     """
     Clear surfaces
@@ -101,16 +82,18 @@ async def clear_surfaces(location_id):
         tags:
          - surfaces
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    async with g.session_maker() as session:
+        stmt = sa.delete(Surface).where(Surface.location_id == location_id)
+        await session.execute(stmt)
+        await session.commit()
 
-    location.Surface.clear()
+    shutil.rmtree(get_surface_dir(location_id), ignore_errors=True)
 
     return {}, HTTPStatus.OK
 
 
-@surfaces.route('/locations/<location_id>/surfaces/<surface_id>', methods=['DELETE'])
+@surfaces.route('/locations/<uuid:location_id>/surfaces/<uuid:surface_id>', methods=['DELETE'])
+@auth.requires_admin
 async def delete_surface(location_id, surface_id):
     """
     Delete surface
@@ -131,20 +114,25 @@ async def delete_surface(location_id, surface_id):
                     application/json:
                         schema: Surface
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(Surface) \
+                .where(Surface.location_id == location_id) \
+                .where(Surface.id == surface_id)
 
-    surface = location.Surface.find_by_id(surface_id)
-    if surface is None:
-        raise exceptions.NotFound(description="Surface {} was not found".format(surface_id))
+        result = await session.execute(stmt)
+        surface = result.scalar()
+        if surface is None:
+            raise exceptions.NotFound(description="Surface {} was not found".format(surface_id))
 
-    surface.delete()
+        await session.delete(surface)
+        await session.commit()
 
-    return jsonify(surface), HTTPStatus.OK
+    result = surface_schema.dump(surface)
+
+    return jsonify(result), HTTPStatus.OK
 
 
-@surfaces.route('/locations/<location_id>/surfaces/<surface_id>', methods=['GET'])
+@surfaces.route('/locations/<uuid:location_id>/surfaces/<uuid:surface_id>', methods=['GET'])
 async def get_surface(location_id, surface_id):
     """
     Get surface
@@ -165,18 +153,22 @@ async def get_surface(location_id, surface_id):
                     application/json:
                         schema: Surface
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(Surface) \
+                .where(Surface.location_id == location_id) \
+                .where(Surface.id == surface_id)
 
-    surface = location.Surface.find_by_id(surface_id)
-    if surface is None:
-        raise exceptions.NotFound(description="Surface {} was not found".format(surface_id))
+        result = await session.execute(stmt)
+        surface = result.scalar()
+        if surface is None:
+            raise exceptions.NotFound(description="Surface {} was not found".format(surface_id))
 
-    return jsonify(surface), HTTPStatus.OK
+    result = surface_schema.dump(surface)
+
+    return jsonify(result), HTTPStatus.OK
 
 
-@surfaces.route('/locations/<location_id>/surfaces/<surface_id>', methods=['PUT'])
+@surfaces.route('/locations/<uuid:location_id>/surfaces/<uuid:surface_id>', methods=['PUT'])
 async def replace_surface(location_id, surface_id):
     """
     Replace surface
@@ -204,69 +196,43 @@ async def replace_surface(location_id, surface_id):
 
     """
     body = await request.get_json()
+    if body is None:
+        body = {}
     body['id'] = surface_id
+    body['location_id'] = location_id
 
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    async with g.session_maker() as session:
+        stmt = sa.select(Surface) \
+                .where(Surface.location_id == location_id) \
+                .where(Surface.id == surface_id)
 
-    surface = location.Surface.load(body)
-    created = surface.save()
+        result = await session.execute(stmt)
+        surface = result.scalar()
+
+        if surface is None:
+            previous = None
+            surface = surface_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
+            surface.location_id = location_id
+            session.add(surface)
+            created = True
+
+        else:
+            previous = surface_schema.dump(surface)
+            surface.update(body)
+            surface.updated_time = datetime.datetime.now()
+            created = False
+
+        await session.commit()
+
+    result = surface_schema.dump(surface)
 
     if created:
-        return jsonify(surface), HTTPStatus.CREATED
+        return jsonify(result), HTTPStatus.CREATED
     else:
-        return jsonify(surface), HTTPStatus.OK
+        return jsonify(result), HTTPStatus.OK
 
 
-@surfaces.route('/locations/<location_id>/surfaces/<surface_id>', methods=['PATCH'])
-async def update_surface(location_id, surface_id):
-    """
-    Update surface
-    ---
-    patch:
-        summary: Update surface
-        description: This method may be used to modify selected fields of the object.
-        tags:
-         - surfaces
-        parameters:
-          - name: id
-            in: path
-            required: true
-            description: ID of the object to be modified
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema: Surface
-        responses:
-            200:
-                description: The modified object
-                content:
-                    application/json:
-                        schema: Surface
-    """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
-
-    surface = location.Surface.find_by_id(surface_id)
-    if surface is None:
-        raise exceptions.NotFound(description="Surface {} was not found".format(surface_id))
-
-    body = await request.get_json()
-
-    # Do not allow changing the object's ID
-    if 'id' in body:
-        del body['id']
-
-    surface.update(body)
-    surface.save()
-
-    return jsonify(surface), HTTPStatus.OK
-
-
-@surfaces.route('/locations/<location_id>/surfaces/<surface_id>/surface.ply', methods=['GET'])
+@surfaces.route('/locations/<uuid:location_id>/surfaces/<uuid:surface_id>/surface.ply', methods=['GET'])
 async def get_surface_file(location_id, surface_id):
     """
     Get a surface data file
@@ -281,18 +247,11 @@ async def get_surface_file(location_id, surface_id):
                 content:
                     application/ply: {}
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
-
-    surface = location.Surface.find_by_id(surface_id)
-    if surface is None:
-        raise exceptions.NotFound(description="Surface {} was not found".format(surface_id))
-
-    return await send_from_directory(surface.get_dir(), "surface.ply")
+    surface_fname = "{}.ply".format(surface_id.hex)
+    return await send_from_directory(get_surface_dir(location_id), surface_fname)
 
 
-@surfaces.route('/locations/<location_id>/surfaces/<surface_id>/surface.ply', methods=['PUT'])
+@surfaces.route('/locations/<uuid:location_id>/surfaces/<surface_id>/surface.ply', methods=['PUT'])
 async def upload_surface_file(location_id, surface_id):
     """
     Upload a surface data file
@@ -306,84 +265,46 @@ async def upload_surface_file(location_id, surface_id):
             content:
                 application/ply: {}
     """
-    location = g.active_incident.Location.find_by_id(location_id)
-    if location is None:
-        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    try:
+        surface_id = uuid.UUID(surface_id)
+    except ValueError:
+        raise exceptions.BadRequest("Surface ID was not a valid UUID")
 
-    surface = location.Surface.find_by_id(surface_id)
-    if surface is None:
-        surface = location.Surface(surface_id)
-        surface.filePath = os.path.join(surface.get_dir(), "surface.ply")
-        surface.fileUrl = "/locations/{}/surfaces/{}/surface.ply".format(location.id, surface.id)
-        surface.save()
+    async with g.session_maker() as session:
+        stmt = sa.select(Surface) \
+                .where(Surface.location_id == location_id) \
+                .where(Surface.id == surface_id)
 
-    created = not os.path.exists(surface.filePath)
+        result = await session.execute(stmt)
+        surface = result.scalar()
+
+        if surface is None:
+            surface = Surface(id=surface_id, location_id=location_id)
+            session.add(surface)
+            created = True
+
+        else:
+            surface.updated_time = datetime.datetime.now()
+            created = False
+
+        await session.commit()
+
+    surface_dir = get_surface_dir(location_id)
+    os.makedirs(surface_dir, exist_ok=True)
+    fname = "{}.ply".format(surface_id.hex)
+    path = os.path.join(surface_dir, fname)
 
     body = await request.get_data()
-    with open(surface.filePath, "wb") as output:
+    with open(path, "wb") as output:
         output.write(body)
 
-    surface.updated = time.time()
-    surface.save()
+    result = surface_schema.dump(surface)
 
-    location.last_surface_update = time.time()
-    location.save()
-
-    # Variables required for the callbacks below:
-    loop = asyncio.get_event_loop()
-    dispatcher = current_app.dispatcher
-    mapping_limiter = current_app.mapping_limiter
-    modeling_limiter = current_app.modeling_limiter
-    Location = g.active_incident.Location
-
-    # The pool limiter helps us batch multiple surface updates. If there is
-    # already a mapping task pending for this location, then we do not schedule
-    # another. This is not a perfect solution, as we may delay or miss
-    # processing the last updates.
-    if mapping_limiter.try_submit(location_id):
-        map_maker = MapMaker.build_maker(g.active_incident.id, location_id)
-        future = current_app.mapping_pool.submit(map_maker.make_map)
-
-        def map_ready(future):
-            mapping_limiter.finished(location_id)
-
-            result = future.result()
-            if result.changes > 0:
-                layer = location.Layer.find_by_id(result.layer_id)
-                layer.imagePath = result.image_path
-                layer.ready = True
-                layer.version += 1
-                layer.viewBox = result.view_box
-                layer.save()
-
-                layer_uri = "/locations/{}/layers/{}".format(location_id, layer.id)
-                asyncio.run_coroutine_threadsafe(dispatcher.dispatch_event("layers:updated", layer_uri, current=layer), loop=loop)
-
-        future.add_done_callback(map_ready)
-
-    # auto_build_obj flag enables or disables rebuilding the model obj file
-    # This is quite a bit of extra computation for an infrequently used file.
-    # It is probably better to lazily update the model file when requested.
-    if auto_build_obj and modeling_limiter.try_submit(location_id):
-        obj_maker = ObjFileMaker.build_maker(g.active_incident.id, location_id)
-        future = current_app.modeling_pool.submit(obj_maker.make_obj)
-
-        def model_ready(future):
-            modeling_limiter.finished(location_id)
-
-            result = future.result()
-
-            location = Location.find_by_id(location_id)
-            location.model_path = obj_maker.output_path
-            location.model_url = "/locations/{}/model".format(location_id)
-            location.save()
-
-            location_uri = "/locations/{}".format(location_id)
-            asyncio.run_coroutine_threadsafe(dispatcher.dispatch_event("locations:updated", location_uri, current=location), loop=loop)
-
-        future.add_done_callback(model_ready)
+    event_uri = "/locations/{}/surfaces/{}".format(location_id, surface_id)
+    await current_app.dispatcher.dispatch_event("surfaces:updated",
+            event_uri, current=result, previous=None)
 
     if created:
-        return jsonify(surface), HTTPStatus.CREATED
+        return jsonify(result), HTTPStatus.CREATED
     else:
-        return jsonify(surface), HTTPStatus.OK
+        return jsonify(result), HTTPStatus.OK

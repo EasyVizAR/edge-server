@@ -18,7 +18,7 @@ async def test_feature_routes():
 
     async with app.test_client() as client:
         # Create a test location
-        response = await client.post("/locations", json=dict(name="Test"))
+        response = await client.post("/locations", json=dict(name="Feature Test"))
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         location = await response.get_json()
@@ -41,7 +41,7 @@ async def test_feature_routes():
         assert isinstance(features2['items'], list)
 
         # Create an object
-        response = await client.post(features_url, json={test_field: "foo"})
+        response = await client.post(features_url, json={test_field: "foo", "style": "should-ignore"})
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         feature = await response.get_json()
@@ -66,6 +66,34 @@ async def test_feature_routes():
         feature2 = await response.get_json()
         assert int_equal(feature2['id'], feature['id'])
         assert feature2[test_field] == "bar"
+
+        # Test changing position by sending a nested object
+        position = {"x": 1, "y": 2, "z": 3}
+        response = await client.patch(feature_url, json={"position": position})
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        feature2 = await response.get_json()
+        assert int_equal(feature2['id'], feature['id'])
+        assert feature2[test_field] == "bar"
+        assert int(feature2['position']['x']) == 1
+        assert int(feature2['position']['y']) == 2
+        assert int(feature2['position']['z']) == 3
+
+        # Test changing position using dot notation
+        patch = {
+            "position.x": 4,
+            "position.y": 5,
+            "position.z": 6
+        }
+        response = await client.patch(feature_url, json=patch)
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        feature2 = await response.get_json()
+        assert int_equal(feature2['id'], feature['id'])
+        assert feature2[test_field] == "bar"
+        assert int(feature2['position']['x']) == 4
+        assert int(feature2['position']['y']) == 5
+        assert int(feature2['position']['z']) == 6
 
         # Test replacement
         response = await client.put(feature_url, json=feature)
@@ -99,3 +127,7 @@ async def test_feature_routes():
         assert response.status_code == HTTPStatus.NOT_FOUND
         response = await client.patch(feature_url, json={test_field: "bar"})
         assert response.status_code == HTTPStatus.NOT_FOUND
+
+        # Clean up
+        response = await client.delete('/locations/{}'.format(location['id']))
+        assert response.status_code == HTTPStatus.OK
