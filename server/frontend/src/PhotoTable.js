@@ -1,5 +1,5 @@
 import './Tables.css';
-import {Badge, Container, Table, Button} from 'react-bootstrap';
+import {Badge, Container, Table, Button, Pagination, Dropdown} from 'react-bootstrap';
 import React, {useState, useEffect} from 'react';
 import {Link} from "react-router-dom";
 import moment from 'moment';
@@ -8,6 +8,11 @@ import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.m
 
 function PhotoTable(props) {
   const host = process.env.PUBLIC_URL;
+  const itemsPerPage = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+  let annotations = findUniqueAnnotations(props.photos);
+  const [finalAnnotation, setFinalAnnotation] = useState("All");
+  var finalFilter = [];
 
   const [sortBy, setSortBy] = useState({
     attr: "created",
@@ -67,30 +72,43 @@ function PhotoTable(props) {
     return alternative;
   }
 
-  function Photo(props) {
+  function Photo(props){
     var url = '';
-    if (props.url) {
-      if (props.url.startsWith('http')) {
-        url = props.url;
-      } else {
-        var filename = chooseFile(props);
-        if (filename) {
-          url = `${host}/photos/${props.id}/${filename}`;
-        } else {
-          return <p style={{color: 'black'}}>No image</p>;
-        }
+    var full_url = props.e.imageUrl;
+    if (props.e.imageUrl != null){
+      if (props.e.imageUrl.includes('http')){
+        url = props.e.imageUrl;
+      }else{
+        url = `${host}/photos/${props.e.id}/thumbnail`;
+        full_url = `${host}${props.e.imageUrl}`;
       }
-    } else {
-      return <p style={{color: 'black'}}>No image</p>;
+    }else{
+      return(<p style={{color: 'black'}}>No Image Yet</p>);
     }
 
-    return (
-      <div className="image-parent">
-        <Link to={"/photos/" + props.id}>
-          <img className="work-items-images" src={url} alt="Photo" />
-        </Link>
-      </div>
-    );
+    if (props.e.hasBoundary == false){
+      return(
+        <div>
+          <a target="_blank" href={full_url}>
+            <img className="work-items-images" src={url} alt="Photo" />
+          </a>
+        </div>
+      );
+    }else{
+      var topOffset = props.e.topOffset * 100;
+      var leftOffset = props.e.leftOffset * 100;
+      var divWidth = props.e.divWidth * 100;
+      var divHeight = props.e.divHeight * 100;
+
+      return(
+        <div className="image-parent">
+          <Link to={"/photos/" + props.e.id}>
+            <img className="work-items-images" src={url} alt="Photo" />
+          </Link>
+          <div className='imageBorderDiv' style={{top: topOffset + "%", left: leftOffset + "%", width: divWidth + "%", height: divHeight + "%"}}></div>
+        </div>
+      );
+    }
   }
 
   function Detections(props) {
@@ -106,10 +124,72 @@ function PhotoTable(props) {
     );
   }
 
+  const onChangeAnnotation = (annotation) => {
+    setFinalAnnotation(annotation);
+    handleSort(props);
+  };
+
+  function handlePageChange(page){
+    setCurrentPage(page)
+  }
+
+  function findUniqueAnnotations(workItems) {
+    const uniqueAnnotations = new Set();
+
+    for(const key in workItems){
+      var item = workItems[key];
+      if(item['annotations']){
+        item['annotations'].forEach((annotation) => {uniqueAnnotations.add(annotation['label'])})
+      }
+    }
+
+    const uniqueAnnotationsArray = Array.from(uniqueAnnotations);
+    uniqueAnnotationsArray.push('All');
+    return uniqueAnnotationsArray;
+  }
+
+  function handleSort(props){
+    if(finalAnnotation == 'All'){
+      var filteredWorkItems = Object.values(props.photos);
+      filteredWorkItems.sort((a, b) => a[sortBy.attr] > b[sortBy.attr] ? sortBy.direction : -sortBy.direction)
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      finalFilter = filteredWorkItems;
+      return filteredWorkItems.slice(startIndex, endIndex);
+    }
+    else{
+      var filteredWorkItems = Object.values(props.photos).filter((item) => {
+        const annotations = item.annotations || [];
+        return annotations.some((annotation) => annotation.label === finalAnnotation);
+      });
+
+      filteredWorkItems.sort((a, b) => a[sortBy.attr] > b[sortBy.attr] ? sortBy.direction : -sortBy.direction)
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      finalFilter = filteredWorkItems;
+      return filteredWorkItems.slice(startIndex, endIndex);
+    }
+  }
+
+  // setAnnotations(findUniqueAnnotations(props.photos));
+
   return (
     <div style={{marginTop: "20px"}}>
       <div>
         <h3 style={{textAlign: "left"}}>Photos</h3>
+        <Dropdown>
+        <Dropdown.Toggle variant="success" id="dropdown-basic">
+          Filter
+        </Dropdown.Toggle>
+
+        <Dropdown.Menu>
+        {annotations.map((annotation, index) => (
+            <Dropdown.Item key={index} onClick={(event) => onChangeAnnotation(event.target.innerText)}>
+              {annotation}
+            </Dropdown.Item>
+          ))}
+        </Dropdown.Menu>
+      </Dropdown>
       </div>
       <Table striped bordered hover>
         <thead>
@@ -118,37 +198,37 @@ function PhotoTable(props) {
             <th><SortByLink attr="created" text="Date Created" /></th>
             <th><SortByLink attr="contentType" text="Content Type" /></th>
             <th><SortByLink attr="status" text="Status" /></th>
-            <th>Detections</th>
             <th>Image</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           {
-            Object.keys(props.photos).length > 0 ? (
-              Object.entries(props.photos).sort((a, b) => a[1][sortBy.attr] > b[1][sortBy.attr] ? sortBy.direction : -sortBy.direction).map(([id, photo]) => {
+            handleSort(props).length > 0 ? (
+              handleSort(props).map((e, index)  => {
                 return <tr>
-                  <td>{id}</td>
-                  <td>{moment.unix(photo.created).fromNow()}</td>
-                  <td>{photo.contentType}</td>
-                  <td>{photo.status}</td>
-                  <td>
-                    <Detections photo={photo} />
-                  </td>
-                  <td>
-                    <div>
-                      <Photo id={id} url={photo.imageUrl} files={photo.files} />
-                    </div>
-                  </td>
-                  <td>
-                    <Button
-                      variant="danger" size="sm"
-                      onClick={() => handleDeleteClicked(id)}
-                      title="Delete photo">
-                      Delete
-                    </Button>
-                  </td>
-                </tr>
+                    <td>
+                      <Link to={"/photos/" + e.id}>
+                        {e.id}
+                      </Link>
+                    </td>
+                    <td>{moment.unix(e.created).fromNow()}</td>
+                    <td>{e.contentType}</td>
+                    <td>{e.status}</td>
+                    <td>
+                      <div>
+                        <Photo e={e}/>
+                      </div>
+                    </td>
+                    <td>
+                      <Button
+                        variant="danger" size="sm"
+                        onClick={() => handleDeleteClicked(e.id)}
+                        title="Delete photo">
+                        Delete
+                      </Button>
+                    </td>
+                  </tr>
               })
             ) : (
               <tr><td colspan="100%">No photos to display.</td></tr>
@@ -156,6 +236,18 @@ function PhotoTable(props) {
           }
         </tbody>
       </Table>
+      <Pagination>
+        {Array.from({ length: Math.ceil(finalFilter.length / itemsPerPage) }).map((_, index) => (
+          <Pagination.Item
+            key={index}
+            active={index + 1 === currentPage}
+            onClick={() => handlePageChange(index + 1)}
+            style={{ display: "inline-block", margin: "5px" }}
+          >{index + 1}
+            
+          </Pagination.Item>
+        ))}
+      </Pagination>
     </div>
   );
 }

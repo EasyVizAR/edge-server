@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Table, Pagination } from 'react-bootstrap';
+import { Button, Table, Pagination, Dropdown } from 'react-bootstrap';
 import './WorkItems.css';
 import {Helmet} from 'react-helmet';
 import {Link} from "react-router-dom";
@@ -12,10 +12,13 @@ function WorkItems(props){
   const itemsPerPage = 10;
   const [currentPage, setCurrentPage] = useState(1);
   const[workItems, setWorkItems] = useState([]);
+  let filterWorkItems = [];
   const [sortBy, setSortBy] = useState({
     attr: "created",
     direction: -1,
   });
+  const [annotations, setAnnotations] = useState([]); 
+  const [finalAnnotation, setFinalAnnotation] = useState("All");
 
   useEffect(() => {
     getWorkItems();
@@ -78,7 +81,8 @@ function WorkItems(props){
             'topOffset': photo['annotations'][boundaryIndex]['boundary']['top'],
             'leftOffset': photo['annotations'][boundaryIndex]['boundary']['left'],
             'divWidth': photo['annotations'][boundaryIndex]['boundary']['width'],
-            'divHeight': photo['annotations'][boundaryIndex]['boundary']['height']
+            'divHeight': photo['annotations'][boundaryIndex]['boundary']['height'],
+            'annotations': photo['annotations']
           });
         }else{
           temp_data.push({
@@ -96,6 +100,7 @@ function WorkItems(props){
       temp_data.sort((photo1, photo2) => (photo1.created < photo2.created) ? 1 : -1);
 
       setWorkItems(temp_data);
+      setAnnotations(findUniqueAnnotations(temp_data));
     });
   }
 
@@ -111,6 +116,23 @@ function WorkItems(props){
     }
   }
 
+  function findUniqueAnnotations(workItems) {
+    const uniqueAnnotations = new Set();
+
+    workItems.forEach((item) => {
+      if (item.annotations && item.annotations.length > 0) {
+        item.annotations.forEach((annotation) => {
+          const annotationKey = annotation.label;
+          uniqueAnnotations.add(annotationKey);
+        });
+      }
+    });
+
+    const uniqueAnnotationsArray = Array.from(uniqueAnnotations);
+    uniqueAnnotationsArray.push('All');
+    return uniqueAnnotationsArray;
+  }
+  
   function Photos(props){
     var url = '';
     var full_url = props.e.imageUrl;
@@ -155,11 +177,22 @@ function WorkItems(props){
   }
 
   function handleSort(){
-    workItems.sort((a, b) => a[sortBy.attr] > b[sortBy.attr] ? sortBy.direction : -sortBy.direction)
+    var filteredWorkItems;
+    if(finalAnnotation == "All")
+      filteredWorkItems = workItems 
+    else
+      filteredWorkItems = workItems.filter((element) => element.annotations.some((subElement) => subElement.label == finalAnnotation ))
+    filteredWorkItems.sort((a, b) => a[sortBy.attr] > b[sortBy.attr] ? sortBy.direction : -sortBy.direction)
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    return workItems.slice(startIndex, endIndex);
+    filterWorkItems = filteredWorkItems;
+    return filteredWorkItems.slice(startIndex, endIndex);
   }
+
+  const onChangeAnnotation = (annotation) => {
+    setFinalAnnotation(annotation);
+    handleSort();
+  };
 
   return (
     <div className="WorkItems">
@@ -167,6 +200,19 @@ function WorkItems(props){
         <title>EasyVizAR Edge - Image Processing</title>
       </Helmet>
       <h1 className="main-header">Image Processing - Work Items</h1>
+      <Dropdown>
+      <Dropdown.Toggle variant="success" id="dropdown-basic">
+        Filter
+      </Dropdown.Toggle>
+
+      <Dropdown.Menu>
+      {annotations.map((annotation, index) => (
+          <Dropdown.Item key={index} onClick={(event) => onChangeAnnotation(event.target.innerText)}>
+            {annotation}
+          </Dropdown.Item>
+        ))}
+      </Dropdown.Menu>
+    </Dropdown>
       <Table className="work-items-table" striped bordered hover>
         <thead>
             <tr>
@@ -215,7 +261,7 @@ function WorkItems(props){
           </tbody>
       </Table>
       <Pagination>
-        {Array.from({ length: Math.ceil(workItems.length / itemsPerPage) }).map((_, index) => (
+        {Array.from({ length: Math.ceil(filterWorkItems.length / itemsPerPage) }).map((_, index) => (
           <Pagination.Item
             key={index}
             active={index + 1 === currentPage}

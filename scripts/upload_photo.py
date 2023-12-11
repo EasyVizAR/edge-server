@@ -1,17 +1,19 @@
 import os
 import requests
 import sys
-
+import random
 
 SERVER_URL = os.environ.get("SERVER_URL", "http://localhost:5000")
 ADD_FAKE_ANNOTATION = True
-
+objects = ["object1", "object2","object3"]
 
 def upload_item(file_path):
     item = {
-        "contentType": "image/jpeg"
+        "contentType": "image/jpeg",
+        "camera_location_id": "daa31ed1-d852-4c21-bef2-0536d3022652"
     }
-
+     
+    random_object = random.choice(objects)
     # Add a bounding box for an "object" for testing
     if ADD_FAKE_ANNOTATION:
         item['annotations'] = [{
@@ -22,7 +24,7 @@ def upload_item(file_path):
                 "left": 0.25
             },
             "confidence": 0.9,
-            "label": "object"
+            "label": random_object
         }]
 
     req_url = "{}/photos".format(SERVER_URL)
