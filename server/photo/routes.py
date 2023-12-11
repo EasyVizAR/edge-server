@@ -628,7 +628,8 @@ async def get_photo_thumbnail(photo_id):
 
             with Image.open(os.path.join(photo_dir, photo.name)) as im:
                 im.thumbnail(thumbnail_max_size)
-                im.save(thumbnail.name)
+                im.save(os.path.join(photo_dir, thumbnail.name))
+
 
                 thumbnail.width = im.width
                 thumbnail.height = im.height
