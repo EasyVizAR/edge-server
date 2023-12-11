@@ -60,7 +60,7 @@ async def try_send_png(image_path, original_type, width=900):
 
         return await send_from_directory(cache_dir, png_file)
 
-    raise exceptions.BadRequest("Unable to satisfy {} with file of type {}".format(accept, original_type))
+    raise exceptions.BadRequest("Unable to satisfy image/png with file of type {}".format(original_type))
 
 
 async def try_send_image(image_path, original_type, headers):
