@@ -1,0 +1,79 @@
+server {
+	listen 80;
+	server_name EXAMPLE.ORG;
+
+	root /var/www;
+	index index.html;
+
+	client_max_body_size 8M;
+
+	location / {
+		try_files $uri $uri/ =404;
+
+		error_page 403 =301 https://$host$request_uri;
+                error_page 404 =301 https://$host$request_uri;
+	}
+}
+
+server {
+	listen 443;
+	server_name EXAMPLE.ORG;
+
+        ssl on;
+        ssl_certificate /etc/letsencrypt/live/EXAMPLE.ORG/fullchain.pem; # managed by Certbot
+        ssl_certificate_key /etc/letsencrypt/live/EXAMPLE.ORG/privkey.pem; # managed by Certbot
+        ssl_session_timeout 5m;
+
+        ssl_protocols SSLv3 TLSv1 TLSv1.1 TLSv1.2;
+        ssl_ciphers "HIGH:!aNULL:!MD5 or HIGH:!aNULL:!MD5:!3DES";
+        ssl_prefer_server_ciphers on;
+
+	root /var/www;
+	index index.html;
+
+	client_max_body_size 8M;
+
+        location / {
+                proxy_pass http://127.0.0.1:5000/;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto https;
+                proxy_redirect http:// $scheme://;
+
+		# WebSocket support
+		proxy_http_version 1.1;
+		proxy_set_header Upgrade $http_upgrade;
+		proxy_set_header Connection "upgrade";
+        }
+
+        location ~ (/hls|/dash) {
+            root /tmp;
+
+            # Disable cache
+            if_modified_since off;
+            add_header 'Cache-Control' 'no-cache';
+            add_header 'Last-Modified' '';
+            etag off;
+
+            # CORS setup
+            add_header 'Access-Control-Allow-Origin' '*' always;
+            add_header 'Access-Control-Expose-Headers' 'Content-Length';
+
+            # allow CORS preflight requests
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Allow-Origin' '*';
+                add_header 'Access-Control-Max-Age' 1728000;
+                add_header 'Content-Type' 'text/plain charset=UTF-8';
+                add_header 'Content-Length' 0;
+                return 204;
+            }
+
+            types {
+                application/x-mpegURL m3u8;
+                application/dash+xml mpd;
+                video/mp2t ts;
+                text/html html;
+            }
+        }
+}
