@@ -67,7 +67,7 @@ server. It is currently experimental and may cause performance issues.
 sudo snap install easyvizar-detect
 ```
 
-[#](#) Installation from Source
+# Installation from Source
 
 Install dependencies.
 
