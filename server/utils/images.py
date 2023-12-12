@@ -1,7 +1,10 @@
 import hashlib
+import mimetypes
 import os
 import re
 import tempfile
+
+import magic
 
 from quart import send_from_directory
 from werkzeug import exceptions
@@ -16,15 +19,37 @@ except:
     cairosvg_imported = False
 
 
+class FakeMagic:
+    """
+    A class that looks like libmagic but only guesses file type based on file
+    extension. This servers as a fallback in case libmagic does not load
+    correctly.
+    """
+    def from_file(self, path):
+        mtype = mimetypes.guess_type(path)
+        if mtype[0] is None:
+            return "application/octet-stream"
+        else:
+            return mtype[0]
+
+
+def get_magic_instance():
+    # The magic library makes it easy to identify file types of uploaded files.
+    # Annoyingly, we need to track down the location of the magic database when
+    # installed as a snap.
+    try:
+        if "SNAP" in os.environ:
+            magic_file = os.path.join(os.environ['SNAP'], "usr/lib/file/magic.mgc")
+            return magic.Magic(magic_file=magic_file, mime=True)
+        else:
+            return magic.Magic(mime=True)
+    except magic.MagicException as error:
+        print("Error initializing magic object: {}".format(error))
+        return FakeMagic()
+
+
 def ext_from_type(ctype):
-    if ctype == "image/png":
-        return ".png"
-    elif ctype == "image/jpeg":
-        return ".jpeg"
-    elif ctype == "image/svg+xml":
-        return ".svg"
-    else:
-        return ""
+    return mimetypes.guess_extension(ctype)
 
 
 def hash_file(path, block_size=2**20, method=hashlib.sha1):

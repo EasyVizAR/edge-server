@@ -3,8 +3,6 @@ import tempfile
 
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
-import magic
-
 from quart import Quart, g
 from quart_sqlalchemy import SQLAlchemy
 
@@ -24,6 +22,7 @@ from server.streams import streams
 from server.surface.routes import surfaces
 from server.users import users
 
+from server.utils.images import get_magic_instance
 from server.utils.pool_limiter import PoolLimiter
 from server.utils.rate_limiter import main_rate_limiter
 from server.utils.utils import GenericJsonEncoder
@@ -134,14 +133,7 @@ async def before_first_request():
     # Create a temporary directory for transient files
     app.temp_dir = tempfile.mkdtemp()
 
-    # The magic library makes it easy to identify file types of uploaded files.
-    # Annoyingly, we need to track down the location of the magic database when
-    # installed as a snap.
-    if "SNAP" in os.environ:
-        magic_file = os.path.join(os.environ['SNAP'], "usr/lib/file/magic.mgc")
-        app.magic = magic.Magic(magic_file=magic_file, mime=True)
-    else:
-        app.magic = magic.Magic(mime=True)
+    app.magic = get_magic_instance()
 
     # Make sure some users are defined
     await initialize_users_table(app)
