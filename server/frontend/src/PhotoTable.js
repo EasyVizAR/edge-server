@@ -5,6 +5,7 @@ import {Link} from "react-router-dom";
 import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
+import './PhotoWrapper.css';
 
 function PhotoTable(props) {
   const host = process.env.PUBLIC_URL;
@@ -86,29 +87,31 @@ function PhotoTable(props) {
       return(<p style={{color: 'black'}}>No Image Yet</p>);
     }
 
-    if (props.e.hasBoundary == false){
-      return(
-        <div>
-          <a target="_blank" href={full_url}>
-            <img className="work-items-images" src={url} alt="Photo" />
-          </a>
-        </div>
-      );
-    }else{
-      var topOffset = props.e.topOffset * 100;
-      var leftOffset = props.e.leftOffset * 100;
-      var divWidth = props.e.divWidth * 100;
-      var divHeight = props.e.divHeight * 100;
-
-      return(
-        <div className="image-parent">
+    return(
+      <div className="photo-wrapper">
+        <a target="_blank" href={full_url}>
           <Link to={"/photos/" + props.e.id}>
             <img className="work-items-images" src={url} alt="Photo" />
           </Link>
-          <div className='imageBorderDiv' style={{top: topOffset + "%", left: leftOffset + "%", width: divWidth + "%", height: divHeight + "%"}}></div>
-        </div>
-      );
-    }
+          {
+            props.e.annotations && props.e.annotations.length > 0 &&
+              props.e.annotations.map((annotation, index) => {
+                if (finalAnnotation === "All" || finalAnnotation === annotation.label) {
+                  const style = {
+                    left: 100 * annotation.boundary.left + "%",
+                    top: 100 * annotation.boundary.top + "%",
+                    width: 100 * annotation.boundary.width + "%",
+                    height: 100 * annotation.boundary.height + "%",
+                  };
+                  return <div className="object-bounding-box" style={style}></div>
+                } else {
+                  return null;
+                }
+              })
+          }
+        </a>
+      </div>
+    );
   }
 
   function Detections(props) {
@@ -196,8 +199,8 @@ function PhotoTable(props) {
           <tr>
             <th><SortByLink attr="id" text="ID" /></th>
             <th><SortByLink attr="created" text="Date Created" /></th>
-            <th><SortByLink attr="contentType" text="Content Type" /></th>
             <th><SortByLink attr="status" text="Status" /></th>
+            <th>Detections</th>
             <th>Image</th>
             <th></th>
           </tr>
@@ -213,8 +216,10 @@ function PhotoTable(props) {
                       </Link>
                     </td>
                     <td>{moment.unix(e.created).fromNow()}</td>
-                    <td>{e.contentType}</td>
                     <td>{e.status}</td>
+                    <td>
+                      <Detections photo={e} />
+                    </td>
                     <td>
                       <div>
                         <Photo e={e}/>
@@ -244,7 +249,7 @@ function PhotoTable(props) {
             onClick={() => handlePageChange(index + 1)}
             style={{ display: "inline-block", margin: "5px" }}
           >{index + 1}
-            
+
           </Pagination.Item>
         ))}
       </Pagination>
