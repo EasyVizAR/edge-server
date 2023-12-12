@@ -123,7 +123,7 @@ function WorkItems(props){
     uniqueAnnotationsArray.push('All');
     return uniqueAnnotationsArray;
   }
-  
+
   function Photos(props){
     var url = '';
     var full_url = props.e.imageUrl;
@@ -138,29 +138,31 @@ function WorkItems(props){
       return(<p style={{color: 'black'}}>No Image Yet</p>);
     }
 
-    if (props.e.hasBoundary == false){
-      return(
-        <div>
-          <a target="_blank" href={full_url}>
-            <img className="work-items-images" src={url} alt="Photo" />
-          </a>
-        </div>
-      );
-    }else{
-      var topOffset = props.e.topOffset * 100;
-      var leftOffset = props.e.leftOffset * 100;
-      var divWidth = props.e.divWidth * 100;
-      var divHeight = props.e.divHeight * 100;
-
-      return(
-        <div className="image-parent">
+    return(
+      <div className="image-parent">
+        <a target="_blank" href={full_url}>
           <Link to={"/photos/" + props.e.id}>
             <img className="work-items-images" src={url} alt="Photo" />
           </Link>
-          <div className='imageBorderDiv' style={{top: topOffset + "%", left: leftOffset + "%", width: divWidth + "%", height: divHeight + "%"}}></div>
-        </div>
-      );
-    }
+          {
+            props.e.annotations && props.e.annotations.length > 0 &&
+              props.e.annotations.map((annotation, index) => {
+                if (finalAnnotation === "All" || finalAnnotation === annotation.label) {
+                  const style = {
+                    left: 100 * annotation.boundary.left + "%",
+                    top: 100 * annotation.boundary.top + "%",
+                    width: 100 * annotation.boundary.width + "%",
+                    height: 100 * annotation.boundary.height + "%",
+                  };
+                  return <div className="imageBorderDiv" style={style}></div>
+                } else {
+                  return null;
+                }
+              })
+          }
+        </a>
+      </div>
+    );
   }
 
   function handlePageChange(page){
@@ -186,21 +188,20 @@ function WorkItems(props){
   };
 
   return (
-    <div className="WorkItems">
+    <div>
       <Dropdown>
-      <Dropdown.Toggle variant="success" id="dropdown-basic">
-        Filter
-      </Dropdown.Toggle>
-
-      <Dropdown.Menu>
-      {annotations.map((annotation, index) => (
-          <Dropdown.Item key={index} onClick={(event) => onChangeAnnotation(event.target.innerText)}>
-            {annotation}
-          </Dropdown.Item>
-        ))}
-      </Dropdown.Menu>
-    </Dropdown>
-      <Table className="work-items-table" striped bordered hover>
+        <Dropdown.Toggle variant="success" id="dropdown-basic">
+          Filter
+        </Dropdown.Toggle>
+        <Dropdown.Menu>
+        {annotations.map((annotation, index) => (
+            <Dropdown.Item key={index} onClick={(event) => onChangeAnnotation(event.target.innerText)}>
+              {annotation}
+            </Dropdown.Item>
+          ))}
+        </Dropdown.Menu>
+      </Dropdown>
+      <Table striped bordered hover>
         <thead>
             <tr>
               <th><SortByLink attr="id" text="Photo ID" /></th>
