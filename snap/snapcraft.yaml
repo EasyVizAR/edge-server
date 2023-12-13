@@ -67,6 +67,7 @@ parts:
       - libcairo2
       - libjpeg-turbo8
       - libmagic1
+      - libmagic-mgc
       - python3
       - on armhf:
         - libxml2-dev
