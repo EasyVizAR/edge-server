@@ -162,11 +162,10 @@ async def before_request():
     await initialize_incidents(app)
 
 
-@app.after_request
-async def after_request(response):
-    await g.session.close()
-
-    return response
+@app.teardown_request
+async def teardown_request(exception):
+    if hasattr(g, "session"):
+        await g.session.close()
 
 
 @app.before_websocket
@@ -192,8 +191,7 @@ async def before_websocket():
     await initialize_incidents(app)
 
 
-@app.after_websocket
-async def after_websocket(response):
-    await g.session.close()
-
-    return response
+@app.teardown_websocket
+async def teardown_websocket(exception):
+    if hasattr(g, "session"):
+        await g.session.close()
