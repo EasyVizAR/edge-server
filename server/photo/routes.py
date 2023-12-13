@@ -848,7 +848,7 @@ async def upload_photo_file_by_name(photo_id, filename):
 
     # If the photo was uploaded, and not some other type of file,
     # then send to detection queue.
-    if file_purpose == "photo":
+    if file.purpose == "photo":
         photo.queue_name = "detection"
 
     photo.updated_time = datetime.datetime.now()
