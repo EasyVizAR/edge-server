@@ -787,74 +787,74 @@ async def upload_photo_file_by_name(photo_id, filename):
                 image/jpeg: {}
                 image/png: {}
     """
-    async with g.session_maker() as session:
-        stmt = sa.select(PhotoRecord) \
-                .where(PhotoRecord.id == photo_id) \
-                .limit(1) \
-                .options(sa.orm.selectinload(PhotoRecord.annotations))
+    stmt = sa.select(PhotoRecord) \
+            .where(PhotoRecord.id == photo_id) \
+            .limit(1) \
+            .options(sa.orm.selectinload(PhotoRecord.annotations)) \
+            .options(sa.orm.selectinload(PhotoRecord.files))
 
-        result = await session.execute(stmt)
-        photo = result.scalar()
-        if photo is None:
-            raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+    result = await g.session.execute(stmt)
+    photo = result.scalar()
+    if photo is None:
+        raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
-        previous = photo_schema.dump(photo)
+    previous = photo_schema.dump(photo)
 
-        photo_dir = get_photo_dir(photo.location_id, photo_id)
-        os.makedirs(photo_dir, exist_ok=True)
+    photo_dir = get_photo_dir(photo.location_id, photo_id)
+    os.makedirs(photo_dir, exist_ok=True)
 
-        upload_file_name = secure_filename(filename)
+    upload_file_name = secure_filename(filename)
 
-        stmt = sa.select(PhotoFile) \
-                .where(PhotoFile.photo_record_id == photo_id) \
-                .where(PhotoFile.name == upload_file_name) \
-                .limit(1)
+    stmt = sa.select(PhotoFile) \
+            .where(PhotoFile.photo_record_id == photo_id) \
+            .where(PhotoFile.name == upload_file_name) \
+            .limit(1)
 
-        result = await session.execute(stmt)
-        file = result.scalar()
+    result = await g.session.execute(stmt)
+    file = result.scalar()
 
-        if file is None:
-            file_purpose, file_ext = os.path.splitext(upload_file_name)
-            file_purpose = file_purpose.lower()
+    if file is None:
+        file_purpose, file_ext = os.path.splitext(upload_file_name)
+        file_purpose = file_purpose.lower()
 
-            file = PhotoFile(
-                name=upload_file_name,
-                photo_record_id=photo_id,
-                purpose=file_purpose,
-                content_type="image/png"
-            )
-            session.add(file)
-            created = True
-        else:
-            created = False
+        file = PhotoFile(
+            name=upload_file_name,
+            photo_record_id=photo_id,
+            purpose=file_purpose,
+            content_type="image/png"
+        )
+        g.session.add(file)
+        created = True
+    else:
+        created = False
 
-        photo_path = os.path.join(photo_dir, upload_file_name)
+    photo_path = os.path.join(photo_dir, upload_file_name)
 
-        request_files = await request.files
-        if 'image' in request_files:
-            await save_image(photo_path, request_files['image'])
-        else:
-            body = await request.get_data()
-            with open(photo_path, "wb") as output:
-                output.write(body)
+    request_files = await request.files
+    if 'image' in request_files:
+        await save_image(photo_path, request_files['image'])
+    else:
+        body = await request.get_data()
+        with open(photo_path, "wb") as output:
+            output.write(body)
 
-        try:
-            with Image.open(photo_path) as im:
-                file.content_type = im.get_format_mimetype()
-                file.width = im.width
-                file.height = im.height
-        except:
-            pass
+    try:
+        with Image.open(photo_path) as im:
+            file.content_type = im.get_format_mimetype()
+            file.width = im.width
+            file.height = im.height
+    except:
+        pass
 
-        # If the photo was uploaded, and not some other type of file,
-        # then send to detection queue.
-        if file_purpose == "photo":
-            photo.queue_name = "detection"
+    # If the photo was uploaded, and not some other type of file,
+    # then send to detection queue.
+    if file_purpose == "photo":
+        photo.queue_name = "detection"
 
-        photo.updated_time = datetime.datetime.now()
-        file.updated_time = datetime.datetime.now()
+    photo.updated_time = datetime.datetime.now()
+    file.updated_time = datetime.datetime.now()
 
-        await session.commit()
+    await g.session.commit()
 
     result = photo_schema.dump(photo)
 
