@@ -153,6 +153,10 @@ async def list_photos():
         except:
             pass
 
+        status = request.args.get("status")
+        if status is not None:
+            stmt = stmt.where(PhotoRecord.queue_name == status)
+
         ready = request.args.get("ready")
         if ready is not None:
             stmt = stmt.where(PhotoRecord.queue_name == "detection")
