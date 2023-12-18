@@ -67,6 +67,51 @@ server. It is currently experimental and may cause performance issues.
 sudo snap install easyvizar-detect
 ```
 
+# Post-Installation Setup
+
+## Users and Authentication
+
+When the server starts for the first time, it will create three default user
+accounts: admin, user, and guest. The admin and user accounts will be
+configured with randomly generated passwords that can be found in the log
+output.  The guest account will have no password configured by default.  If
+installed as a snap, the following command will reveal the default account
+passwords. You may need to open a connection to the server through a web
+browser one time in order for the initialization to complete.
+
+```console
+sudo snap logs -n=all easyvizar-edge | grep user
+```
+
+It is recommended to change the admin and user account passwords after
+installation. This can be done on the Users page of the web dashboard if
+logged in as an admin user. The default admin and user accounts should not
+be deleted.  However, the guest account can be safely deleted if desired.
+
+## Create a Location
+
+In the EasyVizAR system, a *location* is any defined physical space to
+which virtual content can be anchored. A location might be a multi-floor
+office building, for example. The server will generate a unique QR code
+for each location. By scanning the QR code, EasyVizAR-capable devices can
+report their presence and synchronize their virtual coordinate system,
+with the QR code serving as the origin of the coordinate system.
+
+Navigate to the Locations page on the web dashboard and use the form to
+create a new location. Then click on the newly-created location ID link in
+the table to go to page for that location. Initially, the map and tables
+will be empty but will be populated as devices join the location and send
+data. Click on the *Location QR Code* button to generate a QR code. It
+is recommended to print the QR code on letter size paper and afix it
+**horizontally** to a flat surface in the environment, roughly between
+waist and eye-level. Taping it to a table works well.  The coordinate
+system for the location will have its origin at the center of the QR
+code, X-axis pointing to the right edge of the page, Y-axis pointing up
+from the QR code, and Z-axis pointing toward the top edge of the page.
+Floor plan maps will be generated in the same orientation as the QR code
+(imagine the QR code block were replaced with a map), so you may wish to
+orient the page according to how you would like the map to be generated.
+
 # Installation from Source
 
 Install dependencies.
