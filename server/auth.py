@@ -136,6 +136,8 @@ class Authenticator:
 
 
 async def initialize_users_table(app):
+    should_create_guest = False
+
     async with app.session_maker() as session:
         # Make sure an admin account exists
         stmt = sa.select(User) \
@@ -145,14 +147,20 @@ async def initialize_users_table(app):
         admin = result.scalar()
 
         if admin is None:
+            password = secrets.token_urlsafe(12)
+
             admin = User(
                 id=uuid.uuid4(),
                 name="admin",
-                password=generate_password_hash("admin"),
+                password=generate_password_hash(password),
                 display_name="Default Admin",
                 type="admin"
             )
             session.add(admin)
+            await session.flush()
+
+            print(f'*** Generated admin user ({admin.id}) with name "{admin.name}" and password "{password}" ***')
+            should_create_guest = True
 
         # Make sure a default user account exists
         stmt = sa.select(User) \
@@ -162,31 +170,43 @@ async def initialize_users_table(app):
         user = result.scalar()
 
         if user is None:
+            password = secrets.token_urlsafe(12)
+
             user = User(
                 id=uuid.uuid4(),
                 name="user",
-                password=generate_password_hash(""),
+                password=generate_password_hash(password),
                 display_name="Default User",
                 type="user"
             )
             session.add(user)
+            await session.flush()
 
-        # Make sure a guest user account exists
-        stmt = sa.select(User) \
-                .where(User.name == "guest") \
-                .limit(1)
-        result = await session.execute(stmt)
-        guest = result.scalar()
+            print(f'*** Generated user ({user.id}) with name "{user.name}" and password "{password}" ***')
+            should_create_guest = True
 
-        if guest is None:
-            guest = User(
-                id=uuid.uuid4(),
-                name="guest",
-                password=generate_password_hash(""),
-                display_name="Guest",
-                type="user"
-            )
-            session.add(guest)
+        # Only create guest user if this seems to be the first time running.
+        # Otherwise, it is possible the administrator intentionally deleted
+        # the guest account.
+        if should_create_guest:
+            stmt = sa.select(User) \
+                    .where(User.name == "guest") \
+                    .limit(1)
+            result = await session.execute(stmt)
+            guest = result.scalar()
+
+            if guest is None:
+                guest = User(
+                    id=uuid.uuid4(),
+                    name="guest",
+                    password=generate_password_hash(""),
+                    display_name="Guest",
+                    type="user"
+                )
+                session.add(guest)
+                await session.flush()
+
+            print(f'*** Generated guest user ({guest.id}) with name "{guest.name}" and no password ***')
 
         await session.commit()
 
