@@ -110,25 +110,31 @@ async def create_feature(location_id):
     if 'id' in body:
         del body['id']
 
-    async with g.session_maker() as session:
-        stmt = sa.select(Location).where(Location.id == location_id).limit(1)
-        result = await session.execute(stmt)
-        location = result.scalar()
-        if location is None:
-            raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+    # Same with timestamps, they should be generated on the server side.
+    if 'created' in body:
+        del body['created']
+    if 'updated' in body:
+        del body['updated']
 
-        if g.user_id is not None:
-            body['user_id'] = g.user_id
+    stmt = sa.select(Location).where(Location.id == location_id).limit(1)
+    result = await g.session.execute(stmt)
+    location = result.scalar()
+    if location is None:
+        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
 
-        marker = feature_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
-        marker.location_id = location_id
-        session.add(marker)
-        await session.commit()
+    if g.user_id is not None:
+        body['user_id'] = g.user_id
 
-        # Choose a color for the feature by cycling through the palette.
-        if body.get("color") in [None, ""]:
-            marker.color = default_color_palette[marker.id % len(default_color_palette)]
-            await session.commit()
+    marker = feature_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
+    marker.location_id = location_id
+    g.session.add(marker)
+    await g.session.flush()
+
+    # Choose a color for the feature by cycling through the palette.
+    if body.get("color") in [None, ""]:
+        marker.color = default_color_palette[marker.id % len(default_color_palette)]
+
+    await g.session.commit()
 
     result = feature_schema.dump(marker)
 

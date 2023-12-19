@@ -146,36 +146,49 @@ async def _create_headset(headset_id, body):
         body['color'] = default_color_palette[headset_id.int % len(default_color_palette)]
 
     body['id'] = headset_id
+
+    # Let the server generate timestamps
+    if 'created' in body:
+        del body['created']
+    if 'updated' in body:
+        del body['updated']
+
+    # Catch if the caller passed an invalid type, e.g. empty string
+    if body.get('type') not in MobileDevice.valid_types:
+        body['type'] = 'unknown'
+
+    if body.get('name') in MobileDevice.replace_names:
+        body['name'] = 'New Headset'
+
     headset = headset_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
     headset.pose = None
 
-    async with g.session_maker() as session:
-        # If the headset is created with location_id set, we can automatically
-        # create a check-in record for the headset at that location.
-        if headset.location_id is not None:
-            checkin = TrackingSession(
-                mobile_device_id=headset.id,
-                incident_id=g.active_incident_id,
-                location_id=headset.location_id
-            )
-            session.add(checkin)
-            await session.flush()
+    # If the headset is created with location_id set, we can automatically
+    # create a check-in record for the headset at that location.
+    if headset.location_id is not None:
+        checkin = TrackingSession(
+            mobile_device_id=headset.id,
+            incident_id=g.active_incident_id,
+            location_id=headset.location_id
+        )
+        g.session.add(checkin)
+        await g.session.flush()
 
-            headset.tracking_session_id = checkin.id
+        headset.tracking_session_id = checkin.id
 
-            # If we have created a TrackingSession and also have position and
-            # orientation defined, we can create a DevicePose record.
-            if 'position' in body and 'orientation' in body:
-                pose = pose_change_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
-                pose.tracking_session_id = checkin.id
-                pose.mobile_device_id = headset.id
-                session.add(pose)
+        # If we have created a TrackingSession and also have position and
+        # orientation defined, we can create a DevicePose record.
+        if 'position' in body and 'orientation' in body:
+            pose = pose_change_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
+            pose.tracking_session_id = checkin.id
+            pose.mobile_device_id = headset.id
+            g.session.add(pose)
 
-                headset.device_pose_id = pose.id
-                headset.pose = pose
+            headset.device_pose_id = pose.id
+            headset.pose = pose
 
-        session.add(headset)
-        await session.commit()
+    g.session.add(headset)
+    await g.session.commit()
 
     result = headset_schema.dump(headset)
 

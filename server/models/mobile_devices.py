@@ -15,6 +15,9 @@ def generate_token():
 
 
 class MobileDevice(Base):
+    replace_names = set(["Unity_Editor_Alieware", "ross_test"])
+    valid_types = set(["unknown", "headset", "phone", "editor"])
+
     """
     Mobile devices are any individual devices that can be tracked and/or
     provide augmented reality visuals for the user.
