@@ -12,7 +12,7 @@ def upload_item(file_path):
         "contentType": "image/jpeg",
         "camera_location_id": "daa31ed1-d852-4c21-bef2-0536d3022652"
     }
-     
+
     random_object = random.choice(objects)
     # Add a bounding box for an "object" for testing
     if ADD_FAKE_ANNOTATION:

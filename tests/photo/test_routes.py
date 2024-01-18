@@ -159,6 +159,50 @@ async def test_photo_upload():
 
 
 @pytest.mark.asyncio
+async def test_photo_quick_upload():
+    """
+    Test photo quick upload
+    """
+    test_location_id = str(uuid.uuid4())
+
+    async with app.test_client() as client:
+        photos_url = "/photos"
+
+        # Create test headset
+        data = {
+            "location_id": test_location_id
+        }
+        response = await client.post("/headsets", json=data)
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        headset = await response.get_json()
+
+        headers = {
+            "Authorization": "Bearer " + headset['token'],
+            "Content-Type": "image/png",
+        }
+
+        # Test single step upload
+        png_data = "pretend this is actually png data"
+        response = await client.post("/photos", headers=headers, data=png_data)
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        photo = await response.get_json()
+        assert photo['status'] == "ready"
+        assert photo['created_by'] == headset['id']
+        assert len(photo['files']) == 1
+
+        # Test downloading the file
+        response = await client.get(photo['imageUrl'])
+        assert response.status_code == HTTPStatus.OK
+        data = await response.get_data()
+        assert data == png_data.encode('utf-8')
+
+        await client.delete("/photos/{}".format(photo['id']))
+        await client.delete("/headsets/{}".format(headset['id']))
+
+
+@pytest.mark.asyncio
 async def test_photo_annotations():
     """
     Test photo annotations

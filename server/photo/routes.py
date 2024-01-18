@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import os
+import shutil
 import time
 import uuid
 
@@ -16,7 +17,9 @@ import marshmallow
 import sqlalchemy as sa
 
 from server import auth
+from server.models.mobile_devices import MobileDevice
 from server.resources.filter import Filter
+from server.utils.images import ext_from_type
 from server.utils.rate_limiter import rate_limit_exempt
 from server.utils.utils import save_image
 from server.utils.response import maybe_wrap
@@ -192,7 +195,105 @@ async def list_photos():
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
 
+async def create_photo_entry(body):
+    # The caller should not be sending an ID, but check and dismiss it.
+    if 'id' in body:
+        del body['id']
+
+    photo = photo_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
+    photo.queue_name = "created"
+    photo.annotations = []
+    photo.files = []
+
+    if photo.incident_id is None:
+        photo.incident_id = g.active_incident_id
+
+    if g.user_id is not None:
+        photo.mobile_device_id = g.user_id
+
+    if g.device_id is not None:
+        stmt = sa.select(MobileDevice) \
+                .where(MobileDevice.id == g.device_id) \
+                .limit(1)
+        result = await g.session.execute(stmt)
+        device = result.scalar()
+        if device is not None:
+            photo.location_id = device.location_id
+            photo.tracking_session_id = device.tracking_session_id
+            photo.device_pose_id = device.device_pose_id
+
+    g.session.add(photo)
+    await g.session.commit()
+
+    return photo
+
+
+async def create_photo_quick():
+    device = await g.session.get(MobileDevice, g.device_id)
+    if device is None:
+        raise exceptions.Unauthorized("Device not authenticated")
+
+    photo = PhotoRecord(
+            incident_id=g.active_incident_id,
+            mobile_device_id=device.id,
+            location_id=device.location_id,
+            tracking_session_id=device.tracking_session_id,
+            device_pose_id=device.device_pose_id,
+            queue_name="detection",
+    )
+    g.session.add(photo)
+    await g.session.flush()
+
+    photo_dir = get_photo_dir(photo.location_id, photo.id)
+    os.makedirs(photo_dir, exist_ok=True)
+
+    temp_filename = "image-{}-{}".format(photo.location_id.hex, photo.id)
+    temp_path = os.path.join(g.temp_dir, temp_filename)
+
+    request_files = await request.files
+    if 'image' in request_files:
+        await save_image(temp_path, request_files['image'])
+    else:
+        body = await request.get_data()
+        with open(temp_path, "wb") as output:
+            output.write(body)
+
+    photo_type = current_app.magic.from_file(temp_path)
+    photo_filename = "photo" + ext_from_type(photo_type)
+    photo_path = os.path.join(photo_dir, photo_filename)
+    shutil.move(temp_path, photo_path)
+
+    photo_file = PhotoFile(
+            name=photo_filename,
+            photo_record_id=photo.id,
+            purpose="photo",
+            content_type=photo_type
+    )
+
+    try:
+        with Image.open(photo_path) as im:
+            photo_file.content_type = im.get_format_mimetype()
+            photo_file.width = im.width
+            photo_file.height = im.height
+    except:
+        pass
+
+    photo.queue_name = "detection"
+    g.session.add(photo_file)
+    await g.session.commit()
+
+    # We are done with database interactions.  Making the object transient
+    # allows us to set up the nested fields without attempting to write back to
+    # the database.
+    sa.orm.make_transient(photo)
+    photo.annotations = []
+    photo.files = [photo_file]
+
+    return photo
+
+
 @photos.route('/photos', methods=['POST'])
+@rate_limit_exempt
 async def create_photo():
     """
     Create photo
@@ -253,26 +354,18 @@ async def create_photo():
                     application/json:
                         schema: Photo
     """
-    body = await request.get_json()
+    # If the POST request contains JSON, we simply create the photo record.
+    # The caller can then use the newly created photo ID to upload the actual
+    # image(s).
+    if request.is_json:
+        body = await request.get_json()
+        photo = await create_photo_entry(body)
 
-    # The caller should not be sending an ID, but check and dismiss it.
-    if 'id' in body:
-        del body['id']
-
-    photo = photo_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
-    photo.queue_name = "created"
-    photo.annotations = []
-    photo.files = []
-
-    if photo.incident_id is None:
-        photo.incident_id = g.active_incident_id
-
-    if g.user_id is not None:
-        photo.mobile_device_id = g.user_id
-
-    async with g.session_maker() as session:
-        session.add(photo)
-        await session.commit()
+    # Otherwise, we permit directly uploading an image and creating a record
+    # for it. This may reduce upload latency but gives the caller less
+    # flexibility in setting metadata associated with the photo.
+    else:
+        photo = await create_photo_quick()
 
     result = photo_schema.dump(photo)
 
