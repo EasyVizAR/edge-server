@@ -6,7 +6,8 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from quart import Quart, g
 from quart_sqlalchemy import SQLAlchemy
 
-from sqlalchemy import create_engine
+import sqlalchemy as sa
+from sqlalchemy.engine import Engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from server.check_in.routes import check_ins
@@ -49,8 +50,20 @@ if os.path.exists(sqlite_file):
     print("Skipping database initialization because {} exists".format(sqlite_file))
 else:
     print("Initializing sqlite database, stored at {}".format(sqlite_file))
-    sync_engine = create_engine("sqlite:///"+sqlite_file)
+    sync_engine = sa.create_engine("sqlite:///"+sqlite_file)
     Base.metadata.create_all(sync_engine)
+
+
+# Enabling write-ahead logging (WAL) may improve performance for our workload
+# where we need the most frequent inserts to be fast without risking database
+# corruption.
+# Source: https://www.sqlite.org/wal.html
+@sa.event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.close()
 
 
 main_rate_limiter.init_app(app)
