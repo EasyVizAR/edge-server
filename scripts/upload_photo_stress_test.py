@@ -64,6 +64,19 @@ def upload_quick(headset, location_id, photo_path):
         created_photos.append(photo['id'])
 
 
+def upload_transient(headset, location_id, photo_path):
+    headers = {
+        "Authorization": "Bearer " + headset['token'],
+        "Content-Type": "image/jpeg",
+        "X-Location-Id": location_id,
+        "X-Storage": "transient"
+    }
+
+    req_url = "{}/photos".format(SERVER_URL)
+    with open(file_path, "rb") as source:
+        req = requests.post(req_url, headers=headers, data=source)
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("Usage: {} <location id> <photo file path>".format(sys.argv[0]))
@@ -81,3 +94,4 @@ if __name__ == "__main__":
     for i in range(ITERATIONS):
         upload_basic(headset, location_id, file_path)
         upload_quick(headset, location_id, file_path)
+        upload_transient(headset, location_id, file_path)

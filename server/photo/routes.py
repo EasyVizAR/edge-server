@@ -44,6 +44,14 @@ def get_photo_dir(location_id, photo_id):
     return os.path.join(g.data_dir, 'locations', location_id.hex, 'photos', '{:08x}'.format(photo_id))
 
 
+def get_transient_photo_dir(location_id):
+    return os.path.join(g.data_dir, 'locations', location_id.hex, 'transient_photos')
+
+
+def get_timestamp():
+    return int(100000 * time.time())
+
+
 def get_photo_extension(photo):
     if photo.contentType == "image/jpeg":
         return "jpeg"
@@ -89,12 +97,6 @@ async def list_photos():
             schema:
                 type: str
             description: If set, the returned list will be wrapped in an envelope with this name.
-          - name: ready
-            in: query
-            required: false
-            schema:
-                type: boolean
-            description: Only show items with ready flag set.
           - name: retention
             in: query
             required: false
@@ -107,12 +109,12 @@ async def list_photos():
             schema:
                 type: float
             description: Only show items that were created or updated since this time.
-          - name: status
+          - name: queue_name
             in: query
             required: false
             schema:
                 type: str
-            description: Only show items with specified status.
+            description: Only show items in the specified queue.
           - name: until
             in: query
             required: false
@@ -156,13 +158,9 @@ async def list_photos():
         except:
             pass
 
-        status = request.args.get("status")
-        if status is not None:
-            stmt = stmt.where(PhotoRecord.queue_name == status)
-
-        ready = request.args.get("ready")
-        if ready is not None:
-            stmt = stmt.where(PhotoRecord.queue_name == "detection")
+        queue_name = request.args.get("queue_name")
+        if queue_name is not None:
+            stmt = stmt.where(PhotoRecord.queue_name == queue_name)
 
         since = request.args.get('since')
         if since is not None:
@@ -292,6 +290,24 @@ async def create_photo_quick():
     return photo
 
 
+async def create_photo_transient():
+    location_id = uuid.UUID(request.headers.get("X-Location-Id"))
+    photo_dir = get_transient_photo_dir(location_id)
+    os.makedirs(photo_dir, exist_ok=True)
+
+    content_type = request.headers.get("Content-Type")
+    photo_filename = "{}{}".format(get_timestamp(), ext_from_type(content_type))
+    photo_path = os.path.join(photo_dir, photo_filename)
+
+    request_files = await request.files
+    if 'image' in request_files:
+        await save_image(photo_path, request_files['image'])
+    else:
+        body = await request.get_data()
+        with open(photo_path, "wb") as output:
+            output.write(body)
+
+
 @photos.route('/photos', methods=['POST'])
 @rate_limit_exempt
 async def create_photo():
@@ -354,6 +370,11 @@ async def create_photo():
                     application/json:
                         schema: Photo
     """
+    storage = request.headers.get("X-Storage", "normal")
+    if storage == "transient":
+        await create_photo_transient()
+        return "", HTTPStatus.CREATED
+
     # If the POST request contains JSON, we simply create the photo record.
     # The caller can then use the newly created photo ID to upload the actual
     # image(s).
