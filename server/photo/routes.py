@@ -648,8 +648,8 @@ async def update_photo(photo_id):
                 photo.annotations.append(annotation)
 
         # Support older clients that set a status flag
-        if body.get("status") == "done":
-            photo.queue_name = "done"
+        if body.get("status") is not None:
+            photo.queue_name = body.get("status")
 
         await session.commit()
 
