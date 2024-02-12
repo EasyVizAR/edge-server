@@ -662,6 +662,7 @@ async def update_photo(photo_id):
 
 
 @photos.route('/photos/<int:photo_id>/image', methods=['GET'])
+@rate_limit_exempt
 async def get_photo_file(photo_id):
     """
     Get a photo data file
