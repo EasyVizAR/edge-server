@@ -116,25 +116,39 @@ async def test_photo_upload():
     async with app.test_client() as client:
         photos_url = "/photos"
 
+        # Create test headset
+        data = {
+            "location_id": test_location_id
+        }
+        response = await client.post("/headsets", json=data)
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        headset = await response.get_json()
+
+        headers = {
+            "Authorization": "Bearer " + headset['token'],
+        }
+
         # Create an object
         photo_data = {
             "camera_location_id": test_location_id,
             "contentType": "image/jpeg",
             "retention": "temporary"
         }
-        response = await client.post(photos_url, json=photo_data)
+        response = await client.post(photos_url, json=photo_data, headers=headers)
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         photo = await response.get_json()
         assert isinstance(photo, dict)
         assert photo['camera_location_id'] == test_location_id
+        assert photo['created_by'] == headset['id']
         assert photo['status'] == "created"
         assert photo['retention'] == "temporary"
 
         photo_url = "/photos/{}".format(photo['id'])
 
         # Test upload process
-        response = await client.put(photo['imageUrl'], data="test")
+        response = await client.put(photo['imageUrl'], data="test", headers=headers)
         assert response.status_code == HTTPStatus.CREATED
         assert response.is_json
         photo2 = await response.get_json()
@@ -145,17 +159,19 @@ async def test_photo_upload():
         assert photo2['status'] == "ready"
 
         # Test downloading the file
-        response = await client.get(photo['imageUrl'])
+        response = await client.get(photo['imageUrl'], headers=headers)
         assert response.status_code == HTTPStatus.OK
         data = await response.get_data()
         assert data == "test".encode('utf-8')
 
         # Test deleting the object
-        response = await client.delete(photo_url)
+        response = await client.delete(photo_url, headers=headers)
         assert response.status_code == HTTPStatus.OK
         assert response.is_json
         photo2 = await response.get_json()
         assert photo2['id'] == photo['id']
+
+        await client.delete("/headsets/{}".format(headset['id']))
 
 
 @pytest.mark.asyncio

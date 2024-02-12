@@ -206,15 +206,10 @@ async def create_photo_entry(body):
     if photo.incident_id is None:
         photo.incident_id = g.active_incident_id
 
-    if g.user_id is not None:
-        photo.mobile_device_id = g.user_id
-
     if g.device_id is not None:
-        stmt = sa.select(MobileDevice) \
-                .where(MobileDevice.id == g.device_id) \
-                .limit(1)
-        result = await g.session.execute(stmt)
-        device = result.scalar()
+        photo.mobile_device_id = g.device_id
+
+        device = await g.session.get(MobileDevice, g.device_id)
         if device is not None:
             photo.location_id = device.location_id
             photo.tracking_session_id = device.tracking_session_id
