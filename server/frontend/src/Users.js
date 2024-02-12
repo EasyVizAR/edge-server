@@ -5,6 +5,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
 import moment from 'moment';
 import { LocationsContext } from './Contexts.js';
+import NewUser from './NewUser.js';
 
 
 function Users(props) {
@@ -261,6 +262,7 @@ function Users(props) {
           }
         </tbody>
       </Table>
+      <NewUser setUsers={setUsers} />
     </div>
   );
 }

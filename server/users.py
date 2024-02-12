@@ -5,8 +5,8 @@ from http import HTTPStatus
 
 import sqlalchemy as sa
 
+import marshmallow
 from quart import Blueprint, current_app, g, jsonify, request, send_from_directory
-from marshmallow import post_dump
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, SQLAlchemySchema, auto_field
 from werkzeug import exceptions
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -55,7 +55,9 @@ async def create_user():
         body = dict()
     body['id'] = uuid.uuid4()
 
-    user = user_schema.load(body, transient=True)
+    user = user_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
+    if 'password' in body:
+        user.password = generate_password_hash(body['password'])
 
     g.session.add(user)
     await g.session.commit()
