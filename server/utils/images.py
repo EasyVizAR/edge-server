@@ -33,6 +33,39 @@ class FakeMagic:
             return mtype[0]
 
 
+def assemble_patches(patches, photo_path):
+    rows = []
+    cols = []
+    current_row_id = None
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        for patch in patches:
+            # Assume files name is of the format "{row #}_{col #}.jpg"
+            # Then every time the row number changes, we merge the columns and
+            # append to the list of rows.
+            parts = patch.filename.split("_")
+            if current_row_id is None:
+                current_row_id = parts[0]
+            if parts[0] != current_row_id:
+                rows.append(np.hstack(cols))
+                cols = []
+                current_row_id = parts[0]
+
+            filename = secure_filename(patch.filename)
+            path = os.path.join(tmpdir, filename)
+            patch.save(path)
+
+            cols.append(Image.open(path))
+
+    combined = np.vstack(rows)
+    combined = Image.fromarray(combined)
+
+    final_path = photo_path + ".png"
+    combined.save(final_path, format="png")
+
+    return final_path
+
+
 def get_magic_instance():
     # The magic library makes it easy to identify file types of uploaded files.
     # Annoyingly, we need to track down the location of the magic database when

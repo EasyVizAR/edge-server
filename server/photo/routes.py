@@ -19,7 +19,7 @@ import sqlalchemy as sa
 from server import auth
 from server.models.mobile_devices import MobileDevice
 from server.resources.filter import Filter
-from server.utils.images import ext_from_type
+from server.utils.images import assemble_patches, ext_from_type
 from server.utils.rate_limiter import rate_limit_exempt
 from server.utils.utils import save_image
 from server.utils.response import maybe_wrap
@@ -221,6 +221,20 @@ async def create_photo_entry(body):
     return photo
 
 
+async def save_upload_to_file(path):
+    request_files = await request.files
+    if 'image' in request_files:
+        await request_files['image'].save(path)
+    elif 'patches' in request_files:
+        patches = request_files.getlist("patches")
+        path = await assemble_patches(patches, path)
+    else:
+        body = await request.get_data()
+        with open(path, "wb") as output:
+            output.write(body)
+    return path
+
+
 async def create_photo_quick():
     device = await g.session.get(MobileDevice, g.device_id)
     if device is None:
@@ -232,7 +246,7 @@ async def create_photo_quick():
             location_id=device.location_id,
             tracking_session_id=device.tracking_session_id,
             device_pose_id=device.device_pose_id,
-            queue_name="detection",
+            queue_name=request.headers.get("X-Queue-Name", "detection"),
     )
     g.session.add(photo)
     await g.session.flush()
@@ -242,14 +256,7 @@ async def create_photo_quick():
 
     temp_filename = "image-{}-{}".format(photo.location_id.hex, photo.id)
     temp_path = os.path.join(g.temp_dir, temp_filename)
-
-    request_files = await request.files
-    if 'image' in request_files:
-        await save_image(temp_path, request_files['image'])
-    else:
-        body = await request.get_data()
-        with open(temp_path, "wb") as output:
-            output.write(body)
+    temp_path = await save_upload_to_file(temp_path)
 
     photo_type = current_app.magic.from_file(temp_path)
     photo_filename = "photo" + ext_from_type(photo_type)
@@ -271,7 +278,6 @@ async def create_photo_quick():
     except:
         pass
 
-    photo.queue_name = "detection"
     g.session.add(photo_file)
     await g.session.commit()
 
@@ -294,13 +300,7 @@ async def create_photo_transient():
     photo_filename = "{}{}".format(get_timestamp(), ext_from_type(content_type))
     photo_path = os.path.join(photo_dir, photo_filename)
 
-    request_files = await request.files
-    if 'image' in request_files:
-        await save_image(photo_path, request_files['image'])
-    else:
-        body = await request.get_data()
-        with open(photo_path, "wb") as output:
-            output.write(body)
+    photo_path = await save_upload_to_file(photo_path)
 
 
 @photos.route('/photos', methods=['POST'])
@@ -836,14 +836,7 @@ async def upload_photo_file(photo_id):
             created = False
 
         photo_path = os.path.join(photo_dir, photo_file.name)
-
-        request_files = await request.files
-        if 'image' in request_files:
-            await save_image(photo_path, request_files['image'])
-        else:
-            body = await request.get_data()
-            with open(photo_path, "wb") as output:
-                output.write(body)
+        photo_path = await save_upload_to_file(photo_path)
 
         try:
             with Image.open(photo_path) as im:
@@ -943,14 +936,7 @@ async def upload_photo_file_by_name(photo_id, filename):
         created = False
 
     photo_path = os.path.join(photo_dir, upload_file_name)
-
-    request_files = await request.files
-    if 'image' in request_files:
-        await save_image(photo_path, request_files['image'])
-    else:
-        body = await request.get_data()
-        with open(photo_path, "wb") as output:
-            output.write(body)
+    photo_path = await save_upload_to_file(photo_path)
 
     try:
         with Image.open(photo_path) as im:
