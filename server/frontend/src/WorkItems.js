@@ -6,8 +6,15 @@ import {Link} from "react-router-dom";
 import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
+import ClickToEdit from './ClickToEdit.js';
 
 import { LocationsContext } from './Contexts.js';
+
+const queueOptions = {
+  "detection": "Object detection",
+  "identification": "Person identification",
+  "done": "Done",
+};
 
 
 function WorkItems(props){
@@ -93,6 +100,23 @@ function WorkItems(props){
       setWorkItems(temp_data);
       setAnnotations(findUniqueAnnotations(temp_data));
     });
+  }
+
+  function patchPhoto(id, patch) {
+    const url = `${host}/photos/${id}`;
+    const requestData = {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(patch)
+    };
+
+    fetch(url, requestData)
+      .then(response => response.json())
+      .then(data => {
+        getWorkItems();
+      });
   }
 
   function SortByLink(props) {
@@ -207,7 +231,7 @@ function WorkItems(props){
               <th><SortByLink attr="id" text="Photo ID" /></th>
               <th><SortByLink attr="created" text="Created" /></th>
               <th><SortByLink attr="camera_location_id" text="Location" /></th>
-              <th><SortByLink attr="status" text="Status" /></th>
+              <th><SortByLink attr="queue_name" text="Queue" /></th>
               <th>Image</th>
               <th></th>
             </tr>
@@ -234,7 +258,11 @@ function WorkItems(props){
                         )
                       }
                     </td>
-                    <td>{e.status}</td>
+                    <td>
+                      <ClickToEdit tag='span' initialValue={e.queue_name}
+                        placeholder='Queue Name' select={queueOptions}
+                        onSave={(newValue) => patchPhoto(e.id, {queue_name: newValue})} />
+                    </td>
                     <td>
                       <div>
                         <Photos e={e}/>

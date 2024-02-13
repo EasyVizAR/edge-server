@@ -66,8 +66,8 @@ class PhotoSchema(MigrationSchema):
         load_instance = True
 
     id = auto_field(description="Photo record ID (int)")
-    status = auto_field('queue_name')
 
+    queue_name = auto_field(description="Current processing queue (created|detection|identification|done)")
     priority = auto_field(description="Processing priority (0=normal, 1=real time, -1=low priority")
     retention = auto_field(description="Photo retention policy (auto|permanent|temporary)")
 

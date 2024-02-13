@@ -5,7 +5,15 @@ import {Link} from "react-router-dom";
 import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
+import ClickToEdit from './ClickToEdit.js';
 import './PhotoWrapper.css';
+
+const queueOptions = {
+  "detection": "Object detection",
+  "identification": "Person identification",
+  "done": "Done",
+};
+
 
 function PhotoTable(props) {
   const host = process.env.PUBLIC_URL;
@@ -41,6 +49,27 @@ function PhotoTable(props) {
         return copy;
       });
     });
+  }
+
+  function patchPhoto(id, patch) {
+    const url = `${host}/photos/${id}`;
+    const requestData = {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(patch)
+    };
+
+    fetch(url, requestData)
+      .then(response => response.json())
+      .then(data => {
+        props.setPhotos(current => {
+          const copy = {...current};
+          copy[id] = data;
+          return copy;
+        });
+      });
   }
 
   function SortByLink(props) {
@@ -199,7 +228,7 @@ function PhotoTable(props) {
           <tr>
             <th><SortByLink attr="id" text="ID" /></th>
             <th><SortByLink attr="created" text="Date Created" /></th>
-            <th><SortByLink attr="status" text="Status" /></th>
+            <th><SortByLink attr="queue_name" text="Queue" /></th>
             <th>Detections</th>
             <th>Image</th>
             <th></th>
@@ -216,7 +245,11 @@ function PhotoTable(props) {
                       </Link>
                     </td>
                     <td>{moment.unix(e.created).fromNow()}</td>
-                    <td>{e.status}</td>
+                    <td>
+                      <ClickToEdit tag='span' initialValue={e.queue_name}
+                        placeholder='Queue Name' select={queueOptions}
+                        onSave={(newValue) => patchPhoto(e.id, {queue_name: newValue})} />
+                    </td>
                     <td>
                       <Detections photo={e} />
                     </td>

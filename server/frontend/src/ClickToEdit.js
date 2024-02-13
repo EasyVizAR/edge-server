@@ -16,6 +16,7 @@ function ClickToEdit(props) {
   const initialValue = props.initialValue;
   const placeholder = props.placeholder;
   const onSave = props.onSave;
+  const select = props.select || false;
   const textarea = props.textarea || false;
   const Tag = props.tag || 'span'; // dynamic tag names must be capitalized
 
@@ -35,6 +36,19 @@ function ClickToEdit(props) {
           placeholder={placeholder}
           ref={inputRef} />
       );
+    } else if (select) {
+      return (
+        <select
+          title={placeholder}
+          defaultValue={initialValue}
+          ref={inputRef}>
+          {
+            Object.entries(select).map(([value, name]) => {
+              return <option value={value}>{name}</option>
+            })
+          }
+        </select>
+      )
     } else {
       return (
         <Form.Control
