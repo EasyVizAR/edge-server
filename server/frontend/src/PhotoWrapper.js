@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import {ListGroup, Table} from 'react-bootstrap';
 import { useParams } from 'react-router';
 import {Helmet} from 'react-helmet';
 import MapContainer from "./MapContainer";
+import { UsersContext } from './Contexts.js';
 import './PhotoWrapper.css';
 
 function PhotoWrapper(props) {
@@ -14,6 +15,8 @@ function PhotoWrapper(props) {
   const [selectedBox, setSelectedBox] = useState(null);
   const [selectedImage, setSelectedImage] = useState("photo");
   const [imageSource, setImageSource] = useState(null);
+
+  const { users, setUsers } = useContext(UsersContext);
 
   useEffect(() => {
     function getPhotoInfo() {
@@ -94,6 +97,56 @@ function PhotoWrapper(props) {
     );
   }
 
+  function patchPhotoAnnotation(id, patch) {
+    const url = `${host}/photos/annotations/${id}`;
+    const requestData = {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(patch)
+    };
+
+    fetch(url, requestData)
+      .then(response => response.json())
+      .then(data => {
+        setPhoto(current => {
+          const copy = {...current};
+          for (var i = 0; i < copy.annotations.length; i++) {
+            if (copy.annotations[i].id == id) {
+              copy.annotations[i] = data;
+              break;
+            }
+          }
+          return copy;
+        });
+      });
+  }
+
+  function Identity(props) {
+    const id = props.annotation.id;
+    const label = props.annotation.label;
+    const identified_user_id = props.annotation.identified_user_id;
+
+    if (label === "person") {
+      return <select
+        value={identified_user_id}
+        onChange={e => patchPhotoAnnotation(id, {
+          identified_user_id: e.target.value,
+          sublabel: users[e.target.value]?.display_name || ""
+        })} >
+        <option value={null}>None</option>
+        {
+          Object.entries(users).map(([user_id, user]) => {
+            return <option value={user_id}>{user.display_name}</option>
+          })
+        }
+      </select>
+    }
+
+    return null;
+  }
+
   function PhotoInfo() {
     if (!photo) {
       return <p>The photo information is not ready or could not be found.</p>;
@@ -109,15 +162,21 @@ function PhotoWrapper(props) {
           <thead>
             <tr>
               <th>Category</th>
+              <th>Sublabel</th>
               <th>Confidence</th>
+              <th>Identity</th>
             </tr>
           </thead>
           <tbody>
             {
               photo.annotations.map((annotation, index) => {
-                return <tr onMouseEnter={() => setSelectedBox(index)} onMouseLeave={() => setSelectedBox(null)}>
+                return <tr onMouseEnter={() => setSelectedBox(index)}>
                   <td>{ annotation.label }</td>
+                  <td>{ annotation.sublabel }</td>
                   <td>{ annotation.confidence }</td>
+                  <td>
+                    <Identity annotation={annotation} />
+                  </td>
                 </tr>
               })
             }
@@ -202,13 +261,16 @@ function PhotoWrapper(props) {
 
       <div className="container-lg">
         <div className="row align-items-center">
-          <div className="col-lg-6">
+          <div className="col-lg-9">
             <Photo />
           </div>
           <div className="col-lg-3">
             <ImageSelector />
           </div>
-          <div className="col-lg-3">
+        </div>
+
+        <div className="row align-items-center">
+          <div className="col">
             <PhotoInfo />
           </div>
         </div>

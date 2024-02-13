@@ -15,6 +15,15 @@ export const LocationsContext = createContext({
 });
 
 
+// This context maintains a list of users.
+//
+// The storage and implementation is in App.js.
+export const UsersContext = createContext({
+  users: {},
+  setUsers: () => {}
+});
+
+
 // This context maintains a copy of the current active incident.
 //
 // The storage and implementation is in App.js.

@@ -25,7 +25,7 @@ from server.utils.utils import save_image
 from server.utils.response import maybe_wrap
 
 from .cleanup import PhotoCleanupTask
-from .models import PhotoFile, PhotoRecord, DetectionTaskSchema, PhotoAnnotationSchema, PhotoSchema
+from .models import PhotoAnnotation, PhotoFile, PhotoRecord, DetectionTaskSchema, PhotoAnnotationSchema, PhotoSchema
 
 
 photos = Blueprint("photos", __name__)
@@ -390,6 +390,66 @@ async def create_photo():
     return jsonify(result), HTTPStatus.CREATED
 
 
+@photos.route('/photos/annotations', methods=['GET'])
+async def list_annotations():
+    items = []
+
+    stmt = sa.select(PhotoAnnotation)
+
+    photo_record_id = request.args.get("photo_record_id")
+    if photo_record_id is not None:
+        stmt = stmt.where(PhotoAnnotation.photo_record_id == photo_record_id)
+
+    label = request.args.get("label")
+    if label is not None:
+        stmt = stmt.where(PhotoAnnotation.label == label)
+
+    sublabel = request.args.get("sublabel")
+    if sublabel is not None:
+        stmt = stmt.where(PhotoAnnotation.sublabel == sublabel)
+
+    identified_user_id = request.args.get("identified_user_id")
+    if identified_user_id == "":
+        stmt = stmt.where(PhotoAnnotation.identified_user_id.isnot(None))
+    elif identified_user_id is not None:
+        try:
+            identified_user_id = uuid.UUID(identified_user_id)
+            stmt = stmt.where(PhotoAnnotation.identified_user_id == identified_user_id)
+        except:
+            pass
+
+    result = await g.session.execute(stmt)
+    for row in result.scalars():
+        items.append(photo_annotation_schema.dump(row))
+
+    return jsonify(maybe_wrap(items)), HTTPStatus.OK
+
+
+@photos.route('/photos/annotations/<int:annotation_id>', methods=['PATCH'])
+async def update_annotation(annotation_id):
+    body = await request.get_json()
+
+    annotation = await g.session.get(PhotoAnnotation, annotation_id)
+    if annotation is None:
+        raise exceptions.NotFound(description="PhotoAnnotation {} was not found".format(annotation_id))
+
+    annotation.update(body)
+
+    # Allow caller to set or clear the identified user
+    # This is used to create a database of user photos
+    if 'identified_user_id' in body:
+        if body['identified_user_id'] in [None, "", "None"]:
+            annotation.identified_user_id = None
+        else:
+            annotation.identified_user_id = uuid.UUID(body['identified_user_id'])
+
+    await g.session.commit()
+
+    result = photo_annotation_schema.dump(annotation)
+
+    return jsonify(result), HTTPStatus.OK
+
+
 @photos.route('/photos/<int:photo_id>', methods=['DELETE'])
 @auth.requires_admin
 async def delete_photo(photo_id):
@@ -638,9 +698,8 @@ async def update_photo(photo_id):
             session.add(detection_task)
             await session.flush()
 
-            photo.annotations = []
-
             for item in body['annotations']:
+                item['photo_record_id'] = photo_id
                 annotation = photo_annotation_schema.load(item, transient=True)
                 annotation.photo_record_id = photo_id
                 annotation.detection_task_id = detection_task.id

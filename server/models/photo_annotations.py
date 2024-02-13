@@ -10,6 +10,7 @@ from server.resources.geometry import Box
 
 class PhotoAnnotation(Base):
     __tablename__ = "photo_annotations"
+    __allow_update__ = set(['label', 'sublabel'])
 
     id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)
 

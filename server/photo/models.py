@@ -25,6 +25,8 @@ class PhotoAnnotationSchema(MigrationSchema):
         model = PhotoAnnotation
         load_instance = True
 
+    id = auto_field()
+    photo_record_id = auto_field()
     identified_user_id = auto_field()
 
     label = auto_field()

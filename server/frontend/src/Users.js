@@ -5,6 +5,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
 import moment from 'moment';
 import { LocationsContext } from './Contexts.js';
+import { UsersContext } from './Contexts.js';
 import NewUser from './NewUser.js';
 
 
@@ -25,28 +26,13 @@ function Users(props) {
     enabled: false,
     user: null,
   });
-  const [users, setUsers] = useState({});
+
+  const { users, setUsers } = useContext(UsersContext);
 
   const [sortBy, setSortBy] = useState({
     attr: "name",
     direction: -1,
   });
-
-  useEffect(() => {
-      getUsers();
-  }, []);
-
-  function getUsers() {
-    fetch(`${host}/users`)
-      .then(response => response.json())
-      .then(data => {
-        var users = {};
-        for (var w of data) {
-          users[w.id] = w;
-        }
-        setUsers(users);
-      })
-  }
 
   function saveUser(id) {
     const url = `${host}/users/${id}`;

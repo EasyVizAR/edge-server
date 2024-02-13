@@ -12,7 +12,7 @@ import VideoPlayer from './VideoPlayer.js';
 import WebsocketConnections from './WebsocketConnections.js';
 import Users from './Users.js';
 import NavBar from './NavBar.js';
-import { ActiveIncidentContext, LocationsContext } from './Contexts.js';
+import { ActiveIncidentContext, LocationsContext, UsersContext } from './Contexts.js';
 
 function App() {
     const [activeIncident, setActiveIncident] = useState(null);
@@ -21,10 +21,23 @@ function App() {
     const [locations, setLocations] = useState({});
     const locationsContextValue = { locations, setLocations };
 
+    const [users, setUsers] = useState({});
+    const usersContextValue = { users, setUsers };
+
     useEffect(() => {
       fetch(`${process.env.PUBLIC_URL}/incidents/active`)
         .then(response => response.json())
         .then(data => setActiveIncident(data));
+
+      fetch(`${process.env.PUBLIC_URL}/users`)
+        .then(response => response.json())
+        .then(data => {
+          var new_users = {};
+          for (var key in data) {
+            new_users[data[key]['id']] = data[key];
+          }
+          setUsers(new_users);
+        });
     }, []);
 
     useEffect(() => {
@@ -46,6 +59,7 @@ function App() {
                 <div className="content">
                   <ActiveIncidentContext.Provider value={activeIncidentContextValue}>
                   <LocationsContext.Provider value={locationsContextValue}>
+                  <UsersContext.Provider value={usersContextValue}>
                     <Routes>
                         <Route exact path="/" element={<Location />}/>
                         <Route path="/headsets" element={<AllHeadsets />}/>
@@ -60,6 +74,7 @@ function App() {
                         <Route path="/photos/:photo_id" element={<PhotoWrapper />} />
                         <Route path="/users" element={<Users />} />
                     </Routes>
+                  </UsersContext.Provider>
                   </LocationsContext.Provider>
                   </ActiveIncidentContext.Provider>
                 </div>
