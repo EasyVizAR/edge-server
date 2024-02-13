@@ -25,7 +25,10 @@ class PhotoAnnotationSchema(MigrationSchema):
         model = PhotoAnnotation
         load_instance = True
 
+    identified_user_id = auto_field()
+
     label = auto_field()
+    sublabel = auto_field()
     confidence = auto_field()
 
     boundary = Nested(Box.Schema, many=False)

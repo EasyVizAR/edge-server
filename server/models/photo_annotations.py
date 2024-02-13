@@ -15,8 +15,10 @@ class PhotoAnnotation(Base):
 
     photo_record_id: Mapped[int] = mapped_column(sa.ForeignKey("photo_records.id", ondelete="CASCADE"))
     detection_task_id: Mapped[int] = mapped_column(sa.ForeignKey("detection_tasks.id", ondelete="CASCADE"))
+    identified_user_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, sa.ForeignKey("users.id"), nullable=True)
 
     label: Mapped[str] = mapped_column(default="unknown")
+    sublabel: Mapped[str] = mapped_column(default="")
     confidence: Mapped[float] = mapped_column(default=0.0)
 
     boundary_left: Mapped[float] = mapped_column(default=0.0)
