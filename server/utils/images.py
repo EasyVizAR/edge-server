@@ -8,6 +8,11 @@ import magic
 
 from quart import send_from_directory
 from werkzeug import exceptions
+from werkzeug.utils import secure_filename
+
+import numpy as np
+import PIL
+from PIL import Image
 
 
 # Module cairosvg does not work on Windows,
