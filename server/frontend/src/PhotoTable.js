@@ -1,11 +1,12 @@
 import './Tables.css';
 import {Badge, Container, Table, Button, Pagination, Dropdown} from 'react-bootstrap';
-import React, {useState, useEffect} from 'react';
+import React, {useContext, useState, useEffect} from 'react';
 import {Link} from "react-router-dom";
 import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 import ClickToEdit from './ClickToEdit.js';
+import { UsersContext } from './Contexts.js';
 import './PhotoWrapper.css';
 
 const queueOptions = {
@@ -27,6 +28,8 @@ function PhotoTable(props) {
     attr: "created",
     direction: -1,
   });
+
+  const { users, setUsers } = useContext(UsersContext);
 
   function handleDeleteClicked(id) {
     const del = window.confirm(`Delete photo ${id}?`);
@@ -149,7 +152,12 @@ function PhotoTable(props) {
       <div class="detections">
         {
           annotations.map((item) => {
-            return <Badge className="detection" bg="info">{item.label}</Badge>
+            if (item.label === "face") {
+              const label = users[item.identified_user_id]?.display_name || item.sublabel || "Unknown Person";
+              return <Badge className="detection" bg="primary">{label}</Badge>
+            } else {
+              return <Badge className="detection" bg="secondary">{item.label}</Badge>
+            }
           })
         }
       </div>
