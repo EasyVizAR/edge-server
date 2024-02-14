@@ -38,7 +38,7 @@ class FakeMagic:
             return mtype[0]
 
 
-def assemble_patches(patches, photo_path):
+async def assemble_patches(patches, photo_path):
     rows = []
     cols = []
     current_row_id = None
@@ -58,9 +58,12 @@ def assemble_patches(patches, photo_path):
 
             filename = secure_filename(patch.filename)
             path = os.path.join(tmpdir, filename)
-            patch.save(path)
+            await patch.save(path)
 
             cols.append(Image.open(path))
+
+    if len(cols) > 0:
+        rows.append(np.hstack(cols))
 
     combined = np.vstack(rows)
     combined = Image.fromarray(combined)
