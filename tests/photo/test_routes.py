@@ -133,7 +133,18 @@ async def test_photo_upload():
         photo_data = {
             "camera_location_id": test_location_id,
             "contentType": "image/jpeg",
-            "retention": "temporary"
+            "retention": "temporary",
+            "camera_position": {
+                "x": 1,
+                "y": 2,
+                "z": 3
+            },
+            "camera_orientation": {
+                "x": 0,
+                "y": 0,
+                "z": 0,
+                "w": 1
+            },
         }
         response = await client.post(photos_url, json=photo_data, headers=headers)
         assert response.status_code == HTTPStatus.CREATED
@@ -144,8 +155,19 @@ async def test_photo_upload():
         assert photo['created_by'] == headset['id']
         assert photo['status'] == "created"
         assert photo['retention'] == "temporary"
+        assert photo['device_pose_id'] is not None
 
+        # Test retrieval which may have more information
         photo_url = "/photos/{}".format(photo['id'])
+        response = await client.get(photo_url, headers=headers)
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        photo2 = await response.get_json()
+        assert isinstance(photo, dict)
+        assert photo2['id'] == photo['id']
+        assert photo2['camera_position']['x'] == 1
+        assert photo2['camera_position']['y'] == 2
+        assert photo2['camera_position']['z'] == 3
 
         # Test upload process
         response = await client.put(photo['imageUrl'], data="test", headers=headers)

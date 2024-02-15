@@ -18,6 +18,7 @@ import sqlalchemy as sa
 
 from server import auth
 from server.models.mobile_devices import MobileDevice
+from server.pose_changes.models import DevicePose, PoseChangeSchema
 from server.resources.filter import Filter
 from server.utils.images import assemble_patches, ext_from_type
 from server.utils.rate_limiter import rate_limit_exempt
@@ -33,6 +34,7 @@ photos = Blueprint("photos", __name__)
 photo_schema = PhotoSchema()
 detection_task_schema = DetectionTaskSchema()
 photo_annotation_schema = PhotoAnnotationSchema()
+pose_change_schema = PoseChangeSchema()
 
 # Interval for purging temporary photos (in seconds)
 cleanup_interval = 300
@@ -214,6 +216,23 @@ async def create_photo_entry(body):
             photo.location_id = device.location_id
             photo.tracking_session_id = device.tracking_session_id
             photo.device_pose_id = device.device_pose_id
+
+            # If the caller included position and orientation,
+            # we can store a DevicePose record and update the device and photo
+            # to point to that.
+            if "camera_position" in body and "camera_orientation" in body:
+                tmp = {
+                    "position": body["camera_position"],
+                    "orientation": body["camera_orientation"]
+                }
+                pose = pose_change_schema.load(tmp, transient=True)
+                pose.tracking_session_id = device.tracking_session_id
+                pose.mobile_device_id = device.id
+                g.session.add(pose)
+                await g.session.flush()
+
+                photo.device_pose_id = pose.id
+                device.device_pose_id = pose.id
 
     g.session.add(photo)
     await g.session.commit()
