@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
-import { Button, Table, Pagination, Dropdown } from 'react-bootstrap';
+import { Badge, Button, Table, Pagination, Dropdown } from 'react-bootstrap';
 import './WorkItems.css';
 import {Helmet} from 'react-helmet';
 import {Link} from "react-router-dom";
@@ -8,7 +8,7 @@ import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 import ClickToEdit from './ClickToEdit.js';
 
-import { LocationsContext } from './Contexts.js';
+import { LocationsContext, UsersContext } from './Contexts.js';
 
 const queueOptions = {
   "detection": "Object detection",
@@ -22,6 +22,7 @@ function WorkItems(props){
   const itemsPerPage = 10;
 
   const { locations, setLocations } = useContext(LocationsContext);
+  const { users, setUsers } = useContext(UsersContext);
 
   const [currentPage, setCurrentPage] = useState(1);
   const[workItems, setWorkItems] = useState([]);
@@ -148,6 +149,24 @@ function WorkItems(props){
     return uniqueAnnotationsArray;
   }
 
+  function Detections(props) {
+    const annotations = props.photo.annotations || [];
+    return (
+      <div class="detections">
+        {
+          annotations.map((item) => {
+            if (item.label === "face") {
+              const label = users[item.identified_user_id]?.display_name || item.sublabel || "Unknown Person";
+              return <Badge className="detection" bg="primary">{label}</Badge>
+            } else {
+              return <Badge className="detection" bg="secondary">{item.label}</Badge>
+            }
+          })
+        }
+      </div>
+    );
+  }
+
   function Photos(props){
     var url = '';
     var full_url = props.e.imageUrl;
@@ -232,6 +251,7 @@ function WorkItems(props){
               <th><SortByLink attr="created" text="Created" /></th>
               <th><SortByLink attr="camera_location_id" text="Location" /></th>
               <th><SortByLink attr="queue_name" text="Queue" /></th>
+              <th>Detections</th>
               <th>Image</th>
               <th></th>
             </tr>
@@ -262,6 +282,9 @@ function WorkItems(props){
                       <ClickToEdit tag='span' initialValue={e.queue_name}
                         placeholder='Queue Name' select={queueOptions}
                         onSave={(newValue) => patchPhoto(e.id, {queue_name: newValue})} />
+                    </td>
+                    <td>
+                      <Detections photo={e} />
                     </td>
                     <td>
                       <div>
