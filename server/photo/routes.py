@@ -144,52 +144,59 @@ async def list_photos():
                             type: array
                             items: Photo
     """
+    stmt = sa.select(PhotoRecord)
+
+    try:
+        camera_location_id = uuid.UUID(request.args.get('camera_location_id'))
+        stmt = stmt.where(PhotoRecord.location_id == camera_location_id)
+    except:
+        pass
+
+    try:
+        created_by = uuid.UUID(request.args.get('created_by'))
+        stmt = stmt.where(PhotoRecord.mobile_device_id == created_by)
+    except:
+        pass
+
+    queue_name = request.args.get("queue_name")
+    if queue_name is not None:
+        stmt = stmt.where(PhotoRecord.queue_name == queue_name)
+
+    since = request.args.get('since')
+    if since is not None:
+        stmt = stmt.where(PhotoRecord.updated_time > since)
+
+    until = request.args.get('until')
+    if until is not None:
+        stmt = stmt.where(PhotoRecord.updated_time < until)
+
+    stmt = stmt.options(sa.orm.selectinload(PhotoRecord.annotations))
+    stmt = stmt.options(sa.orm.selectinload(PhotoRecord.files))
+    stmt = stmt.options(sa.orm.selectinload(PhotoRecord.pose))
+
+    result = await g.session.execute(stmt)
     items = []
-    async with g.session_maker() as session:
-        stmt = sa.select(PhotoRecord)
-
-        try:
-            camera_location_id = uuid.UUID(request.args.get('camera_location_id'))
-            stmt = stmt.where(PhotoRecord.location_id == camera_location_id)
-        except:
-            pass
-
-        try:
-            created_by = uuid.UUID(request.args.get('created_by'))
-            stmt = stmt.where(PhotoRecord.mobile_device_id == created_by)
-        except:
-            pass
-
-        queue_name = request.args.get("queue_name")
-        if queue_name is not None:
-            stmt = stmt.where(PhotoRecord.queue_name == queue_name)
-
-        since = request.args.get('since')
-        if since is not None:
-            stmt = stmt.where(PhotoRecord.updated_time > since)
-
-        until = request.args.get('until')
-        if until is not None:
-            stmt = stmt.where(PhotoRecord.updated_time < until)
-
-        stmt = stmt.options(sa.orm.selectinload(PhotoRecord.annotations))
-        stmt = stmt.options(sa.orm.selectinload(PhotoRecord.files))
-        stmt = stmt.options(sa.orm.selectinload(PhotoRecord.pose))
-
-        result = await session.execute(stmt)
-        for row in result.scalars():
-            items.append(photo_schema.dump(row))
+    for row in result.scalars():
+        items.append(photo_schema.dump(row))
 
     # Wait for new objects if the query returned no results and the caller
     # specified a wait timeout. If there are still no results, we return a 204
     # No Content code.
-#    wait = float(request.args.get("wait", 0))
-#    if len(items) == 0 and wait > 0:
-#        try:
-#            item = await asyncio.wait_for(g.active_incident.Photo.wait_for(filt=filt), timeout=wait)
-#            items.append(item)
-#        except asyncio.TimeoutError:
-#            return jsonify([]), HTTPStatus.NO_CONTENT
+    wait = float(request.args.get("wait", 0))
+    if len(items) == 0 and wait > 0:
+        events = [("photos:created", "*"), ("photos:updated", "*")]
+        start_time = time.time()
+
+        remaining = wait
+        while len(items) == 0 and remaining > 0:
+            triggered = await current_app.dispatcher.wait_for(events, timeout=remaining)
+            remaining = wait - (time.time() - start_time)
+            if not triggered or remaining < 0:
+                return jsonify([]), HTTPStatus.NO_CONTENT
+
+            result = await g.session.execute(stmt)
+            for row in result.scalars():
+                items.append(photo_schema.dump(row))
 
     await current_app.dispatcher.dispatch_event("photos:viewed", "/photos")
     return jsonify(maybe_wrap(items)), HTTPStatus.OK

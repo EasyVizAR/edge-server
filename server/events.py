@@ -1,3 +1,4 @@
+import asyncio
 import fnmatch
 
 from collections import defaultdict
@@ -50,6 +51,25 @@ class EventDispatcher:
             self.events[event].remove((uri_filter, listener))
         except ValueError:
             pass
+
+    async def wait_for(self, events, timeout=None):
+        future = asyncio.get_event_loop().create_future()
+        async def future_listener(*args, **kwargs):
+            if not future.cancelled():
+                future.set_result(True)
+
+        for event, uri_filter in events:
+            self.add_event_listener(event, uri_filter, future_listener)
+
+        try:
+            status = await asyncio.wait_for(future, timeout=timeout)
+        except asyncio.TimeoutError:
+            status = False
+
+        for event, uri_filter in events:
+            self.remove_event_listener(event, uri_filter, future_listener)
+
+        return status
 
     async def dispatch_event(self, event, uri, *args, **kwargs):
         for uri_filter, listener in self.events[event]:
