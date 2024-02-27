@@ -80,6 +80,7 @@ class PhotoSchema(MigrationSchema):
     camera_location_id = auto_field('location_id', description="Location ID where the photo was captured")
 
     device_pose_id = auto_field()
+    tracking_session_id = auto_field()
 
     created = auto_field('created_time', description="Time the photo was created")
     updated = auto_field('updated_time', description="Time the photo was last update")

@@ -9,6 +9,7 @@ import LocationTable from './LocationTable.js';
 import CheckInTable from './CheckInTable.js';
 import HeadsetTable from './HeadsetTable.js';
 import FeatureTable from './FeatureTable.js';
+import PhotoTable from './PhotoTable.js';
 import 'reactjs-popup/dist/index.css';
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import moment from 'moment';
@@ -124,6 +125,8 @@ function Headset(props) {
   const [histories, setHistories] = useState({}); // position data
   const [features, setFeatures] = useState({}); // object indexed by feature.id
   const [headsets, setHeadsets] = useState({}); // object indexed by headset.id
+  const [photos, setPhotos] = useState({});
+
   const [positionHistory, setPositionHistory] = useState([]);
   const [showNewFeature, setShowNewFeature] = useState(false);
   const [layers, setLayers] = useState([]);
@@ -263,6 +266,21 @@ function Headset(props) {
       }
     });
   }, [pointCoordinates]);
+
+  useEffect(() => {
+    // Load the photos associated with a particular tracking session / check-in.
+    fetch(`${host}/photos?tracking_session_id=${displayedCheckInId}`)
+      .then(response => response.json())
+      .then(data => {
+        var temp = {};
+        for (var photo of data) {
+          if (photo.retention !== "temporary") {
+            temp[photo.id] = photo;
+          }
+        }
+        setPhotos(temp);
+      });
+  }, [displayedCheckInId]);
 
   // time goes off every 10 seconds to refresh headset data
   //    useEffect(() => {
@@ -712,6 +730,8 @@ function Headset(props) {
               setHeadsets={setHeadsets} locations={locations} features={features} />
             <FeatureTable icons={icons} features={features} locationId={selectedLocation}
               editFeature={editFeature} setEditFeature={setEditFeature} />
+
+            <PhotoTable photos={photos} setPhotos={setPhotos} />
           </div>
 
       </div>

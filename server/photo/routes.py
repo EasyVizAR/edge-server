@@ -162,6 +162,10 @@ async def list_photos():
     if queue_name is not None:
         stmt = stmt.where(PhotoRecord.queue_name == queue_name)
 
+    tracking_session_id = request.args.get("tracking_session_id")
+    if tracking_session_id is not None:
+        stmt = stmt.where(PhotoRecord.tracking_session_id == tracking_session_id)
+
     since = request.args.get('since')
     if since is not None:
         stmt = stmt.where(PhotoRecord.updated_time > since)
