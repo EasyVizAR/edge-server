@@ -9,6 +9,8 @@ import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.m
 import ClickToEdit from './ClickToEdit.js';
 
 import { LocationsContext, UsersContext } from './Contexts.js';
+import { WebSocketContext } from "./WSContext.js";
+
 
 const queueOptions = {
   "detection": "Object detection",
@@ -23,6 +25,7 @@ function WorkItems(props){
 
   const { locations, setLocations } = useContext(LocationsContext);
   const { users, setUsers } = useContext(UsersContext);
+  const [subscribe, unsubscribe] = useContext(WebSocketContext);
 
   const [currentPage, setCurrentPage] = useState(1);
   const[workItems, setWorkItems] = useState([]);
@@ -31,11 +34,43 @@ function WorkItems(props){
     attr: "created",
     direction: -1,
   });
-  const [annotations, setAnnotations] = useState([]); 
+  const [annotations, setAnnotations] = useState([]);
   const [finalAnnotation, setFinalAnnotation] = useState("All");
 
   useEffect(() => {
     getWorkItems();
+
+    subscribe("photos:created", "*", (event, uri, message) => {
+      setWorkItems(previous => {
+        let tmp = [...previous];
+        tmp.push(message.current);
+        return tmp;
+      });
+    });
+
+    subscribe("photos:updated", "*", (event, uri, message) => {
+      setWorkItems(previous => {
+        let tmp = [];
+        for (var item of previous) {
+          if (item.id === message.current.id) {
+            tmp.push(message.current);
+          } else {
+            tmp.push(item);
+          }
+        }
+        return tmp;
+      });
+    });
+
+    subscribe("photos:deleted", "*", (event, uri, message) => {
+      setWorkItems(previous => previous.filter(item => item.id !== message.previous.id));
+    });
+
+    return () => {
+      unsubscribe("photos:created", "*");
+      unsubscribe("photos:updated", "*");
+      unsubscribe("photos:deleted", "*");
+    }
   }, []);
 
   const handleDeleteClicked = (id) => {

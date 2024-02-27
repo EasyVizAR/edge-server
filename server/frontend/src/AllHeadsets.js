@@ -6,6 +6,7 @@ import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
 import moment from 'moment';
 import { LocationsContext } from './Contexts.js';
 import NewDevice from './NewDevice.js';
+import { WebSocketContext } from "./WSContext.js";
 
 
 const deviceTypeOptions = [
@@ -20,6 +21,7 @@ function AllHeadsets(props) {
   const host = process.env.PUBLIC_URL;
 
   const { locations, setLocations } = useContext(LocationsContext);
+  const [subscribe, unsubscribe] = useContext(WebSocketContext);
 
   const [headsets, setHeadsets] = useState({});
 
@@ -43,7 +45,37 @@ function AllHeadsets(props) {
   });
 
   useEffect(() => {
-      getAllHeadsets();
+    getAllHeadsets();
+
+    subscribe("headsets:created", "*", (event, uri, message) => {
+      setHeadsets(previous => {
+        let tmp = Object.assign({}, previous);
+        tmp[message.current.id] = message.current;
+        return tmp;
+      });
+    });
+
+    subscribe("headsets:updated", "*", (event, uri, message) => {
+      setHeadsets(previous => {
+        let tmp = Object.assign({}, previous);
+        tmp[message.current.id] = message.current;
+        return tmp;
+      });
+    });
+
+    subscribe("headsets:deleted", "*", (event, uri, message) => {
+      setHeadsets(previous => {
+        let tmp = Object.assign({}, previous);
+        delete tmp[message.previous.id];
+        return tmp;
+      });
+    });
+
+    return () => {
+      unsubscribe("headsets:created", "*");
+      unsubscribe("headsets:updated", "*");
+      unsubscribe("headsets:deleted", "*");
+    }
   }, []);
 
   // check if a headset name already exists
