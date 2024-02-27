@@ -119,7 +119,6 @@ function Headset(props) {
 
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedLayer, setSelectedLayer] = useState(null);
-  const selectedLocationRef = useRef(null);
 
   const [headset, setHeadset] = useState(null);
 
@@ -185,10 +184,6 @@ function Headset(props) {
     if (selectedLocation) {
       getLayers();
     }
-
-    // Updated the reference variable. This is mainly for the websocket
-    // event handler.
-    selectedLocationRef.current = selectedLocation;
 
     const uri_filter = `/locations/${selectedLocation}/*`;
 
