@@ -469,6 +469,19 @@ async def list_queues():
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
 
+@photos.route('/photos/queues', methods=['POST'])
+async def create_photo_queue():
+    """
+    Create photo queue
+    """
+    body = await request.get_json()
+    item = photo_queue_schema.load(body, transient=True)
+    g.session.add(item)
+    await g.session.commit()
+    result = photo_queue_schema.dump(item)
+    return jsonify(result), HTTPStatus.CREATED
+
+
 @photos.route('/photos/annotations/<int:annotation_id>', methods=['PATCH'])
 async def update_annotation(annotation_id):
     body = await request.get_json()
