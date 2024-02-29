@@ -12,13 +12,6 @@ import { LocationsContext, UsersContext } from './Contexts.js';
 import { WebSocketContext } from "./WSContext.js";
 
 
-const queueOptions = {
-  "detection": "Object detection",
-  "identification": "Person identification",
-  "done": "Done",
-};
-
-
 function WorkItems(props){
   const host = process.env.PUBLIC_URL;
   const itemsPerPage = 10;
@@ -29,6 +22,8 @@ function WorkItems(props){
 
   const [currentPage, setCurrentPage] = useState(1);
   const[workItems, setWorkItems] = useState([]);
+  const [photoQueues, setPhotoQueues] = useState([]);
+
   let filterWorkItems = [];
   const [sortBy, setSortBy] = useState({
     attr: "created",
@@ -39,6 +34,11 @@ function WorkItems(props){
 
   useEffect(() => {
     getWorkItems();
+
+    const url = `${host}/photos/queues`;
+    fetch(url)
+      .then(response => response.json())
+      .then(data => setPhotoQueues(data));
 
     subscribe("photos:created", "*", (event, uri, message) => {
       setWorkItems(previous => {
@@ -315,7 +315,7 @@ function WorkItems(props){
                     </td>
                     <td>
                       <ClickToEdit tag='span' initialValue={e.queue_name}
-                        placeholder='Queue Name' select={queueOptions}
+                        placeholder='Queue Name' select={photoQueues}
                         onSave={(newValue) => patchPhoto(e.id, {queue_name: newValue})} />
                     </td>
                     <td>
