@@ -18,6 +18,7 @@ import sqlalchemy as sa
 
 from server import auth
 from server.models.mobile_devices import MobileDevice
+from server.models.photo_queues import PhotoQueue
 from server.pose_changes.models import DevicePose, PoseChangeSchema
 from server.resources.filter import Filter
 from server.utils.images import assemble_patches, ext_from_type
@@ -26,7 +27,7 @@ from server.utils.utils import save_image
 from server.utils.response import maybe_wrap
 
 from .cleanup import PhotoCleanupTask
-from .models import PhotoAnnotation, PhotoFile, PhotoRecord, DetectionTaskSchema, PhotoAnnotationSchema, PhotoSchema
+from .models import PhotoAnnotation, PhotoFile, PhotoRecord, DetectionTaskSchema, PhotoAnnotationSchema, PhotoSchema, PhotoQueueSchema
 
 
 photos = Blueprint("photos", __name__)
@@ -35,6 +36,7 @@ photo_schema = PhotoSchema()
 detection_task_schema = DetectionTaskSchema()
 photo_annotation_schema = PhotoAnnotationSchema()
 pose_change_schema = PoseChangeSchema()
+photo_queue_schema = PhotoQueueSchema()
 
 # Interval for purging temporary photos (in seconds)
 cleanup_interval = 300
@@ -451,6 +453,18 @@ async def list_annotations():
     result = await g.session.execute(stmt)
     for row in result.scalars():
         items.append(photo_annotation_schema.dump(row))
+
+    return jsonify(maybe_wrap(items)), HTTPStatus.OK
+
+
+@photos.route('/photos/queues', methods=['GET'])
+async def list_queues():
+    items = []
+
+    stmt = sa.select(PhotoQueue).order_by(PhotoQueue.display_order)
+    result = await g.session.execute(stmt)
+    for row in result.scalars():
+        items.append(photo_queue_schema.dump(row))
 
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 

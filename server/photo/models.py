@@ -124,3 +124,14 @@ class PhotoSchema(MigrationSchema):
             data['camera_position'] = original.pose.position
             data['camera_orientation'] = original.pose.orientation
         return data
+
+
+class PhotoQueueSchema(MigrationSchema):
+    class Meta:
+        model = PhotoQueue
+        load_instance = True
+
+    name = auto_field()
+    next_queue_name = auto_field()
+    display_order = auto_field()
+    description = auto_field()
