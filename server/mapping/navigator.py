@@ -10,6 +10,7 @@ passed location_id to look up the appropriate map.
 import collections
 import os
 import time
+import uuid
 
 from server.resources.geometry import Vector3f
 
@@ -19,6 +20,15 @@ from .floor import Floor
 
 # Maximum time between consecutive user positions
 MAXIMUM_TIME_DIFFERENCE = 5
+
+
+def point_to_tuple(p):
+    if isinstance(p, Vector3f):
+        return p.totuple()
+    elif isinstance(p, dict):
+        return (p.get("x"), p.get("y"), p.get("z"))
+    else:
+        return p
 
 
 class Navigator:
@@ -167,19 +177,19 @@ class Navigator:
 
         # If the time difference is too long, we cannot safely infer that
         # the line between the two points is passable
-        if current.updated - previous.updated > MAXIMUM_TIME_DIFFERENCE:
+        if current['updated'] - previous['updated'] > MAXIMUM_TIME_DIFFERENCE:
             return
 
-        if current.location_id not in self.floors:
-            self.floors[current.location_id] = DataGrid(width=10.0, height=10.0, left=-5.0, top=-5.0)
+        location_id = uuid.UUID(current['location_id'])
+        if location_id not in self.floors:
+            self.floors[location_id] = DataGrid(width=10.0, height=10.0, left=-5.0, top=-5.0)
 
-        floor_grid = self.get_floor_grid(current.location_id)
+        floor_grid = self.get_floor_grid(location_id)
 
         # TODO: Change to have multiple floors in a single location and differentiate between each using y position
+        floor_grid.add_segment(point_to_tuple(previous['position']), point_to_tuple(current['position']), vspread=1)
 
-        floor_grid.add_segment(previous.position.totuple(), current.position.totuple(), vspread=1)
-
-        self.maybe_save_floor_grid(current.location_id, floor_grid)
+        self.maybe_save_floor_grid(location_id, floor_grid)
 
         # TODO: Change to put line in floor
         #floor.put_line([(previous.position.x, previous.position.z),
