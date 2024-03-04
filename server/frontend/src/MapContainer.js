@@ -265,7 +265,7 @@ function MapContainer(props) {
 
     function MapMarker(props) {
       const icon = IconMap?.[props.type]?.['iconName'] || "bug"
-
+      
       const x = props.mapShape.xscale * (props.position.x - props.mapShape.xmin);
       const y = props.mapShape.yscale * (props.mapShape.height - (props.position.z - props.mapShape.ymin));
 
@@ -416,7 +416,7 @@ function MapContainer(props) {
                   layerLoaded && props.showHeadsets && Object.keys(props.headsets).length > 0 &&
                     Object.entries(props.headsets).map(([id, item]) => {
                       return <MapMarker
-                              type="headset"
+                              type={item.type}
                               name={item.name}
                               color={item.color}
                               position={item.position}

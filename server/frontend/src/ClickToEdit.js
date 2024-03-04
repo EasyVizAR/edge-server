@@ -43,9 +43,7 @@ function ClickToEdit(props) {
           defaultValue={initialValue}
           ref={inputRef}>
           {
-            select.map((item, index) => {
-              const value = item.id || item.name;
-              const name = item.name || item.id;
+            Object.entries(select).map(([value, name]) => {
               return <option value={value}>{name}</option>
             })
           }

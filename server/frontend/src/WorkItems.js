@@ -9,7 +9,12 @@ import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.m
 import ClickToEdit from './ClickToEdit.js';
 
 import { LocationsContext, UsersContext } from './Contexts.js';
-import { WebSocketContext } from "./WSContext.js";
+
+const queueOptions = {
+  "detection": "Object detection",
+  "identification": "Person identification",
+  "done": "Done",
+};
 
 
 function WorkItems(props){
@@ -18,59 +23,19 @@ function WorkItems(props){
 
   const { locations, setLocations } = useContext(LocationsContext);
   const { users, setUsers } = useContext(UsersContext);
-  const [subscribe, unsubscribe] = useContext(WebSocketContext);
 
   const [currentPage, setCurrentPage] = useState(1);
   const[workItems, setWorkItems] = useState([]);
-  const [photoQueues, setPhotoQueues] = useState([]);
-
   let filterWorkItems = [];
   const [sortBy, setSortBy] = useState({
     attr: "created",
     direction: -1,
   });
-  const [annotations, setAnnotations] = useState([]);
+  const [annotations, setAnnotations] = useState([]); 
   const [finalAnnotation, setFinalAnnotation] = useState("All");
 
   useEffect(() => {
     getWorkItems();
-
-    const url = `${host}/photos/queues`;
-    fetch(url)
-      .then(response => response.json())
-      .then(data => setPhotoQueues(data));
-
-    subscribe("photos:created", "*", (event, uri, message) => {
-      setWorkItems(previous => {
-        let tmp = [...previous];
-        tmp.push(message.current);
-        return tmp;
-      });
-    });
-
-    subscribe("photos:updated", "*", (event, uri, message) => {
-      setWorkItems(previous => {
-        let tmp = [];
-        for (var item of previous) {
-          if (item.id === message.current.id) {
-            tmp.push(message.current);
-          } else {
-            tmp.push(item);
-          }
-        }
-        return tmp;
-      });
-    });
-
-    subscribe("photos:deleted", "*", (event, uri, message) => {
-      setWorkItems(previous => previous.filter(item => item.id !== message.previous.id));
-    });
-
-    return () => {
-      unsubscribe("photos:created", "*");
-      unsubscribe("photos:updated", "*");
-      unsubscribe("photos:deleted", "*");
-    }
   }, []);
 
   const handleDeleteClicked = (id) => {
@@ -315,7 +280,7 @@ function WorkItems(props){
                     </td>
                     <td>
                       <ClickToEdit tag='span' initialValue={e.queue_name}
-                        placeholder='Queue Name' select={photoQueues}
+                        placeholder='Queue Name' select={queueOptions}
                         onSave={(newValue) => patchPhoto(e.id, {queue_name: newValue})} />
                     </td>
                     <td>
