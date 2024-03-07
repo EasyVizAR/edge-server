@@ -47,6 +47,9 @@ import {
   faStairs,
   faTruckMedical,
   faUser,
+  faRobot,
+  faMobileScreenButton,
+  faLaptopCode
 } from "@fortawesome/free-solid-svg-icons";
 import NewLayer from "./NewLayer";
 import MapContainer from "./MapContainer";
@@ -73,7 +76,11 @@ fontawesome.library.add(
   faSquare,
   faStairs,
   faTruckMedical,
-  faUser);
+  faUser,
+  faRobot,
+  faLaptopCode,
+  faMobileScreenButton
+  );
 
 function Headset(props) {
   const host = process.env.PUBLIC_URL;
@@ -102,7 +109,10 @@ function Headset(props) {
     stairs: solid('stairs'),
     user: solid('user'),
     warning: solid('triangle-exclamation'),
-    waypoint: solid('location-dot')
+    waypoint: solid('location-dot'),
+    robot: solid('robot'),
+    phone: solid('mobile-screen-button'),
+    editor: solid('laptop-code')
   }
 
   const buttonStyle = {

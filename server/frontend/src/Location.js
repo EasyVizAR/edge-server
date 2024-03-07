@@ -49,6 +49,8 @@ import {
   faStairs,
   faTruckMedical,
   faUser,
+  faRobot,
+  faPhone,
 } from "@fortawesome/free-solid-svg-icons";
 import NewLayer from "./NewLayer";
 import MapContainer from "./MapContainer";
@@ -75,7 +77,9 @@ fontawesome.library.add(
   faSquare,
   faStairs,
   faTruckMedical,
-  faUser);
+  faUser,
+  faRobot,
+  faPhone);
 
 function Location(props) {
   const host = process.env.PUBLIC_URL;
@@ -103,7 +107,9 @@ function Location(props) {
     stairs: solid('stairs'),
     user: solid('user'),
     warning: solid('triangle-exclamation'),
-    waypoint: solid('location-dot')
+    waypoint: solid('location-dot'),
+    robot: solid('robot'),
+    phone: solid('phone')
   }
 
   const buttonStyle = {

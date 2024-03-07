@@ -416,7 +416,7 @@ function MapContainer(props) {
                   layerLoaded && props.showHeadsets && Object.keys(props.headsets).length > 0 &&
                     Object.entries(props.headsets).map(([id, item]) => {
                       return <MapMarker
-                              type="headset"
+                              type={item.type}
                               name={item.name}
                               color={item.color}
                               position={item.position}
