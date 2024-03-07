@@ -34,6 +34,7 @@ from server.events import EventDispatcher
 from server.mapping.navigator import Navigator
 from server.mapping2.mapper import Mapper
 from server.models.base import Base
+from server.photo.models import initialize_photo_queues
 
 
 sqlite_file = "easyvizar-edge.sqlite"
@@ -150,6 +151,9 @@ async def before_first_request():
 
     # Make sure some users are defined
     await initialize_users_table(app)
+
+    # Make sure the expected queues exist
+    await initialize_photo_queues(app)
 
 
 @app.before_request

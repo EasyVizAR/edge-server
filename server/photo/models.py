@@ -135,3 +135,55 @@ class PhotoQueueSchema(MigrationSchema):
     next_queue_name = auto_field()
     display_order = auto_field()
     description = auto_field()
+
+
+default_photo_queues = [
+  {
+    "description": "A photo record has been created, but the files have not been uploaded yet.",
+    "display_order": 10,
+    "name": "created",
+    "next_queue_name": "detection"
+  },
+  {
+    "description": "The photo will be processing by an object detection module.",
+    "display_order": 20,
+    "name": "detection",
+    "next_queue_name": "done"
+  },
+  {
+    "description": "The photo will be processed by a 3D object detector",
+    "display_order": 23,
+    "name": "detection-3d",
+    "next_queue_name": "done"
+  },
+  {
+    "description": "The photo will be processed by a face recognition module.",
+    "display_order": 25,
+    "name": "identification",
+    "next_queue_name": "done"
+  },
+  {
+    "description": "All photo processing has completed.",
+    "display_order": 30,
+    "name": "done",
+    "next_queue_name": None
+  }
+]
+
+
+async def initialize_photo_queues(app):
+    existing_queues = set()
+
+    async with app.session_maker() as session:
+        stmt = sa.select(PhotoQueue).order_by(PhotoQueue.display_order)
+        result = await session.execute(stmt)
+        for row in result.scalars():
+            existing_queues.add(row.name)
+
+        for item in default_photo_queues:
+            if item['name'] not in existing_queues:
+                queue = PhotoQueue(**item)
+                session.add(queue)
+                await session.flush()
+
+        await session.commit()
