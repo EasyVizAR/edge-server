@@ -9,20 +9,16 @@ import ClickToEdit from './ClickToEdit.js';
 import { UsersContext } from './Contexts.js';
 import './PhotoWrapper.css';
 
-const queueOptions = {
-  "detection": "Object detection",
-  "identification": "Person identification",
-  "done": "Done",
-};
-
 
 function PhotoTable(props) {
   const host = process.env.PUBLIC_URL;
   const itemsPerPage = 10;
+
   const [currentPage, setCurrentPage] = useState(1);
   let annotations = findUniqueAnnotations(props.photos);
   const [finalAnnotation, setFinalAnnotation] = useState("All");
   var finalFilter = [];
+  const [photoQueues, setPhotoQueues] = useState([]);
 
   const [sortBy, setSortBy] = useState({
     attr: "created",
@@ -30,6 +26,13 @@ function PhotoTable(props) {
   });
 
   const { users, setUsers } = useContext(UsersContext);
+
+  useEffect(() => {
+    const url = `${host}/photos/queues`;
+    fetch(url)
+      .then(response => response.json())
+      .then(data => setPhotoQueues(data));
+  }, []);
 
   function handleDeleteClicked(id) {
     const del = window.confirm(`Delete photo ${id}?`);
@@ -255,7 +258,7 @@ function PhotoTable(props) {
                     <td>{moment.unix(e.created).fromNow()}</td>
                     <td>
                       <ClickToEdit tag='span' initialValue={e.queue_name}
-                        placeholder='Queue Name' select={queueOptions}
+                        placeholder='Queue Name' select={photoQueues}
                         onSave={(newValue) => patchPhoto(e.id, {queue_name: newValue})} />
                     </td>
                     <td>

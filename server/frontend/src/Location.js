@@ -22,7 +22,8 @@ import useStateSynchronous from './useStateSynchronous.js';
 import { Link } from "react-router-dom";
 import { useParams } from "react-router";
 import { ActiveIncidentContext, LocationsContext } from './Contexts.js';
-import ReconnectingWebSocket from './ReconnectingWebSocket.js';
+import { WebSocketContext } from "./WSContext.js";
+
 
 import fontawesome from '@fortawesome/fontawesome'
 import {
@@ -48,8 +49,6 @@ import {
   faStairs,
   faTruckMedical,
   faUser,
-  faRobot,
-  faPhone,
 } from "@fortawesome/free-solid-svg-icons";
 import NewLayer from "./NewLayer";
 import MapContainer from "./MapContainer";
@@ -76,9 +75,7 @@ fontawesome.library.add(
   faSquare,
   faStairs,
   faTruckMedical,
-  faUser,
-  faRobot,
-  faPhone);
+  faUser);
 
 function Location(props) {
   const host = process.env.PUBLIC_URL;
@@ -106,9 +103,7 @@ function Location(props) {
     stairs: solid('stairs'),
     user: solid('user'),
     warning: solid('triangle-exclamation'),
-    waypoint: solid('location-dot'),
-    robot: solid('robot'),
-    phone: solid('phone')
+    waypoint: solid('location-dot')
   }
 
   const buttonStyle = {
@@ -120,10 +115,10 @@ function Location(props) {
 
   const { activeIncident, setActiveIncident } = useContext(ActiveIncidentContext);
   const { locations, setLocations } = useContext(LocationsContext);
+  const [subscribe, unsubscribe] = useContext(WebSocketContext);
 
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedLayer, setSelectedLayer] = useState(null);
-  const selectedLocationRef = useRef(null);
 
   const [histories, setHistories] = useState({}); // position data
   const [features, setFeatures] = useState({}); // object indexed by feature.id
@@ -149,12 +144,6 @@ function Location(props) {
   const [tab, setTab] = useState('location-view');
   const [historyData, setHistoryData] = useState([]);
 
-  const webSocket = useRef(null);
-
-  useEffect(() => {
-    openWebSocket();
-  }, []);
-
   // This triggers if a link causes the location_id URL parameter to change.
   useEffect(() => {
     setSelectedLocation(location_id);
@@ -176,11 +165,126 @@ function Location(props) {
       setCurrentLocation(null);
     }
 
-    changeSubscriptions(selectedLocationRef.current, selectedLocation);
+    const uri_filter = `/locations/${selectedLocation}/*`;
 
-    // Updated the reference variable. This is mainly for the websocket
-    // event handler.
-    selectedLocationRef.current = selectedLocation;
+    subscribe("location-headsets:created", uri_filter, (event, uri, message) => {
+      if (message.current.location_id === selectedLocation) {
+        setHeadsets(previous => {
+          let tmp = Object.assign({}, previous);
+          tmp[message.current.id] = message.current;
+          return tmp;
+        });
+      }
+    });
+
+    subscribe("location-headsets:updated", uri_filter, (event, uri, message) => {
+      if (message.current.location_id === selectedLocation) {
+        setHeadsets(previous => {
+          let tmp = Object.assign({}, previous);
+          tmp[message.current.id] = message.current;
+          return tmp;
+        });
+      }
+    });
+
+    subscribe("location-headsets:deleted", uri_filter, (event, uri, message) => {
+      if (message.previous.location_id === selectedLocation) {
+        setHeadsets(previous => {
+          let tmp = Object.assign({}, previous);
+          delete tmp[message.previous.id];
+          return tmp;
+        });
+      }
+    });
+
+    subscribe("features:created", uri_filter, (event, uri, message) => {
+      if (uri.includes(selectedLocation)) {
+        setFeatures(previous => {
+          let tmp = Object.assign({}, previous);
+          tmp[message.current.id] = message.current;
+          return tmp;
+        });
+      }
+    });
+
+    subscribe("features:updated", uri_filter, (event, uri, message) => {
+      if (uri.includes(selectedLocation)) {
+        setFeatures(previous => {
+          let tmp = Object.assign({}, previous);
+          tmp[message.current.id] = message.current;
+          return tmp;
+        });
+      }
+    });
+
+    subscribe("features:deleted", uri_filter, (event, uri, message) => {
+      if (uri.includes(selectedLocation)) {
+        setFeatures(previous => {
+          let tmp = Object.assign({}, previous);
+          delete tmp[message.previous.id];
+          return tmp;
+        });
+      }
+    });
+
+    subscribe("layers:updated", uri_filter, (event, uri, message) => {
+      if (uri.includes(selectedLocation)) {
+        setLayers(previous => {
+          let tmp = [];
+          for (var layer of previous) {
+            if (layer.id === message.current.id) {
+              tmp.push(message.current);
+            } else {
+              tmp.push(layer);
+            }
+          }
+          return tmp;
+        });
+      }
+    });
+
+    subscribe("photos:created", "*", (event, uri, message) => {
+      if (message.current.camera_location_id === selectedLocation) {
+        setPhotos(previous => {
+          let tmp = Object.assign({}, previous);
+          tmp[message.current.id] = message.current;
+          return tmp;
+        });
+      }
+    });
+
+    subscribe("photos:updated", "*", (event, uri, message) => {
+      if (message.current.camera_location_id === selectedLocation) {
+        setPhotos(previous => {
+          let tmp = Object.assign({}, previous);
+          tmp[message.current.id] = message.current;
+          return tmp;
+        });
+      }
+    });
+
+    subscribe("photos:deleted", "*", (event, uri, message) => {
+      if (message.previous.camera_location_id === selectedLocation) {
+        setPhotos(previous => {
+          let tmp = Object.assign({}, previous);
+          delete tmp[message.previous.id];
+          return tmp;
+        });
+      }
+    });
+
+    return () => {
+      unsubscribe("location-headsets:created", uri_filter);
+      unsubscribe("location-headsets:updated", uri_filter);
+      unsubscribe("location-headsets:deleted", uri_filter);
+      unsubscribe("features:created", uri_filter);
+      unsubscribe("features:updated", uri_filter);
+      unsubscribe("features:deleted", uri_filter);
+      unsubscribe("layers:updated", uri_filter);
+      unsubscribe("photos:created", "*");
+      unsubscribe("photos:updated", "*");
+      unsubscribe("photos:deleted", "*");
+    }
   }, [selectedLocation]);
 
   // Change the cursor when entering or exiting a feature edit mode.
@@ -361,163 +465,6 @@ function Location(props) {
           return copy;
         });
       });
-  }
-
-  function openWebSocket() {
-    // I thought useEffect should only be called once, but this seems to be
-    // called many times. Something is not quite right. The easy fix is to
-    // back out of the function if webSocket.current is already initialized.
-    if (webSocket.current) {
-      return;
-    }
-
-    if (window.location.protocol === "https:") {
-      webSocket.current = new ReconnectingWebSocket(`wss://${window.location.host}/ws`);
-    } else {
-      webSocket.current = new ReconnectingWebSocket(`ws://${window.location.host}/ws`);
-    }
-
-    const ws = webSocket.current;
-
-    ws.connect();
-
-    ws.onopen = (event) => {
-      ws.send("subscribe photos:created");
-      ws.send("subscribe photos:updated");
-      ws.send("subscribe photos:deleted");
-
-      const selectedLocation = selectedLocationRef.current;
-      if (selectedLocation) {
-        changeSubscriptions(null, selectedLocation);
-      }
-    };
-
-    ws.onmessage = (event) => {
-      const selectedLocation = selectedLocationRef.current;
-
-      const message = JSON.parse(event.data);
-      if (message.event === "location-headsets:created") {
-        if (message.current.location_id !== selectedLocation)
-          return;
-        setHeadsets(prevHeadsets => {
-          let newHeadsets = Object.assign({}, prevHeadsets);
-          newHeadsets[message.current.id] = message.current;
-          return newHeadsets;
-        });
-      } else if (message.event === "location-headsets:updated") {
-        if (message.current.location_id !== selectedLocation)
-          return;
-        setHeadsets(prevHeadsets => {
-          let newHeadsets = Object.assign({}, prevHeadsets);
-          newHeadsets[message.current.id] = message.current;
-          return newHeadsets;
-        });
-      } else if (message.event === "location-headsets:deleted") {
-        if (message.previous.location_id !== selectedLocation)
-          return;
-        setHeadsets(prevHeadsets => {
-          let newHeadsets = Object.assign({}, prevHeadsets);
-          delete newHeadsets[message.previous.id];
-          return newHeadsets;
-        });
-      } else if (message.event === "features:created") {
-        if (!message.uri.includes(selectedLocation))
-          return;
-        setFeatures(prevFeatures => {
-          let newFeatures = Object.assign({}, prevFeatures);
-          newFeatures[message.current.id] = message.current;
-          return newFeatures;
-        });
-      } else if (message.event === "features:updated") {
-        if (!message.uri.includes(selectedLocation))
-          return;
-        setFeatures(prevFeatures => {
-          let newFeatures = Object.assign({}, prevFeatures);
-          newFeatures[message.current.id] = message.current;
-          return newFeatures;
-        });
-      } else if (message.event === "features:deleted") {
-        if (!message.uri.includes(selectedLocation))
-          return;
-        setFeatures(prevFeatures => {
-          let newFeatures = Object.assign({}, prevFeatures);
-          delete newFeatures[message.previous.id];
-          return newFeatures;
-        });
-      } else if (message.event === "photos:created") {
-        if (message.current.camera_location_id !== selectedLocation)
-          return;
-        setPhotos(prevPhotos => {
-          let newPhotos = Object.assign({}, prevPhotos);
-          newPhotos[message.current.id] = message.current;
-          return newPhotos;
-        });
-      } else if (message.event === "photos:updated") {
-        if (message.current.camera_location_id !== selectedLocation)
-          return;
-        setPhotos(prevPhotos => {
-          let newPhotos = Object.assign({}, prevPhotos);
-          newPhotos[message.current.id] = message.current;
-          return newPhotos;
-        });
-      } else if (message.event === "photos:deleted") {
-        if (message.previous.camera_location_id !== selectedLocation)
-          return;
-        setPhotos(prevPhotos => {
-          let newPhotos = Object.assign({}, prevPhotos);
-          delete newPhotos[message.previous.id];
-          return newPhotos;
-        });
-      } else if (message.event === "layers:updated") {
-        if (!message.uri.includes(selectedLocation))
-          return;
-        setLayers(prevLayers => {
-          let newLayers = [];
-          for (var layer of prevLayers) {
-            if (layer.id === message.current.id) {
-              newLayers.push(message.current);
-            } else {
-              newLayers.push(layer);
-            }
-          }
-          return newLayers;
-        });
-      } else {
-        console.log("Unhandled event: " + message);
-      }
-    };
-  }
-
-  function changeSubscriptions(previousLocationId, currentLocationId) {
-    const ws = webSocket.current;
-    if (!ws || ws.readyState === 0) {
-      return;
-    }
-
-    const events = [
-      "location-headsets:created",
-      "location-headsets:updated",
-      "location-headsets:deleted",
-      "features:created",
-      "features:updated",
-      "features:deleted",
-      "layers:updated",
-      "locations:updated"
-    ];
-
-    if (previousLocationId) {
-      let filter1 = " /locations/" + previousLocationId + "*";
-      for (var ev of events) {
-        ws.send("unsubscribe " + ev + filter1);
-      }
-    }
-
-    if (currentLocationId) {
-      let filter2 = " /locations/" + currentLocationId + "*";
-      for (var ev of events) {
-        ws.send("subscribe " + ev + filter2);
-      }
-    }
   }
 
   return (

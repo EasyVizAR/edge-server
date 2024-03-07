@@ -25,9 +25,6 @@ import {
   faStairs,
   faTruckMedical,
   faUser,
-  faRobot,
-  faMobileScreenButton,
-  faLaptopCode
 } from "@fortawesome/free-solid-svg-icons";
 
 fontawesome.library.add(
@@ -52,11 +49,7 @@ fontawesome.library.add(
   faSquare,
   faStairs,
   faTruckMedical,
-  faUser,
-  faRobot,
-  faMobileScreenButton,
-  faLaptopCode
-  );
+  faUser);
 
 // Map feature type -> FA icon
 const IconMap = {
@@ -80,10 +73,7 @@ const IconMap = {
   stairs: solid('stairs'),
   user: solid('user'),
   warning: solid('triangle-exclamation'),
-  waypoint: solid('location-dot'),
-  robot: solid('robot'),
-  phone: solid('mobile-screen-button'),
-  editor: solid('laptop-code')
+  waypoint: solid('location-dot')
 };
 
 export default IconMap;

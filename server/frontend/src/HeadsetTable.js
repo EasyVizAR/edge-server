@@ -6,14 +6,12 @@ import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid, regular, brands} from '@fortawesome/fontawesome-svg-core/import.macro';
 import { LocationsContext } from './Contexts.js';
-import { icon } from '@fortawesome/fontawesome-svg-core';
-import IconMap from './Icons.js';
+
 
 const deviceTypeOptions = [
   "unknown",
   "headset",
   "phone",
-  "robot",
   "editor",
 ];
 
@@ -282,7 +280,7 @@ function HeadsetTable(props) {
             <th rowSpan='2'><input type="checkbox" checked={Object.keys(checkedItems).length > 0} onChange={toggleCheckAll} /></th>
             <th rowSpan='2'>Headset ID</th>
             <th rowSpan='2'>Name</th>
-            <th rowSpan='2'>Color</th>
+            <th rowSpan='2'>Icon / Color</th>
             <th rowSpan='2'>Location</th>
             <th rowSpan='2'>Last Update</th>
             <th rowSpan='2'>Type</th>
@@ -336,19 +334,12 @@ function HeadsetTable(props) {
                           type="color"
                           ref={formReferences.color}
                           id={"headset-color-" + id}/>
-                      ) 
-                      : ( deviceTypeOptions.includes(headset.type) ? 
-                      <FontAwesomeIcon 
-                        icon={IconMap?.[headset.type]?.['iconName'] || "bug"} 
-                        size="lg" 
-                        color={headset.color}
-                      /> 
-                    : null
+                      ) : (
+                        <FontAwesomeIcon icon={solid('headset')} size="lg" color={headset.color}/>
                       )
-                    
                     }
                   </td>
-                  <td>{locations[headset.location_id] ? locations[headset.location_id]['name'] : 'Unk'}</td>
+                  <td>{locations[headset.location_id] ? locations[headset.location_id]['name'] : 'Unknown'}</td>
                   <td>{moment.unix(headset.updated).fromNow()}</td>
                   <td>
                     {
