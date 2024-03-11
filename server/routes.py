@@ -2,7 +2,7 @@ import asyncio
 import os
 
 from http import HTTPStatus
-from quart import Blueprint, current_app, g, make_response, jsonify, websocket
+from quart import Blueprint, current_app, g, make_response, jsonify, request, websocket
 
 from . import auth
 from .apispec import create_openapi_spec
@@ -24,7 +24,7 @@ async def get_openapi_html():
 
 @routes.route('/openapi.json', methods=['GET'])
 async def get_openapi_json():
-    spec = await create_openapi_spec(current_app)
+    spec = await create_openapi_spec(current_app, base_url=request.host_url)
     return jsonify(spec.to_dict())
 
 

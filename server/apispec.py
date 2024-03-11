@@ -33,7 +33,15 @@ from server.surface.models import Surface, SurfaceSchema
 from server.websocket.connection import WebsocketHandler
 
 
-async def create_openapi_spec(app):
+async def create_openapi_spec(app, base_url=None):
+    # If provided a base_url (e.g. "http://localhost:5000"), add a server entry
+    # to the API spec.  That allows Redoc to generate valid example URLs.
+    servers = []
+    if base_url is not None:
+        servers.append({
+            "url": base_url
+        })
+
     spec = APISpec(
         title="EasyVizAR Edge API",
         version="0.1",
@@ -44,7 +52,8 @@ async def create_openapi_spec(app):
         plugins=[
             FlaskPlugin(),
             MarshmallowPlugin(),
-        ]
+        ],
+        servers=servers
     )
 
     spec.components.schema("CheckIn", schema=CheckInSchema())
