@@ -288,6 +288,23 @@ async def update_location(location_id):
     return jsonify(result), HTTPStatus.OK
 
 
+@locations.route('/locations/<uuid:location_id>/device_configuration', methods=['GET'])
+async def get_location_device_configuration(location_id):
+    body = await request.get_json()
+
+    stmt = sa.select(DeviceConfiguration) \
+            .where(DeviceConfiguration.location_id == location_id) \
+            .limit(1)
+
+    result = await g.session.execute(stmt)
+    config = result.scalar()
+    if config is None:
+        config = DeviceConfiguration()
+
+    result = device_configuration_schema.dump(config)
+    return jsonify(result), HTTPStatus.OK
+
+
 @locations.route('/locations/<uuid:location_id>/device_configuration', methods=['PUT'])
 async def replace_location_device_configuration(location_id):
     """

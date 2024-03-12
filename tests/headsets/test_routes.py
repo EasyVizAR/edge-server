@@ -361,3 +361,53 @@ async def test_headset_incidents_tracking():
         # Clean up
         await client.delete(headset_url)
         await client.delete("/incidents/{}".format(incident['id']))
+
+
+@pytest.mark.asyncio
+async def test_headset_configuration():
+    """
+    Test headset configuration routes
+    """
+    async with app.test_client() as client:
+        headsets_url = "/headsets"
+
+        # Create an object
+        response = await client.post(headsets_url, json={"name": "headset-configuration-test"})
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        headset = await response.get_json()
+        assert isinstance(headset, dict)
+        assert headset['id'] is not None
+        assert headset['token'] is not None
+
+        # Test default configuration exists
+        config_url = f"/headsets/{headset['id']}/configuration"
+        response = await client.get(config_url)
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        config = await response.get_json()
+        assert isinstance(config, dict)
+        assert config['enable_mesh_capture'] is True
+        assert config['enable_extended_capture'] is False
+        assert config['photo_capture_mode'] == "off"
+
+        # Test changing configuration
+        config['photo_capture_mode'] = "continuous"
+        response = await client.put(config_url, json=config)
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        config = await response.get_json()
+        assert isinstance(config, dict)
+        assert config['enable_mesh_capture'] is True
+        assert config['enable_extended_capture'] is False
+        assert config['photo_capture_mode'] == "continuous"
+
+        # Confirm that configuration change was applied
+        response = await client.get(config_url)
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        config = await response.get_json()
+        assert isinstance(config, dict)
+        assert config['enable_mesh_capture'] is True
+        assert config['enable_extended_capture'] is False
+        assert config['photo_capture_mode'] == "continuous"

@@ -20,8 +20,13 @@ class DeviceConfigurationSchema(SQLAlchemySchema):
         load_instance = True
 
     enable_mesh_capture = auto_field(description="Enable automatic capturing of environment surfaces for mapping")
-    enable_photo_capture = auto_field(description="Enable automatic capturing of high resolution photos")
+    enable_photo_capture = auto_field(description="Enable automatic capturing of high resolution photos (deprecated)")
     enable_extended_capture = auto_field(description="Enable automatic capturing of photos, depth, geometry, and intensity images")
+
+    photo_capture_mode = auto_field(description="Automatic photo capture mode (off|objects|people|continuous)")
+    photo_detection_threshold = auto_field(description="Score threshold applied during object detection (range 0-1, default: 0.65)")
+    photo_target_interval = auto_field(description="Desired photo upload interval used by some modes (seconds, default: 5)")
+    enable_gesture_recognition = auto_field(description="Enable experimental gesture controls")
 
 
 class LocationSchema(MigrationSchema):

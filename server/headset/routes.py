@@ -16,6 +16,7 @@ import sqlalchemy as sa
 
 from server import auth
 from server.check_in.models import TrackingSession
+from server.location.models import DeviceConfiguration, DeviceConfigurationSchema
 from server.pose_changes.models import DevicePose, PoseChangeSchema
 from server.resources.filter import Filter
 from server.resources.geometry import Vector3f, Vector4f
@@ -28,6 +29,7 @@ headsets = Blueprint('headsets', __name__)
 
 headset_schema = HeadsetSchema()
 pose_change_schema = PoseChangeSchema()
+device_configuration_schema = DeviceConfigurationSchema()
 
 
 # Color palette for headsets.  This is the Tol palette, which is
@@ -573,6 +575,47 @@ async def list_incident_headsets(incident_id):
             items.append(headset_schema.dump(row))
 
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
+
+
+@headsets.route('/headsets/<uuid:headset_id>/configuration', methods=['GET'])
+async def get_headset_configuration(headset_id):
+    """
+    Get headset configuration.
+    """
+    stmt = sa.select(DeviceConfiguration) \
+            .where(DeviceConfiguration.mobile_device_id == headset_id) \
+            .limit(1)
+    result = await g.session.execute(stmt)
+    config = result.scalar()
+    if config is None:
+        config = DeviceConfiguration()
+
+    result = device_configuration_schema.dump(config)
+    return jsonify(result), HTTPStatus.OK
+
+
+@headsets.route('/headsets/<uuid:headset_id>/configuration', methods=['PUT'])
+async def replace_headset_configuration(headset_id):
+    body = await request.get_json()
+    if body is None:
+        body = {}
+
+    stmt = sa.select(DeviceConfiguration) \
+            .where(DeviceConfiguration.mobile_device_id == headset_id) \
+            .limit(1)
+    result = await g.session.execute(stmt)
+    config = result.scalar()
+    if config is None:
+        config = DeviceConfiguration(mobile_device_id=headset_id)
+        g.session.add(config)
+        await g.session.flush()
+
+    config.update(body)
+    config.updated_time = datetime.datetime.now()
+    await g.session.commit()
+
+    result = device_configuration_schema.dump(config)
+    return jsonify(result), HTTPStatus.OK
 
 
 @headsets.route('/headsets/<uuid:headset_id>/qrcode', methods=['GET'])

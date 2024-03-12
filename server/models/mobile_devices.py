@@ -6,6 +6,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 
 from .base import Base
+from .device_configurations import DeviceConfiguration
 from .device_poses import DevicePose
 from .map_markers import MapMarker
 
@@ -70,5 +71,6 @@ class MobileDevice(Base):
     created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
     updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
 
+    device_configuration: Mapped[DeviceConfiguration] = relationship(cascade="all, delete-orphan", uselist=False)
     pose: Mapped[DevicePose] = relationship(foreign_keys=[device_pose_id])
     navigation_target: Mapped[MapMarker] = relationship()

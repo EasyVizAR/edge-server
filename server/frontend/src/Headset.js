@@ -10,6 +10,7 @@ import CheckInTable from './CheckInTable.js';
 import HeadsetTable from './HeadsetTable.js';
 import FeatureTable from './FeatureTable.js';
 import PhotoTable from './PhotoTable.js';
+import HeadsetConfiguration from './HeadsetConfiguration.js';
 import 'reactjs-popup/dist/index.css';
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import moment from 'moment';
@@ -725,6 +726,10 @@ function Headset(props) {
               setHeadsets={setHeadsets} locations={locations} features={features} />
             <FeatureTable icons={icons} features={features} locationId={selectedLocation}
               editFeature={editFeature} setEditFeature={setEditFeature} />
+
+            {
+              headset && <HeadsetConfiguration headset={headset} />
+            }
 
             <PhotoTable photos={photos} setPhotos={setPhotos} />
           </div>
