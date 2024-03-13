@@ -564,12 +564,12 @@ async def get_photo(photo_id):
             in: path
             required: true
             description: Object ID
-          - name: status
+          - name: queue_name
             in: query
             required: false
             schema:
                 type: str
-            description: Only return when the status matches this value
+            description: Only return when the photo is in the specified queue
           - name: wait
             in: query
             required: false
@@ -602,6 +602,30 @@ async def get_photo(photo_id):
         photo = result.scalar()
         if photo is None:
             raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
+
+    # Wait for new objects if the query returned no results and the caller
+    # specified a wait timeout. If there are still no results, we return a 204
+    # No Content code.
+    wait = float(request.args.get("wait", 0))
+    desired_queue = request.args.get("queue_name", "done")
+    if photo.queue_name != desired_queue:
+        events = [("photos:updated", f"/photos/{photo.id}")]
+        start_time = time.time()
+
+        remaining = wait
+        while photo.queue_name != desired_queue and remaining > 0:
+            triggered = await current_app.dispatcher.wait_for(events, timeout=remaining)
+            remaining = wait - (time.time() - start_time)
+            if not triggered or remaining < 0:
+                return jsonify({}), HTTPStatus.NO_CONTENT
+
+            # This ensures we receive a fresh result from the database.
+            g.session.expire_all()
+
+            result = await g.session.execute(stmt)
+            photo = result.scalar()
+            if photo is None:
+                raise exceptions.NotFound(description="Photo {} was not found".format(photo_id))
 
     result = photo_schema.dump(photo)
 
