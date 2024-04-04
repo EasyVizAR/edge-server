@@ -127,6 +127,7 @@ function HeadsetConfiguration(props) {
                     <option value="off">Off</option>
                     <option value="objects">Objects</option>
                     <option value="people">People</option>
+                    <option value="anonymize">Anonymize</option>
                     <option value="continuous">Continuous</option>
                   </select>
                 }

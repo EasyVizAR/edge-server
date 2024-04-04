@@ -60,6 +60,7 @@ function NewDevice(props) {
                 <option value="headset">Headset</option>
                 <option value="phone">Phone</option>
                 <option value="editor">Editor (testing)</option>
+                <option value="robot">Robot</option>
               </Form.Select>
             </Col>
             <Col xs="auto" className="my-1">
