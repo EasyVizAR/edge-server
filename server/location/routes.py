@@ -23,6 +23,11 @@ from server.utils.response import maybe_wrap
 from .models import DeviceConfiguration, DeviceConfigurationSchema, Location, LocationSchema
 
 
+# Cache control, max age (seconds) for model.obj.  The default would setting
+# would instruct browsers to cache the file for 12 hours.
+MODEL_OBJ_MAX_AGE = 60
+
+
 locations = Blueprint("locations", __name__)
 
 device_configuration_schema = DeviceConfigurationSchema()
@@ -440,7 +445,8 @@ async def get_location_model(location_id):
         await asyncio.wrap_future(future)
 
     return await send_from_directory(location_dir, "model.obj",
-            as_attachment=True, attachment_filename="model.obj")
+            as_attachment=True, attachment_filename="model.obj",
+            cache_timeout=MODEL_OBJ_MAX_AGE)
 
 
 @locations.route('/locations/<uuid:location_id>/route', methods=['GET'])
