@@ -253,6 +253,12 @@ class MeshSoup:
                 locations, index_ray, index_tri = self.mesh.ray.intersects_location(ray_origins=cylinder, ray_directions=directions, multiple_hits=False)
                 self.touched.update(index_tri)
 
+    def export_obj(self, path):
+        copy = self.mesh.copy(include_cache=True)
+        copy.vertices[:, 0] = -1 * copy.vertices[:, 0]
+        copy.invert()
+        copy.export(file_obj=path, file_type="obj", digits=3, include_color=False, include_normals=False, include_texture=False)
+
     def infer_walls(self, layers):
         paths = []
         for i, layer in enumerate(layers):

@@ -23,6 +23,10 @@ from .soup import LayerConfig, MeshSoup
 
 layer_schema = LayerSchema()
 
+# Use trimesh for OBJ export instead of our custom exporting code.
+# Trimesh is faster but does not break out the individual mesh fragments.
+use_trimesh_obj_export = True
+
 
 def get_location_dir(data_dir, location_id):
     return os.path.join(data_dir, "locations", location_id.hex)
@@ -39,7 +43,8 @@ class MappingTaskResult:
 
 
 class MappingTask:
-    def __init__(self, mesh_dir, cache_dir=None, exclude_chunks=set(), layer_configs=None, navmesh_path=None, traces=None):
+    def __init__(self, mesh_dir, cache_dir=None, exclude_chunks=set(), layer_configs=None, location_dir=None, navmesh_path=None, traces=None):
+        self.location_dir = location_dir
         self.mesh_dir = mesh_dir
         self.navmesh_path = navmesh_path
 
@@ -49,7 +54,14 @@ class MappingTask:
         self.traces = traces
 
     def run(self):
+        start = time.time()
+
         soup, excluded = MeshSoup.from_directory(self.mesh_dir, cache_dir=self.cache_dir, exclude=self.exclude_chunks)
+
+        if use_trimesh_obj_export and self.location_dir is not None:
+            model_obj = os.path.join(self.location_dir, "model.obj")
+            soup.export_obj(model_obj)
+
         if self.layer_configs is not None:
             soup.infer_walls(self.layer_configs)
 
@@ -61,7 +73,8 @@ class MappingTask:
                 navmesh = soup.create_navigation_mesh()
                 navmesh.save(self.navmesh_path)
 
-        print("Mapping completed with {} layers and {} traces".format(len(self.layer_configs), len(self.traces)))
+        duration = time.time() - start
+        print("Mapping completed with {} layers and {} traces in {:.3f} seconds".format(len(self.layer_configs), len(self.traces), duration))
         result = MappingTaskResult(soup, excluded)
         return result
 
@@ -150,7 +163,10 @@ class Mapper:
         cache_dir = os.path.join(g.temp_dir, "chunks", location_id.hex)
         os.makedirs(cache_dir, exist_ok=True)
 
-        return MappingTask(mesh_dir, cache_dir=cache_dir, exclude_chunks=self.exclude_chunks, layer_configs=configs, navmesh_path=navmesh_path, traces=traces)
+        return MappingTask(mesh_dir, cache_dir=cache_dir,
+                exclude_chunks=self.exclude_chunks, layer_configs=configs,
+                location_dir=location_dir, navmesh_path=navmesh_path,
+                traces=traces)
 
     async def finish_map_update(self, location_id, result, session_maker, dispatcher):
         updated_layers = []
