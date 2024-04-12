@@ -12,6 +12,7 @@ import HeadsetConfiguration from './HeadsetConfiguration.js';
 import FeatureTable from './FeatureTable.js';
 import PhotoTable from './PhotoTable.js';
 import ClickToEdit from './ClickToEdit.js';
+import NewPhoto from './NewPhoto.js';
 import 'reactjs-popup/dist/index.css';
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import moment from 'moment';
@@ -133,6 +134,7 @@ function Location(props) {
 
   const [showNewFeature, setShowNewFeature] = useState(false);
   const [showNewLayer, setShowNewLayer] = useState(false);
+  const [showNewPhoto, setShowNewPhoto] = useState(false);
 
   const [layers, setLayers] = useState([]);
   const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
@@ -505,6 +507,12 @@ function Location(props) {
                   </Button>
                 </div>
 
+                <div className="header-button">
+                  <Button variant="secondary" title="Add Photo" value="Add Photo" onClick={() => setShowNewPhoto(!showNewPhoto)}>
+                    Add Photo
+                  </Button>
+                </div>
+
                 <div className="QR-code-btn header-button">
                   <Link className="btn btn-secondary" role="button" to={"/locations/" + selectedLocation + "/qrcode"}>Location QR Code</Link>
                 </div>
@@ -536,6 +544,11 @@ function Location(props) {
           {
             selectedLocation && showNewLayer &&
               <NewLayer location={currentLocation} setLayers={setLayers} />
+          }
+
+          {
+            selectedLocation && showNewPhoto &&
+              <NewPhoto location={currentLocation} />
           }
 
           <Row className="location-header">
