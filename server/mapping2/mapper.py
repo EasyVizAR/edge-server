@@ -232,7 +232,7 @@ class Mapper:
             future = current_app.mapping_pool.submit(task.run)
             future.add_done_callback(map_ready)
 
-        if modeling_limiter.try_submit(location_id):
+        if not use_trimesh_obj_export and modeling_limiter.try_submit(location_id):
             def model_ready(future):
                 modeling_limiter.finished(location_id)
 
