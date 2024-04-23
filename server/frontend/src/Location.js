@@ -144,7 +144,7 @@ function Location(props) {
 
   const [iconIndex, setIconIndex] = useState(null);
   const [headsetsChecked, setHeadsetsChecked] = useState(true);
-  const [featuresChecked, setFeaturesChecked] = useState(false);
+  const [featuresChecked, setFeaturesChecked] = useState(true);
   const [photosChecked, setPhotosChecked] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
   const [currentLocation, setCurrentLocation] = useState(null);

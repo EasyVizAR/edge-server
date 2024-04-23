@@ -163,7 +163,7 @@ function Headset(props) {
 
   const [displayOptions, setDisplayOptions] = useState({
     headsets: true,
-    features: false,
+    features: true,
     history: false,
     navigation: false
   });
