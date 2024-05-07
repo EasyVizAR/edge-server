@@ -49,30 +49,30 @@ class NavigationMesh:
         """
         Find the component immediately below the given point.
 
-        Returns component index or None.
+        Returns component index and intersection point or None.
         """
-        face = self.find_face(point)
+        face, location = self.find_face(point)
         if face is None:
-            return None
-        return self.component_ids[face]
+            return None, None
+        return self.component_ids[face], location
 
     def find_face(self, point):
         """
         Find the index of the face immediately below the given point.
 
-        Returns face index or None.
+        Returns face index and intersection point or None.
         """
         location, index_ray, index_tri = self.mesh.ray.intersects_location(ray_origins=[point], ray_directions=[self.down], multiple_hits=False)
         if len(index_tri) == 0:
-            return None
-        return index_tri[0]
+            return None, None
+        return index_tri[0], location
 
     def find_path(self, start, end):
         """
         Find a walkable path between two points.
         """
-        i = self.find_component(start)
-        j = self.find_component(end)
+        i, start_floor_point = self.find_component(start)
+        j, end_floor_point = self.find_component(end)
 
         print("Find path from {} ({}) to {} ({})".format(start, i, end, j))
 
@@ -85,7 +85,7 @@ class NavigationMesh:
         if path is None:
             path = []
 
-        vertices = [start]
+        vertices = [start_floor_point]
 
         # Skip the first and last vertices in the path. They are the centers of
         # the starting and ending mesh components, and we assume a person can
@@ -94,7 +94,7 @@ class NavigationMesh:
         for x in path[1:-1]:
             vertices.append(self.graph.nodes[x]['center'])
 
-        vertices.append(end)
+        vertices.append(end_floor_point)
 
         return vertices
 
