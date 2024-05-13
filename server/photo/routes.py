@@ -986,7 +986,11 @@ async def upload_photo_file(photo_id):
         except:
             pass
 
-        photo.queue_name = "detection"
+        # The default next step after a file has been uploaded is
+        # to move to the detection queue. This can be overidden with
+        # a header value.
+        photo.queue_name = request.headers.get("X-Queue-Name", "detection")
+
         photo.updated_time = datetime.datetime.now()
         photo_file.updated_time = datetime.datetime.now()
 
@@ -1086,9 +1090,13 @@ async def upload_photo_file_by_name(photo_id, filename):
     except:
         pass
 
-    # If the photo was uploaded, and not some other type of file,
-    # then send to detection queue.
-    if file.purpose == "photo":
+    # The caller can set the next queue using a header value.  Otherwise, the
+    # default behavior is to move the photo to the detection queue after the
+    # main image has been uploaded.
+    next_queue_name = request.headers.get("X-Queue-Name")
+    if next_queue_name is not None:
+        photo.queue_name = next_queue_name
+    elif file.purpose == "photo":
         photo.queue_name = "detection"
 
     photo.updated_time = datetime.datetime.now()
