@@ -63,6 +63,7 @@ class MobileDevice(Base):
     # Authentication token to be used by the device
     token: Mapped[str] = mapped_column(default=generate_token)
 
+    parent_mobile_device_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, sa.ForeignKey("mobile_devices.id"), nullable=True)
     location_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, sa.ForeignKey("locations.id"), nullable=True)
     tracking_session_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("tracking_sessions.id"), nullable=True)
     device_pose_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("device_poses.id"), nullable=True)

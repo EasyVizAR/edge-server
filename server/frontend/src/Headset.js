@@ -11,6 +11,7 @@ import HeadsetTable from './HeadsetTable.js';
 import FeatureTable from './FeatureTable.js';
 import PhotoTable from './PhotoTable.js';
 import HeadsetConfiguration from './HeadsetConfiguration.js';
+import CameraConfiguration from './CameraConfiguration.js';
 import 'reactjs-popup/dist/index.css';
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import moment from 'moment';
@@ -732,6 +733,10 @@ function Headset(props) {
             }
 
             <PhotoTable photos={photos} setPhotos={setPhotos} />
+
+            {
+              headset && <CameraConfiguration headset={headset} />
+            }
           </div>
 
       </div>

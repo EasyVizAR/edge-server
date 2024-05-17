@@ -17,6 +17,7 @@ import sqlalchemy as sa
 from server import auth
 from server.check_in.models import TrackingSession
 from server.location.models import DeviceConfiguration, DeviceConfigurationSchema
+from server.photo.models import Camera, CameraSchema
 from server.pose_changes.models import DevicePose, PoseChangeSchema
 from server.resources.filter import Filter
 from server.resources.geometry import Vector3f, Vector4f
@@ -27,6 +28,7 @@ from .models import MobileDevice, HeadsetSchema
 
 headsets = Blueprint('headsets', __name__)
 
+camera_schema = CameraSchema()
 headset_schema = HeadsetSchema()
 pose_change_schema = PoseChangeSchema()
 device_configuration_schema = DeviceConfigurationSchema()
@@ -575,6 +577,49 @@ async def list_incident_headsets(incident_id):
             items.append(headset_schema.dump(row))
 
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
+
+
+@headsets.route('/headsets/<uuid:headset_id>/camera', methods=['GET'])
+async def get_headset_camera(headset_id):
+    """
+    Get headset camera configuration.
+    """
+    stmt = sa.select(Camera) \
+            .where(Camera.mobile_device_id == headset_id) \
+            .limit(1)
+    result = await g.session.execute(stmt)
+    config = result.scalar()
+    if config is None:
+        config = Camera(mobile_device_id=headset_id)
+
+    result = camera_schema.dump(config)
+    return jsonify(result), HTTPStatus.OK
+
+
+@headsets.route('/headsets/<uuid:headset_id>/camera', methods=['PUT'])
+async def set_headset_camera(headset_id):
+    """
+    Set headset camera configuration.
+    """
+    body = await request.get_json()
+    if body is None:
+        body = {}
+
+    stmt = sa.select(Camera) \
+            .where(Camera.mobile_device_id == headset_id) \
+            .limit(1)
+    result = await g.session.execute(stmt)
+    config = result.scalar()
+    if config is None:
+        config = Camera(mobile_device_id=headset_id)
+        g.session.add(config)
+        await g.session.flush()
+
+    config.update(body)
+    await g.session.commit()
+
+    result = camera_schema.dump(config)
+    return jsonify(result), HTTPStatus.OK
 
 
 @headsets.route('/headsets/<uuid:headset_id>/configuration', methods=['GET'])

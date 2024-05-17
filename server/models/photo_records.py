@@ -7,6 +7,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 
 from .base import Base
+from .cameras import Camera
 from .device_poses import DevicePose
 
 
@@ -60,5 +61,6 @@ class PhotoRecord(Base):
     expiration_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.max)
 
     annotations: Mapped[List['PhotoAnnotation']] = relationship(cascade="all, delete-orphan") # noqa: F821
+    camera: Mapped[Camera] = relationship(foreign_keys=[mobile_device_id], primaryjoin="Camera.mobile_device_id==PhotoRecord.mobile_device_id")
     files: Mapped[List['PhotoFile']] = relationship(back_populates="record", cascade="all, delete-orphan") # noqa: F821
     pose: Mapped[DevicePose] = relationship(foreign_keys=[device_pose_id])

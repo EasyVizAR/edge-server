@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 
 from typing import List
 
+from server.models.cameras import Camera
 from server.models.detection_tasks import DetectionTask
 from server.models.photo_annotations import PhotoAnnotation
 from server.models.photo_files import PhotoFile
@@ -18,6 +19,12 @@ from server.models.photo_queues import PhotoQueue
 from server.models.photo_records import PhotoRecord
 from server.resources.db import MigrationSchema
 from server.resources.geometry import Box, Vector3f, Vector4f
+
+
+class CameraSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = Camera
+        load_instance = True
 
 
 class PhotoAnnotationSchema(MigrationSchema):
@@ -86,6 +93,7 @@ class PhotoSchema(MigrationSchema):
     updated = auto_field('updated_time', description="Time the photo was last update")
 
     annotations = Nested(PhotoAnnotationSchema, many=True)
+    camera = Nested(CameraSchema, many=False)
     files = Nested(PhotoFileSchema, many=True)
 
     @post_dump(pass_original=True)

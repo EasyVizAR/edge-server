@@ -177,6 +177,7 @@ async def list_photos():
         stmt = stmt.where(PhotoRecord.updated_time < until)
 
     stmt = stmt.options(sa.orm.selectinload(PhotoRecord.annotations))
+    stmt = stmt.options(sa.orm.selectinload(PhotoRecord.camera))
     stmt = stmt.options(sa.orm.selectinload(PhotoRecord.files))
     stmt = stmt.options(sa.orm.selectinload(PhotoRecord.pose))
 
@@ -595,6 +596,7 @@ async def get_photo(photo_id):
                 .where(PhotoRecord.id == photo_id) \
                 .limit(1) \
                 .options(sa.orm.selectinload(PhotoRecord.annotations)) \
+                .options(sa.orm.selectinload(PhotoRecord.camera)) \
                 .options(sa.orm.selectinload(PhotoRecord.files)) \
                 .options(sa.orm.selectinload(PhotoRecord.pose))
 
@@ -671,6 +673,7 @@ async def replace_photo(photo_id):
                 .where(PhotoRecord.id == photo_id) \
                 .limit(1) \
                 .options(sa.orm.selectinload(PhotoRecord.annotations)) \
+                .options(sa.orm.selectinload(PhotoRecord.camera)) \
                 .options(sa.orm.selectinload(PhotoRecord.files))
 
         result = await session.execute(stmt)
@@ -761,6 +764,7 @@ async def update_photo(photo_id):
                 .where(PhotoRecord.id == photo_id) \
                 .limit(1) \
                 .options(sa.orm.selectinload(PhotoRecord.annotations)) \
+                .options(sa.orm.selectinload(PhotoRecord.camera)) \
                 .options(sa.orm.selectinload(PhotoRecord.files))
 
         result = await session.execute(stmt)
@@ -944,6 +948,7 @@ async def upload_photo_file(photo_id):
                 .where(PhotoRecord.id == photo_id) \
                 .limit(1) \
                 .options(sa.orm.selectinload(PhotoRecord.annotations)) \
+                .options(sa.orm.selectinload(PhotoRecord.camera)) \
                 .options(sa.orm.selectinload(PhotoRecord.files))
 
         result = await session.execute(stmt)
@@ -1042,6 +1047,7 @@ async def upload_photo_file_by_name(photo_id, filename):
             .where(PhotoRecord.id == photo_id) \
             .limit(1) \
             .options(sa.orm.selectinload(PhotoRecord.annotations)) \
+            .options(sa.orm.selectinload(PhotoRecord.camera)) \
             .options(sa.orm.selectinload(PhotoRecord.files))
 
     result = await g.session.execute(stmt)
