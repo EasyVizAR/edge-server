@@ -76,6 +76,7 @@ class PhotoSchema(MigrationSchema):
     class Meta:
         model = PhotoRecord
         load_instance = True
+        dump_only = ["camera"]
 
     id = auto_field(description="Photo record ID (int)")
 

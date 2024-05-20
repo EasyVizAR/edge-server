@@ -251,6 +251,13 @@ async def create_photo_entry(body):
     g.session.add(photo)
     await g.session.commit()
 
+    # We are done with database interactions.  Making the object transient
+    # allows us to set up the nested fields without attempting to write back to
+    # the database.
+    sa.orm.make_transient(photo)
+    photo.annotations = []
+    photo.camera = None
+
     return photo
 
 
@@ -319,6 +326,7 @@ async def create_photo_quick():
     # the database.
     sa.orm.make_transient(photo)
     photo.annotations = []
+    photo.camera = None
     photo.files = [photo_file]
 
     return photo
@@ -684,6 +692,7 @@ async def replace_photo(photo_id):
             photo = photo_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
             if photo.incident_id is None:
                 photo.incident_id = g.active_incident_id
+            photo.camera = None
             session.add(photo)
             created = True
 
