@@ -243,6 +243,10 @@ class WebsocketHandler:
         elif args.command == "ping":
             await self.send_text("pong")
 
+        elif args.command == "hold":
+            print("WS [{}]: hold {}".format(self.get_device_or_user(), args.time))
+            self.close_after_seconds = args.time
+
         elif args.command == "exit":
             sys.exit(0)
 
@@ -302,6 +306,7 @@ class WebsocketHandler:
         suppress = command.add_parser("suppress", help="(deprecated) use echo [on|off] instead", add_help=False)
         move = command.add_parser("move", help="Change headset pose", add_help=False)
         ping = command.add_parser("ping", help="Responds with the string 'pong' for connection testing", add_help=False)
+        hold = command.add_parser("hold", help="Set inactivity timeout (seconds)", add_help=False)
 
         subscribe.add_argument("event", type=str)
         subscribe.add_argument("uri_filter", type=str, nargs="?", default="*")
@@ -316,6 +321,8 @@ class WebsocketHandler:
         move.add_argument("position", type=float, nargs=3, metavar="x")
         move.add_argument("orientation", type=float, nargs=4, metavar="w")
 
+        hold.add_argument("time", type=float)
+
         command_usage_strings = [
             "command usage:\n",
             subscribe.format_usage()[7:],
@@ -323,7 +330,8 @@ class WebsocketHandler:
             echo.format_usage()[7:],
             suppress.format_usage()[7:],
             move.format_usage()[7:],
-            ping.format_usage()[7:]
+            ping.format_usage()[7:],
+            hold.format_usage()[7:]
         ]
 
         # These commands are useful for testing but must not be available in
