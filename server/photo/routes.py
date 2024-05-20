@@ -765,7 +765,8 @@ async def update_photo(photo_id):
                 .limit(1) \
                 .options(sa.orm.selectinload(PhotoRecord.annotations)) \
                 .options(sa.orm.selectinload(PhotoRecord.camera)) \
-                .options(sa.orm.selectinload(PhotoRecord.files))
+                .options(sa.orm.selectinload(PhotoRecord.files)) \
+                .options(sa.orm.selectinload(PhotoRecord.pose))
 
         result = await session.execute(stmt)
         photo = result.scalar()

@@ -1,8 +1,10 @@
 import React, { useContext, useState, useEffect } from 'react';
+import {Link} from "react-router-dom";
 import {ListGroup, Table} from 'react-bootstrap';
 import { useParams } from 'react-router';
 import {Helmet} from 'react-helmet';
 import MapContainer from "./MapContainer";
+import { LocationsContext } from './Contexts.js';
 import { UsersContext } from './Contexts.js';
 import './PhotoWrapper.css';
 
@@ -11,11 +13,13 @@ function PhotoWrapper(props) {
 
   const {photo_id} = useParams();
 
+  const [captureDevice, setCaptureDevice] = useState(null);
   const [photo, setPhoto] = useState(null);
   const [selectedBox, setSelectedBox] = useState(null);
   const [selectedImage, setSelectedImage] = useState("photo");
   const [imageSource, setImageSource] = useState(null);
 
+  const { locations, setLocations } = useContext(LocationsContext);
   const { users, setUsers } = useContext(UsersContext);
 
   useEffect(() => {
@@ -28,6 +32,7 @@ function PhotoWrapper(props) {
       }).then(data => {
         setPhoto(data);
         setImageSource(data.imageUrl);
+        getCaptureDevice(data);
       }).catch(err => {
         // Do something for an error here
         console.log("Error Reading data " + err);
@@ -36,6 +41,15 @@ function PhotoWrapper(props) {
 
     getPhotoInfo();
   }, [host, photo_id]);
+
+  function getCaptureDevice(photo) {
+    if (photo.created_by) {
+      const url = `${host}/headsets/${photo.created_by}`;
+      fetch(url)
+        .then(response => response.json())
+        .then(data => setCaptureDevice(data));
+    }
+  }
 
   function Photo() {
     return (
@@ -260,6 +274,36 @@ function PhotoWrapper(props) {
       </Helmet>
 
       <div className="container-lg">
+        {
+          photo &&
+          <div className="row location-header">
+            <div className="col-lg-4">
+              <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Location</p>
+              <h4 style={{ marginTop: '0px' }}>{locations[photo.camera_location_id]?.name || 'Unknown'}</h4>
+              {
+                photo.camera_location_id &&
+                <h5>
+                  <Link to={`/locations/${photo.camera_location_id}`}>{photo.camera_location_id}</Link>
+                </h5>
+              }
+            </div>
+            <div className="col-lg-4">
+              <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Capture Device</p>
+              <h4 style={{ marginTop: '0px' }}>{captureDevice?.name || 'Unknown'}</h4>
+              {
+                photo.created_by &&
+                <h5>
+                  <Link to={`/headsets/${photo.created_by}`}>{photo.created_by}</Link>
+                </h5>
+              }
+            </div>
+            <div className="col-lg-4">
+              <p className="text-muted" style={{ fontSize: '0.875em', marginBottom: '0px' }}>Queue</p>
+              <h4 style={{ marginTop: '0px' }}>{photo.queue_name}</h4>
+            </div>
+          </div>
+        }
+
         <div className="row align-items-center">
           <div className="col-lg-9">
             <Photo />
