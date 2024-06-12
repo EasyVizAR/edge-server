@@ -1,6 +1,8 @@
 import datetime
 import uuid
 
+from typing import List
+
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, composite, mapped_column
 
@@ -26,6 +28,9 @@ class PhotoAnnotation(Base):
     boundary_top: Mapped[float] = mapped_column(default=0.0)
     boundary_width: Mapped[float] = mapped_column(default=0.0)
     boundary_height: Mapped[float] = mapped_column(default=0.0)
+
+    contour: Mapped[List[List[float]]] = mapped_column(sa.JSON, default=list)
+    projected_contour: Mapped[List[List[float]]] = mapped_column(sa.JSON, default=list)
 
     created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
 

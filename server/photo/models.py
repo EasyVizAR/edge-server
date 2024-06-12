@@ -42,6 +42,9 @@ class PhotoAnnotationSchema(MigrationSchema):
 
     boundary = Nested(Box.Schema, many=False)
 
+    contour = auto_field()
+    projected_contour = auto_field()
+
 
 class PhotoFileSchema(MigrationSchema):
     class Meta:
