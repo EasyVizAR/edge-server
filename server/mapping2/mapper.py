@@ -93,7 +93,7 @@ class Mapper:
         try:
             navmesh = NavigationMesh.load(navmesh_path)
             path = navmesh.find_path(start, end)
-            return path
+            return path.tolist()
 
         except:
             return [start, end]
