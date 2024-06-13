@@ -85,16 +85,16 @@ class NavigationMesh:
         if path is None:
             path = []
 
-        vertices = [start_floor_point]
+        vertices = [start_floor_point.tolist()]
 
         # Skip the first and last vertices in the path. They are the centers of
         # the starting and ending mesh components, and we assume a person can
         # move freely within a component. Replacing the endpoints with the
         # desired start and end points should result in a nicer path.
         for x in path[1:-1]:
-            vertices.append(self.graph.nodes[x]['center'])
+            vertices.append(self.graph.nodes[x]['center'].tolist())
 
-        vertices.append(end_floor_point)
+        vertices.append(end_floor_point.tolist())
 
         return vertices
 
