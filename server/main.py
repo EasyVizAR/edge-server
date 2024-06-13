@@ -6,6 +6,9 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from quart import Quart, g
 from quart_sqlalchemy import SQLAlchemy
 
+import alembic
+import alembic.config
+
 import sqlalchemy as sa
 from sqlalchemy.engine import Engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -53,6 +56,9 @@ else:
     print("Initializing sqlite database, stored at {}".format(sqlite_file))
     sync_engine = sa.create_engine("sqlite:///"+sqlite_file)
     Base.metadata.create_all(sync_engine)
+
+    config = alembic.config.Config("alembic.ini")
+    alembic.command.stamp(config, "heads")
 
 
 # Enabling write-ahead logging (WAL) may improve performance for our workload
