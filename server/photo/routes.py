@@ -639,6 +639,16 @@ async def get_photo(photo_id):
 
     result = photo_schema.dump(photo)
 
+    # Compatibility fix for Unity JsonUtility, which does not support nested
+    # lists.  If requested, convert to dict with x, y or x, y, z keys. This is
+    # not really an efficient representation, unfortunately.
+    if request.args.get("inflate_vectors", "F").startswith("T"):
+        for annotation in result['annotations']:
+            for i, point in enumerate(annotation['contour']):
+                annotation['contour'][i] = dict(zip(["x", "y"], point))
+            for i, point in enumerate(annotation['projected_contour']):
+                annotation['projected_contour'][i] = dict(zip(["x", "y", "z"], point))
+
     await current_app.dispatcher.dispatch_event("photos:viewed",
             "/photos/"+str(photo.id), current=result)
 
