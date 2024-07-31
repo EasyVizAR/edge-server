@@ -19,6 +19,7 @@ from server.headset.routes import headsets
 from server.incidents.routes import initialize_incidents, incidents
 from server.layer.routes import layers
 from server.location.routes import locations
+from server.map_paths.routes import map_paths
 from server.photo.routes import photos
 from server.pose_changes.routes import pose_changes
 from server.routes import routes
@@ -111,6 +112,7 @@ blueprints = [
     incidents,
     layers,
     locations,
+    map_paths,
     photos,
     pose_changes,
     routes,

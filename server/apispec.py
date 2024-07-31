@@ -14,6 +14,7 @@ from server.headset import routes as headsets
 from server.incidents import routes as incidents
 from server.layer import routes as layers
 from server.location import routes as locations
+from server.map_paths import routes as map_paths
 from server.photo import routes as photos
 from server.pose_changes import routes as pose_changes
 from server.surface import routes as surfaces
@@ -26,6 +27,7 @@ from server.headset.models import MobileDevice, HeadsetSchema, RegisteredHeadset
 from server.incidents.models import Incident, IncidentSchema
 from server.layer.models import Layer, LayerSchema
 from server.location.models import Location, LocationSchema
+from server.map_paths.models import MapPath, MapPathSchema
 from server.photo.models import PhotoRecord, PhotoSchema
 from server.pose_changes.models import DevicePose, PoseChangeSchema
 from server.surface.models import Surface, SurfaceSchema
@@ -63,6 +65,7 @@ async def create_openapi_spec(app, base_url=None):
     spec.components.schema("Incident", schema=IncidentSchema())
     spec.components.schema("Layer", schema=LayerSchema())
     spec.components.schema("Location", schema=LocationSchema())
+    spec.components.schema("MapPath", schema=MapPathSchema())
     spec.components.schema("Photo", schema=PhotoSchema())
     spec.components.schema("PoseChange", schema=PoseChangeSchema())
     spec.components.schema("Surface", schema=SurfaceSchema())
@@ -73,6 +76,7 @@ async def create_openapi_spec(app, base_url=None):
     spec.tag(dict(name="incidents", description=Incident.__doc__))
     spec.tag(dict(name="layers", description=Layer.__doc__))
     spec.tag(dict(name="locations", description=Location.__doc__))
+    spec.tag(dict(name="map-paths", description=MapPath.__doc__))
     spec.tag(dict(name="photos", description=PhotoRecord.__doc__))
     spec.tag(dict(name="pose-changes", description=DevicePose.__doc__))
     spec.tag(dict(name="surfaces", description=Surface.__doc__))
@@ -129,6 +133,13 @@ async def create_openapi_spec(app, base_url=None):
         spec.path(view=locations.get_location_qrcode)
         spec.path(view=locations.get_location_model)
         spec.path(view=locations.get_location_route)
+
+        spec.path(view=map_paths.list_map_paths)
+        spec.path(view=map_paths.create_map_path)
+        spec.path(view=map_paths.delete_map_path)
+        spec.path(view=map_paths.get_map_path)
+        spec.path(view=map_paths.replace_map_path)
+        spec.path(view=map_paths.update_map_path)
 
         spec.path(view=photos.list_photos)
         spec.path(view=photos.create_photo)
