@@ -10,6 +10,7 @@ import LayerTable from './LayerTable.js';
 import HeadsetTable from './HeadsetTable.js';
 import HeadsetConfiguration from './HeadsetConfiguration.js';
 import FeatureTable from './FeatureTable.js';
+import MapPathTable from './MapPathTable.js';
 import PhotoTable from './PhotoTable.js';
 import ClickToEdit from './ClickToEdit.js';
 import NewPhoto from './NewPhoto.js';
@@ -130,6 +131,7 @@ function Location(props) {
   const [histories, setHistories] = useState({}); // position data
   const [features, setFeatures] = useState({}); // object indexed by feature.id
   const [headsets, setHeadsets] = useState({}); // object indexed by headset.id
+  const [paths, setPaths] = useState({});
   const [photos, setPhotos] = useState({});
 
   const [showNewFeature, setShowNewFeature] = useState(false);
@@ -164,6 +166,7 @@ function Location(props) {
       getHeadsets();
       getFeatures();
       getLayers();
+      getPaths();
       getPhotos();
 
       fetch(`${host}/locations/${selectedLocation}`)
@@ -345,11 +348,27 @@ function Location(props) {
       .then(response => {
         return response.json()
       }).then(data => {
-        let features = [];
+        let features = {};
         for (var f of data) {
           features[f.id] = f;
         }
         setFeatures(features);
+      });
+  }
+
+  function getPaths() {
+    if (!selectedLocation)
+      return;
+
+    fetch(`${host}/locations/${selectedLocation}/map-paths`)
+      .then(response => {
+        return response.json()
+      }).then(data => {
+        let items = {};
+        for (var item of data) {
+          items[item.id] = item;
+        }
+        setPaths(items);
       });
   }
 
@@ -640,7 +659,7 @@ function Location(props) {
                 <FeatureTable icons={icons} features={features} locationId={selectedLocation}
                   editFeature={editFeature} setEditFeature={setEditFeature} />
 
-                <HeadsetConfiguration location={currentLocation} setLocation={setCurrentLocation} />
+                <MapPathTable locationId={selectedLocation} features={features} paths={paths} setPaths={setPaths} />
 
                 <PhotoTable photos={photos} setPhotos={setPhotos} />
               </React.Fragment>

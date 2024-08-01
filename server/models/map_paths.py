@@ -25,7 +25,7 @@ class MapPath(Base):
     trails, e.g. a path to the fire in red and a path to a victim in blue.
     """
     __tablename__ = "map_paths"
-    __allow_update__ = set(['mobile_device_id', 'target_feature_id', 'type', 'color', 'label', 'points'])
+    __allow_update__ = set(['mobile_device_id', 'target_marker_id', 'type', 'color', 'label', 'points'])
 
     id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)
 

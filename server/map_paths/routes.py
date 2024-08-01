@@ -1,4 +1,5 @@
 import datetime
+import uuid
 
 from http import HTTPStatus
 
@@ -37,7 +38,7 @@ async def list_map_paths(location_id):
             required: false
             schema:
                 type: str
-            description: Filter relevent paths for a given mobile device ID
+            description: Filter relevant paths for a given mobile device ID
         responses:
             200:
                 description: A list of objects.
@@ -289,6 +290,10 @@ async def replace_map_path(location_id):
 
     else:
         previous = map_path_schema.dump(map_path)
+
+        if body.get("mobile_device_id") is not None:
+            body['mobile_device_id'] = uuid.UUID(body['mobile_device_id'])
+
         map_path.update(body)
         created = False
 
