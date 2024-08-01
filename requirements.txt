@@ -40,7 +40,7 @@ marshmallow-sqlalchemy==0.29.0
 mypy-extensions==0.4.3
 networkx==2.7
 numpy==1.22.2
-packaging==21.3
+packaging==24.1
 Pillow==10.0.1
 pluggy==1.0.0
 plyfile==0.7.4
