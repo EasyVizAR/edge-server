@@ -29,6 +29,10 @@ async def list_map_paths(location_id):
         tags:
          - map-paths
         parameters:
+          - name: inflate_vectors
+            in: query
+            required: false
+            description: Convert points from list of floats to objects with x, y, z keys (T or F).
           - name: envelope
             in: query
             required: false
@@ -61,6 +65,14 @@ async def list_map_paths(location_id):
     result = await g.session.execute(stmt)
     for row in result.scalars():
         items.append(map_path_schema.dump(row))
+
+    # Compatibility fix for Unity JsonUtility, which does not support nested
+    # lists.  If requested, convert to dict with x, y or x, y, z keys. This is
+    # not really an efficient representation, unfortunately.
+    if request.args.get("inflate_vectors", "F").startswith("T"):
+        for item in items:
+            for i, point in enumerate(item['points']):
+                item['points'][i] = dict(zip(["x", "y", "z"], point))
 
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
