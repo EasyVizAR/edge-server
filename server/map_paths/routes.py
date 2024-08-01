@@ -19,6 +19,25 @@ map_paths = Blueprint("map-paths", __name__)
 map_path_schema = MapPathSchema()
 
 
+def ingest_point_list(points):
+    """
+    Ensure that the list contains points which are lists of floats
+    rather than {x,y,z} dicts.
+    """
+    new_points = []
+    for i, point in enumerate(points):
+        if isinstance(point, list):
+            new_points.append(point)
+        elif isinstance(point, dict):
+            new_points.append([
+                point['x'],
+                point['y'],
+                point['z']
+            ])
+
+    return new_points
+
+
 @map_paths.route('/locations/<uuid:location_id>/map-paths', methods=['GET'])
 async def list_map_paths(location_id):
     """
@@ -119,6 +138,9 @@ async def create_map_path(location_id):
     # If client is sending ID, clear it so that it is automatically generated.
     if 'id' in body:
         del body['id']
+
+    if 'points' in body:
+        body['points'] = ingest_point_list(body['points'])
 
     map_path = map_path_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
 
@@ -271,6 +293,8 @@ async def replace_map_path(location_id):
     body['location_id'] = location_id
     if 'id' in body:
         del body['id']
+    if 'points' in body:
+        body['points'] = ingest_point_list(body['points'])
 
     stmt = sa.select(MapPath).where(MapPath.location_id == location_id)
 
@@ -354,6 +378,8 @@ async def update_map_path(location_id, map_path_id):
     body = await request.get_json()
     if body is None:
         body = {}
+    if 'points' in body:
+        body['points'] = ingest_point_list(body['points'])
 
     map_path = await g.session.get(MapPath, map_path_id)
     if map_path is None:

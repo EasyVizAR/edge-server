@@ -116,3 +116,72 @@ async def test_map_path_routes():
         # Clean up
         response = await client.delete('/locations/{}'.format(location['id']))
         assert response.status_code == HTTPStatus.OK
+
+
+@pytest.mark.asyncio
+async def test_map_path_unity_fixes():
+    """
+    Test map path unity fixes
+    """
+    example_object = {
+        "label": "bar",
+        "type": "navigation",
+        "points": [
+            {"x": 0, "y": 0, "z": 0},
+            {"x": 1, "y": 0, "z": 0},
+            {"x": 1, "y": 0, "z": 1},
+        ]
+    }
+
+    async with app.test_client() as client:
+        # Create a test location
+        response = await client.post("/locations", json=dict(name="Map Path Test"))
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        location = await response.get_json()
+
+        resource_url = "/locations/{}/map-paths".format(location['id'])
+
+        # Initial list should be empty
+        response = await client.get(resource_url)
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        items = await response.get_json()
+        assert isinstance(items, list)
+
+        # Create an object
+        response = await client.post(resource_url, json=example_object)
+        assert response.status_code == HTTPStatus.CREATED
+        assert response.is_json
+        item = await response.get_json()
+        assert isinstance(item, dict)
+        assert item['id'] is not None
+        assert len(item['points']) == 3
+
+        item_url = "{}/{}".format(resource_url, item['id'])
+
+        # Test with inflate vectors option
+        response = await client.get(resource_url + "?inflate_vectors=T")
+        assert response.status_code == HTTPStatus.OK
+        assert response.is_json
+        items = await response.get_json()
+        assert isinstance(items, list)
+        assert items[0]['id'] is not None
+        assert len(items[0]['points']) == 3
+        for i, point in enumerate(items[0]['points']):
+            assert isinstance(point, dict)
+            assert int(point['x']) == int(example_object['points'][i]['x'])
+
+        # Test that object does not exist after DELETE
+        response = await client.delete(item_url)
+        assert response.status_code == HTTPStatus.OK
+        response = await client.delete(item_url)
+        assert response.status_code == HTTPStatus.NOT_FOUND
+        response = await client.get(item_url)
+        assert response.status_code == HTTPStatus.NOT_FOUND
+        response = await client.patch(item_url, json={"label": "bar"})
+        assert response.status_code == HTTPStatus.NOT_FOUND
+
+        # Clean up
+        response = await client.delete('/locations/{}'.format(location['id']))
+        assert response.status_code == HTTPStatus.OK
