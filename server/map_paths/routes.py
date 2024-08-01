@@ -38,7 +38,7 @@ async def list_map_paths(location_id):
             required: false
             schema:
                 type: str
-            description: Filter relevant paths for a given mobile device ID
+            description: Filter relevant paths for a given mobile device ID (null values are also returned)
         responses:
             200:
                 description: A list of objects.
@@ -54,8 +54,8 @@ async def list_map_paths(location_id):
 
     try:
         mobile_device_id = uuid.UUID(request.args.get("mobile_device_id"))
-        stmt = stmt.where(MapPath.mobile_device_id is None or MapPath.mobile_device_id == mobile_device_id)
-    except:
+        stmt = stmt.where(sa.or_(MapPath.mobile_device_id == None, MapPath.mobile_device_id == mobile_device_id))
+    except Exception as error:
         pass
 
     result = await g.session.execute(stmt)
@@ -265,16 +265,19 @@ async def replace_map_path(location_id):
     try:
         mobile_device_id = uuid.UUID(request.args.get("mobile_device_id"))
         stmt = stmt.where(MapPath.mobile_device_id == mobile_device_id)
+        body['mobile_device_id'] = mobile_device_id
     except:
         pass
 
     target_marker_id = request.args.get("target_marker_id")
     if target_marker_id is not None:
         stmt = stmt.where(MapPath.target_marker_id == target_marker_id)
+        body['target_marker_id'] = int(target_marker_id)
 
     type = request.args.get("type")
     if type is not None:
         stmt = stmt.where(MapPath.type == type)
+        body['type'] = type
 
     result = await g.session.execute(stmt)
 
@@ -290,10 +293,6 @@ async def replace_map_path(location_id):
 
     else:
         previous = map_path_schema.dump(map_path)
-
-        if body.get("mobile_device_id") is not None:
-            body['mobile_device_id'] = uuid.UUID(body['mobile_device_id'])
-
         map_path.update(body)
         created = False
 
