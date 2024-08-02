@@ -43,7 +43,7 @@ function MapPathTable(props) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        'target_marker_id': formReferences.target_marker_id.current.value,
+        'target_marker_id': formReferences.target_marker_id.current.value || null,
         'type': formReferences.type.current.value,
         'color': formReferences.color.current.value,
         'label': formReferences.label.current.value,
@@ -195,7 +195,7 @@ function MapPathTable(props) {
                           title="Change Target"
                           defaultValue={path.target_marker_id}
                           ref={formReferences.target_marker_id} >
-                          <option value={null}>none</option>
+                          <option value=''>none</option>
                           {
                             Object.entries(props.features).map(([id, feature]) => {
                               return <option value={id}>{`${id}: ${feature.name}`}</option>

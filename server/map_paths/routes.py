@@ -378,6 +378,8 @@ async def update_map_path(location_id, map_path_id):
     body = await request.get_json()
     if body is None:
         body = {}
+    if 'target_marker_id' in body and isinstance(body['target_marker_id'], str):
+        body['target_marker_id'] = int(body['target_marker_id'])
     if 'points' in body:
         body['points'] = ingest_point_list(body['points'])
 
