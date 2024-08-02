@@ -19,6 +19,23 @@ map_paths = Blueprint("map-paths", __name__)
 map_path_schema = MapPathSchema()
 
 
+# Compatibility fix for Unity JsonUtility, which does not support nested
+# lists.  If requested, convert to dict with x, y or x, y, z keys. This is
+# not really an efficient representation, unfortunately.
+INFLATE_VECTORS = True
+
+
+def inflate_vectors(points):
+    new_points = []
+    for i, point in enumerate(points):
+        if isinstance(point, list):
+            new_points.append(dict(zip(["x", "y", "z"], point)))
+        else:
+            new_points.append(point)
+
+    return new_points
+
+
 def ingest_point_list(points):
     """
     Ensure that the list contains points which are lists of floats
@@ -48,10 +65,6 @@ async def list_map_paths(location_id):
         tags:
          - map-paths
         parameters:
-          - name: inflate_vectors
-            in: query
-            required: false
-            description: Convert points from list of floats to objects with x, y, z keys (T or F).
           - name: envelope
             in: query
             required: false
@@ -85,13 +98,9 @@ async def list_map_paths(location_id):
     for row in result.scalars():
         items.append(map_path_schema.dump(row))
 
-    # Compatibility fix for Unity JsonUtility, which does not support nested
-    # lists.  If requested, convert to dict with x, y or x, y, z keys. This is
-    # not really an efficient representation, unfortunately.
-    if request.args.get("inflate_vectors", "F").startswith("T"):
+    if INFLATE_VECTORS:
         for item in items:
-            for i, point in enumerate(item['points']):
-                item['points'][i] = dict(zip(["x", "y", "z"], point))
+            item['points'] = inflate_vectors(item['points'])
 
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
@@ -149,6 +158,9 @@ async def create_map_path(location_id):
 
     result = map_path_schema.dump(map_path)
 
+    if INFLATE_VECTORS:
+        result['points'] = inflate_vectors(result['points'])
+
     await current_app.dispatcher.dispatch_event("map-paths:created",
             "/locations/{}/map-paths/{}".format(location_id, map_path.id),
             current=result)
@@ -187,6 +199,9 @@ async def delete_map_path(location_id, map_path_id):
 
     result = map_path_schema.dump(map_path)
 
+    if INFLATE_VECTORS:
+        result['points'] = inflate_vectors(result['points'])
+
     await current_app.dispatcher.dispatch_event("map-paths:deleted",
             "/locations/{}/map-paths/{}".format(location_id, map_path_id),
             previous=result)
@@ -220,6 +235,9 @@ async def get_map_path(location_id, map_path_id):
         raise exceptions.NotFound(description="Map path {} was not found".format(map_path_id))
 
     result = map_path_schema.dump(map_path)
+
+    if INFLATE_VECTORS:
+        result['points'] = inflate_vectors(result['points'])
 
     return jsonify(result), HTTPStatus.OK
 
@@ -331,10 +349,14 @@ async def replace_map_path(location_id):
         previous = map_path_schema.dump(map_path)
         map_path.update(body)
         created = False
+        if INFLATE_VECTORS:
+            previous['points'] = inflate_vectors(previous['points'])
 
     await g.session.commit()
 
     result = map_path_schema.dump(map_path)
+    if INFLATE_VECTORS:
+        result['points'] = inflate_vectors(result['points'])
 
     if created:
         await current_app.dispatcher.dispatch_event("map-paths:created",
@@ -393,6 +415,9 @@ async def update_map_path(location_id, map_path_id):
     await g.session.commit()
 
     result = map_path_schema.dump(map_path)
+    if INFLATE_VECTORS:
+        previous['points'] = inflate_vectors(previous['points'])
+        result['points'] = inflate_vectors(result['points'])
 
     await current_app.dispatcher.dispatch_event("map-paths:updated",
             "/locations/{}/map-paths/{}".format(location_id, map_path_id),
