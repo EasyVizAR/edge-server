@@ -148,7 +148,7 @@ function MapContainer(props) {
     }
 
     const onMouseClick = (e) => {
-        if (props.cursor != 'crosshair')
+        if (props.cursor !== 'crosshair')
             return;
 
         // Get a valid y-value based on the selected map layer.
@@ -227,6 +227,38 @@ function MapContainer(props) {
                   height: mapIconSize + "%",
                   pointerEvents: "none"
               }} />
+        );
+      } else {
+        return null;
+      }
+    }
+
+    function MapPath(props) {
+      const path = props.path;
+
+      if (path && path.points.length >= 2 && path.type==="navigation") {
+        const points = [];
+        for (var p of path.points) {
+          const x = mapShape.xscale * (p.x - mapShape.xmin);
+          const y = mapShape.yscale * (mapShape.height - (p.z - mapShape.ymin));
+          points.push(`${x},${y}`);
+        }
+
+        const polyline = points.join(" ");
+
+        return (
+          <svg width={mapShape.width * mapShape.xscale}
+               height={mapShape.height * mapShape.yscale}
+               style={{
+                 top: 0,
+                 left: 0,
+                 "z-index": 1,
+                 position: "absolute",
+                 cursor: props.cursor,
+                 "pointer-events": "none",
+               }} >
+            <polyline points={polyline} style={{ fill:"none", stroke:path.color, "stroke-width":3, "stroke-dasharray":"10,10" }} />
+          </svg>
         );
       } else {
         return null;
@@ -375,7 +407,7 @@ function MapContainer(props) {
                     Object.entries(props.features).map(([id, item]) => {
                       const x = mapShape.xscale * (item.position.x - mapShape.xmin);
                       const y = mapShape.yscale * (mapShape.height - (item.position.z - mapShape.ymin));
-                      if (item.style?.placement == "floating") {
+                      if (item.style?.placement === "floating") {
                         return <div>
                           <MapMarker
                             type={item.type}
@@ -410,6 +442,12 @@ function MapContainer(props) {
                                                     pointerEvents: "none"
                                                 }}/>
                       }
+                    })
+                }
+                {
+                  layerLoaded && props.showPaths && Object.keys(props.paths).length > 0 &&
+                    Object.entries(props.paths).map(([id, item]) => {
+                      return <MapPath cursor={props.cursor} path={item} />
                     })
                 }
                 {
@@ -463,11 +501,13 @@ MapContainer.defaultProps = {
   layers: null,
   headsets: {},
   features: {},
+  paths: {},
   photos: {},
   navigationTarget: {},
   navigationRoute: [],
   showHeadsets: false,
   showFeatures: false,
+  showPaths: false,
   showPhotos: false,
   showNavigation: false,
   defaultIconColor: "#808080",

@@ -1,26 +1,20 @@
 import './Home.css';
-import { Navbar, Container, Dropdown, DropdownButton, Form, Table, Nav, Button, Tab, Tabs, Row, Col } from 'react-bootstrap';
+import { Container, Dropdown, DropdownButton, Form, Button, Row, Col } from 'react-bootstrap';
 import NewLocation from './NewLocation.js';
 import NewFeature from './NewFeature.js';
-import NewIncidentModal from './NewIncidentModal.js';
-import IncidentHistory from './IncidentHistory.js';
-import AllHeadsets from './AllHeadsets.js';
 import LocationTable from './LocationTable.js';
 import LayerTable from './LayerTable.js';
 import HeadsetTable from './HeadsetTable.js';
-import HeadsetConfiguration from './HeadsetConfiguration.js';
 import FeatureTable from './FeatureTable.js';
 import MapPathTable from './MapPathTable.js';
 import PhotoTable from './PhotoTable.js';
 import ClickToEdit from './ClickToEdit.js';
 import NewPhoto from './NewPhoto.js';
+import NewMapPath from './NewMapPath.js';
 import 'reactjs-popup/dist/index.css';
-import React, { useContext, useState, useEffect, useRef } from 'react';
-import moment from 'moment';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { solid, regular, brands } from '@fortawesome/fontawesome-svg-core/import.macro';
+import React, { useContext, useState, useEffect } from 'react';
+import { solid } from '@fortawesome/fontawesome-svg-core/import.macro';
 import { Helmet } from 'react-helmet';
-import useStateSynchronous from './useStateSynchronous.js';
 import { Link } from "react-router-dom";
 import { useParams } from "react-router";
 import { ActiveIncidentContext, LocationsContext } from './Contexts.js';
@@ -114,13 +108,6 @@ function Location(props) {
     phone: solid('phone')
   }
 
-  const buttonStyle = {
-    marginBottom: "20px"
-  }
-
-  const mapIconSize = 7;
-  const circleSvgIconSize = 11;
-
   const { activeIncident, setActiveIncident } = useContext(ActiveIncidentContext);
   const { locations, setLocations } = useContext(LocationsContext);
   const [subscribe, unsubscribe] = useContext(WebSocketContext);
@@ -135,18 +122,21 @@ function Location(props) {
   const [photos, setPhotos] = useState({});
 
   const [showNewFeature, setShowNewFeature] = useState(false);
+  const [showNewMapPath, setShowNewMapPath] = useState(false);
   const [showNewLayer, setShowNewLayer] = useState(false);
   const [showNewPhoto, setShowNewPhoto] = useState(false);
 
   const [layers, setLayers] = useState([]);
   const [crossHairIcon, setCrossHairIcon] = useState("/icons/headset16.png");
   const [pointCoordinates, setPointCoordinates] = useState([]);
+  const [pointList, setPointList] = useState([]);
   const [cursor, setCursor] = useState('auto');
   const [editFeature, setEditFeature] = useState(null);
 
   const [iconIndex, setIconIndex] = useState(null);
   const [headsetsChecked, setHeadsetsChecked] = useState(true);
   const [featuresChecked, setFeaturesChecked] = useState(true);
+  const [pathsChecked, setPathsChecked] = useState(true);
   const [photosChecked, setPhotosChecked] = useState(false);
   const [sliderValue, setSliderValue] = useState(0);
   const [currentLocation, setCurrentLocation] = useState(null);
@@ -238,6 +228,36 @@ function Location(props) {
       }
     });
 
+    subscribe("map-paths:created", uri_filter, (event, uri, message) => {
+      if (uri.includes(selectedLocation)) {
+        setPaths(previous => {
+          let tmp = Object.assign({}, previous);
+          tmp[message.current.id] = message.current;
+          return tmp;
+        });
+      }
+    });
+
+    subscribe("map-paths:updated", uri_filter, (event, uri, message) => {
+      if (uri.includes(selectedLocation)) {
+        setPaths(previous => {
+          let tmp = Object.assign({}, previous);
+          tmp[message.current.id] = message.current;
+          return tmp;
+        });
+      }
+    });
+
+    subscribe("map-paths:deleted", uri_filter, (event, uri, message) => {
+      if (uri.includes(selectedLocation)) {
+        setPaths(previous => {
+          let tmp = Object.assign({}, previous);
+          delete tmp[message.previous.id];
+          return tmp;
+        });
+      }
+    });
+
     subscribe("layers:updated", uri_filter, (event, uri, message) => {
       if (uri.includes(selectedLocation)) {
         setLayers(previous => {
@@ -291,6 +311,9 @@ function Location(props) {
       unsubscribe("features:created", uri_filter);
       unsubscribe("features:updated", uri_filter);
       unsubscribe("features:deleted", uri_filter);
+      unsubscribe("map-paths:created", uri_filter);
+      unsubscribe("map-paths:updated", uri_filter);
+      unsubscribe("map-paths:deleted", uri_filter);
       unsubscribe("layers:updated", uri_filter);
       unsubscribe("photos:created", "*");
       unsubscribe("photos:updated", "*");
@@ -300,12 +323,12 @@ function Location(props) {
 
   // Change the cursor when entering or exiting a feature edit mode.
   useEffect(() => {
-    if (showNewFeature || editFeature) {
+    if (showNewFeature || editFeature || showNewMapPath) {
       setCursor("crosshair");
     } else {
       setCursor("auto");
     }
-  }, [showNewFeature, editFeature]);
+  }, [showNewFeature, editFeature, showNewMapPath]);
 
   // If a feature is being edited and the user clicks on the map,
   // forward the clicked coordinate to the active feature.
@@ -321,6 +344,14 @@ function Location(props) {
         return previous;
       }
     });
+
+    if(showNewMapPath) {
+      setPointList(current => {
+        let copy = [...current];
+        copy.push(pointCoordinates);
+        return copy;
+      })
+    }
   }, [pointCoordinates]);
 
   // function that sends request to server to get headset data
@@ -521,6 +552,11 @@ function Location(props) {
                 </div>
 
                 <div className="header-button">
+                  <Button variant="secondary" title="Add Map Path" value="Add Map Path"
+                    onClick={() => {setPointList([]); setShowNewMapPath(!showNewMapPath)}}>Add Map Path</Button>
+                </div>
+
+                <div className="header-button">
                   <Button variant="secondary" title="Add Layer" value="Add Layer" onClick={() => setShowNewLayer(!showNewLayer)}>
                     Add Layer
                   </Button>
@@ -558,6 +594,15 @@ function Location(props) {
                 setIconIndex={setIconIndex} sliderValue={sliderValue}
                 setSliderValue={setSliderValue} setPlacementType={setPlacementType}
                 placementType={placementType} />
+          }
+
+          {
+            selectedLocation && showNewMapPath &&
+              <NewMapPath icons={icons}
+                pointList={pointList}
+                locationId={selectedLocation}
+                headsets={headsets}
+                features={features} />
           }
 
           {
@@ -619,6 +664,7 @@ function Location(props) {
                   layers={layers}
                   headsets={headsets} showHeadsets={headsetsChecked}
                   features={features} showFeatures={featuresChecked}
+                  paths={paths} showPaths={pathsChecked}
                   photos={photos} showPhotos={photosChecked}
                   cursor={cursor}
                   placementType={placementType} iconIndex={iconIndex}
@@ -641,6 +687,13 @@ function Location(props) {
                       id="features-switch"
                       label="Features"
                       checked={featuresChecked}
+                    />
+                    <Form.Check
+                      onChange={(e) => setPathsChecked(e.target.checked)}
+                      type="switch"
+                      id="paths-switch"
+                      label="Paths"
+                      checked={pathsChecked}
                     />
                     <Form.Check
                       onChange={(e) => setPhotosChecked(e.target.checked)}
