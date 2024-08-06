@@ -67,6 +67,14 @@ function NewMapPath(props) {
             },
             body: JSON.stringify(new_path)
         };
+
+        // If mobile_device_id is set, change method to PUT.
+        // This ensures that only one navigation path exists for the device.
+        if (formReferences.mobile_device_id.current.value) {
+          url = `${url}?mobile_device_id=${formReferences.mobile_device_id.current.value}&type=navigation`;
+          requestData.method = "PUT"
+        }
+
         fetch(url, requestData)
             .then(response => response.json());
     }
