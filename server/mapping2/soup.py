@@ -102,6 +102,8 @@ class MeshSoup:
     def __init__(self):
         self.mesh = None
 
+        self.scene = trimesh.Scene()
+
         self.chunks = []
         self.visited_chunks = set()
 
@@ -254,10 +256,13 @@ class MeshSoup:
                 self.touched.update(index_tri)
 
     def export_obj(self, path):
-        copy = self.mesh.copy(include_cache=True)
-        copy.vertices[:, 0] = -1 * copy.vertices[:, 0]
-        copy.invert()
-        copy.export(file_obj=path, file_type="obj", digits=3, include_color=False, include_normals=False, include_texture=False)
+        # Negate x-axis to convert handedness. Unity-based OBJ loader are
+        # expected to reverse this operation.
+        transform = np.eye(4)
+        transform[0, 0] = -1
+        self.scene.apply_transform(transform)
+
+        self.scene.export(file_obj=path, file_type="obj", digits=3, include_color=False, include_normals=False, include_texture=False)
 
     def infer_walls(self, layers):
         paths = []
@@ -483,6 +488,9 @@ class MeshSoup:
                 skipped.add(chunk.id)
                 continue
 
+            chunk.mesh.metadata['name'] = chunk.id
+            soup.scene.add_geometry(chunk.mesh)
+
             chunk_index = len(meshes)
 
             soup.chunks.append(chunk)
@@ -510,6 +518,9 @@ class MeshSoup:
         local_ids = []
         origins = []
         for i, mesh in enumerate(meshes):
+            mesh.metadata['name'] = str(i)
+            soup.scene.add_geometry(mesh)
+
             origins.extend([i] * len(mesh.faces))
             local_ids.extend(range(len(mesh.faces)))
 
