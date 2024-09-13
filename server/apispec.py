@@ -163,6 +163,7 @@ async def create_openapi_spec(app, base_url=None):
         spec.path(view=surfaces.get_surface)
         spec.path(view=surfaces.replace_surface)
         spec.path(view=surfaces.get_surface_file)
+        spec.path(view=surfaces.get_surface_obj)
         spec.path(view=surfaces.upload_surface_file)
 
         spec.path(view=websockets.list_websockets)

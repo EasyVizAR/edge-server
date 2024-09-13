@@ -12,6 +12,7 @@ from werkzeug import exceptions
 
 import marshmallow
 import sqlalchemy as sa
+import trimesh
 
 from server import auth
 from server.layer.models import LayerSchema
@@ -249,6 +250,49 @@ async def get_surface_file(location_id, surface_id):
     """
     surface_fname = "{}.ply".format(surface_id.hex)
     return await send_from_directory(get_surface_dir(location_id), surface_fname)
+
+
+def convert_surface_ply_to_obj(location_id, surface_id):
+    surface_fname = "{}.obj".format(surface_id.hex)
+    surface_dir = get_surface_dir(location_id)
+    ply_path = os.path.join(surface_dir, "{}.ply".format(surface_id.hex))
+
+    attrs = {
+        "Location": str(location_id),
+        "Surface": str(surface_id),
+        "Created": datetime.datetime.now().isoformat()
+    }
+    header = "\n# ".join("{}: {}".format(k, v) for k, v in attrs.items())
+
+    mesh = trimesh.load(ply_path)
+
+    # Negate x-axis to convert handedness. Unity-based OBJ loaders are
+    # expected to reverse this operation.
+    mesh.vertices[:, 0] *= -1
+    mesh.invert()
+
+    return mesh.export(file_type="obj", include_normals=False,
+            include_color=False, include_texture=False, digits=3,
+            header=header)
+
+
+@surfaces.route('/locations/<uuid:location_id>/surfaces/<uuid:surface_id>/surface.obj', methods=['GET'])
+async def get_surface_obj(location_id, surface_id):
+    """
+    Get a surface data file in OBJ format
+    ---
+    get:
+        summary: Get a surface data file in OBJ format
+        tags:
+          - surfaces
+        responses:
+            200:
+                description: The image or other data file.
+                content:
+                    application/obj: {}
+    """
+    obj_data = convert_surface_ply_to_obj(location_id, surface_id)
+    return obj_data, HTTPStatus.OK
 
 
 @surfaces.route('/locations/<uuid:location_id>/surfaces/<surface_id>/surface.ply', methods=['PUT'])
