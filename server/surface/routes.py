@@ -266,6 +266,9 @@ def convert_surface_ply_to_obj(location_id, surface_id):
 
     mesh = trimesh.load(ply_path)
 
+    # This will result in an OBJ 'o' line defining the object
+    mesh.metadata['name'] = str(surface_id)
+
     # Negate x-axis to convert handedness. Unity-based OBJ loaders are
     # expected to reverse this operation.
     mesh.vertices[:, 0] *= -1
@@ -289,10 +292,15 @@ async def get_surface_obj(location_id, surface_id):
             200:
                 description: The image or other data file.
                 content:
-                    application/obj: {}
+                    model/obj: {}
     """
     obj_data = convert_surface_ply_to_obj(location_id, surface_id)
-    return obj_data, HTTPStatus.OK
+
+    headers = {
+        "Content-Type": "model/obj"
+    }
+
+    return obj_data, HTTPStatus.OK, headers
 
 
 @surfaces.route('/locations/<uuid:location_id>/surfaces/<surface_id>/surface.ply', methods=['PUT'])

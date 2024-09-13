@@ -1,6 +1,7 @@
 import collections
 import copy
 import os
+import uuid
 
 from pathlib import Path
 
@@ -488,7 +489,13 @@ class MeshSoup:
                 skipped.add(chunk.id)
                 continue
 
-            chunk.mesh.metadata['name'] = chunk.id
+            try:
+                # Prefer formatted UUID string if possible
+                # The names will be exported as objects in OBJ files
+                chunk.mesh.metadata['name'] = str(uuid.UUID(chunk.id))
+            except:
+                chunk.mesh.metadata['name'] = str(chunk.id)
+
             soup.scene.add_geometry(chunk.mesh)
 
             chunk_index = len(meshes)
