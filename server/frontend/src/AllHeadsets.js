@@ -51,7 +51,7 @@ function AllHeadsets(props) {
     subscribe("headsets:created", "*", (event, uri, message) => {
       setHeadsets(previous => {
         let tmp = Object.assign({}, previous);
-        tmp[message.current.id] = message.current;
+        tmp[message.id] = message;
         return tmp;
       });
     });
@@ -59,7 +59,7 @@ function AllHeadsets(props) {
     subscribe("headsets:updated", "*", (event, uri, message) => {
       setHeadsets(previous => {
         let tmp = Object.assign({}, previous);
-        tmp[message.current.id] = message.current;
+        tmp[message.id] = message;
         return tmp;
       });
     });
@@ -67,7 +67,7 @@ function AllHeadsets(props) {
     subscribe("headsets:deleted", "*", (event, uri, message) => {
       setHeadsets(previous => {
         let tmp = Object.assign({}, previous);
-        delete tmp[message.previous.id];
+        delete tmp[message.id];
         return tmp;
       });
     });

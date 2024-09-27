@@ -30,9 +30,9 @@ function WebSocketProvider({ children }) {
 
   useEffect(() => {
     if (window.location.protocol === "https:") {
-      ws.current = new ReconnectingWebSocket(`wss://${window.location.host}/ws`);
+      ws.current = new ReconnectingWebSocket(`wss://${window.location.host}/ws`, "json-v2");
     } else {
-      ws.current = new ReconnectingWebSocket(`ws://${window.location.host}/ws`);
+      ws.current = new ReconnectingWebSocket(`ws://${window.location.host}/ws`, "json-v2");
     }
 
     ws.current.connect();
@@ -46,7 +46,8 @@ function WebSocketProvider({ children }) {
     ws.current.onclose = () => { console.log('WS close') }
 
     ws.current.onmessage = (message) => {
-      const { event, uri, ...data } = JSON.parse(message.data);
+      const { _meta, ...data } = JSON.parse(message.data);
+      const { event, uri } = _meta;
 
       if (channels.current[event]) {
         channels.current[event](event, uri, data);

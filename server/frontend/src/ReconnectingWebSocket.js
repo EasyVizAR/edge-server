@@ -1,6 +1,7 @@
 export default class ReconnectingWebSocket {
-  constructor(url) {
+  constructor(url, protocol) {
     this.url = url;
+    this.protocol = protocol;
 
     this.onopen = null;
     this.onmessage = null;
@@ -12,7 +13,7 @@ export default class ReconnectingWebSocket {
     this.ping_interval = null;
     this.ping_timeout = null;
 
-    this.ws = new WebSocket(this.url);
+    this.ws = new WebSocket(this.url, this.protocol);
 
     const that = this;
 

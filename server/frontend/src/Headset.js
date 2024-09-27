@@ -200,30 +200,30 @@ function Headset(props) {
     const uri_filter = `/locations/${selectedLocation}/*`;
 
     subscribe("location-headsets:created", uri_filter, (event, uri, message) => {
-      if (message.current.location_id === selectedLocation) {
+      if (message.location_id === selectedLocation) {
         setHeadsets(previous => {
           let tmp = Object.assign({}, previous);
-          tmp[message.current.id] = message.current;
+          tmp[message.id] = message;
           return tmp;
         });
       }
     });
 
     subscribe("location-headsets:updated", uri_filter, (event, uri, message) => {
-      if (message.current.location_id === selectedLocation) {
+      if (message.location_id === selectedLocation) {
         setHeadsets(previous => {
           let tmp = Object.assign({}, previous);
-          tmp[message.current.id] = message.current;
+          tmp[message.id] = message;
           return tmp;
         });
       }
     });
 
     subscribe("location-headsets:deleted", uri_filter, (event, uri, message) => {
-      if (message.previous.location_id === selectedLocation) {
+      if (message.location_id === selectedLocation) {
         setHeadsets(previous => {
           let tmp = Object.assign({}, previous);
-          delete tmp[message.previous.id];
+          delete tmp[message.id];
           return tmp;
         });
       }
@@ -233,7 +233,7 @@ function Headset(props) {
       if (uri.includes(selectedLocation)) {
         setFeatures(previous => {
           let tmp = Object.assign({}, previous);
-          tmp[message.current.id] = message.current;
+          tmp[message.id] = message;
           return tmp;
         });
       }
@@ -243,7 +243,7 @@ function Headset(props) {
       if (uri.includes(selectedLocation)) {
         setFeatures(previous => {
           let tmp = Object.assign({}, previous);
-          tmp[message.current.id] = message.current;
+          tmp[message.id] = message;
           return tmp;
         });
       }
@@ -253,7 +253,7 @@ function Headset(props) {
       if (uri.includes(selectedLocation)) {
         setFeatures(previous => {
           let tmp = Object.assign({}, previous);
-          delete tmp[message.previous.id];
+          delete tmp[message.id];
           return tmp;
         });
       }
@@ -264,8 +264,8 @@ function Headset(props) {
         setLayers(previous => {
           let tmp = [];
           for (var layer of previous) {
-            if (layer.id === message.current.id) {
-              tmp.push(message.current);
+            if (layer.id === message.id) {
+              tmp.push(message);
             } else {
               tmp.push(layer);
             }
@@ -370,30 +370,30 @@ function Headset(props) {
       });
 
     subscribe("photos:created", "*", (event, uri, message) => {
-      if (message.current.tracking_session_id === displayedCheckInId) {
+      if (message.tracking_session_id === displayedCheckInId) {
         setPhotos(previous => {
           let tmp = Object.assign({}, previous);
-          tmp[message.current.id] = message.current;
+          tmp[message.id] = message;
           return tmp;
         });
       }
     });
 
     subscribe("photos:updated", "*", (event, uri, message) => {
-      if (message.current.tracking_session_id === displayedCheckInId) {
+      if (message.tracking_session_id === displayedCheckInId) {
         setPhotos(previous => {
           let tmp = Object.assign({}, previous);
-          tmp[message.current.id] = message.current;
+          tmp[message.id] = message;
           return tmp;
         });
       }
     });
 
     subscribe("photos:deleted", "*", (event, uri, message) => {
-      if (message.previous.tracking_session_id === displayedCheckInId) {
+      if (message.tracking_session_id === displayedCheckInId) {
         setPhotos(previous => {
           let tmp = Object.assign({}, previous);
-          delete tmp[message.previous.id];
+          delete tmp[message.id];
           return tmp;
         });
       }

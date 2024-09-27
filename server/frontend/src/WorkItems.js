@@ -43,7 +43,7 @@ function WorkItems(props){
     subscribe("photos:created", "*", (event, uri, message) => {
       setWorkItems(previous => {
         let tmp = [...previous];
-        tmp.push(message.current);
+        tmp.push(message);
         return tmp;
       });
     });
@@ -52,8 +52,8 @@ function WorkItems(props){
       setWorkItems(previous => {
         let tmp = [];
         for (var item of previous) {
-          if (item.id === message.current.id) {
-            tmp.push(message.current);
+          if (item.id === message.id) {
+            tmp.push(message);
           } else {
             tmp.push(item);
           }
@@ -63,7 +63,7 @@ function WorkItems(props){
     });
 
     subscribe("photos:deleted", "*", (event, uri, message) => {
-      setWorkItems(previous => previous.filter(item => item.id !== message.previous.id));
+      setWorkItems(previous => previous.filter(item => item.id !== message.id));
     });
 
     return () => {
