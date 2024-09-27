@@ -105,8 +105,12 @@ async def ws():
                 the same syntax as the subscribe event.
     """
     chosen_subprotocol = "json"
-    if "json-with-header" in websocket.requested_subprotocols:
-       chosen_subprotocol = "json-with-header"
+    if "json-with-header-v2" in websocket.requested_subprotocols:
+        chosen_subprotocol = "json-with-header-v2"
+    elif "json-with-header" in websocket.requested_subprotocols:
+        chosen_subprotocol = "json-with-header"
+    elif "json-v2" in websocket.requested_subprotocols:
+        chosen_subprotocol = "json-v2"
 
     conn = WebsocketConnection(websocket)
     handler = WebsocketHandler(current_app.dispatcher, conn,

@@ -7,6 +7,7 @@ import time
 
 from quart import g
 
+from .serializers import message_serializers
 from server.headset.routes import _update_headset
 from server.utils.counter import Counter
 from server.utils.token_bucket import TokenBucket
@@ -117,22 +118,7 @@ class WebsocketHandler:
         if not self.echo_own_events and g.device_id == self.device_id and g.user_id == self.user_id:
             return
 
-        obj = kwargs
-
-        # For "json" protocol, include event information in the JSON-encoded object.
-        if self.subprotocol == "json":
-            obj['event'] = event
-            obj['uri'] = uri
-
-        body = json.dumps(obj, cls=GenericJsonEncoder)
-
-        # For "json-with-header", the event information appears before the
-        # JSON-encoded object.  This gives the receiver a chance to decide how
-        # to deserialize the message body.
-        if self.subprotocol == "json-with-header":
-            payload = "{} {} ".format(event, uri) + body
-        else:
-            payload = body
+        payload = message_serializers[self.subprotocol].serialize(event, uri, kwargs)
 
         try:
             await self.send_text(payload)
