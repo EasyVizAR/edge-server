@@ -114,7 +114,7 @@ class WebsocketHandler:
         # browser sessions, since a user could have multiple browser sessions
         # open.  Hence, the default is echoing enabled, and the websocket
         # client needs to request echoing be turned off.
-        if not self.echo_own_events and g.user_id == self.user_id:
+        if not self.echo_own_events and g.device_id == self.device_id and g.user_id == self.user_id:
             return
 
         obj = kwargs
