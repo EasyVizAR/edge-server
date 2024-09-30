@@ -438,6 +438,14 @@ async def _update_headset(headset_id, patch):
             device.location_id = location_id
             device.tracking_session_id = checkin.id
 
+    # By setting null location_id, caller is explicitly removing
+    # the device from its location. New location is unknown.
+    elif 'location_id' in patch and patch['location_id'] is None:
+        device.location_id = None
+        device.tracking_session_id = None
+        device.device_pose_id = None
+        device.navigation_target_id = None
+
     # If we have a valid location set and the caller provided a
     # position and orientation, we can create a DevicePose record.
     if device.tracking_session_id is not None and 'position' in patch and 'orientation' in patch:
