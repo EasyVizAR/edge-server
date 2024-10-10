@@ -30,8 +30,8 @@ class MapPath(Base):
     id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)
 
     location_id: Mapped[uuid.UUID] = mapped_column(sa.ForeignKey("locations.id", ondelete="CASCADE"))
-    mobile_device_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, sa.ForeignKey("mobile_devices.id", ondelete="UPDATE"), nullable=True)
-    target_marker_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("map_markers.id", ondelete="UPDATE"), nullable=True)
+    mobile_device_id: Mapped[uuid.UUID] = mapped_column(sa.Uuid, sa.ForeignKey("mobile_devices.id", ondelete="SET NULL"), nullable=True)
+    target_marker_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("map_markers.id", ondelete="SET NULL"), nullable=True)
 
     type: Mapped[str] = mapped_column(default="unknown")
     color: Mapped[str] = mapped_column(default="#00ff00")
