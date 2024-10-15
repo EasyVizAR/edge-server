@@ -30,6 +30,9 @@ class JsonV2Serializer(MessageSerializer):
     def serialize(self, event, uri, obj):
         obj = self.reduce_object(obj)
 
+        # Make a shallow copy to avoid adding junk to the original.
+        obj = obj.copy()
+
         # For "json" protocol, include event information within the JSON-encoded object.
         obj['_meta'] = {
             "event": event,
