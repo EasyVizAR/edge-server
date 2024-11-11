@@ -12,3 +12,7 @@ fi
 echo "Setting version to $1 in snap/snapcraft.yaml and setup.py"
 sed "s/version: .*/version: \"$1\"/g" -i snap/snapcraft.yaml
 sed "s/version=.*,/version=\"$1\",/g" -i setup.py
+
+git add snap/snapcraft.yaml setup.py
+git commit -m "Set version to $1"
+git tag -a "v$1" -m "Releasing version $1"
