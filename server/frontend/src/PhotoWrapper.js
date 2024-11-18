@@ -6,6 +6,7 @@ import {Helmet} from 'react-helmet';
 import MapContainer from "./MapContainer";
 import { LocationsContext } from './Contexts.js';
 import { UsersContext } from './Contexts.js';
+import TrashIcon from './TrashIcon.js';
 import './PhotoWrapper.css';
 
 function PhotoWrapper(props) {
@@ -179,6 +180,7 @@ function PhotoWrapper(props) {
               <th>Sublabel</th>
               <th>Confidence</th>
               <th>Identity</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -191,6 +193,7 @@ function PhotoWrapper(props) {
                   <td>
                     <Identity annotation={annotation} />
                   </td>
+                  <td><TrashIcon name={annotation.label} uri={`/photos/annotations/${annotation.id}`} /></td>
                 </tr>
               })
             }

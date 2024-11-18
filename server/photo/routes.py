@@ -516,6 +516,19 @@ async def update_annotation(annotation_id):
     return jsonify(result), HTTPStatus.OK
 
 
+@photos.route('/photos/annotations/<int:annotation_id>', methods=['DELETE'])
+async def delete_annotation(annotation_id):
+    annotation = await g.session.get(PhotoAnnotation, annotation_id)
+    if annotation is None:
+        raise exceptions.NotFound(description="PhotoAnnotation {} was not found".format(annotation_id))
+
+    await g.session.delete(annotation)
+    await g.session.commit()
+
+    result = photo_annotation_schema.dump(annotation)
+    return jsonify(result), HTTPStatus.OK
+
+
 @photos.route('/photos/<int:photo_id>', methods=['DELETE'])
 @auth.requires_admin
 async def delete_photo(photo_id):
