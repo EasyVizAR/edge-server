@@ -11,6 +11,8 @@ import trimesh
 
 from PIL import Image
 
+DISPLAY = os.environ.get("DISPLAY")
+
 
 class LayerConfig:
     def __init__(self, height=0, svg_output=None):
@@ -60,6 +62,10 @@ class LocationModel():
 
         self.cameras.append((position, rotation))
 
+        if self.right_handed:
+            position = position * [-1, 1, 1]
+            rotation = self.hand_change_transform[0:3, 0:3] * rotation
+
         fx, fy = focal
         cy, cx = image.shape[0:2]
 
@@ -99,11 +105,15 @@ class LocationModel():
                 continue
 
     def export_obj(self, path):
-        # Negate x-axis to convert handedness. Unity-based OBJ loader are
-        # expected to reverse this operation.
-        self.apply_transform(self.hand_change_transform)
+        # For OBJ file format, right handed coordinate system is expected.
+        # Default is using RH in trimesh, so no change would be needed to import/export.
+        if self.right_handed:
+            scene = self.scene
+        else:
+            scene = self.scene.copy()
+            scene.apply_transform(self.hand_change_transform)
 
-        self.export(file_obj=path, file_type="obj", digits=3, include_color=False, include_normals=False, include_texture=False)
+        scene.export(file_obj=path, file_type="obj", digits=3, include_color=False, include_normals=False, include_texture=False)
 
     def infer_walls(self, layers):
         lower = np.min(self.combined_mesh.vertices, axis=0)
@@ -134,7 +144,13 @@ class LocationModel():
                 # fact that SVG uses the convention that the image starts at the top
                 # left corner with increasing coordinates down and to the right.
                 # The vertical axis ends up being the opposite of our mapping system.
-                transform_group = dwg.g(id="transform", transform="matrix(-1 0 0 -1 {} {})".format(lower[0] + upper[0], lower[2] + upper[2]))
+                if self.right_handed:
+                    x_scale = -1
+                    x_offset = lower[0] + upper[0]
+                else:
+                    x_scale = 1
+                    x_offset = 0
+                transform_group = dwg.g(id="transform", transform="matrix({} 0 0 -1 {} {})".format(x_scale, x_offset, lower[2] + upper[2]))
                 dwg.add(transform_group)
 
                 wall_group = dwg.g(id="walls", fill="none", stroke='black', stroke_width=0.1)
@@ -233,7 +249,6 @@ class LocationModel():
             world_axis = trimesh.creation.axis(origin_size=0.2)
         scene.add_geometry(world_axis)
 
-
         print(scene)
         print("Right handed: {}".format(self.right_handed))
 
@@ -243,20 +258,23 @@ class LocationModel():
 
         print("Cameras:")
         for position, rotation in self.cameras:
+            cam = np.eye(4)
+            cam[0:3, 0:3] = rotation
+            cam[0:3, 3] = position
             if self.right_handed:
-                cam = np.eye(4)
-                # TODO position is correct, rotation is not
-                cam[0:3, 0:3] = rotation
-                cam[0:3, 3] = position * [-1, 1, 1]
-            else:
-                cam = np.eye(4)
-                cam[0:3, 0:3] = rotation
-                cam[0:3, 3] = position
+                cam = self.hand_change_transform * cam
             cam_axis = trimesh.creation.axis(origin_size=0.1, transform=cam, origin_color=[0, 0, 255, 255])
             scene.add_geometry(cam_axis)
             print("  Camera {}".format(position))
 
-        scene.show()
+        if DISPLAY is None:
+            print("No display, rendering to test.png instead.")
+            png = scene.save_image()
+            with open("test.png", "wb") as output:
+                output.write(png)
+        else:
+            scene.show()
+
 
     @classmethod
     def from_directory(cls, dir_path):
