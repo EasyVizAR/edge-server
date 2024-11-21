@@ -1,11 +1,15 @@
 import os
 import pickle
+import uuid
 
 from pathlib import Path
+from urllib.request import urlopen
 
 import numpy as np
 import svgwrite
 import trimesh
+
+from PIL import Image
 
 
 class LayerConfig:
@@ -14,16 +18,29 @@ class LayerConfig:
         self.svg_output = svg_output
 
 
-class Scene(trimesh.Scene):
+def normalized_uuid(x):
+    try:
+        return uuid.UUID(x)
+    except:
+        return x
+
+
+class LocationModel():
     up = np.array([0, 1, 0])
     down = np.array([0, -1, 0])
 
+    hand_change_transform = np.diag([-1, 1, 1, 1])
+
     def __init__(self):
-        super().__init__()
+        self.scene = trimesh.Scene()
         self.combined_mesh = trimesh.Trimesh()
         self.face_object_indices = np.array([], dtype=int)
         self.face_local_indices = np.array([], dtype=int)
         self.surface_ids = []
+
+        self.right_handed = True
+
+        self.cameras = []
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -34,32 +51,35 @@ class Scene(trimesh.Scene):
         self.__dict__.update(state)
         # TODO recalculate any fields that were not saved
 
-    def apply_color(self, photo):
-        # TODO make sure camera position is valid
-        # TODO load image
+    def apply_color(self, image_path, focal, position, rotation):
+        if image_path.startswith("http"):
+            image = Image.open(urlopen(url))
+        else:
+            image = Image.open(image_path)
+        image = np.array(image)
 
-        resolution = [480, 640]
-        center = photo.camera_position.as_array()
-        rot_mat = photo.camera_orientation.as_rotation_matrix()
-        fx, fy, cx, cy = photo.camera.relative_parameters()
+        self.cameras.append((position, rotation))
+
+        fx, fy = focal
+        cy, cx = image.shape[0:2]
 
         pixel_coords = []
         directions = []
-        for y in range(height):
-            for x in range(width):
+        for y in range(image.shape[0]):
+            for x in range(image.shape[1]):
                 pixel_coords.append((y, x))
                 direction = np.array([
-                    ((x / width) - cx) / fx,
-                    (cy - (y / height)) / fy,
+                    (x - cx) / fx,
+                    (cy - y) / fy,
                     1
                 ])
 
                 # Multiply by the camera rotation matrix to produce
                 # direction vector in world coordinate frame.
-                direction = np.matmul(rot_mat, direction)
+                direction = np.matmul(rotation, direction)
                 directions.append(direction)
 
-        origins = [np.array(center)] * len(directions)
+        origins = [position] * len(directions)
 
         # Ray cast against the environment mesh.
         points, index_ray, index_tri = self.combined_mesh.ray.intersects_location(origins, directions, multiple_hits=False)
@@ -72,14 +92,16 @@ class Scene(trimesh.Scene):
             surface_index = self.face_object_indices[tri]
             surface_id = self.surface_ids[surface_index]
             local_face_index = self.face_local_indices[tri]
-            # TODO add color to the hit triangle in the scene
+
+            try:
+                self.scene.geometry[str(surface_id)].visual.face_colors[local_face_index][0:3] = image[y, x, 0:3]
+            except:
+                continue
 
     def export_obj(self, path):
         # Negate x-axis to convert handedness. Unity-based OBJ loader are
         # expected to reverse this operation.
-        transform = np.eye(4)
-        transform[0, 0] = -1
-        self.apply_transform(transform)
+        self.apply_transform(self.hand_change_transform)
 
         self.export(file_obj=path, file_type="obj", digits=3, include_color=False, include_normals=False, include_texture=False)
 
@@ -98,7 +120,7 @@ class Scene(trimesh.Scene):
             origin = np.array([0, layer.height, 0])
             dots = self.combined_mesh.vertices[:, 1] - layer.height
 
-            walls = trimesh.intersections.mesh_plane(self.combined_mesh, Scene.up, origin, cached_dots=dots)
+            walls = trimesh.intersections.mesh_plane(self.combined_mesh, self.up, origin, cached_dots=dots)
             path = trimesh.load_path(walls)
             paths.append(path)
 
@@ -112,7 +134,7 @@ class Scene(trimesh.Scene):
                 # fact that SVG uses the convention that the image starts at the top
                 # left corner with increasing coordinates down and to the right.
                 # The vertical axis ends up being the opposite of our mapping system.
-                transform_group = dwg.g(id="transform", transform="matrix(1 0 0 -1 0 {})".format(lower[2] + upper[2]))
+                transform_group = dwg.g(id="transform", transform="matrix(-1 0 0 -1 {} {})".format(lower[0] + upper[0], lower[2] + upper[2]))
                 dwg.add(transform_group)
 
                 wall_group = dwg.g(id="walls", fill="none", stroke='black', stroke_width=0.1)
@@ -137,8 +159,8 @@ class Scene(trimesh.Scene):
         This does not check if the surface already existed and modifies the
         called Scene object.
         """
-        self.add_geometry(surface)
-        self.surface_ids.append(surface_id)
+        self.scene.add_geometry(surface)
+        self.surface_ids.append(normalized_uuid(surface_id))
 
         foi = np.array([len(self.surface_ids)-1] * len(surface.faces), dtype=int)
         self.face_object_indices = np.concatenate((self.face_object_indices, foi))
@@ -151,8 +173,6 @@ class Scene(trimesh.Scene):
     def replace_surface(self, surface_id, surface):
         """
         Replace or add a surface.
-
-        Returns a new Scene object with the surface added.
         """
         scene = Scene()
 
@@ -161,9 +181,10 @@ class Scene(trimesh.Scene):
         face_local_indices = []
         meshes = []
 
-        surface.metadata['name'] = surface_id
+        surface_id = normalized_uuid(surface_id)
+        surface.metadata['name'] = str(surface_id)
 
-        for i, obj in enumerate(self.dump()):
+        for i, obj in enumerate(self.scene.dump()):
             if self.surface_ids[i] == surface_id:
                 # Replace the old version of this surface.
                 scene.add_geometry(surface)
@@ -192,7 +213,7 @@ class Scene(trimesh.Scene):
         scene.combined_mesh = trimesh.util.concatenate(meshes)
         scene.face_object_indices = np.array(face_object_indices, dtype=int)
         scene.face_local_indices = np.array(face_local_indices, dtype=int)
-        return scene
+        self.scene = scene
 
     def save(self, path):
         """
@@ -203,9 +224,46 @@ class Scene(trimesh.Scene):
         with open(path, "wb") as output:
             pickle.dump(self, output)
 
+    def show(self):
+        scene = self.scene.copy()
+
+        if self.right_handed:
+            world_axis = trimesh.creation.axis(origin_size=0.2, transform=self.hand_change_transform)
+        else:
+            world_axis = trimesh.creation.axis(origin_size=0.2)
+        scene.add_geometry(world_axis)
+
+
+        print(scene)
+        print("Right handed: {}".format(self.right_handed))
+
+        lower = np.min(self.combined_mesh.vertices, axis=0)
+        upper = np.max(self.combined_mesh.vertices, axis=0)
+        print("Bounds: {} to {}".format(lower, upper))
+
+        print("Cameras:")
+        for position, rotation in self.cameras:
+            if self.right_handed:
+                cam = np.eye(4)
+                # TODO position is correct, rotation is not
+                cam[0:3, 0:3] = rotation
+                cam[0:3, 3] = position * [-1, 1, 1]
+            else:
+                cam = np.eye(4)
+                cam[0:3, 0:3] = rotation
+                cam[0:3, 3] = position
+            cam_axis = trimesh.creation.axis(origin_size=0.1, transform=cam, origin_color=[0, 0, 255, 255])
+            scene.add_geometry(cam_axis)
+            print("  Camera {}".format(position))
+
+        scene.show()
+
     @classmethod
     def from_directory(cls, dir_path):
-        scene = Scene()
+        """
+        Load scene from a directory containing PLY files.
+        """
+        model = LocationModel()
 
         if isinstance(dir_path, str):
             path = Path(dir_path)
@@ -216,7 +274,32 @@ class Scene(trimesh.Scene):
 
             surface = trimesh.load(path)
             if isinstance(surface, trimesh.Trimesh):
-                # TODO we were using IOU to detect redundant meshes, maybe reimplement that
-                scene.append_surface(surface_id, surface)
+                if model.right_handed and ext == ".ply":
+                    # Assume PLY files are provided in Unity (left-handed) coordinate system.
+                    # Convert to RH coordinates.
+                    surface.apply_transform(model.hand_change_transform)
+                    trimesh.repair.fix_winding(surface)
 
-        return scene
+                # TODO we were using IOU to detect redundant meshes, maybe reimplement that
+                model.append_surface(surface_id, surface)
+
+        return model
+
+    @classmethod
+    def from_obj(cls, obj_path):
+        """
+        Load scene from an OBJ file.
+        """
+        model = LocationModel()
+        loaded_scene = trimesh.load(obj_path, group_material=False)
+
+        for item in loaded_scene.dump():
+            if isinstance(item, trimesh.Trimesh):
+                if not model.right_handed:
+                    # Meshes are loaded in RH coordinate system.
+                    item.apply_transform(model.hand_change_transform)
+                    trimesh.repair.fix_winding(item)
+
+                model.append_surface(item.metadata['name'], item)
+
+        return model

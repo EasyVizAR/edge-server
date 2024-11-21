@@ -1,3 +1,6 @@
+import numpy as np
+import quaternion
+
 from dataclasses import field
 from marshmallow_dataclass import dataclass
 from sqlalchemy.ext.mutable import MutableComposite
@@ -37,6 +40,9 @@ class Vector3f(MutableCompositeBase):
     def totuple(self):
         return (self.x, self.y, self.z)
 
+    def as_array(self):
+        return np.array([self.x, self.y, self.z])
+
 
 @dataclass
 class Vector4f(MutableCompositeBase):
@@ -47,3 +53,12 @@ class Vector4f(MutableCompositeBase):
 
     def totuple(self):
         return (self.x, self.y, self.z, self.w)
+
+    def as_array(self):
+        return np.array([self.x, self.y, self.z, self.w])
+
+    def as_quaternion(self):
+        return np.quaternion(self.w, self.x, self.y, self.z)
+
+    def as_rotation_matrix(self):
+        return quaternion.as_rotation_matrix(self.as_quaternion())
