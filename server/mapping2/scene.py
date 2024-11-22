@@ -14,6 +14,9 @@ from PIL import Image
 DISPLAY = os.environ.get("DISPLAY")
 
 
+hand_change_transform = np.diag([-1, 1, 1, 1])
+
+
 class LayerConfig:
     def __init__(self, height=0, svg_output=None):
         self.height = height
@@ -27,11 +30,56 @@ def normalized_uuid(x):
         return x
 
 
+class MeshColorSource():
+    def __init__(self, image_path, focal, position, rotation, focal_relative=True):
+        self.image_path = image_path
+        self.focal = focal
+        self.position = position
+        self.rotation = rotation
+        self.focal_relative = focal_relative
+
+    def generate_rays(self, right_handed=False):
+        if self.image_path.startswith("http"):
+            image = Image.open(urlopen(self.image_path))
+        else:
+            image = Image.open(self.image_path)
+        image = np.array(image)
+
+        position = self.position
+        rotation = self.rotation
+        if right_handed:
+            position = position * [-1, 1, 1]
+            rotation = np.matmul(hand_change_transform[0:3, 0:3], rotation)
+
+        fx, fy = self.focal
+        if self.focal_relative:
+            fx *= image.shape[1]
+            fy *= image.shape[0]
+        cx = 0.5 * image.shape[1]
+        cy = 0.5 * image.shape[0]
+
+        directions = np.ones((image.shape[0] * image.shape[1], 3))
+        i = 0
+        for y in range(image.shape[0]):
+            for x in range(image.shape[1]):
+                directions[i, 0] = (x - cx) / fx
+                directions[i, 1] = (cy - y) / fy
+                i += 1
+
+        # Rotate the direction vectors according to camera orientation.
+        directions = np.matmul(directions, rotation.T)
+
+        # The origin for each array is the camera position, so just repeat it N times.
+        origins = np.repeat(position[np.newaxis, :], directions.shape[0], axis=0)
+
+        colors = image[:, :, 0:3].reshape(-1, 3)
+
+        return origins, directions, colors
+
+
 class LocationModel():
     up = np.array([0, 1, 0])
     down = np.array([0, -1, 0])
-
-    hand_change_transform = np.diag([-1, 1, 1, 1])
 
     def __init__(self):
         self.scene = trimesh.Scene()
@@ -54,41 +102,9 @@ class LocationModel():
         self.__dict__.update(state)
         # TODO recalculate any fields that were not saved
 
-    def apply_color(self, image_path, focal, position, rotation):
-        if image_path.startswith("http"):
-            image = Image.open(urlopen(url))
-        else:
-            image = Image.open(image_path)
-        image = np.array(image)
-
-        self.cameras.append((position, rotation))
-
-        if self.right_handed:
-            position = position * [-1, 1, 1]
-            rotation = np.matmul(self.hand_change_transform[0:3, 0:3], rotation)
-
-        fx, fy = focal
-        cx = 0.5 * image.shape[1]
-        cy = 0.5 * image.shape[0]
-
-        pixel_coords = np.zeros((image.shape[0] * image.shape[1], 2), dtype=int)
-        directions = np.ones((image.shape[0] * image.shape[1], 3))
-
-        i = 0
-        for y in range(image.shape[0]):
-            for x in range(image.shape[1]):
-                pixel_coords[i, 0] = y
-                pixel_coords[i, 1] = x
-
-                directions[i, 0] = (x - cx) / fx
-                directions[i, 1] = (cy - y) / fy
-                i += 1
-
-        # Rotate the direction vectors according to camera orientation.
-        directions = np.matmul(directions, rotation.T)
-
-        # The origin for each array is the camera positio, so just repeat it N times.
-        origins = np.repeat(position[np.newaxis, :], directions.shape[0], axis=0)
+    def apply_color(self, image_path, focal, position, rotation, focal_relative=True):
+        color_source = MeshColorSource(image_path, focal, position, rotation, focal_relative)
+        origins, directions, colors = color_source.generate_rays(self.right_handed)
 
         # Ray cast against the environment mesh.
         points, index_ray, index_tri = self.combined_mesh.ray.intersects_location(origins, directions, multiple_hits=False)
@@ -105,9 +121,7 @@ class LocationModel():
             tri = index_tri[i]
             global_face_vertices = self.combined_mesh.faces[tri]
             hit_triangle_vertices[i, 0:3, 0:3] = self.combined_mesh.vertices[global_face_vertices, :]
-
-            y, x = pixel_coords[ray, 0:2]
-            ray_colors[i, 0:3] = image[y, x, 0:3]
+            ray_colors[i, 0:3] = colors[ray, 0:3]
 
         # Accumulators for color and weight contributions from each ray.
         acc_color = np.zeros((len(self.combined_mesh.vertices), 3))
@@ -141,6 +155,9 @@ class LocationModel():
             if acc_weight[i] > 0.33:
                 submesh.visual.vertex_colors[local_vertex_index][0:3] = acc_color[i] / acc_weight[i]
 
+            # TODO: maintain a set of MeshColorSource objects that affected each surface.
+            # Then, when a surface is replaced, we can reapply only the images that should affect it.
+
             local_vertex_index += 1
 
     def export_obj(self, path):
@@ -150,7 +167,7 @@ class LocationModel():
             scene = self.scene
         else:
             scene = self.scene.copy()
-            scene.apply_transform(self.hand_change_transform)
+            scene.apply_transform(hand_change_transform)
 
         scene.export(file_obj=path, file_type="obj", digits=3, include_color=True, include_normals=False, include_texture=False)
 
@@ -283,7 +300,7 @@ class LocationModel():
         scene = self.scene.copy()
 
         if self.right_handed:
-            world_axis = trimesh.creation.axis(origin_size=0.2, transform=self.hand_change_transform)
+            world_axis = trimesh.creation.axis(origin_size=0.2, transform=hand_change_transform)
         else:
             world_axis = trimesh.creation.axis(origin_size=0.2)
         scene.add_geometry(world_axis)
@@ -301,7 +318,7 @@ class LocationModel():
             cam[0:3, 0:3] = rotation
             cam[0:3, 3] = position
             if self.right_handed:
-                cam = np.matmul(self.hand_change_transform, cam)
+                cam = np.matmul(hand_change_transform, cam)
             cam_axis = trimesh.creation.axis(origin_size=0.1, transform=cam, origin_color=[0, 0, 255, 255])
             scene.add_geometry(cam_axis)
             print("  Camera {}".format(position))

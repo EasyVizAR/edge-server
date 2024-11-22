@@ -30,7 +30,7 @@ for i, photo in enumerate(photos):
     path = "data/locations/acf9cc39a7a84ea4bc108959cae35582/photos/{:08x}/photo.png".format(photo['id'])
 
     try:
-        model.apply_color(path, (700, 700), pos, rot)
+        model.apply_color(path, (700, 700), pos, rot, focal_relative=False)
     except Exception as error:
         print(error)
 
