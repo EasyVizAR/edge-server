@@ -46,6 +46,7 @@ class LocationModel():
 
     def __getstate__(self):
         state = self.__dict__.copy()
+        del state['combined_mesh']
         # TODO del any fields we do not want saved
         return state
 
@@ -64,45 +65,83 @@ class LocationModel():
 
         if self.right_handed:
             position = position * [-1, 1, 1]
-            rotation = self.hand_change_transform[0:3, 0:3] * rotation
+            rotation = np.matmul(self.hand_change_transform[0:3, 0:3], rotation)
 
         fx, fy = focal
-        cy, cx = image.shape[0:2]
+        cx = 0.5 * image.shape[1]
+        cy = 0.5 * image.shape[0]
 
-        pixel_coords = []
-        directions = []
+        pixel_coords = np.zeros((image.shape[0] * image.shape[1], 2), dtype=int)
+        directions = np.ones((image.shape[0] * image.shape[1], 3))
+
+        i = 0
         for y in range(image.shape[0]):
             for x in range(image.shape[1]):
-                pixel_coords.append((y, x))
-                direction = np.array([
-                    (x - cx) / fx,
-                    (cy - y) / fy,
-                    1
-                ])
+                pixel_coords[i, 0] = y
+                pixel_coords[i, 1] = x
 
-                # Multiply by the camera rotation matrix to produce
-                # direction vector in world coordinate frame.
-                direction = np.matmul(rotation, direction)
-                directions.append(direction)
+                directions[i, 0] = (x - cx) / fx
+                directions[i, 1] = (cy - y) / fy
+                i += 1
 
-        origins = [position] * len(directions)
+        # Rotate the direction vectors according to camera orientation.
+        directions = np.matmul(directions, rotation.T)
+
+        # The origin for each array is the camera positio, so just repeat it N times.
+        origins = np.repeat(position[np.newaxis, :], directions.shape[0], axis=0)
 
         # Ray cast against the environment mesh.
         points, index_ray, index_tri = self.combined_mesh.ray.intersects_location(origins, directions, multiple_hits=False)
         if len(points) == 0:
             return
 
-        for i, ray in enumerate(index_ray):
-            y, x = pixel_coords[ray]
-            tri = index_tri[i]
-            surface_index = self.face_object_indices[tri]
-            surface_id = self.surface_ids[surface_index]
-            local_face_index = self.face_local_indices[tri]
+        # Hit triangle vertices and color for each ray.
+        hit_triangle_vertices = np.zeros((len(index_ray), 3, 3))
+        ray_colors = np.zeros((len(index_ray), 3))
 
-            try:
-                self.scene.geometry[str(surface_id)].visual.face_colors[local_face_index][0:3] = image[y, x, 0:3]
-            except:
-                continue
+        # For each ray, find the triangle that was hit in the combined mesh.
+        # Record the triangle vertices and pixel color.
+        for i, ray in enumerate(index_ray):
+            tri = index_tri[i]
+            global_face_vertices = self.combined_mesh.faces[tri]
+            hit_triangle_vertices[i, 0:3, 0:3] = self.combined_mesh.vertices[global_face_vertices, :]
+
+            y, x = pixel_coords[ray, 0:2]
+            ray_colors[i, 0:3] = image[y, x, 0:3]
+
+        # Accumulators for color and weight contributions from each ray.
+        acc_color = np.zeros((len(self.combined_mesh.vertices), 3))
+        acc_weight = np.zeros(len(self.combined_mesh.vertices))
+
+        # Compute barycentric coordinates for each ray's collision point.
+        barycentric = trimesh.triangles.points_to_barycentric(hit_triangle_vertices, points)
+
+        for d in range(3):
+            weighted_color = barycentric[:, [d]] * ray_colors
+
+            for i, tri in enumerate(index_tri):
+                acc_color[self.combined_mesh.faces[tri][d], 0:3] += weighted_color[i, :]
+                acc_weight[self.combined_mesh.faces[tri][d]] += barycentric[i, d]
+
+        surface_index = 0
+        surface_id = self.surface_ids[surface_index]
+        submesh = self.scene.geometry[str(surface_id)]
+        local_vertex_index = 0
+
+        # Iterate over the vertices in the combined mesh, map them back to the
+        # scene mesh, and apply color to the scene mesh.
+        for i in range(acc_color.shape[0]):
+            if local_vertex_index >= len(submesh.vertices):
+                surface_index += 1
+                surface_id = self.surface_ids[surface_index]
+                submesh = self.scene.geometry[str(surface_id)]
+                local_vertex_index = 0
+
+            # Color vertices where we had at least one hit and avoid small divisor.
+            if acc_weight[i] > 0.33:
+                submesh.visual.vertex_colors[local_vertex_index][0:3] = acc_color[i] / acc_weight[i]
+
+            local_vertex_index += 1
 
     def export_obj(self, path):
         # For OBJ file format, right handed coordinate system is expected.
@@ -113,7 +152,7 @@ class LocationModel():
             scene = self.scene.copy()
             scene.apply_transform(self.hand_change_transform)
 
-        scene.export(file_obj=path, file_type="obj", digits=3, include_color=False, include_normals=False, include_texture=False)
+        scene.export(file_obj=path, file_type="obj", digits=3, include_color=True, include_normals=False, include_texture=False)
 
     def infer_walls(self, layers):
         lower = np.min(self.combined_mesh.vertices, axis=0)
@@ -262,7 +301,7 @@ class LocationModel():
             cam[0:3, 0:3] = rotation
             cam[0:3, 3] = position
             if self.right_handed:
-                cam = self.hand_change_transform * cam
+                cam = np.matmul(self.hand_change_transform, cam)
             cam_axis = trimesh.creation.axis(origin_size=0.1, transform=cam, origin_color=[0, 0, 255, 255])
             scene.add_geometry(cam_axis)
             print("  Camera {}".format(position))
@@ -291,7 +330,7 @@ class LocationModel():
             surface_id, ext = os.path.splitext(fname)
 
             surface = trimesh.load(path)
-            if isinstance(surface, trimesh.Trimesh):
+            if isinstance(surface, trimesh.Trimesh) and len(item.faces) > 0:
                 if model.right_handed and ext == ".ply":
                     # Assume PLY files are provided in Unity (left-handed) coordinate system.
                     # Convert to RH coordinates.
@@ -312,7 +351,7 @@ class LocationModel():
         loaded_scene = trimesh.load(obj_path, group_material=False)
 
         for item in loaded_scene.dump():
-            if isinstance(item, trimesh.Trimesh):
+            if isinstance(item, trimesh.Trimesh) and len(item.faces) > 0:
                 if not model.right_handed:
                     # Meshes are loaded in RH coordinate system.
                     item.apply_transform(model.hand_change_transform)
