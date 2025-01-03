@@ -1,5 +1,6 @@
 import os
 import pickle
+import time
 import uuid
 
 from pathlib import Path
@@ -21,6 +22,27 @@ class LayerConfig:
     def __init__(self, height=0, svg_output=None):
         self.height = height
         self.svg_output = svg_output
+
+
+def compute_bbox_iou(a, b, verbose=False):
+    """
+    Compute intersection over union (IOU) between bounding boxes of two meshes.
+    """
+    bbox_a = a.bounding_box
+    bbox_b = b.bounding_box
+
+    # Lower and upper bounds of the intersection box
+    inter_lower = np.maximum(bbox_a.bounds[0], bbox_b.bounds[0])
+    inter_upper = np.minimum(bbox_a.bounds[1], bbox_b.bounds[1])
+
+    # If the upper bound ended up less than the lower bound in any dimension,
+    # it means there is no overlap, and the IOU is automatically zero.
+    if np.any(inter_upper < inter_lower):
+        return 0
+
+    inter_volume = np.product(inter_upper - inter_lower)
+    union_volume = bbox_a.volume + bbox_b.volume - inter_volume
+    return inter_volume / union_volume
 
 
 def normalized_uuid(x):
@@ -81,6 +103,8 @@ class LocationModel():
     up = np.array([0, 1, 0])
     down = np.array([0, -1, 0])
 
+    surface_pruning_threshold = 0.6
+
     def __init__(self):
         self.scene = trimesh.Scene()
         self.combined_mesh = trimesh.Trimesh()
@@ -92,6 +116,8 @@ class LocationModel():
 
         self.cameras = []
 
+        self.mtime = time.time()
+
     def __getstate__(self):
         state = self.__dict__.copy()
         del state['combined_mesh']
@@ -100,6 +126,13 @@ class LocationModel():
 
     def __setstate__(self, state):
         self.__dict__.update(state)
+
+        meshes = []
+        for i, obj in enumerate(self.scene.dump()):
+            meshes.append(obj)
+
+        self.combined_mesh = trimesh.util.concatenate(meshes)
+
         # TODO recalculate any fields that were not saved
 
     def apply_color(self, image_path, focal, position, rotation, focal_relative=True):
@@ -160,6 +193,24 @@ class LocationModel():
 
             local_vertex_index += 1
 
+    def compute_max_iou(self, mesh, stopping_threshold=None):
+        """
+        Compute intersection-over-union (IOU) between given mesh and existing
+        mesh with maximal overlap.
+
+        Will stop the search early if stopping_threshold is not None
+        and the current maximum exceeds the stopping threshold.
+        """
+        maximum = 0
+        for i, obj in enumerate(self.scene.dump()):
+            iou = compute_bbox_iou(obj, mesh)
+            if stopping_threshold is not None and iou > stopping_threshold:
+                return iou
+            elif iou > maximum:
+                maximum = iou
+
+        return maximum
+
     def export_obj(self, path):
         # For OBJ file format, right handed coordinate system is expected.
         # Default is using RH in trimesh, so no change would be needed to import/export.
@@ -170,6 +221,24 @@ class LocationModel():
             scene.apply_transform(hand_change_transform)
 
         scene.export(file_obj=path, file_type="obj", digits=3, include_color=True, include_normals=False, include_texture=False)
+
+    def get_bounding_box(self):
+        lower = np.min(self.combined_mesh.vertices, axis=0)
+        upper = np.max(self.combined_mesh.vertices, axis=0)
+        size = upper - lower
+
+        if self.right_handed:
+            left = -1 * upper[0]
+        else:
+            left = lower[0]
+
+        dims = {
+            "left": left,
+            "top": lower[2],
+            "width": size[0],
+            "height": size[2]
+        }
+        return dims
 
     def infer_walls(self, layers):
         lower = np.min(self.combined_mesh.vertices, axis=0)
@@ -224,6 +293,25 @@ class LocationModel():
 
         return paths
 
+    def load_surface(self, path):
+        fname = os.path.basename(path)
+        surface_id, ext = os.path.splitext(fname)
+
+        surface = trimesh.load(path)
+        if isinstance(surface, trimesh.Trimesh) and len(surface.faces) > 0:
+            if self.right_handed and ext == ".ply":
+                # Assume PLY files are provided in Unity (left-handed) coordinate system.
+                # Convert to RH coordinates.
+                surface.apply_transform(hand_change_transform)
+                trimesh.repair.fix_winding(surface)
+
+            # Save the mtime of the surface PLY file, so we can detect updated files.
+            surface.metadata['mtime'] = os.path.getmtime(path)
+
+            return surface, surface_id
+
+        return None, surface_id
+
     def append_surface(self, surface_id, surface):
         """
         Add a new surface.
@@ -231,8 +319,11 @@ class LocationModel():
         This does not check if the surface already existed and modifies the
         called Scene object.
         """
+        surface_id = normalized_uuid(surface_id)
+        surface.metadata['name'] = str(surface_id)
+
         self.scene.add_geometry(surface)
-        self.surface_ids.append(normalized_uuid(surface_id))
+        self.surface_ids.append(surface_id)
 
         foi = np.array([len(self.surface_ids)-1] * len(surface.faces), dtype=int)
         self.face_object_indices = np.concatenate((self.face_object_indices, foi))
@@ -246,46 +337,29 @@ class LocationModel():
         """
         Replace or add a surface.
         """
-        scene = Scene()
+        surface_id = normalized_uuid(surface_id)
+        surface.metadata['name'] = str(surface_id)
 
-        found = False
+        if surface.metadata['name'] in self.scene.geometry:
+            self.scene.delete_geometry(surface.metadata['name'])
+
+        self.scene.add_geometry(surface)
+
+        surface_ids = []
         face_object_indices = []
         face_local_indices = []
         meshes = []
 
-        surface_id = normalized_uuid(surface_id)
-        surface.metadata['name'] = str(surface_id)
-
         for i, obj in enumerate(self.scene.dump()):
-            if self.surface_ids[i] == surface_id:
-                # Replace the old version of this surface.
-                scene.add_geometry(surface)
-                scene.surface_ids.append(self.surface_ids[i])
-                face_object_indices.extend([i] * len(surface.faces))
-                face_local_indices.extend(list(range(len(surface.faces))))
-                meshes.append(surface)
-                found = True
+            surface_ids.append(obj.metadata['name'])
+            face_object_indices.extend([i] * len(obj.faces))
+            face_local_indices.extend(list(range(len(obj.faces))))
+            meshes.append(obj)
 
-            else:
-                # Keep any unchanged surfaces.
-                scene.add_geometry(obj)
-                scene.surface_ids.append(surface_id)
-                face_object_indices.extend([i] * len(obj.faces))
-                face_local_indices.extend(list(range(len(obj.faces))))
-                meshes.append(obj)
-
-        if not found:
-            # This is a new surface we have not scene before.
-            scene.add_geometry(surface)
-            scene.surface_ids.append(surface_id)
-            face_object_indices.extend([len(meshes)] * len(surface.faces))
-            face_local_indices.extend(list(range(len(surface.faces))))
-            meshes.append(surface)
-
-        scene.combined_mesh = trimesh.util.concatenate(meshes)
-        scene.face_object_indices = np.array(face_object_indices, dtype=int)
-        scene.face_local_indices = np.array(face_local_indices, dtype=int)
-        self.scene = scene
+        self.combined_mesh = trimesh.util.concatenate(meshes)
+        self.surface_ids = surface_ids
+        self.face_object_indices = np.array(face_object_indices, dtype=int)
+        self.face_local_indices = np.array(face_local_indices, dtype=int)
 
     def save(self, path):
         """
@@ -331,6 +405,55 @@ class LocationModel():
         else:
             scene.show()
 
+    def update_from_directory(self, dir_path):
+        """
+        Update the scene from files in a directory taking only those surfaces
+        files which are new or have been modified.
+        """
+        print("Update from directory: {}".format(dir_path))
+        if isinstance(dir_path, str):
+            path = Path(dir_path)
+
+        updated_model_mtime = self.mtime
+        for path in sorted(path.iterdir(), key=os.path.getmtime, reverse=True):
+            fname = os.path.basename(path)
+            surface_id, ext = os.path.splitext(fname)
+            surface_id = normalized_uuid(surface_id)
+
+            mtime = os.path.getmtime(path)
+            existing_surface = self.scene.geometry.get(str(surface_id))
+
+            # Skip any surface files older than the model itself.
+            # They are either already included or meant to be excluded.
+            if mtime < self.mtime:
+                break
+
+            # Save the newest surface mtime for later.
+            elif mtime > updated_model_mtime:
+                updated_model_mtime = mtime
+
+            # Detect new surfaces and append.
+            # If no change, there is no need to load and parse the mesh file.
+            if existing_surface is None:
+                surface, _ = self.load_surface(path)
+
+                iou = self.compute_max_iou(surface, self.surface_pruning_threshold)
+                if iou < self.surface_pruning_threshold:
+                    print("Surface {} is new".format(surface_id))
+                    self.append_surface(surface_id, surface)
+                else:
+                    # TODO: we should probably replace the older surface with this newer one
+                    print("Surface {} is redundant".format(surface_id))
+
+            # Detect modified surfaces and replace
+            elif mtime > existing_surface.metadata['mtime']:
+                print("Surface {} is modified".format(surface_id))
+
+                surface, _ = self.load_surface(path)
+                self.replace_surface(surface_id, surface)
+
+        # Update the model modified time to exclude all processed surfaces in future updates.
+        self.mtime = updated_model_mtime
 
     @classmethod
     def from_directory(cls, dir_path):
@@ -343,19 +466,11 @@ class LocationModel():
             path = Path(dir_path)
 
         for path in sorted(path.iterdir(), key=os.path.getmtime, reverse=True):
-            fname = os.path.basename(path)
-            surface_id, ext = os.path.splitext(fname)
-
-            surface = trimesh.load(path)
-            if isinstance(surface, trimesh.Trimesh) and len(item.faces) > 0:
-                if model.right_handed and ext == ".ply":
-                    # Assume PLY files are provided in Unity (left-handed) coordinate system.
-                    # Convert to RH coordinates.
-                    surface.apply_transform(model.hand_change_transform)
-                    trimesh.repair.fix_winding(surface)
-
-                # TODO we were using IOU to detect redundant meshes, maybe reimplement that
-                model.append_surface(surface_id, surface)
+            surface, surface_id = model.load_surface(path)
+            if surface is not None:
+                iou = model.compute_max_iou(surface, cls.surface_pruning_threshold)
+                if iou < cls.surface_pruning_threshold:
+                    model.append_surface(surface_id, surface)
 
         return model
 
@@ -367,13 +482,30 @@ class LocationModel():
         model = LocationModel()
         loaded_scene = trimesh.load(obj_path, group_material=False)
 
+        # Get the mtime of the OBJ file, which is an upper bound on
+        # the modified times for the component surfaces.
+        model.mtime = os.path.getmtime(obj_path)
+
         for item in loaded_scene.dump():
             if isinstance(item, trimesh.Trimesh) and len(item.faces) > 0:
                 if not model.right_handed:
                     # Meshes are loaded in RH coordinate system.
-                    item.apply_transform(model.hand_change_transform)
+                    item.apply_transform(hand_change_transform)
                     trimesh.repair.fix_winding(item)
+
+                # We do not have the individual surface mtimes, but the OBJ file
+                # mtime will suffice.
+                item.metadata['mtime'] = model.mtime
 
                 model.append_surface(item.metadata['name'], item)
 
         return model
+
+    @classmethod
+    def from_pickle(cls, pickle_path):
+        """
+        Load scene from a pickle file.
+        """
+        with open(pickle_path, "rb") as source:
+            scene = pickle.load(source)
+        return scene

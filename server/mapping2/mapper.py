@@ -13,6 +13,7 @@ import sqlalchemy as sa
 from server.layer.models import Layer, LayerSchema
 from server.location.models import Location
 from server.mapping.obj_file import ObjFileMaker
+from server.mapping2.scene import LocationModel
 from server.models.device_poses import DevicePose
 from server.models.surfaces import Surface
 from server.models.tracking_sessions import TrackingSession
@@ -56,26 +57,44 @@ class MappingTask:
     def run(self):
         start = time.time()
 
-        soup, excluded = MeshSoup.from_directory(self.mesh_dir, cache_dir=self.cache_dir, exclude=self.exclude_chunks)
+#        soup, excluded = MeshSoup.from_directory(self.mesh_dir, cache_dir=self.cache_dir, exclude=self.exclude_chunks)
+        excluded = set()
 
-        if use_trimesh_obj_export and self.location_dir is not None:
-            model_obj = os.path.join(self.location_dir, "model.obj")
-            soup.export_obj(model_obj)
+
+        scene_file = os.path.join(self.cache_dir, "scene.pkl")
+        model_obj = os.path.join(self.location_dir, "model.obj")
+
+        if os.path.exists(scene_file):
+            print("Load scene from {}".format(scene_file))
+            scene = LocationModel.from_pickle(scene_file)
+            scene.update_from_directory(self.mesh_dir)
+        elif os.path.exists(model_obj):
+            print("Load scene from {}".format(model_obj))
+            scene = LocationModel.from_obj(model_obj)
+            scene.update_from_directory(self.mesh_dir)
+        else:
+            print("Load scene from {}".format(self.mesh_dir))
+            scene = LocationModel.from_directory(self.mesh_dir)
 
         if self.layer_configs is not None:
-            soup.infer_walls(self.layer_configs)
+            scene.infer_walls(self.layer_configs)
 
-        if self.traces is not None:
-            for times, points in self.traces:
-                soup.add_trace(times, points)
+        scene.export_obj(model_obj)
 
-            if self.navmesh_path is not None:
-                navmesh = soup.create_navigation_mesh()
-                navmesh.save(self.navmesh_path)
+        scene.save(scene_file)
+
+
+#        if self.traces is not None:
+#            for times, points in self.traces:
+#                soup.add_trace(times, points)
+#
+#            if self.navmesh_path is not None:
+#                navmesh = soup.create_navigation_mesh()
+#                navmesh.save(self.navmesh_path)
 
         duration = time.time() - start
         print("Mapping completed with {} layers and {} traces in {:.3f} seconds".format(len(self.layer_configs), len(self.traces), duration))
-        result = MappingTaskResult(soup, excluded)
+        result = MappingTaskResult(scene, excluded)
         return result
 
 
@@ -158,7 +177,8 @@ class Mapper:
         mesh_dir = os.path.join(location_dir, "surfaces")
         navmesh_path = os.path.join(location_dir, "navmesh.pickle")
 
-        traces = await self.find_traces(location_id)
+        #traces = await self.find_traces(location_id)
+        traces = []
 
         cache_dir = os.path.join(g.temp_dir, "chunks", location_id.hex)
         os.makedirs(cache_dir, exist_ok=True)
