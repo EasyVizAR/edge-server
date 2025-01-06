@@ -24,27 +24,6 @@ class LayerConfig:
         self.svg_output = svg_output
 
 
-def compute_bbox_iou(a, b, verbose=False):
-    """
-    Compute intersection over union (IOU) between bounding boxes of two meshes.
-    """
-    bbox_a = a.bounding_box
-    bbox_b = b.bounding_box
-
-    # Lower and upper bounds of the intersection box
-    inter_lower = np.maximum(bbox_a.bounds[0], bbox_b.bounds[0])
-    inter_upper = np.minimum(bbox_a.bounds[1], bbox_b.bounds[1])
-
-    # If the upper bound ended up less than the lower bound in any dimension,
-    # it means there is no overlap, and the IOU is automatically zero.
-    if np.any(inter_upper < inter_lower):
-        return 0
-
-    inter_volume = np.product(inter_upper - inter_lower)
-    union_volume = bbox_a.volume + bbox_b.volume - inter_volume
-    return inter_volume / union_volume
-
-
 def normalized_uuid(x):
     try:
         return uuid.UUID(x)
@@ -193,23 +172,47 @@ class LocationModel():
 
             local_vertex_index += 1
 
-    def compute_max_iou(self, mesh, stopping_threshold=None):
+    def compute_max_iou(self, mesh):
         """
         Compute intersection-over-union (IOU) between given mesh and existing
         mesh with maximal overlap.
 
-        Will stop the search early if stopping_threshold is not None
-        and the current maximum exceeds the stopping threshold.
+        Returns (max IOU, mesh name)
         """
-        maximum = 0
-        for i, obj in enumerate(self.scene.dump()):
-            iou = compute_bbox_iou(obj, mesh)
-            if stopping_threshold is not None and iou > stopping_threshold:
-                return iou
-            elif iou > maximum:
-                maximum = iou
+        N = len(self.scene.geometry)
+        if N == 0:
+            return 0, None
 
-        return maximum
+        # Extract the upper and lower bounds for all of our current meshes
+        # TODO: these arrays could be cached if it is determined to save time
+        lower_bounds = np.zeros((N, 3))
+        upper_bounds = np.zeros((N, 3))
+        volume = np.zeros((N, ))
+        names = list()
+        for i, obj in enumerate(self.scene.dump()):
+            bbox = obj.bounding_box
+            lower_bounds[i, :] = bbox.bounds[0, :]
+            upper_bounds[i, :] = bbox.bounds[1, :]
+            volume[i] = bbox.volume
+            names.append(obj.metadata['name'])
+
+        # Find the intersection with the given mesh
+        given_bbox = mesh.bounding_box
+        inter_lower = np.maximum(given_bbox.bounds[0, :], lower_bounds)
+        inter_upper = np.minimum(given_bbox.bounds[1, :], upper_bounds)
+
+        inter_volume = np.product(inter_upper - inter_lower, axis=1)
+
+        # If the upper bound ended up less than the lower bound in any
+        # dimension, it means there is no overlap, so the intersection volume
+        # is zero in those cases.
+        inter_volume[np.any(inter_upper < inter_lower, axis=1)] = 0
+
+        union_volume = given_bbox.volume + volume - inter_volume
+        iou = inter_volume / union_volume
+
+        i = np.argmax(iou)
+        return iou[i], names[i]
 
     def export_obj(self, path):
         # For OBJ file format, right handed coordinate system is expected.
@@ -296,6 +299,7 @@ class LocationModel():
     def load_surface(self, path):
         fname = os.path.basename(path)
         surface_id, ext = os.path.splitext(fname)
+        surface_id = normalized_uuid(surface_id)
 
         surface = trimesh.load(path)
         if isinstance(surface, trimesh.Trimesh) and len(surface.faces) > 0:
@@ -305,6 +309,10 @@ class LocationModel():
                 surface.apply_transform(hand_change_transform)
                 trimesh.repair.fix_winding(surface)
 
+            # Set the mesh name to be the surface ID.
+            # This will be preserved if the mesh is exported as OBJ.
+            surface.metadata['name'] = str(surface_id)
+
             # Save the mtime of the surface PLY file, so we can detect updated files.
             surface.metadata['mtime'] = os.path.getmtime(path)
 
@@ -312,17 +320,16 @@ class LocationModel():
 
         return None, surface_id
 
-    def append_surface(self, surface_id, surface):
+    def append_surface(self, surface):
         """
         Add a new surface.
 
         This does not check if the surface already existed and modifies the
         called Scene object.
         """
-        surface_id = normalized_uuid(surface_id)
-        surface.metadata['name'] = str(surface_id)
-
         self.scene.add_geometry(surface)
+
+        surface_id = normalized_uuid(surface.metadata['name'])
         self.surface_ids.append(surface_id)
 
         foi = np.array([len(self.surface_ids)-1] * len(surface.faces), dtype=int)
@@ -336,12 +343,15 @@ class LocationModel():
     def replace_surface(self, surface_id, surface):
         """
         Replace or add a surface.
+
+        Note: this can be used to replace a mesh with surface ID differing from
+        the new surface, ie. remove mesh X and append mesh Y.
         """
         surface_id = normalized_uuid(surface_id)
-        surface.metadata['name'] = str(surface_id)
+        key = str(surface_id)
 
-        if surface.metadata['name'] in self.scene.geometry:
-            self.scene.delete_geometry(surface.metadata['name'])
+        if key in self.scene.geometry:
+            self.scene.delete_geometry(key)
 
         self.scene.add_geometry(surface)
 
@@ -437,13 +447,19 @@ class LocationModel():
             if existing_surface is None:
                 surface, _ = self.load_surface(path)
 
-                iou = self.compute_max_iou(surface, self.surface_pruning_threshold)
+                iou, overlapping_surface_id = self.compute_max_iou(surface)
                 if iou < self.surface_pruning_threshold:
                     print("Surface {} is new".format(surface_id))
-                    self.append_surface(surface_id, surface)
+                    self.append_surface(surface)
                 else:
-                    # TODO: we should probably replace the older surface with this newer one
-                    print("Surface {} is redundant".format(surface_id))
+                    overlapping_surface = self.scene.geometry[overlapping_surface_id]
+                    if mtime > overlapping_surface.metadata['mtime']:
+                        # TODO: we might actually want to find all existing, older surfaces
+                        # with IOU > threshold and replace them all
+                        print("Surface {} replaces {}".format(surface_id, overlapping_surface_id))
+                        self.replace_surface(overlapping_surface_id, surface)
+                    else:
+                        print("Surface {} is redundant".format(surface_id))
 
             # Detect modified surfaces and replace
             elif mtime > existing_surface.metadata['mtime']:
@@ -468,9 +484,9 @@ class LocationModel():
         for path in sorted(path.iterdir(), key=os.path.getmtime, reverse=True):
             surface, surface_id = model.load_surface(path)
             if surface is not None:
-                iou = model.compute_max_iou(surface, cls.surface_pruning_threshold)
+                iou, _ = model.compute_max_iou(surface)
                 if iou < cls.surface_pruning_threshold:
-                    model.append_surface(surface_id, surface)
+                    model.append_surface(surface)
 
         return model
 
@@ -497,7 +513,7 @@ class LocationModel():
                 # mtime will suffice.
                 item.metadata['mtime'] = model.mtime
 
-                model.append_surface(item.metadata['name'], item)
+                model.append_surface(item)
 
         return model
 
