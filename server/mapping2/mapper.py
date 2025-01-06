@@ -13,9 +13,10 @@ import sqlalchemy as sa
 from server.layer.models import Layer, LayerSchema
 from server.location.models import Location
 from server.mapping.obj_file import ObjFileMaker
-from server.mapping2.scene import LocationModel
+from server.mapping2.scene import LocationModel, MeshColorSource
 from server.models.device_poses import DevicePose
 from server.models.surfaces import Surface
+from server.models.photo_records import PhotoRecord
 from server.models.tracking_sessions import TrackingSession
 
 from .navmesh import NavigationMesh
@@ -44,7 +45,7 @@ class MappingTaskResult:
 
 
 class MappingTask:
-    def __init__(self, mesh_dir, cache_dir=None, exclude_chunks=set(), layer_configs=None, location_dir=None, navmesh_path=None, traces=None):
+    def __init__(self, mesh_dir, cache_dir=None, exclude_chunks=set(), layer_configs=None, location_dir=None, navmesh_path=None, color_sources=None, traces=None):
         self.location_dir = location_dir
         self.mesh_dir = mesh_dir
         self.navmesh_path = navmesh_path
@@ -52,16 +53,13 @@ class MappingTask:
         self.cache_dir = cache_dir
         self.exclude_chunks = exclude_chunks
         self.layer_configs = layer_configs
+        self.color_sources = color_sources
         self.traces = traces
 
     def run(self):
         start = time.time()
 
-#        soup, excluded = MeshSoup.from_directory(self.mesh_dir, cache_dir=self.cache_dir, exclude=self.exclude_chunks)
-        excluded = set()
-
-
-        scene_file = os.path.join(self.cache_dir, "scene.pkl")
+        scene_file = os.path.join(self.location_dir, "model.pickle")
         model_obj = os.path.join(self.location_dir, "model.obj")
 
         if os.path.exists(scene_file):
@@ -80,9 +78,7 @@ class MappingTask:
             scene.infer_walls(self.layer_configs)
 
         scene.export_obj(model_obj)
-
         scene.save(scene_file)
-
 
 #        if self.traces is not None:
 #            for times, points in self.traces:
@@ -93,8 +89,56 @@ class MappingTask:
 #                navmesh.save(self.navmesh_path)
 
         duration = time.time() - start
-        print("Mapping completed with {} layers and {} traces in {:.3f} seconds".format(len(self.layer_configs), len(self.traces), duration))
-        result = MappingTaskResult(scene, excluded)
+        print("MappingTask completed in {:.3f} seconds".format(duration))
+        result = MappingTaskResult(scene, set())
+        return result
+
+
+class ModelingTask:
+    def __init__(self, mesh_dir, cache_dir=None, exclude_chunks=set(), layer_configs=None, location_dir=None, navmesh_path=None, color_sources=None, traces=None):
+        self.location_dir = location_dir
+        self.mesh_dir = mesh_dir
+        self.navmesh_path = navmesh_path
+
+        self.cache_dir = cache_dir
+        self.exclude_chunks = exclude_chunks
+        self.layer_configs = layer_configs
+        self.color_sources = color_sources
+        self.traces = traces
+
+    def run(self):
+        start = time.time()
+
+        scene_file = os.path.join(self.location_dir, "colored.pickle")
+        model_obj = os.path.join(self.location_dir, "model.obj")
+        colored_obj = os.path.join(self.location_dir, "colored.obj")
+
+        if os.path.exists(scene_file):
+            print("Load scene from {}".format(scene_file))
+            scene = LocationModel.from_pickle(scene_file)
+            scene.update_from_directory(self.mesh_dir)
+        elif os.path.exists(model_obj):
+            print("Load scene from {}".format(model_obj))
+            scene = LocationModel.from_obj(model_obj)
+            scene.update_from_directory(self.mesh_dir)
+        else:
+            print("Load scene from {}".format(self.mesh_dir))
+            scene = LocationModel.from_directory(self.mesh_dir)
+
+        if self.layer_configs is not None:
+            scene.infer_walls(self.layer_configs)
+
+        if self.color_sources is not None:
+            for source in self.color_sources:
+                if source not in scene.color_sources:
+                    scene.apply_color_source(source)
+
+            scene.export_obj(colored_obj, include_color=True)
+            scene.save(scene_file)
+
+        duration = time.time() - start
+        print("ModelingTask completed in {:.3f} seconds".format(duration))
+        result = MappingTaskResult(scene, set())
         return result
 
 
@@ -117,34 +161,27 @@ class Mapper:
         except:
             return [start, end]
 
-    async def find_traces(self, location_id):
-        traces = []
+    async def find_photos(self, location_id):
+        sources = []
 
-        stmt = sa.select(TrackingSession) \
-                .where(TrackingSession.location_id == location_id)
+        stmt = sa.select(PhotoRecord) \
+                .where(PhotoRecord.location_id == location_id) \
+                .options(sa.orm.selectinload(PhotoRecord.camera)) \
+                .options(sa.orm.selectinload(PhotoRecord.files)) \
+                .options(sa.orm.selectinload(PhotoRecord.pose)) \
+                .order_by(PhotoRecord.id.asc())
 
         result = await g.session.execute(stmt)
-        for session in result.scalars():
-            stmt = sa.select(DevicePose) \
-                    .where(DevicePose.tracking_session_id == session.id) \
-                    .order_by(DevicePose.id.asc())
+        for photo in result.scalars():
+            for file in photo.files:
+                if file.purpose == "photo":
+                    path = os.path.join(g.data_dir, "locations", location_id.hex, "photos", "{:08x}".format(photo.id), file.name)
+                    focal = photo.camera.get_relative_focal_lengths()
+                    position = photo.pose.position.as_array()
+                    rotation = photo.pose.orientation.as_rotation_matrix()
+                    sources.append(MeshColorSource(path, focal, position, rotation))
 
-            times = []
-            points = []
-
-            result = await g.session.execute(stmt)
-            for pose in result.scalars():
-                times.append(pose.created_time.timestamp())
-                points.append([
-                    pose.position_x,
-                    pose.position_y,
-                    pose.position_z
-                ])
-
-            if len(times) > 0:
-                traces.append((times, points))
-
-        return traces
+        return sources
 
     async def start_map_update(self, location_id):
         location = await g.session.get(Location, location_id)
@@ -178,15 +215,13 @@ class Mapper:
         navmesh_path = os.path.join(location_dir, "navmesh.pickle")
 
         #traces = await self.find_traces(location_id)
-        traces = []
 
-        cache_dir = os.path.join(g.temp_dir, "chunks", location_id.hex)
+        cache_dir = os.path.join(g.temp_dir, "locations", location_id.hex)
         os.makedirs(cache_dir, exist_ok=True)
 
         return MappingTask(mesh_dir, cache_dir=cache_dir,
                 exclude_chunks=self.exclude_chunks, layer_configs=configs,
-                location_dir=location_dir, navmesh_path=navmesh_path,
-                traces=traces)
+                location_dir=location_dir, navmesh_path=navmesh_path)
 
     async def finish_map_update(self, location_id, result, session_maker, dispatcher):
         updated_layers = []
@@ -220,7 +255,23 @@ class Mapper:
             layer_uri = "/locations/{}/layers/{}".format(location_id, layer['id'])
             await dispatcher.dispatch_event("layers:updated", layer_uri, current=layer)
 
-    async def finish_model_build(self, location_id, result, session_maker, dispatcher):
+    async def start_model_update(self, location_id):
+        location = await g.session.get(Location, location_id)
+
+        location_dir = get_location_dir(self.data_dir, location_id)
+        mesh_dir = os.path.join(location_dir, "surfaces")
+
+        photos = await self.find_photos(location_id)
+        print("Found {} photos".format(len(photos)))
+        print(photos[0])
+
+        cache_dir = os.path.join(g.temp_dir, "locations", location_id.hex)
+        os.makedirs(cache_dir, exist_ok=True)
+
+        return ModelingTask(mesh_dir, cache_dir=cache_dir,
+                location_dir=location_dir, color_sources=photos)
+
+    async def finish_model_update(self, location_id, result, session_maker, dispatcher):
         # placeholder in case we need to write any changes to database,
         # send any notifications to websocket clients, etc.
         pass
@@ -239,6 +290,7 @@ class Mapper:
         dispatcher = current_app.dispatcher
         session_maker = g.session_maker
 
+        # The mapping process will create the uncolored mesh and 2D floor plan images.
         if mapping_limiter.try_submit(location_id):
             # This callback fires when the map maker operation finishes.
             # If any changes to the map were made, trigger the async callback above.
@@ -252,17 +304,19 @@ class Mapper:
             future = current_app.mapping_pool.submit(task.run)
             future.add_done_callback(map_ready)
 
-        if not use_trimesh_obj_export and modeling_limiter.try_submit(location_id):
+        # The modeling process will create the colored mesh.
+        # There is some redundancy between the mapping and modeling processes, but
+        # the color projection is so slow, it makes sense to run them separately for now.
+        if modeling_limiter.try_submit(location_id):
             def model_ready(future):
                 modeling_limiter.finished(location_id)
 
                 result = future.result()
-                asyncio.run_coroutine_threadsafe(self.finish_model_build(location_id, result, session_maker, dispatcher), loop=loop)
+                asyncio.run_coroutine_threadsafe(self.finish_model_update(location_id, result, session_maker, dispatcher), loop=loop)
 
-            maker = await ObjFileMaker.build_maker_from_db(location_id)
-            future = current_app.modeling_pool.submit(maker.make_obj)
+            task = await self.start_model_update(location_id)
+            future = current_app.modeling_pool.submit(task.run)
             future.add_done_callback(model_ready)
-
 
 if __name__=="__main__":
     if len(sys.argv) < 2:

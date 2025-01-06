@@ -43,3 +43,9 @@ class Camera(Base):
     k2: Mapped[float] = mapped_column(default=0.0)
     p1: Mapped[float] = mapped_column(default=0.0)
     p2: Mapped[float] = mapped_column(default=0.0)
+
+    def get_relative_focal_lengths(self):
+        """
+        Return relative focal lengths as tuple (fx, fy).
+        """
+        return (self.fx / self.width, self.fy / self.height)

@@ -39,6 +39,15 @@ class MeshColorSource():
         self.rotation = rotation
         self.focal_relative = focal_relative
 
+    def __eq__(self, other):
+        return self.image_path == other.image_path
+
+    def __hash__(self):
+        return hash(self.image_path)
+
+    def __repr__(self):
+        return "MeshColorSource({})".format(self.image_path)
+
     def generate_rays(self, right_handed=False):
         if self.image_path.startswith("http"):
             image = Image.open(urlopen(self.image_path))
@@ -93,7 +102,7 @@ class LocationModel():
 
         self.right_handed = True
 
-        self.cameras = []
+        self.color_sources = set()
 
         self.mtime = time.time()
 
@@ -111,12 +120,23 @@ class LocationModel():
             meshes.append(obj)
 
         self.combined_mesh = trimesh.util.concatenate(meshes)
-
         # TODO recalculate any fields that were not saved
 
     def apply_color(self, image_path, focal, position, rotation, focal_relative=True):
         color_source = MeshColorSource(image_path, focal, position, rotation, focal_relative)
-        origins, directions, colors = color_source.generate_rays(self.right_handed)
+        self.apply_color_source(color_source)
+
+    def apply_color_source(self, color_source, should_reapply=False):
+        # Avoid redoing an image unless requested to reapply
+        if not should_reapply and color_source in self.color_sources:
+            return
+
+        self.color_sources.add(color_source)
+
+        try:
+            origins, directions, colors = color_source.generate_rays(self.right_handed)
+        except:
+            return
 
         # Ray cast against the environment mesh.
         points, index_ray, index_tri = self.combined_mesh.ray.intersects_location(origins, directions, multiple_hits=False)
@@ -167,8 +187,9 @@ class LocationModel():
             if acc_weight[i] > 0.33:
                 submesh.visual.vertex_colors[local_vertex_index][0:3] = acc_color[i] / acc_weight[i]
 
-            # TODO: maintain a set of MeshColorSource objects that affected each surface.
-            # Then, when a surface is replaced, we can reapply only the images that should affect it.
+                # Maintain a set of MeshColorSource objects that affected each surface.
+                # Then, when a surface is replaced, we can reapply only the images that should affect it.
+                submesh.metadata['color_sources'].add(color_source)
 
             local_vertex_index += 1
 
@@ -214,7 +235,7 @@ class LocationModel():
         i = np.argmax(iou)
         return iou[i], names[i]
 
-    def export_obj(self, path):
+    def export_obj(self, path, include_color=False):
         # For OBJ file format, right handed coordinate system is expected.
         # Default is using RH in trimesh, so no change would be needed to import/export.
         if self.right_handed:
@@ -223,7 +244,7 @@ class LocationModel():
             scene = self.scene.copy()
             scene.apply_transform(hand_change_transform)
 
-        scene.export(file_obj=path, file_type="obj", digits=3, include_color=True, include_normals=False, include_texture=False)
+        scene.export(file_obj=path, file_type="obj", digits=3, include_color=include_color, include_normals=False, include_texture=False)
 
     def get_bounding_box(self):
         lower = np.min(self.combined_mesh.vertices, axis=0)
@@ -242,6 +263,9 @@ class LocationModel():
             "height": size[2]
         }
         return dims
+
+    def has_color(self):
+        return len(self.color_sources) > 0
 
     def infer_walls(self, layers):
         lower = np.min(self.combined_mesh.vertices, axis=0)
@@ -309,6 +333,8 @@ class LocationModel():
                 surface.apply_transform(hand_change_transform)
                 trimesh.repair.fix_winding(surface)
 
+            surface.metadata['color_sources'] = set()
+
             # Set the mesh name to be the surface ID.
             # This will be preserved if the mesh is exported as OBJ.
             surface.metadata['name'] = str(surface_id)
@@ -347,10 +373,13 @@ class LocationModel():
         Note: this can be used to replace a mesh with surface ID differing from
         the new surface, ie. remove mesh X and append mesh Y.
         """
+        used_color_sources = set()
+
         surface_id = normalized_uuid(surface_id)
         key = str(surface_id)
 
         if key in self.scene.geometry:
+            used_color_sources = self.scene.geometry[key].metadata['color_sources']
             self.scene.delete_geometry(key)
 
         self.scene.add_geometry(surface)
@@ -370,6 +399,8 @@ class LocationModel():
         self.surface_ids = surface_ids
         self.face_object_indices = np.array(face_object_indices, dtype=int)
         self.face_local_indices = np.array(face_local_indices, dtype=int)
+
+        return used_color_sources
 
     def save(self, path):
         """
@@ -397,15 +428,15 @@ class LocationModel():
         print("Bounds: {} to {}".format(lower, upper))
 
         print("Cameras:")
-        for position, rotation in self.cameras:
+        for source in self.color_sources:
             cam = np.eye(4)
-            cam[0:3, 0:3] = rotation
-            cam[0:3, 3] = position
+            cam[0:3, 0:3] = source.rotation
+            cam[0:3, 3] = source.position
             if self.right_handed:
                 cam = np.matmul(hand_change_transform, cam)
             cam_axis = trimesh.creation.axis(origin_size=0.1, transform=cam, origin_color=[0, 0, 255, 255])
             scene.add_geometry(cam_axis)
-            print("  Camera {}".format(position))
+            print("  Camera {}".format(source.position))
 
         if DISPLAY is None:
             print("No display, rendering to test.png instead.")
@@ -424,6 +455,7 @@ class LocationModel():
         if isinstance(dir_path, str):
             path = Path(dir_path)
 
+        used_color_sources = set()
         updated_model_mtime = self.mtime
         for path in sorted(path.iterdir(), key=os.path.getmtime, reverse=True):
             fname = os.path.basename(path)
@@ -457,7 +489,7 @@ class LocationModel():
                         # TODO: we might actually want to find all existing, older surfaces
                         # with IOU > threshold and replace them all
                         print("Surface {} replaces {}".format(surface_id, overlapping_surface_id))
-                        self.replace_surface(overlapping_surface_id, surface)
+                        used_color_sources = self.replace_surface(overlapping_surface_id, surface)
                     else:
                         print("Surface {} is redundant".format(surface_id))
 
@@ -466,10 +498,15 @@ class LocationModel():
                 print("Surface {} is modified".format(surface_id))
 
                 surface, _ = self.load_surface(path)
-                self.replace_surface(surface_id, surface)
+                used_color_sources = self.replace_surface(surface_id, surface)
 
         # Update the model modified time to exclude all processed surfaces in future updates.
         self.mtime = updated_model_mtime
+
+        if len(used_color_sources) > 0:
+            print("Change requires {} color sources be reapplied".format(len(used_color_sources)))
+            for source in used_color_sources:
+                self.apply_color_source(source, should_reapply=True)
 
     @classmethod
     def from_directory(cls, dir_path):
@@ -508,6 +545,8 @@ class LocationModel():
                     # Meshes are loaded in RH coordinate system.
                     item.apply_transform(hand_change_transform)
                     trimesh.repair.fix_winding(item)
+
+                item.metadata['color_sources'] = set()
 
                 # We do not have the individual surface mtimes, but the OBJ file
                 # mtime will suffice.
