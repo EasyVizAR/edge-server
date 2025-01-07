@@ -31,7 +31,6 @@ itsdangerous==2.1.0
 Jinja2==3.0.3
 jsonschema==4.20.0
 jsonschema-specifications==2023.11.1
-llvmlite==0.43.0
 lxml==4.9.3
 Mako==1.2.4
 mapbox-earcut==1.0.1
