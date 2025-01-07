@@ -124,24 +124,31 @@ class LocationModel():
 
     def apply_color(self, image_path, focal, position, rotation, focal_relative=True):
         color_source = MeshColorSource(image_path, focal, position, rotation, focal_relative)
-        self.apply_color_source(color_source)
+        return self.apply_color_source(color_source)
 
     def apply_color_source(self, color_source, should_reapply=False):
+        """
+        Apply colors from the color source to our meshes.
+
+        Returns a set of surface IDs which have been modified.
+        """
+        affected_surfaces = set()
+
         # Avoid redoing an image unless requested to reapply
         if not should_reapply and color_source in self.color_sources:
-            return
+            return affected_surfaces
 
         self.color_sources.add(color_source)
 
         try:
             origins, directions, colors = color_source.generate_rays(self.right_handed)
         except:
-            return
+            return affected_surfaces
 
         # Ray cast against the environment mesh.
         points, index_ray, index_tri = self.combined_mesh.ray.intersects_location(origins, directions, multiple_hits=False)
         if len(points) == 0:
-            return
+            return affected_surfaces
 
         # Hit triangle vertices and color for each ray.
         hit_triangle_vertices = np.zeros((len(index_ray), 3, 3))
@@ -191,7 +198,11 @@ class LocationModel():
                 # Then, when a surface is replaced, we can reapply only the images that should affect it.
                 submesh.metadata['color_sources'].add(color_source)
 
+                affected_surfaces.add(surface_id)
+
             local_vertex_index += 1
+
+        return affected_surfaces
 
     def compute_max_iou(self, mesh):
         """
@@ -245,6 +256,27 @@ class LocationModel():
             scene.apply_transform(hand_change_transform)
 
         scene.export(file_obj=path, file_type="obj", digits=3, include_color=include_color, include_normals=False, include_texture=False)
+
+    def export_surface_obj(self, surface_id, dir_path, include_color=False):
+        surface_id = normalized_uuid(surface_id)
+        mesh = self.scene.geometry[str(surface_id)]
+
+        # For OBJ file format, right handed coordinate system is expected.
+        # Default is using RH in trimesh, so no change would be needed to import/export.
+        if not self.right_handed:
+            mesh = mesh.copy()
+            mesh.apply_transform(hand_change_transform)
+
+        file_name = "{}.obj".format(surface_id.hex)
+        path = os.path.join(dir_path, file_name)
+
+        if include_color:
+            header = "v x y z r g b"
+        else:
+            header = "v x y z"
+
+        mesh.export(file_obj=path, file_type="obj", digits=3, include_color=include_color, include_normals=False, include_texture=False, header=header)
+        return path
 
     def get_bounding_box(self):
         lower = np.min(self.combined_mesh.vertices, axis=0)
@@ -390,7 +422,7 @@ class LocationModel():
         meshes = []
 
         for i, obj in enumerate(self.scene.dump()):
-            surface_ids.append(obj.metadata['name'])
+            surface_ids.append(normalized_uuid(obj.metadata['name']))
             face_object_indices.extend([i] * len(obj.faces))
             face_local_indices.extend(list(range(len(obj.faces))))
             meshes.append(obj)
@@ -450,7 +482,11 @@ class LocationModel():
         """
         Update the scene from files in a directory taking only those surfaces
         files which are new or have been modified.
+
+        Returns a set of updated surface IDs.
         """
+        updated_surfaces = set()
+
         print("Update from directory: {}".format(dir_path))
         if isinstance(dir_path, str):
             path = Path(dir_path)
@@ -482,6 +518,7 @@ class LocationModel():
                 iou, overlapping_surface_id = self.compute_max_iou(surface)
                 if iou < self.surface_pruning_threshold:
                     print("Surface {} is new".format(surface_id))
+                    updated_surfaces.add(surface_id)
                     self.append_surface(surface)
                 else:
                     overlapping_surface = self.scene.geometry[overlapping_surface_id]
@@ -489,6 +526,7 @@ class LocationModel():
                         # TODO: we might actually want to find all existing, older surfaces
                         # with IOU > threshold and replace them all
                         print("Surface {} replaces {}".format(surface_id, overlapping_surface_id))
+                        updated_surfaces.add(surface_id)
                         used_color_sources = self.replace_surface(overlapping_surface_id, surface)
                     else:
                         print("Surface {} is redundant".format(surface_id))
@@ -496,6 +534,7 @@ class LocationModel():
             # Detect modified surfaces and replace
             elif mtime > existing_surface.metadata['mtime']:
                 print("Surface {} is modified".format(surface_id))
+                updated_surfaces.add(surface_id)
 
                 surface, _ = self.load_surface(path)
                 used_color_sources = self.replace_surface(surface_id, surface)
@@ -506,7 +545,10 @@ class LocationModel():
         if len(used_color_sources) > 0:
             print("Change requires {} color sources be reapplied".format(len(used_color_sources)))
             for source in used_color_sources:
-                self.apply_color_source(source, should_reapply=True)
+                recolored_surfaces = self.apply_color_source(source, should_reapply=True)
+                updated_surfaces.update(recolored_surfaces)
+
+        return updated_surfaces
 
     @classmethod
     def from_directory(cls, dir_path):

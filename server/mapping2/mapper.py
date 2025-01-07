@@ -112,29 +112,34 @@ class ModelingTask:
         scene_file = os.path.join(self.location_dir, "colored.pickle")
         model_obj = os.path.join(self.location_dir, "model.obj")
         colored_obj = os.path.join(self.location_dir, "colored.obj")
+        colored_surfaces_dir = os.path.join(self.location_dir, "colored_surfaces")
 
+        updated_surfaces = set()
         if os.path.exists(scene_file):
             print("Load scene from {}".format(scene_file))
             scene = LocationModel.from_pickle(scene_file)
-            scene.update_from_directory(self.mesh_dir)
+            updated_surfaces = scene.update_from_directory(self.mesh_dir)
         elif os.path.exists(model_obj):
             print("Load scene from {}".format(model_obj))
             scene = LocationModel.from_obj(model_obj)
-            scene.update_from_directory(self.mesh_dir)
+            updated_surfaces = scene.update_from_directory(self.mesh_dir)
         else:
             print("Load scene from {}".format(self.mesh_dir))
             scene = LocationModel.from_directory(self.mesh_dir)
-
-        if self.layer_configs is not None:
-            scene.infer_walls(self.layer_configs)
+            updated_surfaces = set(scene.surface_ids)
 
         if self.color_sources is not None:
             for source in self.color_sources:
                 if source not in scene.color_sources:
-                    scene.apply_color_source(source)
+                    colored_surfaces = scene.apply_color_source(source)
+                    updated_surfaces.update(colored_surfaces)
 
             scene.export_obj(colored_obj, include_color=True)
             scene.save(scene_file)
+
+        os.makedirs(colored_surfaces_dir, exist_ok=True)
+        for surface_id in updated_surfaces:
+            scene.export_surface_obj(surface_id, colored_surfaces_dir, include_color=True)
 
         duration = time.time() - start
         print("ModelingTask completed in {:.3f} seconds".format(duration))

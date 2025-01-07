@@ -32,6 +32,10 @@ surface_schema = SurfaceSchema()
 auto_build_obj = False
 
 
+def get_colored_surface_dir(location_id):
+    return os.path.join(g.data_dir, 'locations', location_id.hex, 'colored_surfaces')
+
+
 def get_surface_dir(location_id):
     return os.path.join(g.data_dir, 'locations', location_id.hex, 'surfaces')
 
@@ -294,6 +298,13 @@ async def get_surface_obj(location_id, surface_id):
                 content:
                     model/obj: {}
     """
+    surface_dir = get_colored_surface_dir(location_id)
+    surface_name = "{}.obj".format(surface_id.hex)
+    surface_path = os.path.join(surface_dir, surface_name)
+
+    if os.path.exists(surface_path):
+        return await send_from_directory(surface_dir, surface_name)
+
     obj_data = convert_surface_ply_to_obj(location_id, surface_id)
 
     headers = {
