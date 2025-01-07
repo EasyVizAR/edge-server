@@ -449,6 +449,43 @@ async def get_location_model(location_id):
             cache_timeout=MODEL_OBJ_MAX_AGE)
 
 
+@locations.route('/locations/<uuid:location_id>/colored.obj', methods=['GET'])
+async def get_colored_model(location_id):
+    """
+    Get a colored 3D model for the location.
+    ---
+    get:
+        description: Get a colored 3D model for the location.
+        tags:
+          - locations
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Location ID
+        responses:
+            200:
+                description: An object model file.
+                content:
+                    model/obj: {}
+    """
+    stmt = sa.select(Location) \
+            .where(Location.id == location_id) \
+            .limit(1)
+
+    result = await g.session.execute(stmt)
+    location = result.scalar()
+    if location is None:
+        raise exceptions.NotFound(description="Location {} was not found".format(location_id))
+
+    location_dir = get_location_dir(location_id)
+    obj_path = os.path.join(location_dir, "colored.obj")
+
+    return await send_from_directory(location_dir, "colored.obj",
+            as_attachment=True, attachment_filename="colored.obj",
+            cache_timeout=MODEL_OBJ_MAX_AGE)
+
+
 @locations.route('/locations/<uuid:location_id>/route', methods=['GET'])
 async def get_location_route(location_id):
     """
