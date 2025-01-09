@@ -32,7 +32,8 @@ def normalized_uuid(x):
 
 
 class MeshColorSource():
-    def __init__(self, image_path, focal, position, rotation, focal_relative=True):
+    def __init__(self, id, image_path, focal, position, rotation, focal_relative=True):
+        self.id = id
         self.image_path = image_path
         self.focal = focal
         self.position = position
@@ -122,8 +123,8 @@ class LocationModel():
         self.combined_mesh = trimesh.util.concatenate(meshes)
         # TODO recalculate any fields that were not saved
 
-    def apply_color(self, image_path, focal, position, rotation, focal_relative=True):
-        color_source = MeshColorSource(image_path, focal, position, rotation, focal_relative)
+    def apply_color(self, source_id, image_path, focal, position, rotation, focal_relative=True):
+        color_source = MeshColorSource(source_id, image_path, focal, position, rotation, focal_relative)
         return self.apply_color_source(color_source)
 
     def apply_color_source(self, color_source, should_reapply=False):

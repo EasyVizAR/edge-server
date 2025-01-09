@@ -41,6 +41,8 @@ class LocationSchema(MigrationSchema):
     name = auto_field(description="Location name")
     description = auto_field(description="Location description")
 
+    model_version = auto_field(description="Model version, incremented whenever the location 3D model is updated")
+
     created_time = auto_field(description="Time the location was created")
     updated_time = auto_field(description="Last time the location was updated")
 

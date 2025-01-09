@@ -149,7 +149,7 @@ async def before_first_request():
     app.navigator = Navigator(data_dir=data_dir)
     app.dispatcher.add_event_listener("headsets:updated", "*", app.navigator.on_headset_updated)
 
-    app.mapper = Mapper(data_dir=data_dir)
+    app.mapper = Mapper(app, data_dir=data_dir)
     app.dispatcher.add_event_listener("surfaces:updated", "*", app.mapper.on_surface_updated)
 
     # Create a temporary directory for transient files
