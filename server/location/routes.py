@@ -438,13 +438,26 @@ async def get_location_model(location_id):
         raise exceptions.NotFound(description="Location {} was not found".format(location_id))
 
     location_dir = get_location_dir(location_id)
-    obj_path = os.path.join(location_dir, "model.obj")
+
+    # If caller requested a colored model, preferentially return that if available.
+    # Otherwise, fall back to ordinary OBJ file.
+    colored = request.args.get("colored")
+    if colored is not None:
+        obj_path = os.path.join(location_dir, "colored.obj")
+        if os.path.exists(obj_path):
+            source_file_name = "colored.obj"
+            return await send_from_directory(location_dir, source_file_name,
+                    as_attachment=True, attachment_filename="model.obj",
+                    cache_timeout=MODEL_OBJ_MAX_AGE)
+
+    source_file_name = "model.obj"
+    obj_path = os.path.join(location_dir, source_file_name)
     if not os.path.exists(obj_path) or os.path.getmtime(obj_path) < location.updated_time.timestamp():
         obj_maker = await ObjFileMaker.build_maker_from_db(location_id)
         future = current_app.modeling_pool.submit(obj_maker.make_obj)
         await asyncio.wrap_future(future)
 
-    return await send_from_directory(location_dir, "model.obj",
+    return await send_from_directory(location_dir, source_file_name,
             as_attachment=True, attachment_filename="model.obj",
             cache_timeout=MODEL_OBJ_MAX_AGE)
 
