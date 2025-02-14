@@ -20,7 +20,7 @@ cssselect2==0.6.0
 Cython==0.29.37
 defusedxml==0.7.1
 embreex==2.17.7.post5
-greenlet==2.0.2
+greenlet==3.1.1
 h11==0.13.0
 h2==4.1.0
 hpack==4.0.0
@@ -32,6 +32,7 @@ itsdangerous==2.1.0
 Jinja2==3.0.3
 jsonschema==4.20.0
 jsonschema-specifications==2023.11.1
+llvmlite==0.44.0
 lxml==4.9.3
 Mako==1.2.4
 mapbox-earcut==1.0.1
@@ -41,8 +42,9 @@ marshmallow-dataclass==8.5.3
 marshmallow-sqlalchemy==0.29.0
 mypy-extensions==0.4.3
 networkx==2.7
-numpy==1.22.2
-numpy-quaternion==2023.0.4
+numba==0.61.0
+numpy==1.26.4
+numpy-quaternion==2024.0.7
 packaging==24.1
 Pillow==10.0.1
 pkgutil_resolve_name==1.3.10
@@ -61,7 +63,7 @@ pytest-cov==3.0.0
 python-dateutil==2.8.2
 python-magic==0.4.27
 PyYAML==6.0.1
-quart==0.18.3
+quart==0.18.4
 Quart-CORS==0.5.0
 quart-rate-limiter==0.8.0
 quart-sqlalchemy==2.0.0
@@ -69,7 +71,8 @@ referencing==0.31.0
 requests==2.31.0
 rpds-py==0.13.0
 Rtree==1.1.0
-scipy==1.10.1
+scipy==1.15.1
+setuptools==75.8.0
 shapely==2.0.2
 six==1.16.0
 sniffio==1.3.0
@@ -80,11 +83,11 @@ svgwrite==1.4.1
 tinycss2==1.1.1
 toml==0.10.2
 tomli==2.0.1
-trimesh==3.23.5
+trimesh==4.6.2
 typing-inspect==0.7.1
-typing_extensions==4.5.0
+typing_extensions==4.6.0
 urllib3==2.1.0
 webencodings==0.5.1
 Werkzeug==2.3.8
 wsproto==1.1.0
-xxhash==3.4.1
+xxhash==3.5.0

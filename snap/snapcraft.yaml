@@ -1,5 +1,5 @@
 name: easyvizar-edge
-base: core20
+base: core24
 version: "1.1.0"
 summary: Central point for coordinating EasyVizAR headsets
 description: |
