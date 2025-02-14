@@ -31,9 +31,7 @@ architectures:
 
 hooks:
   configure:
-    plugs: []
   post-refresh:
-    plugs: []
 
 parts:
   snapcraft-preload:
@@ -82,7 +80,7 @@ parts:
       - on s390x:
         - libxml2-dev
         - libxslt1-dev
-    requirements:
+    python-requirements:
       - requirements.txt
 
   alembic:
