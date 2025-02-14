@@ -9,6 +9,7 @@ from .base import Base
 from .device_configurations import DeviceConfiguration
 from .device_poses import DevicePose
 from .map_markers import MapMarker
+from server.resources.geometry import Vector3f
 
 
 def generate_token():
@@ -48,7 +49,8 @@ class MobileDevice(Base):
     headset. The location-headsets:* events can be used to filter for headset
     changes in a particular location.
     """
-    __allow_update__ = set(['name', 'type', 'color', 'navigation_target_id'])
+    __allow_update__ = set(['name', 'type', 'color', 'navigation_target_id',
+                            'offset.x', 'offset.y', 'offset.z', 'rotation.x', 'rotation.y', 'rotation.z'])
     __table_args__ = (
         sa.UniqueConstraint("token"),
     )
@@ -69,9 +71,20 @@ class MobileDevice(Base):
     device_pose_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("device_poses.id"), nullable=True)
     navigation_target_id: Mapped[int] = mapped_column(sa.Integer, sa.ForeignKey("map_markers.id"), nullable=True)
 
+    offset_x: Mapped[float] = mapped_column(default=0.0)
+    offset_y: Mapped[float] = mapped_column(default=0.0)
+    offset_z: Mapped[float] = mapped_column(default=0.0)
+
+    rotation_x: Mapped[float] = mapped_column(default=0.0)
+    rotation_y: Mapped[float] = mapped_column(default=0.0)
+    rotation_z: Mapped[float] = mapped_column(default=0.0)
+
     created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
     updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
 
     device_configuration: Mapped[DeviceConfiguration] = relationship(cascade="all, delete-orphan", uselist=False)
     pose: Mapped[DevicePose] = relationship(foreign_keys=[device_pose_id])
     navigation_target: Mapped[MapMarker] = relationship()
+
+    offset: Mapped[Vector3f] = composite(offset_x, offset_y, offset_z)
+    rotation: Mapped[Vector3f] = composite(rotation_x, rotation_y, rotation_z)

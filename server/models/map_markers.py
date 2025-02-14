@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, composite, mapped_column
 
 from .base import Base
-from server.resources.geometry import Vector3f
+from server.resources.geometry import Vector3f, Vector4f
 
 
 class MapMarker(Base):
@@ -37,7 +37,8 @@ class MapMarker(Base):
         user
         warning
     """
-    __allow_update__ = set(['type', 'name', 'color', 'position', 'position.x', 'position.y', 'position.z'])
+    __allow_update__ = set(['type', 'name', 'color', 'position', 'position.x', 'position.y', 'position.z',
+                            'scale.x', 'scale.y', 'scale.z', 'orientation.x', 'orientation.y', 'orientation.z', 'orientation.w'])
     __tablename__ = "map_markers"
 
     id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)
@@ -53,7 +54,18 @@ class MapMarker(Base):
     position_y: Mapped[float] = mapped_column(default=0.0)
     position_z: Mapped[float] = mapped_column(default=0.0)
 
+    scale_x: Mapped[float] = mapped_column(default=1.0)
+    scale_y: Mapped[float] = mapped_column(default=1.0)
+    scale_z: Mapped[float] = mapped_column(default=1.0)
+
+    orientation_x: Mapped[float] = mapped_column(default=0.0)
+    orientation_y: Mapped[float] = mapped_column(default=0.0)
+    orientation_z: Mapped[float] = mapped_column(default=0.0)
+    orientation_w: Mapped[float] = mapped_column(default=1.0)
+
     created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
     updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
 
     position: Mapped[Vector3f] = composite(position_x, position_y, position_z)
+    scale: Mapped[Vector3f] = composite(scale_x, scale_y, scale_z)
+    orientation: Mapped[Vector4f] = composite(orientation_x, orientation_y, orientation_z, orientation_w)

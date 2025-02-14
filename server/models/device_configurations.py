@@ -16,7 +16,7 @@ class DeviceConfiguration(Base):
     __allow_update__ = set(['enable_mesh_capture', 'enable_photo_capture',
         'enable_extended_capture', 'photo_capture_mode',
         'photo_detection_threshold', 'photo_target_interval',
-        'enable_gesture_recognition'])
+        'enable_gesture_recognition', 'enable_marker_placement'])
 
     id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)
 
@@ -31,6 +31,7 @@ class DeviceConfiguration(Base):
     photo_detection_threshold: Mapped[float] = mapped_column(default=0.65)
     photo_target_interval: Mapped[str] = mapped_column(default=5)
     enable_gesture_recognition: Mapped[bool] = mapped_column(default=False)
+    enable_marker_placement: Mapped[bool] = mapped_column(default=True)
 
     created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
     updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
