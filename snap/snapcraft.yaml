@@ -29,9 +29,11 @@ architectures:
   - build-on: amd64
   - build-on: arm64
 
-hooks:
-  configure:
-  post-refresh:
+#hooks:
+#  configure:
+#    plugs: []
+#  post-refresh:
+#    plugs: []
 
 parts:
   snapcraft-preload:
