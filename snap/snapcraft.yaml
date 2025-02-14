@@ -58,6 +58,8 @@ parts:
     source: server/frontend
     build-packages:
       - npm
+    build-environment:
+      - NODE_OPTIONS: "--openssl-legacy-provider"
     override-build: |
       npm install
       npm run build
