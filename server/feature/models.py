@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, composite, mapped_column
 
 from server.models.map_markers import MapMarker
 from server.resources.db import MigrationSchema
-from server.resources.geometry import Vector3f
+from server.resources.geometry import Vector3f, Vector4f
 
 
 class FeatureSchema(MigrationSchema):
@@ -27,6 +27,8 @@ class FeatureSchema(MigrationSchema):
     type = auto_field(description="Marker type, should be one of the supported types or it may display incorrectly")
 
     position = Nested(Vector3f.Schema, description="Position in world coordinates", many=False)
+    scale = Nested(Vector3f.Schema, description="Feature scale (only used by volumetric features)", many=False)
+    orientation = Nested(Vector4f.Schema, description="Feature orientation (quaternion, only used by certain feature types)", many=False)
 
     created = auto_field('created_time', description="Time the marker was created")
     updated = auto_field('updated_time', description="Time the marker was last updated")

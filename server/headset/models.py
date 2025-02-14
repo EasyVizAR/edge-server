@@ -35,6 +35,9 @@ class HeadsetSchema(MigrationSchema):
     last_pose_change_id = auto_field('device_pose_id', description="Most recent device pose ID or NULL if unknown")
     navigation_target_id = auto_field(description="Navigation target of the device or NULL if unset")
 
+    offset = Nested(Vector3f.Schema, description="Position offset in world coordinates", many=False)
+    rotation = Nested(Vector3f.Schema, description="Rotation from world coordinate system", many=False)
+
     created = auto_field('created_time', description="Time the device was first registered")
     updated = auto_field('updated_time', description="Last time the device was updated")
 

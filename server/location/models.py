@@ -27,6 +27,7 @@ class DeviceConfigurationSchema(SQLAlchemySchema):
     photo_detection_threshold = auto_field(description="Score threshold applied during object detection (range 0-1, default: 0.65)")
     photo_target_interval = auto_field(description="Desired photo upload interval used by some modes (seconds, default: 5)")
     enable_gesture_recognition = auto_field(description="Enable experimental gesture controls")
+    enable_marker_placement = auto_field(description="Enable marker placement")
 
 
 class LocationSchema(MigrationSchema):
