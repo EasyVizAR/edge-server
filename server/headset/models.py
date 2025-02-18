@@ -44,11 +44,11 @@ class HeadsetSchema(MigrationSchema):
     @post_dump(pass_original=True)
     def add_position_and_orientation(self, data, original, **kwargs):
         if original.pose is None:
-            data['position'] = Vector3f()
-            data['orientation'] = Vector4f()
+            data['position'] = -original.offset
+            data['orientation'] = original.rotation.as_quaternion().inverse()
         else:
-            data['position'] = original.pose.position
-            data['orientation'] = original.pose.orientation
+            data['position'] = original.pose.position - original.offset
+            data['orientation'] = original.pose.orientation.apply_rotation(-original.rotation)
         return data
 
     @post_dump(pass_original=True)
