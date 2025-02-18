@@ -21,6 +21,7 @@ function HeadsetConfiguration(props) {
     photo_detection_threshold: React.createRef(),
     photo_target_interval: React.createRef(),
     enable_gesture_recognition: React.createRef(),
+    enable_marker_placement: React.createRef(),
   };
 
   useEffect(() => {
@@ -62,58 +63,70 @@ function HeadsetConfiguration(props) {
           <tbody>
             <tr>
               <td>
-                <Form.Label column sm={6} for="enable_mesh_capture">
+                <Form.Label for="enable_mesh_capture">
                   Enable mesh capture
                 </Form.Label>
               </td>
-              <td colspan="2">
+              <td>
                 <Form.Check
                   id="enable_mesh_capture"
-                  label="Enable automatic mesh capturing for map construction"
                   type="checkbox"
                   defaultChecked={configuration.enable_mesh_capture}
                   ref={formReferences.enable_mesh_capture}
                 />
               </td>
+              <td>
+                <Form.Label for="enable_mesh_capture">
+                  Enable automatic mesh capturing for map construction
+                </Form.Label>
+              </td>
             </tr>
 
             <tr>
               <td>
-                <Form.Label column sm={6} for="enable_photo_capture">
+                <Form.Label for="enable_photo_capture">
                   Enable photo capture
                 </Form.Label>
               </td>
-              <td colspan="2">
+              <td>
                 <Form.Check
                   id="enable_photo_capture"
-                  label="Enable automatic (high resolution) photo capture, which may be resource intensive"
                   type="checkbox"
                   defaultChecked={configuration.enable_photo_capture}
                   ref={formReferences.enable_photo_capture}
                 />
               </td>
+              <td>
+                <Form.Label for="enable_photo_capture">
+                  Enable automatic (high resolution) photo capture, which may be resource intensive
+                </Form.Label>
+              </td>
             </tr>
 
             <tr>
               <td>
-                <Form.Label column sm={6} for="enable_extended_capture">
+                <Form.Label for="enable_extended_capture">
                   Enable extended capture
                 </Form.Label>
               </td>
-              <td colspan="2">
+              <td>
                 <Form.Check
                   id="enable_extended_capture"
-                  label="Enable automatic capture of photos, depth, geometry, and intensity images"
                   type="checkbox"
                   defaultChecked={configuration.enable_extended_capture}
                   ref={formReferences.enable_extended_capture}
                 />
               </td>
+              <td>
+                <Form.Label for="enable_extended_capture">
+                  Enable automatic capture of photos, depth, geometry, and intensity images
+                </Form.Label>
+              </td>
             </tr>
 
             <tr>
               <td>
-                <Form.Label column sm={6} for="photo_capture_mode">
+                <Form.Label for="photo_capture_mode">
                   Photo capture mode
                 </Form.Label>
               </td>
@@ -139,7 +152,7 @@ function HeadsetConfiguration(props) {
 
             <tr>
               <td>
-                <Form.Label column sm={6} for="photo_detection_threshold">
+                <Form.Label for="photo_detection_threshold">
                   Photo detection threshold
                 </Form.Label>
               </td>
@@ -158,7 +171,7 @@ function HeadsetConfiguration(props) {
 
             <tr>
               <td>
-                <Form.Label column sm={6} for="photo_target_interval">
+                <Form.Label for="photo_target_interval">
                   Photo target interval
                 </Form.Label>
               </td>
@@ -177,18 +190,43 @@ function HeadsetConfiguration(props) {
 
             <tr>
               <td>
-                <Form.Label column sm={6} for="enable_gesture_recognition">
+                <Form.Label for="enable_gesture_recognition">
                   Enable gesture recognition
                 </Form.Label>
               </td>
-              <td colspan="2">
+              <td>
                 <Form.Check
                   id="enable_gesture_recognition"
-                  label="Enable experimental gesture recognition actions"
                   type="checkbox"
                   defaultChecked={configuration.enable_gesture_recognition}
                   ref={formReferences.enable_gesture_recognition}
                 />
+              </td>
+              <td>
+                <Form.Label for="enable_gesture_recognition">
+                  Enable experimental gesture recognition actions
+                </Form.Label>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <Form.Label for="enable_marker_placement">
+                  Enable marker placement
+                </Form.Label>
+              </td>
+              <td>
+                <Form.Check
+                  id="enable_marker_placement"
+                  type="checkbox"
+                  defaultChecked={configuration.enable_marker_placement}
+                  ref={formReferences.enable_marker_placement}
+                />
+              </td>
+              <td>
+                <Form.Label for="enable_marker_placement">
+                  Whether marker placement panel should be visible in headset
+                </Form.Label>
               </td>
             </tr>
           </tbody>

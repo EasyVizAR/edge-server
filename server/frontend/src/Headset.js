@@ -10,6 +10,7 @@ import CheckInTable from './CheckInTable.js';
 import HeadsetTable from './HeadsetTable.js';
 import FeatureTable from './FeatureTable.js';
 import PhotoTable from './PhotoTable.js';
+import HeadsetProperties from './HeadsetProperties.js';
 import HeadsetConfiguration from './HeadsetConfiguration.js';
 import CameraConfiguration from './CameraConfiguration.js';
 import 'reactjs-popup/dist/index.css';
@@ -720,17 +721,19 @@ function Headset(props) {
               </Form>
             </div>
 
-            <CheckInTable locations={locations} headsetId={headset_id}
-              selected={displayedCheckInId} setSelected={setDisplayedCheckInId} />
-
-            <HeadsetTable headsets={headsets} getHeadsets={getHeadsets}
-              setHeadsets={setHeadsets} locations={locations} features={features} />
-            <FeatureTable icons={icons} features={features} locationId={selectedLocation}
-              editFeature={editFeature} setEditFeature={setEditFeature} />
+            {
+              headset && <HeadsetProperties headset={headset} />
+            }
 
             {
               headset && <HeadsetConfiguration headset={headset} />
             }
+
+            <CheckInTable locations={locations} headsetId={headset_id}
+              selected={displayedCheckInId} setSelected={setDisplayedCheckInId} />
+
+            <FeatureTable icons={icons} features={features} locationId={selectedLocation}
+              editFeature={editFeature} setEditFeature={setEditFeature} />
 
             <PhotoTable photos={photos} setPhotos={setPhotos} />
 
