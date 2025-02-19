@@ -309,12 +309,24 @@ function FeatureTable(props){
                           </Button>
                         </React.Fragment>
                       ) : (
-                        <Button
-                          className={"btn-primary table-btns"}
-                          onClick={(e) => enableEditMode(e, id, feature)}
-                          title='Edit'>
-                          Edit
-                        </Button>
+                        <>
+                          <Button
+                            className={"btn-primary table-btns"}
+                            onClick={(e) => enableEditMode(e, id, feature)}
+                            title='Edit'>
+                            Edit
+                          </Button>
+                          {
+                            props.onCalibrate &&
+                              <Button
+                                className={"btn-warning table-btns"}
+                                style={{marginLeft: 8}}
+                                onClick={(event) => props.onCalibrate(event, feature)}
+                                title='Calibrate'>
+                                Calibrate
+                              </Button>
+                          }
+                        </>
                       )
                     }
                   </td>

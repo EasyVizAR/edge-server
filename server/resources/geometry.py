@@ -83,3 +83,7 @@ class Vector4f(MutableCompositeBase):
 
     def as_rotation_matrix(self):
         return quaternion.as_rotation_matrix(self.as_quaternion())
+
+    @classmethod
+    def from_quaternion(cls, q):
+        return Vector4f(q.x, q.y, q.z, q.w)

@@ -91,7 +91,9 @@ function CheckInTable(props){
               <tr>
                 <td>{item.id}</td>
                 <td>{locations[item.location_id] ? locations[item.location_id]['name'] : 'Unknown'}</td>
-                <td>{moment.unix(item.start_time).fromNow()}</td>
+                <td>
+                  {moment.unix(item.start_time).local().format('llll')}
+                </td>
                 <td>
                   {
                     item.id == props.selected ? (

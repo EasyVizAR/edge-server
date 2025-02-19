@@ -3,12 +3,23 @@ import os
 from json import JSONEncoder
 
 import numpy as np
+import quaternion
+
+
+def vec2dict(v):
+    result = dict()
+    for k in ['x', 'y', 'z', 'w']:
+        if hasattr(v, k):
+            result[k] = getattr(v, k)
+    return result
 
 
 class GenericJsonEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, (list, tuple, set)):
             return super().default(o)
+        elif isinstance(o, np.quaternion):
+            return vec2dict(o)
         elif hasattr(o, "Schema"):
             return o.Schema().dump(o)
         else:
@@ -86,14 +97,3 @@ def get_vector(extrinsic, intrinsic, Y):
     intm = intm * extrinsic[2][3]
     intm = np.append(intm, 1)
     return intm.tolist()
-
-p = get_pixels([[-0.0, 0.0, 1.0, -20.0], [1.0, -0.0, 0.0, 15.0], [0.0, 1.0, 0.0, 40.0], [0.0, 0.0, 0.0, 1.0]],
-           [[879.8818102449898, 0.0, 923.5], [0.0, 879.8818102449898, 507.5], [0.0, 0.0, 1.0]],
-           [0,1,0])
-
-print(p)
-v = get_vector([[-0.0, 0.0, 1.0, -20.0], [1.0, -0.0, 0.0, 15.0], [0.0, 1.0, 0.0, 40.0], [0.0, 0.0, 0.0, 1.0]],
-           [[879.8818102449898, 0.0, 923.5], [0.0, 879.8818102449898, 507.5], [0.0, 0.0, 1.0]],
-           [p[0], p[1]])
-
-print(v)

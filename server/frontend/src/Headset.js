@@ -18,105 +18,21 @@ import React, { useContext, useState, useEffect, useRef } from 'react';
 import moment from 'moment';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { solid, regular, brands } from '@fortawesome/fontawesome-svg-core/import.macro';
+import IconMap from "./Icons";
 import { Helmet } from 'react-helmet';
 import useStateSynchronous from './useStateSynchronous.js';
 import { Link } from "react-router-dom";
 import { useParams } from "react-router";
 import { ActiveIncidentContext, LocationsContext } from './Contexts.js';
 import { WebSocketContext } from "./WSContext.js";
-
-
 import fontawesome from '@fortawesome/fontawesome'
-import {
-  faBandage,
-  faBiohazard,
-  faBug,
-  faCircle,
-  faCirclePlay,
-  faDoorClosed,
-  faElevator,
-  faExclamationTriangle,
-  faFire,
-  faFireExtinguisher,
-  faHeadset,
-  faImage,
-  faLocationDot,
-  faMessage,
-  faPerson,
-  faRadiation,
-  faRightFromBracket,
-  faSkull,
-  faSquare,
-  faStairs,
-  faTruckMedical,
-  faUser,
-  faRobot,
-  faMobileScreenButton,
-  faLaptopCode
-} from "@fortawesome/free-solid-svg-icons";
 import NewLayer from "./NewLayer";
 import MapContainer from "./MapContainer";
-
-fontawesome.library.add(
-  faBandage,
-  faBiohazard,
-  faBug,
-  faCircle,
-  faCirclePlay,
-  faDoorClosed,
-  faElevator,
-  faExclamationTriangle,
-  faFire,
-  faFireExtinguisher,
-  faHeadset,
-  faImage,
-  faLocationDot,
-  faMessage,
-  faPerson,
-  faRadiation,
-  faRightFromBracket,
-  faSkull,
-  faSquare,
-  faStairs,
-  faTruckMedical,
-  faUser,
-  faRobot,
-  faLaptopCode,
-  faMobileScreenButton
-  );
 
 function Headset(props) {
   const host = process.env.PUBLIC_URL;
 
   const { headset_id } = useParams();
-
-  // Map feature type -> FA icon
-  const icons = {
-    ambulance: solid('truck-medical'),
-    audio: solid('circle-play'),
-    'bad-person': solid('skull'),
-    biohazard: solid('biohazard'),
-    door: solid('door-closed'),
-    elevator: solid('elevator'),
-    exit: solid('right-from-bracket'),
-    extinguisher: solid('fire-extinguisher'),
-    fire: solid('fire'),
-    headset: solid('headset'),
-    injury: solid('bandage'),
-    message: solid('message'),
-    object: solid('square'),
-    person: solid('person'),
-    photo: solid('image'),
-    point: solid('circle'),
-    radiation: solid('radiation'),
-    stairs: solid('stairs'),
-    user: solid('user'),
-    warning: solid('triangle-exclamation'),
-    waypoint: solid('location-dot'),
-    robot: solid('robot'),
-    phone: solid('mobile-screen-button'),
-    editor: solid('laptop-code')
-  }
 
   const buttonStyle = {
     marginBottom: "20px"
@@ -444,6 +360,28 @@ function Headset(props) {
     }
   };
 
+  // Adjust device offset to place it at the indicated feature.
+  const calibrateDevice = (ev, feature) => {
+    const offset = {
+      "offset.x": headset.position.x + headset.offset.x - feature.position.x,
+      "offset.y": headset.position.y + headset.offset.y - feature.position.y,
+      "offset.z": headset.position.z + headset.offset.z - feature.position.z,
+    };
+
+    const requestData = {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(offset),
+    };
+
+    const url = `${host}/headsets/${headset.id}`;
+    fetch(url, requestData)
+      .then(response => response.json())
+      .then(data => setHeadset(data));
+  }
+
   // function that sends request to server to get headset data
   function getHeadsets() {
     if (!selectedLocation)
@@ -645,7 +583,7 @@ function Headset(props) {
           <div className='home-content'>
             {
               showNewFeature &&
-                <NewFeature icons={icons}
+                <NewFeature icons={IconMap}
                   pointCoordinates={pointCoordinates}
                   changePointValue={changePointValue} mapID={selectedLocation}
                   setIconIndex={setIconIndex} sliderValue={sliderValue}
@@ -732,8 +670,8 @@ function Headset(props) {
             <CheckInTable locations={locations} headsetId={headset_id}
               selected={displayedCheckInId} setSelected={setDisplayedCheckInId} />
 
-            <FeatureTable icons={icons} features={features} locationId={selectedLocation}
-              editFeature={editFeature} setEditFeature={setEditFeature} />
+            <FeatureTable icons={IconMap} features={features} locationId={selectedLocation}
+              editFeature={editFeature} setEditFeature={setEditFeature} onCalibrate={calibrateDevice} />
 
             <PhotoTable photos={photos} setPhotos={setPhotos} />
 
