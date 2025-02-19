@@ -11,6 +11,7 @@ from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 
 from typing import List
 
+from server.location.models import LocationSchema
 from server.models.cameras import Camera
 from server.models.detection_tasks import DetectionTask
 from server.models.photo_annotations import PhotoAnnotation
@@ -99,6 +100,7 @@ class PhotoSchema(MigrationSchema):
     annotations = Nested(PhotoAnnotationSchema, many=True)
     camera = Nested(CameraSchema, many=False)
     files = Nested(PhotoFileSchema, many=True)
+    location = Nested(LocationSchema, many=False)
 
     @post_dump(pass_original=True)
     def add_image_url(self, data, original, **kwargs):

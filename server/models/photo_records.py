@@ -63,4 +63,5 @@ class PhotoRecord(Base):
     annotations: Mapped[List['PhotoAnnotation']] = relationship(cascade="all, delete-orphan") # noqa: F821
     camera: Mapped[Camera] = relationship(foreign_keys=[mobile_device_id], primaryjoin="Camera.mobile_device_id==PhotoRecord.mobile_device_id")
     files: Mapped[List['PhotoFile']] = relationship(back_populates="record", cascade="all, delete-orphan") # noqa: F821
+    location: Mapped['Location'] = relationship(foreign_keys=[location_id])
     pose: Mapped[DevicePose] = relationship(foreign_keys=[device_pose_id])

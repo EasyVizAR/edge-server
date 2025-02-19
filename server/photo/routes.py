@@ -179,6 +179,7 @@ async def list_photos():
     stmt = stmt.options(sa.orm.selectinload(PhotoRecord.annotations))
     stmt = stmt.options(sa.orm.selectinload(PhotoRecord.camera))
     stmt = stmt.options(sa.orm.selectinload(PhotoRecord.files))
+    stmt = stmt.options(sa.orm.selectinload(PhotoRecord.location))
     stmt = stmt.options(sa.orm.selectinload(PhotoRecord.pose))
 
     result = await g.session.execute(stmt)
@@ -619,6 +620,7 @@ async def get_photo(photo_id):
                 .options(sa.orm.selectinload(PhotoRecord.annotations)) \
                 .options(sa.orm.selectinload(PhotoRecord.camera)) \
                 .options(sa.orm.selectinload(PhotoRecord.files)) \
+                .options(sa.orm.selectinload(PhotoRecord.location)) \
                 .options(sa.orm.selectinload(PhotoRecord.pose))
 
         result = await session.execute(stmt)
@@ -705,7 +707,8 @@ async def replace_photo(photo_id):
                 .limit(1) \
                 .options(sa.orm.selectinload(PhotoRecord.annotations)) \
                 .options(sa.orm.selectinload(PhotoRecord.camera)) \
-                .options(sa.orm.selectinload(PhotoRecord.files))
+                .options(sa.orm.selectinload(PhotoRecord.files)) \
+                .options(sa.orm.selectinload(PhotoRecord.location))
 
         result = await session.execute(stmt)
         photo = result.scalar()
@@ -798,6 +801,7 @@ async def update_photo(photo_id):
                 .options(sa.orm.selectinload(PhotoRecord.annotations)) \
                 .options(sa.orm.selectinload(PhotoRecord.camera)) \
                 .options(sa.orm.selectinload(PhotoRecord.files)) \
+                .options(sa.orm.selectinload(PhotoRecord.location)) \
                 .options(sa.orm.selectinload(PhotoRecord.pose))
 
         result = await session.execute(stmt)
@@ -982,7 +986,8 @@ async def upload_photo_file(photo_id):
                 .limit(1) \
                 .options(sa.orm.selectinload(PhotoRecord.annotations)) \
                 .options(sa.orm.selectinload(PhotoRecord.camera)) \
-                .options(sa.orm.selectinload(PhotoRecord.files))
+                .options(sa.orm.selectinload(PhotoRecord.files)) \
+                .options(sa.orm.selectinload(PhotoRecord.location))
 
         result = await session.execute(stmt)
         photo = result.scalar()
@@ -1081,7 +1086,8 @@ async def upload_photo_file_by_name(photo_id, filename):
             .limit(1) \
             .options(sa.orm.selectinload(PhotoRecord.annotations)) \
             .options(sa.orm.selectinload(PhotoRecord.camera)) \
-            .options(sa.orm.selectinload(PhotoRecord.files))
+            .options(sa.orm.selectinload(PhotoRecord.files)) \
+            .options(sa.orm.selectinload(PhotoRecord.location))
 
     result = await g.session.execute(stmt)
     photo = result.scalar()
