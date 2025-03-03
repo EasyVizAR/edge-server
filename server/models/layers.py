@@ -22,7 +22,7 @@ class Layer(Base):
     support for PDF uploads and probably convert to an image.
     """
     __tablename__ = "layers"
-    __allow_update__ = ['name', 'type', 'image_type', 'reference_height']
+    __allow_update__ = ['name', 'type', 'image_type', 'reference_height', 'boundary.left', 'boundary.top', 'boundary.width', 'boundary.height']
 
     id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)
 
