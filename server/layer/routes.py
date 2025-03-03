@@ -511,6 +511,8 @@ async def upload_layer_image(location_id, layer_id):
         if layer is None:
             raise exceptions.NotFound(description="Layer {} was not found".format(layer_id))
 
+        previous = layer_schema.dump(layer)
+
         layer_dir = get_layer_dir(location_id, layer_id)
         os.makedirs(layer_dir, exist_ok=True)
 
@@ -547,6 +549,8 @@ async def upload_layer_image(location_id, layer_id):
         await session.commit()
 
     result = layer_schema.dump(layer)
+    await current_app.dispatcher.dispatch_event("layers:updated",
+            f"/locations/{location_id}/layers/{str(layer.id)}", current=result, previous=previous)
 
     if created:
         return jsonify(result), HTTPStatus.CREATED
