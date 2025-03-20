@@ -12,6 +12,7 @@ from werkzeug import exceptions
 import marshmallow
 import sqlalchemy as sa
 
+from server import auth
 from server.location.models import Location
 from server.mapping.map_maker import MapMaker
 from server.utils.images import ext_from_type, try_send_image, try_send_png
@@ -104,6 +105,7 @@ async def create_layer(location_id):
 
 
 @layers.route('/locations/<uuid:location_id>/layers/<int:layer_id>', methods=['DELETE'])
+@auth.requires_admin
 async def delete_layer(location_id, layer_id):
     """
     Delete layer

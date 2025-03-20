@@ -10,6 +10,7 @@ from marshmallow import post_dump
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema, SQLAlchemySchema, auto_field
 from werkzeug import exceptions
 
+from server import auth
 from server.models.streams import Stream
 from server.utils.response import maybe_wrap
 
@@ -193,6 +194,7 @@ async def update_stream(stream_id):
 
 
 @streams.route('/streams/<uuid:stream_id>', methods=['DELETE'])
+@auth.requires_admin
 async def delete_stream(stream_id):
     stmt = sa.select(Stream) \
             .where(Stream.id == stream_id) \

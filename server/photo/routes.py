@@ -518,6 +518,7 @@ async def update_annotation(annotation_id):
 
 
 @photos.route('/photos/annotations/<int:annotation_id>', methods=['DELETE'])
+@auth.requires_admin
 async def delete_annotation(annotation_id):
     annotation = await g.session.get(PhotoAnnotation, annotation_id)
     if annotation is None:
