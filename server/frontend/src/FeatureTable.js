@@ -17,6 +17,7 @@ function FeatureTable(props){
     name: React.createRef(),
     color: React.createRef(),
     type: React.createRef(),
+    enabled: React.createRef(),
   };
 
   const [checkedItems, setCheckedItems] = useState({});
@@ -55,6 +56,7 @@ function FeatureTable(props){
         'name': newName,
         'color': newColor,
         'type': newType,
+        'enabled': formReferences.enabled.current.checked,
         'position.x': props.editFeature.position.x,
         'position.y': props.editFeature.position.y,
         'position.z': props.editFeature.position.z,
@@ -194,15 +196,25 @@ function FeatureTable(props){
                   <td id={"featureName" + id}>
                     {
                       props.editFeature?.featureId === id ? (
-                        <input
-                          defaultValue={feature.name}
-                          placeholder="Edit Feature Name"
-                          name={"feature-name-input" + id}
-                          type="text"
-                          ref={formReferences.name}
-                          id={'feature-name-input' + id}/>
+                        <>
+                          <input
+                            defaultValue={feature.name}
+                            placeholder="Edit Feature Name"
+                            name={"feature-name-input" + id}
+                            type="text"
+                            ref={formReferences.name}
+                            id={'feature-name-input' + id}/>
+                          <input
+                            type="checkbox"
+                            defaultChecked={feature.enabled}
+                            title="Enabled"
+                            ref={formReferences.enabled} />
+                        </>
                       ) : (
-                        feature.name
+                        <>
+                          {feature.name}
+                          { !feature.enabled && <i>(disabled)</i> }
+                        </>
                       )
                     }
                   </td>

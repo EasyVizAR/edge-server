@@ -405,6 +405,8 @@ function MapContainer(props) {
                 {
                   layerLoaded && props.showFeatures && Object.keys(props.features).length > 0 &&
                     Object.entries(props.features).map(([id, item]) => {
+                      if (!item.enabled)
+                        return null;
                       const x = mapShape.xscale * (item.position.x - mapShape.xmin);
                       const y = mapShape.yscale * (mapShape.height - (item.position.z - mapShape.ymin));
                       if (item.style?.placement === "floating") {

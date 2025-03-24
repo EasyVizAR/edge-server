@@ -25,6 +25,7 @@ class FeatureSchema(MigrationSchema):
     name = auto_field(description="Marker name, often displayed next to the marker icon")
     color = auto_field(description="Suggested display color for the marker as a seven-character HTML color code")
     type = auto_field(description="Marker type, should be one of the supported types or it may display incorrectly")
+    enabled = auto_field(description="Whether marker should be visible")
 
     position = Nested(Vector3f.Schema, description="Position in world coordinates", many=False)
     scale = Nested(Vector3f.Schema, description="Feature scale (only used by volumetric features)", many=False)

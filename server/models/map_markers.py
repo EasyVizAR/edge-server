@@ -37,7 +37,7 @@ class MapMarker(Base):
         user
         warning
     """
-    __allow_update__ = set(['type', 'name', 'color', 'position', 'position.x', 'position.y', 'position.z',
+    __allow_update__ = set(['type', 'name', 'color', 'enabled', 'position', 'position.x', 'position.y', 'position.z',
                             'scale.x', 'scale.y', 'scale.z', 'orientation.x', 'orientation.y', 'orientation.z', 'orientation.w'])
     __tablename__ = "map_markers"
 
@@ -49,6 +49,7 @@ class MapMarker(Base):
     type: Mapped[str] = mapped_column(default="object")
     name: Mapped[str] = mapped_column(default="New Marker")
     color: Mapped[str] = mapped_column(default="#cc6677")
+    enabled: Mapped[bool] = mapped_column(default=True)
 
     position_x: Mapped[float] = mapped_column(default=0.0)
     position_y: Mapped[float] = mapped_column(default=0.0)
