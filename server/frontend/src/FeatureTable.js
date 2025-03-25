@@ -17,7 +17,6 @@ function FeatureTable(props){
     name: React.createRef(),
     color: React.createRef(),
     type: React.createRef(),
-    enabled: React.createRef(),
   };
 
   const [checkedItems, setCheckedItems] = useState({});
@@ -56,7 +55,6 @@ function FeatureTable(props){
         'name': newName,
         'color': newColor,
         'type': newType,
-        'enabled': formReferences.enabled.current.checked,
         'position.x': props.editFeature.position.x,
         'position.y': props.editFeature.position.y,
         'position.z': props.editFeature.position.z,
@@ -106,22 +104,37 @@ function FeatureTable(props){
     setCheckedItems({...checkedItems});
   }
 
-  const deleteCheckedItems = async () => {
-    const del = window.confirm("Are you sure you want to delete the checked items?");
-    if (!del) {
-      return;
+  const updateCheckedItems = async (action) => {
+    if (action === "delete") {
+      const del = window.confirm("Are you sure you want to delete the checked items?");
+      if (!del) {
+        return;
+      }
     }
+
+    const requestData = action === "delete" ? (
+      {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    ) : (
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          'enabled': (action === "enable"),
+        })
+      }
+    );
 
     await Object.entries(checkedItems)
       .filter(([id, checked]) => checked)
       .reduce((chain, [id]) => {
         const url = `${host}/locations/${props.locationId}/features/${id}`;
-        const requestData = {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        };
 
         return chain.then(() => new Promise(resolve => {
           setTimeout(() => {
@@ -196,20 +209,13 @@ function FeatureTable(props){
                   <td id={"featureName" + id}>
                     {
                       props.editFeature?.featureId === id ? (
-                        <>
-                          <input
-                            defaultValue={feature.name}
-                            placeholder="Edit Feature Name"
-                            name={"feature-name-input" + id}
-                            type="text"
-                            ref={formReferences.name}
-                            id={'feature-name-input' + id}/>
-                          <input
-                            type="checkbox"
-                            defaultChecked={feature.enabled}
-                            title="Enabled"
-                            ref={formReferences.enabled} />
-                        </>
+                        <input
+                          defaultValue={feature.name}
+                          placeholder="Edit Feature Name"
+                          name={"feature-name-input" + id}
+                          type="text"
+                          ref={formReferences.name}
+                          id={'feature-name-input' + id}/>
                       ) : (
                         <>
                           {feature.name}
@@ -358,7 +364,11 @@ function FeatureTable(props){
 
       {
         Object.keys(checkedItems).length > 0 ? (
-          <Button variant="danger" onClick={deleteCheckedItems}>Delete Checked</Button>
+          <>
+            <Button variant="success" onClick={() => updateCheckedItems("enable")}>Enable Checked</Button>
+            <Button variant="warning" onClick={() => updateCheckedItems("disable")}>Disable Checked</Button>
+            <Button variant="danger" onClick={() => updateCheckedItems("delete")}>Delete Checked</Button>
+          </>
         ) : (null)
       }
 
