@@ -400,6 +400,8 @@ async def update_map_path(location_id, map_path_id):
     body = await request.get_json()
     if body is None:
         body = {}
+    if 'mobile_device_id' in body and isinstance(body['mobile_device_id'], str):
+        body['mobile_device_id'] = uuid.UUID(body['mobile_device_id'])
     if 'target_marker_id' in body and isinstance(body['target_marker_id'], str):
         body['target_marker_id'] = int(body['target_marker_id'])
     if 'points' in body:

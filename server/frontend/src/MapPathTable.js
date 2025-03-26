@@ -1,6 +1,7 @@
 import './Tables.css';
 import {Table, Button} from 'react-bootstrap';
 import React, {useEffect, useState} from 'react';
+import { Link } from "react-router-dom";
 import moment from 'moment';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome';
 import {solid} from '@fortawesome/fontawesome-svg-core/import.macro';
@@ -15,6 +16,7 @@ function MapPathTable(props) {
   // performance is much better than using an onChange handler for every
   // key press.
   const formReferences = {
+    mobile_device_id: React.createRef(),
     target_marker_id: React.createRef(),
     type: React.createRef(),
     color: React.createRef(),
@@ -43,6 +45,7 @@ function MapPathTable(props) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
+        'mobile_device_id': formReferences.mobile_device_id.current.value || null,
         'target_marker_id': formReferences.target_marker_id.current.value || null,
         'type': formReferences.type.current.value,
         'color': formReferences.color.current.value,
@@ -187,7 +190,39 @@ function MapPathTable(props) {
                 return <tr>
                   <td><input type="checkbox" checked={checkedItems[id]} onChange={() => toggleCheck(id)} /></td>
                   <td>{path.id}</td>
-                  <td>{path.mobile_device_id || "any"}</td>
+                  <td>
+                    {
+                      editRow.id === id ? (
+                        <select
+                          title="Change Device"
+                          defaultValue={path.mobile_device_id}
+                          ref={formReferences.mobile_device_id} >
+                          <option value=''>any</option>
+                          {
+                            Object.entries(props.headsets).map(([id, headset]) => {
+                              return <option value={id}>{`${id}: ${headset.name}`}</option>
+                            })
+                          }
+                          {
+                            path.mobile_device_id && props.headsets[path.mobile_device_id] === undefined &&
+                              <option value={path.mobile_device_id}>{path.mobile_device_id}</option>
+                          }
+                        </select>
+                      ) : (
+                        <td>
+                          {
+                            path.mobile_device_id ? (
+                              <Link to={`/headsets/${path.mobile_device_id}`}>
+                                {props.headsets[path.mobile_device_id]?.name || path.mobile_device_id}
+                              </Link>
+                            ) : (
+                              "any"
+                            )
+                          }
+                        </td>
+                      )
+                    }
+                  </td>
                   <td>
                     {
                       editRow.id === id ? (

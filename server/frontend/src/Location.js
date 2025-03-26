@@ -632,7 +632,8 @@ function Location(props) {
                 <FeatureTable icons={IconMap} features={features} locationId={selectedLocation}
                   editFeature={editFeature} setEditFeature={setEditFeature} />
 
-                <MapPathTable locationId={selectedLocation} features={features} paths={paths} setPaths={setPaths} />
+                <MapPathTable locationId={selectedLocation} features={features}
+                  headsets={headsets} paths={paths} setPaths={setPaths} />
 
                 <PhotoTable photos={photos} setPhotos={setPhotos} />
               </React.Fragment>
