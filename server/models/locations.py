@@ -24,7 +24,7 @@ class Location(Base):
     __allow_update__ = set(['name', 'description'])
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
-    last_color_source_id: Mapped[int] = mapped_column(sa.ForeignKey("photo_records.id", ondelete="SET NULL", onupdate="CASCADE"))
+    last_color_source_id: Mapped[int] = mapped_column(sa.ForeignKey("photo_records.id", ondelete="SET NULL", onupdate="CASCADE"), nullable=True)
 
     name: Mapped[str] = mapped_column(default="New Location")
     description: Mapped[str] = mapped_column(default="")
