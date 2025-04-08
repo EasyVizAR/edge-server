@@ -14,7 +14,8 @@ const deviceTypeOptions = [
   "headset",
   "phone",
   "editor",
-  "robot"
+  "robot",
+  "drone",
 ];
 
 

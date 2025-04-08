@@ -15,6 +15,7 @@ const deviceTypeOptions = [
   "phone",
   "robot",
   "editor",
+  "drone",
 ];
 
 

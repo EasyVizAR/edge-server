@@ -61,6 +61,7 @@ function NewDevice(props) {
                 <option value="phone">Phone</option>
                 <option value="editor">Editor (testing)</option>
                 <option value="robot">Robot</option>
+                <option value="drone">Drone</option>
               </Form.Select>
             </Col>
             <Col xs="auto" className="my-1">

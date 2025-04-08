@@ -75,6 +75,7 @@ const IconMap = {
   biohazard: solid('biohazard'),
   'ceiling-sign': solid('signs-post'),
   door: solid('door-closed'),
+  drone: solid('bug'),
   editor: solid('laptop-code'),
   elevator: solid('elevator'),
   exit: solid('right-from-bracket'),
