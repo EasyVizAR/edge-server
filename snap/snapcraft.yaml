@@ -12,6 +12,9 @@ grade: stable
 confinement: strict
 
 apps:
+  db:
+    command: bin/db
+
   server:
     command: bin/server
     daemon: simple

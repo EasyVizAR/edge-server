@@ -16,6 +16,7 @@ setup(
 
     entry_points={
         "console_scripts": [
+            "db = server.db:main",
             "server = server.__main__:main"
         ]
     }
