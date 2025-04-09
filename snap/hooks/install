@@ -3,10 +3,10 @@
 # Fail and revert the snap upgrade if the following commands fail.
 set -e
 
-cd $SNAP_DATA
+cd "$SNAP_DATA"
 
 # Copy the alembic configuration script and link the alembic directory
 # so that they are reliably available for both upgrades and for the
 # running server.
-ln -s $SNAP/alembic .
-cp $SNAP/alembic.ini .
+ln -s "$SNAP/alembic" .
+cp "$SNAP/alembic.ini" .

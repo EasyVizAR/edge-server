@@ -3,17 +3,17 @@
 # Fail and revert the snap upgrade if the following commands fail.
 set -e
 
-cd $SNAP_DATA
+cd "$SNAP_DATA"
 
 if [ ! -e alembic ]; then
-    ln -s $SNAP/alembic .
+    ln -s "$SNAP/alembic" .
 fi
 
 if [ ! -f alembic.ini ]; then
     # It appears we are upgrading from a release where the alembic version may
     # not have been stored correctly.  Before we go, try to stamp the current
     # version so that only necessary migrations will take place.
-    cp $SNAP/alembic.ini .
+    cp "$SNAP/alembic.ini" .
 
-    $SNAP/bin/python3 -m alembic stamp head
+    "$SNAP/bin/python3" -m alembic stamp head
 fi

@@ -6,4 +6,4 @@ if [ -z "$vizar_edge_host" ]; then
     vizar_edge_host="127.0.0.1:5000"
 fi
 
-echo "VIZAR_EDGE_HOST = $vizar_edge_host" > $SNAP_DATA/server.conf
+echo "VIZAR_EDGE_HOST = $vizar_edge_host" > "$SNAP_DATA/server.conf"

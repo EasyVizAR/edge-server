@@ -3,15 +3,15 @@
 # Fail and revert the snap upgrade if the following commands fail.
 set -e
 
-cd $SNAP_DATA
+cd "$SNAP_DATA"
 
 if [ ! -e alembic ]; then
-    ln -s $SNAP/alembic .
+    ln -s "$SNAP/alembic" .
 fi
 
 if [ ! -f alembic.ini ]; then
-    cp $SNAP/alembic.ini .
+    cp "$SNAP/alembic.ini" .
 fi
 
 # Perform database migrations.
-$SNAP/bin/python3 -m alembic upgrade head
+"$SNAP/bin/python3" -m alembic upgrade head
