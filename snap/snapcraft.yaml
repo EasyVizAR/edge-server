@@ -58,10 +58,10 @@ parts:
     source: server/frontend
     build-packages:
       - npm
-    build-environment:
-      - NODE_OPTIONS: "--openssl-legacy-provider"
+#    build-environment:
+#      - NODE_OPTIONS: "--openssl-legacy-provider"
     override-build: |
-      npm install --verbose
+      npm install --no-progress --verbose
       npm run build
       mkdir -p $SNAPCRAFT_PART_INSTALL/frontend
       cp -rv build $SNAPCRAFT_PART_INSTALL/frontend/
