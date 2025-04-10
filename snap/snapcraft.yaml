@@ -12,9 +12,6 @@ grade: stable
 confinement: strict
 
 apps:
-  db:
-    command: bin/db
-
   server:
     command: bin/server
     daemon: simple
@@ -64,7 +61,7 @@ parts:
     build-environment:
       - NODE_OPTIONS: "--openssl-legacy-provider"
     override-build: |
-      npm install
+      npm install --verbose
       npm run build
       mkdir -p $SNAPCRAFT_PART_INSTALL/frontend
       cp -rv build $SNAPCRAFT_PART_INSTALL/frontend/
