@@ -54,14 +54,13 @@ parts:
         - lib32stdc++6
 
   frontend:
-    plugin: npm
-    npm-include-node: true
-    npm-node-version: "20"
+    plugin: nil
     source: server/frontend
     build-environment:
       - NODE_OPTIONS: "--openssl-legacy-provider"
-    build-packages:
-      - build-essential
+      - PATH: "$PATH:$SNAPCRAFT_PART_BUILD/node_modules/.bin"
+    build-snaps:
+      - node/20/stable
     override-build: |
       npm install --no-progress --verbose
       npm run build
