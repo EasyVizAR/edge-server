@@ -1,0 +1,5 @@
+{
+    "name": "npm-deps",
+    "version": "0.0.0",
+    "description": "Bare minimum package.json to appease snapcraft's npm plugin so we can hijack it to install nodejs"
+}
