@@ -55,7 +55,8 @@ parts:
 
   frontend:
     plugin: npm
-    npm-include-node: false
+    npm-include-node: true
+    npm-node-version: "20"
     source: server/frontend
     build-environment:
       - NODE_OPTIONS: "--openssl-legacy-provider"
