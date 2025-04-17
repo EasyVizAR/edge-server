@@ -23,7 +23,7 @@ class DeviceConfiguration(Base):
     location_id: Mapped[uuid.UUID] = mapped_column(sa.ForeignKey("locations.id"), nullable=True)
     mobile_device_id: Mapped[uuid.UUID] = mapped_column(sa.ForeignKey("mobile_devices.id"), nullable=True)
 
-    enable_mesh_capture: Mapped[bool] = mapped_column(default=True)
+    enable_mesh_capture: Mapped[bool] = mapped_column(default=False)
     enable_photo_capture: Mapped[bool] = mapped_column(default=False) # deprecated: use photo_capture_mode instead
     enable_extended_capture: Mapped[bool] = mapped_column(default=False)
 
@@ -31,13 +31,17 @@ class DeviceConfiguration(Base):
     photo_detection_threshold: Mapped[float] = mapped_column(default=0.65)
     photo_target_interval: Mapped[str] = mapped_column(default=5)
     enable_gesture_recognition: Mapped[bool] = mapped_column(default=False)
-    enable_marker_placement: Mapped[bool] = mapped_column(default=True)
+    enable_marker_placement: Mapped[bool] = mapped_column(default=False)
 
     created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
     updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
 
     def __init__(self, *args, **kwargs):
-        self.enable_mesh_capture = True
+        # It may seem redundant to set these explicitly in the constructor
+        # given all of the columns have default values. However, the default
+        # value is not used during object creation, so we need to do this.
+
+        self.enable_mesh_capture = False
         self.enable_photo_capture = False
         self.enable_extended_capture = False
 
@@ -45,5 +49,6 @@ class DeviceConfiguration(Base):
         self.photo_detection_threshold = 0.65
         self.photo_target_interval = 5
         self.enable_gesture_recognition = False
+        self.enable_marker_placement = False
 
         super(DeviceConfiguration, self).__init__(*args, **kwargs)
