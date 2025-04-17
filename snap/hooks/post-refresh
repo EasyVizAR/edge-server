@@ -8,13 +8,11 @@ cd "$SNAP_DATA"
 # Save environment variables for debugging and future reference.
 set >post-refresh-env.sh
 
-if [ ! -e alembic ]; then
-    ln -s "$SNAP/alembic" .
-fi
-
-if [ ! -f alembic.ini ]; then
-    cp "$SNAP/alembic.ini" .
-fi
+# Run these on every update because something may have changed.  Note that the
+# path "$SNAP/alembic" contains the revision number for the snap, so this link
+# does need to be updated.
+ln -sf "$SNAP/alembic" .
+cp "$SNAP/alembic.ini" .
 
 # Perform database migrations.
 "$SNAP/bin/python3" -m alembic upgrade head

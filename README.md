@@ -23,6 +23,16 @@ branch, which will only receive infrequent and tested releases.
 sudo snap install easyvizar-edge
 ```
 
+If you experience database migration errors (e.g. "table pose_changes already
+exists") that block the snap from refreshing, especially on the stable or
+candidate channels, you may have a version of the snap that does not currectly
+track the database schema version. The following command should fix the
+database version, after which you can retry the `snap refresh` command.
+
+```console
+sudo snap run --shell easyvizar-edge.server -c 'cd $SNAP_DATA; cp $SNAP/alembic.ini .; ln -sf "$SNAP/alembic" .; alembic stamp head'
+```
+
 The server will listen on port 5000 and can be tested by directing a web
 browser to the server address and port, e.g. `http://example.org:5000`.
 However, in a production setting, it is recommended to block external traffic
