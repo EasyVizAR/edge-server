@@ -515,6 +515,8 @@ class LocationModel():
             # If no change, there is no need to load and parse the mesh file.
             if existing_surface is None:
                 surface, _ = self.load_surface(path)
+                if surface is None:
+                    continue
 
                 iou, overlapping_surface_id = self.compute_max_iou(surface)
                 if iou < self.surface_pruning_threshold:
