@@ -10,6 +10,7 @@ import PhotoWrapper from './PhotoWrapper.js';
 import VideoStreams from './VideoStreams.js';
 import VideoPlayer from './VideoPlayer.js';
 import WebsocketConnections from './WebsocketConnections.js';
+import { MQTTProvider } from './MQTTContext.js';
 import { WebSocketProvider } from './WSContext.js';
 import Users from './Users.js';
 import NavBar from './NavBar.js';
@@ -61,6 +62,7 @@ function App() {
                   <ActiveIncidentContext.Provider value={activeIncidentContextValue}>
                   <LocationsContext.Provider value={locationsContextValue}>
                   <UsersContext.Provider value={usersContextValue}>
+                  <MQTTProvider>
                   <WebSocketProvider>
                     <Routes>
                         <Route exact path="/" element={<Location />}/>
@@ -77,6 +79,7 @@ function App() {
                         <Route path="/users" element={<Users />} />
                     </Routes>
                   </WebSocketProvider>
+                  </MQTTProvider>
                   </UsersContext.Provider>
                   </LocationsContext.Provider>
                   </ActiveIncidentContext.Provider>
