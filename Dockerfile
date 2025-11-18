@@ -14,7 +14,7 @@ RUN npm run build
 #
 # Prepare the application server using Python
 #
-FROM python:3.8
+FROM python:3.12
 
 ENV QUART_APP=server.main:app
 ENV QUART_ENV=production

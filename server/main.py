@@ -47,7 +47,7 @@ static_folder = os.environ.get("VIZAR_STATIC_FOLDER", "./frontend/build/")
 
 app = Quart(__name__, static_folder=static_folder, static_url_path='/')
 
-engine = create_async_engine("mysql+aiomysql://easyvizar:ei7wijaeZuo7@localhost:3306/easyvizar")
+engine = create_async_engine("mysql+aiomysql://easyvizar:ei7wijaeZuo7@db:3306/easyvizar")
 session_maker = async_sessionmaker(engine, expire_on_commit=False)
 
 
