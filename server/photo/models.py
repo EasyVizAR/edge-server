@@ -153,15 +153,15 @@ class PhotoQueueSchema(MigrationSchema):
 
 default_photo_queues = [
   {
-    "description": "A photo record has been created, but the files have not been uploaded yet.",
-    "display_order": 10,
-    "name": "created",
-    "next_queue_name": "detection"
+    "description": "All photo processing has completed.",
+    "display_order": 30,
+    "name": "done",
+    "next_queue_name": None
   },
   {
-    "description": "The photo will be processing by an object detection module.",
-    "display_order": 20,
-    "name": "detection",
+    "description": "The photo will be processed by a face recognition module.",
+    "display_order": 25,
+    "name": "identification",
     "next_queue_name": "done"
   },
   {
@@ -171,17 +171,17 @@ default_photo_queues = [
     "next_queue_name": "done"
   },
   {
-    "description": "The photo will be processed by a face recognition module.",
-    "display_order": 25,
-    "name": "identification",
+    "description": "The photo will be processing by an object detection module.",
+    "display_order": 20,
+    "name": "detection",
     "next_queue_name": "done"
   },
   {
-    "description": "All photo processing has completed.",
-    "display_order": 30,
-    "name": "done",
-    "next_queue_name": None
-  }
+    "description": "A photo record has been created, but the files have not been uploaded yet.",
+    "display_order": 10,
+    "name": "created",
+    "next_queue_name": "detection"
+  },
 ]
 
 

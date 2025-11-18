@@ -47,31 +47,8 @@ static_folder = os.environ.get("VIZAR_STATIC_FOLDER", "./frontend/build/")
 
 app = Quart(__name__, static_folder=static_folder, static_url_path='/')
 
-engine = create_async_engine("sqlite+aiosqlite:///"+sqlite_file)
+engine = create_async_engine("mysql+aiomysql://easyvizar:ei7wijaeZuo7@localhost:3306/easyvizar")
 session_maker = async_sessionmaker(engine, expire_on_commit=False)
-
-
-if os.path.exists(sqlite_file):
-    print("Skipping database initialization because {} exists".format(sqlite_file))
-else:
-    print("Initializing sqlite database, stored at {}".format(sqlite_file))
-    sync_engine = sa.create_engine("sqlite:///"+sqlite_file)
-    Base.metadata.create_all(sync_engine)
-
-    config = alembic.config.Config("alembic.ini")
-    alembic.command.stamp(config, "heads")
-
-
-# Enabling write-ahead logging (WAL) may improve performance for our workload
-# where we need the most frequent inserts to be fast without risking database
-# corruption.
-# Source: https://www.sqlite.org/wal.html
-@sa.event.listens_for(Engine, "connect")
-def set_sqlite_pragma(dbapi_connection, connection_record):
-    cursor = dbapi_connection.cursor()
-    cursor.execute("PRAGMA journal_mode=WAL")
-    cursor.execute("PRAGMA synchronous=NORMAL")
-    cursor.close()
 
 
 main_rate_limiter.init_app(app)
