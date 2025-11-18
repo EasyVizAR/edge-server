@@ -101,7 +101,7 @@ function HeadsetTable(props) {
   // saves the headset data
   const onSaveHeadsets = (e, id) => {
     const headset = props.headsets[id];
-    const url = `${host}/headsets/${id}`;
+    const url = `${host}/headsets/${headset.id}`;
 
     const newName = formReferences.name.current.value;
     const newColor = formReferences.color.current.value;
@@ -310,8 +310,8 @@ function HeadsetTable(props) {
             Object.keys(props.headsets).length > 0 ? (
               Object.entries(props.headsets).map(([id, headset]) => {
                 return <tr>
-                  <td><input type="checkbox" id={"check-"+id} checked={checkedItems[id]} onChange={() => toggleCheck(id)} /></td>
-                  <td><Link to={`/headsets/${id}`}>{id}</Link></td>
+                  <td><input type="checkbox" id={"check-"+id} checked={checkedItems[headset.id]} onChange={() => toggleCheck(headset.id)} /></td>
+                  <td><Link to={`/headsets/${headset.id}`}>{headset.id}</Link></td>
                   <td id={"headsetName" + id}>
                     {
                       inEditModeHeadset.status && inEditModeHeadset.rowKey === id ? (
@@ -425,7 +425,7 @@ function HeadsetTable(props) {
                           </Button>
                           <Button
                             variant="warning" size="sm"
-                            onClick={() => handleRemoveClicked(id)}
+                            onClick={() => handleRemoveClicked(headset.id)}
                             title="Remove headset from location (does not delete its history)">
                             Remove
                           </Button>
@@ -435,7 +435,7 @@ function HeadsetTable(props) {
                   </td>
                   <td>
                     <div>
-                      <TrashIcon id={id} name={headset.name}/>
+                      <TrashIcon id={headset.id} name={headset.name}/>
                     </div>
                   </td>
                 </tr>
