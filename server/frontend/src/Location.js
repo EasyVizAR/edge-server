@@ -87,7 +87,8 @@ function Location(props) {
       setCurrentLocation(null);
     }
 
-    const mqtt_client = mqtt.connect(`mqtt://frontend:vaoLahJush2eezii@${window.location.host}`);
+    const mqtt_scheme = (window.location.protocol === "https:") ? "mqtts" : "mqtt";
+    const mqtt_client = mqtt.connect(`${mqtt_scheme}://frontend:vaoLahJush2eezii@${window.location.host}`);
     mqtt_client.on("connect", () => {
       mqtt_client.subscribe(`locations/${selectedLocation.replace('-', '')}/devices/pose`);
     });
