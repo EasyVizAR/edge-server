@@ -87,14 +87,22 @@ function Location(props) {
       setCurrentLocation(null);
     }
 
-    const mqtt_scheme = (window.location.protocol === "https:") ? "mqtts" : "mqtt";
-    const mqtt_client = mqtt.connect(`${mqtt_scheme}://frontend:vaoLahJush2eezii@${window.location.host}`);
-    mqtt_client.on("connect", () => {
-      mqtt_client.subscribe(`locations/${selectedLocation.replace('-', '')}/devices/pose`);
-    });
-    mqtt_client.on("message", (topic, message) => {
-      console.log(topic);
-    });
+    if (selectedLocation) {
+      const mqtt_client = mqtt.connect({
+        host: window.location.hostname,
+        port: (window.location.protocol === "https:") ? 8883 : 8083,
+        protocol: (window.location.protocol === "https:") ? 'wss' : 'ws',
+        path:  '/mqtt',
+        username: 'frontend',
+        password: 'vaoLahJush2eezii',
+      });
+      mqtt_client.on("connect", () => {
+        mqtt_client.subscribe(`locations/${selectedLocation.replaceAll('-', '')}/devices/+/pose`);
+      });
+      mqtt_client.on("message", (topic, message) => {
+        console.log(topic);
+      });
+    }
 
     const uri_filter = `/locations/${selectedLocation}/*`;
 
