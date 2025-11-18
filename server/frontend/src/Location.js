@@ -18,7 +18,7 @@ import IconMap from "./Icons";
 import { Helmet } from 'react-helmet';
 import { Link } from "react-router-dom";
 import { useParams } from "react-router";
-import { ActiveIncidentContext, LocationsContext } from './Contexts.js';
+import { ActiveIncidentContext, LocationsContext, MessagesContext } from './Contexts.js';
 import { WebSocketContext } from "./WSContext.js";
 import fontawesome from '@fortawesome/fontawesome'
 import NewLayer from "./NewLayer";
@@ -31,6 +31,7 @@ function Location(props) {
 
   const { activeIncident, setActiveIncident } = useContext(ActiveIncidentContext);
   const { locations, setLocations } = useContext(LocationsContext);
+  const { messages, setMessages } = useContext(MessagesContext);
   const [subscribe, unsubscribe] = useContext(WebSocketContext);
 
   const [selectedLocation, setSelectedLocation] = useState(null);
@@ -101,6 +102,8 @@ function Location(props) {
       });
       mqtt_client.on("message", (topic, message) => {
         console.log(topic);
+        const pose = messages.Pose.decode(message);
+        console.log(pose);
       });
     }
 
