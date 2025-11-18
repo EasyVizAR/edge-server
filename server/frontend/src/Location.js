@@ -23,6 +23,7 @@ import { WebSocketContext } from "./WSContext.js";
 import fontawesome from '@fortawesome/fontawesome'
 import NewLayer from "./NewLayer";
 import MapContainer from "./MapContainer";
+import mqtt from "mqtt";
 
 function Location(props) {
   const host = process.env.PUBLIC_URL;
@@ -85,6 +86,14 @@ function Location(props) {
     } else {
       setCurrentLocation(null);
     }
+
+    const mqtt_client = mqtt.connect(`mqtt://frontend:vaoLahJush2eezii@${window.location.host}`);
+    mqtt_client.on("connect", () => {
+      mqtt_client.subscribe(`locations/${selectedLocation.replace('-', '')}/devices/pose`);
+    });
+    mqtt_client.on("message", (topic, message) => {
+      console.log(topic);
+    });
 
     const uri_filter = `/locations/${selectedLocation}/*`;
 
