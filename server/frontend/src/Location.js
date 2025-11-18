@@ -18,8 +18,8 @@ import IconMap from "./Icons";
 import { Helmet } from 'react-helmet';
 import { Link } from "react-router-dom";
 import { useParams } from "react-router";
-import { ActiveIncidentContext, LocationsContext, MessagesContext } from './Contexts.js';
-import { WebSocketContext } from "./WSContext.js";
+import { ActiveIncidentContext, LocationsContext } from './Contexts.js';
+import { MQTTContext } from "./MQTTContext.js";
 import fontawesome from '@fortawesome/fontawesome'
 import NewLayer from "./NewLayer";
 import MapContainer from "./MapContainer";
@@ -31,8 +31,7 @@ function Location(props) {
 
   const { activeIncident, setActiveIncident } = useContext(ActiveIncidentContext);
   const { locations, setLocations } = useContext(LocationsContext);
-  const { messages, setMessages } = useContext(MessagesContext);
-  const [subscribe, unsubscribe] = useContext(WebSocketContext);
+  const [subscribe, unsubscribe] = useContext(MQTTContext);
 
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedLayer, setSelectedLayer] = useState(null);
@@ -89,24 +88,21 @@ function Location(props) {
     }
 
     if (selectedLocation) {
-      const mqtt_client = mqtt.connect({
-        host: window.location.hostname,
-        port: (window.location.protocol === "https:") ? 8883 : 8083,
-        protocol: (window.location.protocol === "https:") ? 'wss' : 'ws',
-        path:  '/mqtt',
-        username: 'frontend',
-        password: 'vaoLahJush2eezii',
-      });
-      mqtt_client.on("connect", () => {
-        mqtt_client.subscribe(`locations/${selectedLocation.replaceAll('-', '')}/devices/+/pose`);
-      });
-      mqtt_client.on("message", (topic, message) => {
-        console.log(topic);
-        const pose = messages.Pose.decode(message);
+      subscribe("pose", `locations/${selectedLocation.replaceAll('-', '')}/devices/+/pose`, (pose, meta) => {
+        console.log(meta);
         console.log(pose);
+
+        setHeadsets(previous => {
+          let tmp = Object.assign({}, previous);
+          tmp[meta.device_id].position = pose.position;
+          tmp[meta.device_id].orientation = pose.orientation;
+          return tmp;
+        });
       });
     }
 
+
+/*
     const uri_filter = `/locations/${selectedLocation}/*`;
 
     subscribe("location-headsets:created", uri_filter, (event, uri, message) => {
@@ -259,6 +255,12 @@ function Location(props) {
       unsubscribe("photos:created", "*");
       unsubscribe("photos:updated", "*");
       unsubscribe("photos:deleted", "*");
+    }*/
+
+    return () => {
+      if (selectedLocation) {
+        unsubscribe("pose", `locations/${selectedLocation.replaceAll('-', '')}/devices/+/pose`);
+      }
     }
   }, [selectedLocation]);
 
@@ -306,7 +308,7 @@ function Location(props) {
       }).then(data => {
         let headsets = {};
         for (var h of data) {
-          headsets[h.id] = h;
+          headsets[h.id.replaceAll('-', '')] = h;
         }
         setHeadsets(headsets);
       });

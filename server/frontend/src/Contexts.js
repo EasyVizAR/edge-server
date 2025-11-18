@@ -14,14 +14,6 @@ export const LocationsContext = createContext({
   setLocations: () => {}
 });
 
-// This context maintains a list of protobuf message decoders loaded from the server.
-//
-// The storage and implementation is in App.js.
-export const MessagesContext = createContext({
-  messages: {},
-  setMessages: () => {}
-});
-
 
 // This context maintains a list of users.
 //

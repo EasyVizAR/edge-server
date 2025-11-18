@@ -13,8 +13,7 @@ import WebsocketConnections from './WebsocketConnections.js';
 import { WebSocketProvider } from './WSContext.js';
 import Users from './Users.js';
 import NavBar from './NavBar.js';
-import { ActiveIncidentContext, LocationsContext, MessagesContext, UsersContext } from './Contexts.js';
-import { load } from "protobufjs";
+import { ActiveIncidentContext, LocationsContext, UsersContext } from './Contexts.js';
 
 function App() {
     const [activeIncident, setActiveIncident] = useState(null);
@@ -23,9 +22,6 @@ function App() {
     const [locations, setLocations] = useState({});
     const locationsContextValue = { locations, setLocations };
 
-    const [messages, setMessages] = useState({});
-    const messagesContextValue = { messages, setMessages };
-
     const [users, setUsers] = useState({});
     const usersContextValue = { users, setUsers };
 
@@ -33,12 +29,6 @@ function App() {
       fetch(`${process.env.PUBLIC_URL}/incidents/active`)
         .then(response => response.json())
         .then(data => setActiveIncident(data));
-
-      load("messages.proto", function(err, root) {
-        const messages = {};
-        messages.Pose = root.lookupType("EasyVizAR.Pose");
-        setMessages(messages);
-      });
 
       fetch(`${process.env.PUBLIC_URL}/users`)
         .then(response => response.json())
