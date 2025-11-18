@@ -166,10 +166,15 @@ async def _create_headset(headset_id, body):
 
     headset = headset_schema.load(body, transient=True, unknown=marshmallow.EXCLUDE)
     headset.pose = None
+    g.session.add(headset)
 
     # If the headset is created with location_id set, we can automatically
     # create a check-in record for the headset at that location.
     if headset.location_id is not None:
+        # Wait for headset to be added because MySQL is strict about
+        # foreign key constraints.
+        await g.session.flush()
+
         checkin = TrackingSession(
             mobile_device_id=headset.id,
             incident_id=g.active_incident_id,
@@ -191,7 +196,6 @@ async def _create_headset(headset_id, body):
             headset.device_pose_id = pose.id
             headset.pose = pose
 
-    g.session.add(headset)
     await g.session.commit()
 
     result = headset_schema.dump(headset)
