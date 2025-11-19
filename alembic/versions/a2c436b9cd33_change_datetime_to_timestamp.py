@@ -61,7 +61,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    for table, column in timestamp_changes:
+    for table, column, fsp in timestamp_changes:
         if column == 'created_time':
             op.alter_column(table, column, type_=TIMESTAMP(fsp=fsp), server_default=sa.text('now()'))
         elif column == 'updated_time':
