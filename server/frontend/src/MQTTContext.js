@@ -141,7 +141,7 @@ function MQTTProvider({ children }) {
         case "pose":
           updated_object = messages.current.DevicePose.decode(message);
           meta.deleted = false;
-          updated_object.device_id = uuid_short_to_long(topic_parts[3]);
+          meta.device_id = uuid_short_to_long(topic_parts[3]);
           break;
       }
       updated_object.updated = moment().unix();

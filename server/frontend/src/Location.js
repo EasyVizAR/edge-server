@@ -156,6 +156,7 @@ function Location(props) {
       subscribe("pose", selectedLocation, (obj, meta) => {
         setHeadsets(previous => {
           let tmp = Object.assign({}, previous);
+          tmp[meta.device_id] = previous[meta.device_id] || {};
           tmp[meta.device_id].position = obj.position;
           tmp[meta.device_id].orientation = obj.orientation;
           tmp[meta.device_id].updated = obj.updated;
