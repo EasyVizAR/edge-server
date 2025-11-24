@@ -455,14 +455,16 @@ function MapContainer(props) {
                 {
                   layerLoaded && props.showHeadsets && Object.keys(props.headsets).length > 0 &&
                     Object.entries(props.headsets).map(([id, item]) => {
-                      return <MapMarker
-                              type={item.type}
-                              name={item.name}
-                              color={item.color}
-                              position={item.position}
-                              orientation={item.orientation}
-                              priority={4}
-                              mapShape={mapShape} />
+                      if (item.position && item.orientation) {
+                        return <MapMarker
+                                type={item.type}
+                                name={item.name}
+                                color={item.color}
+                                position={item.position}
+                                orientation={item.orientation}
+                                priority={4}
+                                mapShape={mapShape} />
+                      }
                     })
                 }
                 {

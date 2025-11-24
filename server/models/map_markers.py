@@ -5,7 +5,9 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, composite, mapped_column
 
 from .base import Base
+from server import messages_pb2
 from server.resources.geometry import Vector3f, Vector4f
+from server.utils import utils
 
 
 class MapMarker(Base):
@@ -70,3 +72,28 @@ class MapMarker(Base):
     position: Mapped[Vector3f] = composite(position_x, position_y, position_z)
     scale: Mapped[Vector3f] = composite(scale_x, scale_y, scale_z)
     orientation: Mapped[Vector4f] = composite(orientation_x, orientation_y, orientation_z, orientation_w)
+
+    def to_protobuf(self):
+        """
+        Get protobuf message from object.
+        """
+        marker_type = utils.string_to_enum(self.type, "marker")
+
+        marker = messages_pb2.MapMarker()
+        marker.type = messages_pb2.MarkerType.Value(marker_type)
+        marker.name = self.name
+        marker.color = self.color
+        marker.enabled = self.enabled
+
+        marker.position.x = self.position_x
+        marker.position.y = self.position_y
+        marker.position.z = self.position_z
+        marker.scale.x = self.scale_x
+        marker.scale.y = self.scale_y
+        marker.scale.z = self.scale_z
+        marker.orientation.x = self.orientation_x
+        marker.orientation.y = self.orientation_y
+        marker.orientation.z = self.orientation_z
+        marker.orientation.w = self.orientation_w
+
+        return marker

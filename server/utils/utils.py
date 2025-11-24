@@ -97,3 +97,15 @@ def get_vector(extrinsic, intrinsic, Y):
     intm = intm * extrinsic[2][3]
     intm = np.append(intm, 1)
     return intm.tolist()
+
+
+def string_to_enum(s, prefix=""):
+    """
+    Convert from string type as used in database to enum type as used in
+    protobufs.
+
+    Example:
+
+        string_to_enum("headset", "device") -> "DEVICE_HEADSET"
+    """
+    return prefix.upper() + "_" + s.replace("-", "_").upper()

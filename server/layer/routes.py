@@ -13,6 +13,7 @@ import marshmallow
 import sqlalchemy as sa
 
 from server import auth
+from server.events import publish_layer
 from server.location.models import Location
 from server.mapping.map_maker import MapMaker
 from server.utils.images import ext_from_type, try_send_image, try_send_png
@@ -100,7 +101,7 @@ async def create_layer(location_id):
         await session.commit()
 
     result = layer_schema.dump(layer)
-
+    await publish_layer(current_app, layer)
     return jsonify(result), HTTPStatus.CREATED
 
 
@@ -142,6 +143,9 @@ async def delete_layer(location_id, layer_id):
     shutil.rmtree(get_layer_dir(location_id, layer_id), ignore_errors=True)
 
     result = layer_schema.dump(layer)
+
+    layer.type = "deleted"
+    await publish_layer(current_app, layer)
 
     return jsonify(result), HTTPStatus.OK
 
@@ -248,6 +252,7 @@ async def replace_layer(location_id, layer_id):
         await session.commit()
 
     result = layer_schema.dump(layer)
+    await publish_layer(current_app, layer)
 
     if created:
         return jsonify(result), HTTPStatus.CREATED
@@ -344,6 +349,7 @@ async def update_layer(location_id, layer_id):
         await trigger_map_rebuild(location_id)
 
     result = layer_schema.dump(layer)
+    await publish_layer(current_app, layer)
 
     return jsonify(result), HTTPStatus.OK
 
@@ -551,8 +557,7 @@ async def upload_layer_image(location_id, layer_id):
         await session.commit()
 
     result = layer_schema.dump(layer)
-    await current_app.dispatcher.dispatch_event("layers:updated",
-            f"/locations/{location_id}/layers/{str(layer.id)}", current=result, previous=previous)
+    await publish_layer(current_app, layer)
 
     if created:
         return jsonify(result), HTTPStatus.CREATED

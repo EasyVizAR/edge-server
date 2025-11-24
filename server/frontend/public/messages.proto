@@ -1,0 +1,156 @@
+syntax = "proto3";
+
+package EasyVizAR;
+option csharp_namespace = "EasyVizARMessages";
+
+message Vertex {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+    float nx = 4;
+    float ny = 5;
+    float nz = 6;
+}
+
+message Vector3 {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+}
+
+message Vector4 {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+    float w = 4;
+}
+
+message Rectangle {
+    float left = 1;
+    float top = 2;
+    float width = 3;
+    float height = 4;
+}
+
+message Face {
+    repeated uint32 indices = 1;
+}
+
+message Mesh {
+    repeated Vertex vertices = 3;
+    repeated Face faces = 4;
+}
+
+message DevicePose {
+    Vector3 position = 1;
+    Vector4 orientation = 2;
+}
+
+enum DeviceType {
+    DEVICE_DELETED = 0;
+    DEVICE_HEADSET = 1;
+    DEVICE_PHONE = 2;
+    DEVICE_EDITOR = 3;
+    DEVICE_ROBOT = 4;
+    DEVICE_DRONE = 5;
+}
+
+message MobileDevice {
+    DeviceType type = 1;
+
+    string name = 2;
+    string color = 3;
+
+    string location_id = 4;
+    uint32 navigation_target_id = 5;
+
+    Vector3 position = 6;
+    Vector4 orientation = 7;
+}
+
+enum MarkerType {
+    MARKER_DELETED = 0;
+    MARKER_3D_MAP = 1;
+    MARKER_AMBULANCE = 2;
+    MARKER_AUDIO = 3;
+    MARKER_BAD_PERSON = 4;
+    MARKER_BIOHAZARD = 5;
+    MARKER_CEILING_SIGN = 6;
+    MARKER_DOOR = 7;
+    MARKER_ELEVATOR = 8;
+    MARKER_EXIT = 9;
+    MARKER_EXTINGUISHER = 10;
+    MARKER_FIRE = 11;
+    MARKER_HEADSET = 12;
+    MARKER_INJURY = 13;
+    MARKER_MESSAGE = 14;
+    MARKER_OBJECT = 15;
+    MARKER_PERSON = 16;
+    MARKER_PHOTO = 17;
+    MARKER_POINT = 18;
+    MARKER_RADIATION = 19;
+    MARKER_STAIRS = 20;
+    MARKER_TARGET = 21;
+    MARKER_USER = 22;
+    MARKER_WALL_SIGN = 23;
+    MARKER_WARNING = 24;
+    MARKER_WAYPOINT = 25;
+}
+
+message MapMarker {
+    MarkerType type = 1;
+    string name = 2;
+    string color = 3;
+    bool enabled = 4;
+
+    Vector3 position = 5;
+    Vector3 scale = 6;
+    Vector4 orientation = 7;
+}
+
+enum LayerType {
+    LAYER_DELETED = 0;
+    LAYER_GENERATED = 1;
+    LAYER_UPLOADED = 2;
+}
+
+message Layer {
+    LayerType type = 1;
+    string name = 2;
+    uint32 version = 3;
+
+    string image_type = 4;
+    Rectangle boundary = 5;
+    float reference_height = 6;
+}
+
+enum PathType {
+    PATH_DELETED = 0;
+    PATH_DRAWING = 1;
+    PATH_NAVIGATION = 2;
+    PATH_OBJECT = 3;
+}
+
+message MapPath {
+    PathType type = 1;
+    string label = 2;
+    string color = 3;
+
+    string recipient_device_id = 4;
+    uint32 target_marker_id = 5;
+
+    repeated Vector3 points = 6;
+}
+
+enum SurfaceType {
+    SURFACE_DELETED = 0;
+    SURFACE_DEFAULT = 1;
+}
+
+message Surface {
+    SurfaceType type = 1;
+    uint32 version = 2;
+    uint32 num_faces = 3;
+    uint32 num_vertices = 4;
+    Rectangle boundary = 5;
+}

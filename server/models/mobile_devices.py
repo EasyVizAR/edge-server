@@ -9,7 +9,9 @@ from .base import Base
 from .device_configurations import DeviceConfiguration
 from .device_poses import DevicePose
 from .map_markers import MapMarker
+from server import messages_pb2
 from server.resources.geometry import Vector3f
+from server.utils import utils
 
 
 def generate_token():
@@ -88,3 +90,27 @@ class MobileDevice(Base):
 
     offset: Mapped[Vector3f] = composite(offset_x, offset_y, offset_z)
     rotation: Mapped[Vector3f] = composite(rotation_x, rotation_y, rotation_z)
+
+    def to_protobuf(self):
+        """
+        Get protobuf message from object.
+        """
+        device_type = utils.string_to_enum(self.type, "device")
+
+        device = messages_pb2.MobileDevice()
+        device.type = messages_pb2.DeviceType.Value(device_type)
+        device.name = self.name
+        device.color = self.color
+        if self.location_id is not None:
+            device.location_id = self.location_id.hex
+        if self.navigation_target_id is not None:
+            device.navigation_target_id = self.navigation_target_id
+        if self.pose is not None:
+            device.position.x = self.pose.position.x
+            device.position.y = self.pose.position.y
+            device.position.z = self.pose.position.z
+            device.orientation.x = self.pose.orientation.x
+            device.orientation.y = self.pose.orientation.y
+            device.orientation.z = self.pose.orientation.z
+            device.orientation.w = self.pose.orientation.w
+        return device

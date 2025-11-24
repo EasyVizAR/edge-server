@@ -9,6 +9,7 @@ from marshmallow_sqlalchemy.fields import Nested
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, composite, mapped_column, relationship
 
+from server import messages_pb2
 from server.feature.models import MapMarker
 from server.models.mobile_devices import MobileDevice
 from server.pose_changes.models import DevicePose
@@ -62,6 +63,26 @@ class HeadsetSchema(MigrationSchema):
                 'position': original.navigation_target.position
             }
         return data
+
+    def to_protobuf(self):
+        """
+        Get protobuf message from object.
+        """
+        device = messages_pb2.Device()
+        device.name = self.name
+        device.color = self.color
+        if self.location_id is not None:
+            device.location_id = self.location_id.hex
+        if self.navigation_target_id is not None:
+            device.navigation_target_id = self.navigation_target_id
+        device.position.x = self.position.x
+        device.position.y = self.position.y
+        device.position.z = self.position.z
+        device.orientation.x = self.orientation.x
+        device.orientation.y = self.orientation.y
+        device.orientation.z = self.orientation.z
+        device.orientation.w = self.orientation.w
+        return device
 
 
 class RegisteredHeadsetSchema(HeadsetSchema):

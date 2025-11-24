@@ -9,6 +9,8 @@ from quart_sqlalchemy import SQLAlchemy
 import alembic
 import alembic.config
 
+import aiomqtt
+
 import sqlalchemy as sa
 from sqlalchemy.engine import Engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -41,6 +43,7 @@ from server.models.base import Base
 from server.photo.models import initialize_photo_queues
 
 DB_HOST = os.environ.get("DB_HOST", "localhost")
+MQTT_HOST = os.environ.get("MQTT_HOST", "localhost")
 
 
 # Run database migrations if necessary
@@ -114,6 +117,8 @@ async def before_first_request():
     app.session_maker = session_maker
 
     app.dispatcher = EventDispatcher()
+
+    app.mqtt_client = aiomqtt.Client(MQTT_HOST, username="backend", password="eboosahchu4W")
 
     # Use a separate process pool for mapping and 3D modeling tasks so they can
     # run in parallel.

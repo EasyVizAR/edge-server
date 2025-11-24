@@ -15,6 +15,7 @@ import marshmallow
 import sqlalchemy as sa
 
 from server import auth
+from server.events import publish_device
 from server.check_in.models import TrackingSession
 from server.location.models import DeviceConfiguration, DeviceConfigurationSchema
 from server.photo.models import Camera, CameraSchema
@@ -139,8 +140,6 @@ async def list_headsets():
         for row in result.scalars():
             items.append(headset_schema.dump(row))
 
-    await current_app.dispatcher.dispatch_event("headsets:viewed", "/headsets")
-
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
 
@@ -205,11 +204,7 @@ async def _create_headset(headset_id, body):
     private_result = headset_schema.dump(headset)
     private_result['token'] = headset.token
 
-    await current_app.dispatcher.dispatch_event("headsets:created",
-            "/headsets/"+result['id'], current=result)
-    if headset.location_id is not None:
-        await current_app.dispatcher.dispatch_event("location-headsets:created",
-                "/locations/{}/headsets/{}".format(str(headset.location_id), result['id']), current=result)
+    await publish_device(current_app, headset)
 
     return private_result
 
@@ -314,10 +309,9 @@ async def delete_headset(headset_id):
 
     result = headset_schema.dump(headset)
 
-    await current_app.dispatcher.dispatch_event("headsets:deleted", "/headsets/"+result['id'], previous=result)
-    if headset.location_id is not None:
-        await current_app.dispatcher.dispatch_event("location-headsets:deleted",
-                "/locations/{}/headsets/{}".format(headset.location_id, headset.id), previous=result)
+    headset.type = "deleted"
+    await publish_device(current_app, headset)
+
     return jsonify(result), HTTPStatus.OK
 
 
@@ -355,7 +349,6 @@ async def get_headset(headset_id):
 
     result = headset_schema.dump(headset)
 
-    await current_app.dispatcher.dispatch_event("headsets:viewed", "/headsets/"+result['id'], current=result)
     return jsonify(result), HTTPStatus.OK
 
 
@@ -428,6 +421,7 @@ async def _update_headset(headset_id, patch):
     previous = headset_schema.dump(device)
     device.update(patch)
 
+    previous_location_id = device.location_id
     if patch.get('location_id') is not None:
         location_id = uuid.UUID(patch['location_id'])
         if location_id != device.location_id:
@@ -468,11 +462,7 @@ async def _update_headset(headset_id, patch):
 
     result = headset_schema.dump(device)
 
-    await current_app.dispatcher.dispatch_event("headsets:updated",
-            "/headsets/"+str(device.id), current=result, previous=previous)
-    if device.location_id is not None:
-        await current_app.dispatcher.dispatch_event("location-headsets:updated",
-                "/locations/{}/headsets/{}".format(result['location_id'], str(device.id)), current=result, previous=previous)
+    await publish_device(current_app, device, previous_location_id=previous_location_id)
 
     return result
 

@@ -63,7 +63,7 @@ function FeatureTable(props){
 
     fetch(url, requestData).then(response => {
       cancelEditMode(null, id);
-      props.getFeatures();
+//      props.getFeatures();
     });
   }
 
@@ -83,7 +83,7 @@ function FeatureTable(props){
     };
 
     fetch(url, requestData).then(response => {
-      props.features.pop(id);
+//      props.features.pop(id);
     });
   }
 

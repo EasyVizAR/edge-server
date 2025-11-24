@@ -9,6 +9,7 @@ import marshmallow
 import sqlalchemy as sa
 
 from server import auth
+from server.events import publish_marker
 from server.location.models import Location
 from server.utils.response import maybe_wrap
 
@@ -63,8 +64,6 @@ async def list_features(location_id):
         result = await session.execute(stmt)
         for row in result.scalars():
             items.append(feature_schema.dump(row))
-
-    await current_app.dispatcher.dispatch_event("features:viewed", "/locations/{}/features".format(str(location_id)))
 
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
@@ -138,9 +137,7 @@ async def create_feature(location_id):
 
     result = feature_schema.dump(marker)
 
-    await current_app.dispatcher.dispatch_event("features:created",
-            "/locations/{}/features/{}".format(location_id, marker.id),
-            current=result)
+    await publish_marker(current_app, marker)
 
     return jsonify(result), HTTPStatus.CREATED
 
@@ -182,9 +179,9 @@ async def delete_feature(location_id, feature_id):
 
     result = feature_schema.dump(marker)
 
-    await current_app.dispatcher.dispatch_event("features:deleted",
-            "/locations/{}/features/{}".format(location_id, feature_id),
-            previous=result)
+    marker.type = "deleted"
+    await publish_marker(current_app, marker)
+
     return jsonify(result), HTTPStatus.OK
 
 
@@ -220,10 +217,6 @@ async def get_feature(location_id, feature_id):
             raise exceptions.NotFound(description="Feature {} was not found".format(feature_id))
 
     result = feature_schema.dump(marker)
-
-    await current_app.dispatcher.dispatch_event("features:viewed",
-            "/locations/{}/features/{}".format(location_id, feature_id),
-            current=result)
 
     return jsonify(result), HTTPStatus.OK
 
@@ -284,16 +277,8 @@ async def replace_feature(location_id, feature_id):
 
     result = feature_schema.dump(marker)
 
-    if created:
-        await current_app.dispatcher.dispatch_event("features:created",
-                "/locations/{}/features/{}".format(location_id, feature_id),
-                current=result, previous=previous)
-        return jsonify(result), HTTPStatus.CREATED
-    else:
-        await current_app.dispatcher.dispatch_event("features:updated",
-                "/locations/{}/features/{}".format(location_id, feature_id),
-                current=result, previous=previous)
-        return jsonify(result), HTTPStatus.OK
+    await publish_marker(current_app, marker)
+    return jsonify(result), HTTPStatus.OK
 
 
 @features.route('/locations/<uuid:location_id>/features/<int:feature_id>', methods=['PATCH'])
@@ -345,7 +330,6 @@ async def update_feature(location_id, feature_id):
 
     result = feature_schema.dump(marker)
 
-    await current_app.dispatcher.dispatch_event("features:updated",
-            "/locations/{}/features/{}".format(location_id, feature_id),
-            current=result, previous=previous)
+    await publish_marker(current_app, marker)
+
     return jsonify(result), HTTPStatus.OK

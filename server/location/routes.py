@@ -63,6 +63,9 @@ async def list_locations():
     """
     items = []
 
+    async with current_app.mqtt_client:
+        await current_app.mqtt_client.publish("request", "hello".encode('utf-8'))
+
     stmt = sa.select(Location) \
             .options(sa.orm.selectinload(Location.device_configuration))
     result = await g.session.execute(stmt)

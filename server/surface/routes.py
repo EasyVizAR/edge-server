@@ -15,6 +15,7 @@ import sqlalchemy as sa
 import trimesh
 
 from server import auth
+from server.events import publish_surface
 from server.layer.models import LayerSchema
 from server.mapping.obj_file import ObjFileMaker
 from server.mapping.map_maker import MapMaker
@@ -69,8 +70,6 @@ async def list_surfaces(location_id):
         result = await session.execute(stmt)
         for row in result.scalars():
             items.append(surface_schema.dump(row))
-
-    await current_app.dispatcher.dispatch_event("features:viewed", "/locations/{}/features".format(str(location_id)))
 
     return jsonify(maybe_wrap(items)), HTTPStatus.OK
 
@@ -364,8 +363,7 @@ async def upload_surface_file(location_id, surface_id):
     result = surface_schema.dump(surface)
 
     event_uri = "/locations/{}/surfaces/{}".format(location_id, surface_id)
-    await current_app.dispatcher.dispatch_event("surfaces:updated",
-            event_uri, current=result, previous=None)
+    await publish_surface(current_app, surface)
 
     if created:
         return jsonify(result), HTTPStatus.CREATED

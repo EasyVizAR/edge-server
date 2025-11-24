@@ -3,6 +3,8 @@ import fnmatch
 
 from collections import defaultdict
 
+from server import messages_pb2
+
 
 class EventDispatcher:
     """
@@ -76,3 +78,53 @@ class EventDispatcher:
             if fnmatch.fnmatch(uri, uri_filter):
                 await listener(event, uri, *args, **kwargs)
 
+
+async def publish_device(app, device, previous_location_id=None):
+    device_pb = device.to_protobuf()
+
+    if device.location_id is not None:
+        topic = f"locations/{device.location_id.hex}/devices/{device.id.hex}"
+        message = device_pb.SerializeToString()
+        async with app.mqtt_client:
+            await app.mqtt_client.publish(topic, message)
+
+    # If device left a location, publish a deletion message
+    if previous_location_id is not None and previous_location_id != device.location_id:
+        topic = f"locations/{previous_location_id.hex}/devices/{device.id.hex}"
+        device_pb.type = 0
+        message = device_pb.SerializeToString()
+        async with app.mqtt_client:
+            await app.mqtt_client.publish(topic, message)
+
+
+async def publish_layer(app, layer):
+    topic = f"locations/{layer.location_id.hex}/layers/{layer.id}"
+    message = layer.to_protobuf().SerializeToString()
+    async with app.mqtt_client:
+        await app.mqtt_client.publish(topic, message)
+
+
+async def publish_marker(app, marker):
+    topic = f"locations/{marker.location_id.hex}/markers/{marker.id}"
+    message = marker.to_protobuf().SerializeToString()
+    async with app.mqtt_client:
+        await app.mqtt_client.publish(topic, message)
+
+
+async def publish_path(app, path):
+    topic = f"locations/{path.location_id.hex}/paths/{path.id}"
+    message = path.to_protobuf().SerializeToString()
+    async with app.mqtt_client:
+        await app.mqtt_client.publish(topic, message)
+
+
+async def publish_surface(app, surface, deleted=False):
+    topic = f"locations/{surface.location_id.hex}/surfaces/{surface.id}"
+
+    surface_pb = surface.to_protobuf()
+    if deleted:
+        surface_pb.type = 0
+    message = surface_pb.SerializeToString()
+
+    async with app.mqtt_client:
+        await app.mqtt_client.publish(topic, message)

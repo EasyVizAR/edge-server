@@ -5,7 +5,9 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, composite, mapped_column
 
 from .base import Base
+from server import messages_pb2
 from server.resources.geometry import Box
+from server.utils import utils
 
 
 
@@ -45,3 +47,21 @@ class Layer(Base):
     updated_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
 
     boundary: Mapped[Box] = composite(boundary_left, boundary_top, boundary_width, boundary_height)
+
+    def to_protobuf(self):
+        """
+        Get protobuf message from object.
+        """
+        layer_type = utils.string_to_enum(self.type, "layer")
+
+        layer = messages_pb2.Layer()
+        layer.type = messages_pb2.LayerType.Value(layer_type)
+        layer.name = self.name
+        layer.version = self.version
+        layer.image_type = self.image_type
+        layer.boundary.left = self.boundary_left
+        layer.boundary.top = self.boundary_top
+        layer.boundary.width = self.boundary_width
+        layer.boundary.height = self.boundary_height
+        layer.reference_height = self.reference_height
+        return layer

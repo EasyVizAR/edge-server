@@ -367,13 +367,29 @@ function HeadsetTable(props) {
                       )
                     }
                   </td>
-                  <td>{headset.position.x.toFixed(3)}</td>
-                  <td>{headset.position.y.toFixed(3)}</td>
-                  <td>{headset.position.z.toFixed(3)}</td>
-                  <td>{headset.orientation.x.toFixed(3)}</td>
-                  <td>{headset.orientation.y.toFixed(3)}</td>
-                  <td>{headset.orientation.z.toFixed(3)}</td>
-                  <td>{headset.orientation.w.toFixed(3)}</td>
+                  {
+                    headset.position ? (
+                      <>
+                        <td>{headset.position.x.toFixed(3)}</td>
+                        <td>{headset.position.y.toFixed(3)}</td>
+                        <td>{headset.position.z.toFixed(3)}</td>
+                      </>
+                    ) : (
+                      <td colSpan='3'></td>
+                    )
+                  }
+                  {
+                    headset.orientation ? (
+                      <>
+                        <td>{headset.orientation.x.toFixed(3)}</td>
+                        <td>{headset.orientation.y.toFixed(3)}</td>
+                        <td>{headset.orientation.z.toFixed(3)}</td>
+                        <td>{headset.orientation.w.toFixed(3)}</td>
+                      </>
+                    ) : (
+                      <td colSpan='4'></td>
+                    )
+                  }
                   {
                     (inEditModeHeadset.status && inEditModeHeadset.rowKey === id) ? (
                       <td colSpan='2'>

@@ -7,7 +7,9 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, composite, mapped_column
 
 from .base import Base
+from server import messages_pb2
 from server.resources.geometry import Vector3f
+from server.utils import utils
 
 
 class MapPath(Base):
@@ -40,3 +42,27 @@ class MapPath(Base):
     points: Mapped[List[List[float]]] = mapped_column(sa.JSON, default=list)
 
     created_time: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+
+    def to_protobuf(self):
+        """
+        Get protobuf message from object.
+        """
+        path_type = utils.string_to_enum(self.type, "path")
+
+        path = messages_pb2.MapPath()
+        path.type = messages_pb2.PathType.Value(path_type)
+        path.label = self.label
+        path.color = self.color
+        if self.mobile_device_id is not None:
+            path.recipient_device_id = self.mobile_device_id.hex
+        if self.target_marker_id is not None:
+            path.target_marker_id = int(self.target_marker_id)
+
+        for point in self.points:
+            new_point = messages_pb2.Vector3()
+            new_point.x = point[0]
+            new_point.y = point[1]
+            new_point.z = point[2]
+            path.points.append(new_point)
+
+        return path

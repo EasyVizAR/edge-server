@@ -10,6 +10,7 @@ import marshmallow
 import sqlalchemy as sa
 
 from server import auth
+from server.events import publish_path
 from server.utils.response import maybe_wrap
 
 from .models import MapPath, MapPathSchema
@@ -161,9 +162,7 @@ async def create_map_path(location_id):
     if INFLATE_VECTORS:
         result['points'] = inflate_vectors(result['points'])
 
-    await current_app.dispatcher.dispatch_event("map-paths:created",
-            "/locations/{}/map-paths/{}".format(location_id, map_path.id),
-            current=result)
+    await publish_path(current_app, map_path)
 
     return jsonify(result), HTTPStatus.CREATED
 
@@ -202,9 +201,8 @@ async def delete_map_path(location_id, map_path_id):
     if INFLATE_VECTORS:
         result['points'] = inflate_vectors(result['points'])
 
-    await current_app.dispatcher.dispatch_event("map-paths:deleted",
-            "/locations/{}/map-paths/{}".format(location_id, map_path_id),
-            previous=result)
+    map_path.type = "deleted"
+    await publish_path(current_app, map_path)
 
     return jsonify(result), HTTPStatus.OK
 
@@ -358,15 +356,11 @@ async def replace_map_path(location_id):
     if INFLATE_VECTORS:
         result['points'] = inflate_vectors(result['points'])
 
+    await publish_path(current_app, map_path)
+
     if created:
-        await current_app.dispatcher.dispatch_event("map-paths:created",
-                "/locations/{}/map-paths/{}".format(location_id, map_path.id),
-                current=result, previous=previous)
         return jsonify(result), HTTPStatus.CREATED
     else:
-        await current_app.dispatcher.dispatch_event("map-paths:updated",
-                "/locations/{}/map-paths/{}".format(location_id, map_path.id),
-                current=result, previous=previous)
         return jsonify(result), HTTPStatus.OK
 
 
@@ -421,7 +415,5 @@ async def update_map_path(location_id, map_path_id):
         previous['points'] = inflate_vectors(previous['points'])
         result['points'] = inflate_vectors(result['points'])
 
-    await current_app.dispatcher.dispatch_event("map-paths:updated",
-            "/locations/{}/map-paths/{}".format(location_id, map_path_id),
-            current=result, previous=previous)
+    await publish_path(current_app, map_path)
     return jsonify(result), HTTPStatus.OK

@@ -25,6 +25,7 @@ import NewLayer from "./NewLayer";
 import MapContainer from "./MapContainer";
 import mqtt from "mqtt";
 
+
 function Location(props) {
   const host = process.env.PUBLIC_URL;
   const { location_id } = useParams();
@@ -88,178 +89,89 @@ function Location(props) {
     }
 
     if (selectedLocation) {
-      subscribe("pose", `locations/${selectedLocation.replaceAll('-', '')}/devices/+/pose`, (pose, meta) => {
-        console.log(meta);
-        console.log(pose);
-
+      subscribe("devices", selectedLocation, (obj, meta) => {
         setHeadsets(previous => {
           let tmp = Object.assign({}, previous);
-          tmp[meta.device_id].position = pose.position;
-          tmp[meta.device_id].orientation = pose.orientation;
+          if (meta.deleted) {
+            delete tmp[obj.id];
+          } else {
+            tmp[obj.id] = previous[obj.id] || {};
+            Object.assign(tmp[obj.id], obj);
+          }
+          return tmp;
+        });
+      });
+
+      subscribe("layers", selectedLocation, (obj, meta) => {
+        setLayers(previous => {
+          var found = false;
+          let tmp = [];
+          for (var old_layer of previous) {
+            if (old_layer.id == obj.id) {
+              if (!meta.deleted)
+                tmp.push(obj);
+              found = true;
+            } else {
+              tmp.push(old_layer);
+            }
+          }
+
+          if (!found)
+            tmp.push(obj);
+
+          return tmp;
+        });
+      });
+
+      subscribe("markers", selectedLocation, (obj, meta) => {
+        setFeatures(previous => {
+          let tmp = Object.assign({}, previous);
+          if (meta.deleted) {
+            delete tmp[obj.id];
+          } else {
+            tmp[obj.id] = previous[obj.id] || {};
+            Object.assign(tmp[obj.id], obj);
+          }
+          return tmp;
+        });
+      });
+
+      subscribe("paths", selectedLocation, (obj, meta) => {
+        setPaths(previous => {
+          let tmp = Object.assign({}, previous);
+          if (meta.deleted) {
+            delete tmp[obj.id];
+          } else {
+            tmp[obj.id] = previous[obj.id] || {};
+            Object.assign(tmp[obj.id], obj);
+          }
+          return tmp;
+        });
+      });
+
+      subscribe("photos", selectedLocation, (photo, meta) => {
+        // Not implemented yet
+      });
+
+      subscribe("pose", selectedLocation, (obj, meta) => {
+        setHeadsets(previous => {
+          let tmp = Object.assign({}, previous);
+          tmp[meta.device_id].position = obj.position;
+          tmp[meta.device_id].orientation = obj.orientation;
+          tmp[meta.device_id].updated = obj.updated;
           return tmp;
         });
       });
     }
 
-
-/*
-    const uri_filter = `/locations/${selectedLocation}/*`;
-
-    subscribe("location-headsets:created", uri_filter, (event, uri, message) => {
-      if (message.location_id === selectedLocation) {
-        setHeadsets(previous => {
-          let tmp = Object.assign({}, previous);
-          tmp[message.id] = message;
-          return tmp;
-        });
-      }
-    });
-
-    subscribe("location-headsets:updated", uri_filter, (event, uri, message) => {
-      if (message.location_id === selectedLocation) {
-        setHeadsets(previous => {
-          let tmp = Object.assign({}, previous);
-          tmp[message.id] = message;
-          return tmp;
-        });
-      }
-    });
-
-    subscribe("location-headsets:deleted", uri_filter, (event, uri, message) => {
-      if (message.location_id === selectedLocation) {
-        setHeadsets(previous => {
-          let tmp = Object.assign({}, previous);
-          delete tmp[message.id];
-          return tmp;
-        });
-      }
-    });
-
-    subscribe("features:created", uri_filter, (event, uri, message) => {
-      if (uri.includes(selectedLocation)) {
-        setFeatures(previous => {
-          let tmp = Object.assign({}, previous);
-          tmp[message.id] = message;
-          return tmp;
-        });
-      }
-    });
-
-    subscribe("features:updated", uri_filter, (event, uri, message) => {
-      if (uri.includes(selectedLocation)) {
-        setFeatures(previous => {
-          let tmp = Object.assign({}, previous);
-          tmp[message.id] = message;
-          return tmp;
-        });
-      }
-    });
-
-    subscribe("features:deleted", uri_filter, (event, uri, message) => {
-      if (uri.includes(selectedLocation)) {
-        setFeatures(previous => {
-          let tmp = Object.assign({}, previous);
-          delete tmp[message.id];
-          return tmp;
-        });
-      }
-    });
-
-    subscribe("map-paths:created", uri_filter, (event, uri, message) => {
-      if (uri.includes(selectedLocation)) {
-        setPaths(previous => {
-          let tmp = Object.assign({}, previous);
-          tmp[message.id] = message;
-          return tmp;
-        });
-      }
-    });
-
-    subscribe("map-paths:updated", uri_filter, (event, uri, message) => {
-      if (uri.includes(selectedLocation)) {
-        setPaths(previous => {
-          let tmp = Object.assign({}, previous);
-          tmp[message.id] = message;
-          return tmp;
-        });
-      }
-    });
-
-    subscribe("map-paths:deleted", uri_filter, (event, uri, message) => {
-      if (uri.includes(selectedLocation)) {
-        setPaths(previous => {
-          let tmp = Object.assign({}, previous);
-          delete tmp[message.id];
-          return tmp;
-        });
-      }
-    });
-
-    subscribe("layers:updated", uri_filter, (event, uri, message) => {
-      if (uri.includes(selectedLocation)) {
-        setLayers(previous => {
-          let tmp = [];
-          for (var layer of previous) {
-            if (layer.id === message.id) {
-              tmp.push(message);
-            } else {
-              tmp.push(layer);
-            }
-          }
-          return tmp;
-        });
-      }
-    });
-
-    subscribe("photos:created", "*", (event, uri, message) => {
-      if (message.camera_location_id === selectedLocation) {
-        setPhotos(previous => {
-          let tmp = Object.assign({}, previous);
-          tmp[message.id] = message;
-          return tmp;
-        });
-      }
-    });
-
-    subscribe("photos:updated", "*", (event, uri, message) => {
-      if (message.camera_location_id === selectedLocation) {
-        setPhotos(previous => {
-          let tmp = Object.assign({}, previous);
-          tmp[message.id] = message;
-          return tmp;
-        });
-      }
-    });
-
-    subscribe("photos:deleted", "*", (event, uri, message) => {
-      if (message.camera_location_id === selectedLocation) {
-        setPhotos(previous => {
-          let tmp = Object.assign({}, previous);
-          delete tmp[message.id];
-          return tmp;
-        });
-      }
-    });
-
-    return () => {
-      unsubscribe("location-headsets:created", uri_filter);
-      unsubscribe("location-headsets:updated", uri_filter);
-      unsubscribe("location-headsets:deleted", uri_filter);
-      unsubscribe("features:created", uri_filter);
-      unsubscribe("features:updated", uri_filter);
-      unsubscribe("features:deleted", uri_filter);
-      unsubscribe("map-paths:created", uri_filter);
-      unsubscribe("map-paths:updated", uri_filter);
-      unsubscribe("map-paths:deleted", uri_filter);
-      unsubscribe("layers:updated", uri_filter);
-      unsubscribe("photos:created", "*");
-      unsubscribe("photos:updated", "*");
-      unsubscribe("photos:deleted", "*");
-    }*/
-
     return () => {
       if (selectedLocation) {
-        unsubscribe("pose", `locations/${selectedLocation.replaceAll('-', '')}/devices/+/pose`);
+        unsubscribe("devices", location_id);
+        unsubscribe("layers", location_id);
+        unsubscribe("markers", location_id);
+        unsubscribe("paths", location_id);
+        unsubscribe("photos", location_id);
+        unsubscribe("pose", location_id);
       }
     }
   }, [selectedLocation]);
@@ -308,7 +220,7 @@ function Location(props) {
       }).then(data => {
         let headsets = {};
         for (var h of data) {
-          headsets[h.id.replaceAll('-', '')] = h;
+          headsets[h.id] = h;
         }
         setHeadsets(headsets);
       });
