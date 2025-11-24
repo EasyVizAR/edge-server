@@ -81,7 +81,7 @@ function MQTTProvider({ children }) {
 
     client.current = mqtt.connect({
       host: window.location.hostname,
-      port: (window.location.protocol === "https:") ? 8883 : 8083,
+      port: (window.location.protocol === "https:") ? 443 : 8083,
       protocol: (window.location.protocol === "https:") ? 'wss' : 'ws',
       path:  '/mqtt',
       username: 'frontend',
