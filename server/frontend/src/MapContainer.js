@@ -60,7 +60,7 @@ function MapContainer(props) {
       var found = false;
       if (selectedLayer) {
         for (var layer of layers) {
-          if (selectedLayer.id === layer.id) {
+          if (selectedLayer.id == layer.id) {
             setSelectedLayer(layer);
             found = true;
             break;
@@ -82,12 +82,12 @@ function MapContainer(props) {
     useEffect(() => {
       if (selectedLayer) {
         setMapShape({
-          xmin: selectedLayer['viewBox']['left'],
-          ymin: selectedLayer['viewBox']['top'],
-          width: selectedLayer['viewBox']['width'],
-          height: selectedLayer['viewBox']['height'],
-          xscale: imgShape.width / selectedLayer['viewBox']['width'],
-          yscale: imgShape.height / selectedLayer['viewBox']['height'],
+          xmin: selectedLayer['boundary']['left'],
+          ymin: selectedLayer['boundary']['top'],
+          width: selectedLayer['boundary']['width'],
+          height: selectedLayer['boundary']['height'],
+          xscale: imgShape.width / selectedLayer['boundary']['width'],
+          yscale: imgShape.height / selectedLayer['boundary']['height'],
         });
       }
     }, [selectedLayer, imgShape]);
@@ -136,10 +136,10 @@ function MapContainer(props) {
     const convertScaled2Vector = (px, py) => {
         var list = [];
 
-        const xmin = selectedLayer['viewBox']['left'];
-        const ymin = selectedLayer['viewBox']['top'];
-        const width = selectedLayer['viewBox']['width'];
-        const height = selectedLayer['viewBox']['height'];
+        const xmin = selectedLayer['boundary']['left'];
+        const ymin = selectedLayer['boundary']['top'];
+        const width = selectedLayer['boundary']['width'];
+        const height = selectedLayer['boundary']['height'];
 
         list.push((px / mapShape.xscale + xmin));
         list.push((height - (py / mapShape.yscale) + ymin));
@@ -483,7 +483,7 @@ function MapContainer(props) {
                   layers.map((layer, idx) => {
                     return <a
                       className={
-                        layer.id === selectedLayer?.id ? (
+                        layer.id == selectedLayer?.id ? (
                           "list-group-item list-group-item-action active"
                         ) : (
                           "list-group-item list-group-item-action"

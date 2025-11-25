@@ -345,9 +345,6 @@ async def update_layer(location_id, layer_id):
         layer.updated_time = datetime.datetime.now()
         await session.commit()
 
-    if layer.type == "generated":
-        await trigger_map_rebuild(location_id)
-
     result = layer_schema.dump(layer)
     await publish_layer(current_app, layer)
 

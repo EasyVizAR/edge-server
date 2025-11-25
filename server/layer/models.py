@@ -26,6 +26,8 @@ class LayerSchema(SQLAlchemySchema):
 
     contentType = auto_field('image_type', description="Image content type")
 
+    boundary = Nested(Box.Schema, description="Map boundary rectangle", many=False)
+
     cutting_height = auto_field('reference_height', description="Height (Y-value) used for vertical boundary detection")
 
     created = auto_field('created_time', description="Time the layer was created")

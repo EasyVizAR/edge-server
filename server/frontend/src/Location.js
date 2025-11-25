@@ -108,14 +108,18 @@ function Location(props) {
           let tmp = [];
           for (var old_layer of previous) {
             if (old_layer.id == obj.id) {
-              if (!meta.deleted)
-                tmp.push(obj);
+              if (!meta.deleted) {
+                let new_layer = Object.assign({}, old_layer);
+                Object.assign(new_layer, obj);
+                tmp.push(new_layer);
+              }
               found = true;
             } else {
               tmp.push(old_layer);
             }
           }
 
+          // TODO: the added layer may be missing some attributes
           if (!found)
             tmp.push(obj);
 

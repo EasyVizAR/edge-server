@@ -40,7 +40,8 @@ class MapMarker(Base):
         warning
     """
     __allow_update__ = set(['type', 'name', 'color', 'enabled', 'position', 'position.x', 'position.y', 'position.z',
-                            'scale.x', 'scale.y', 'scale.z', 'orientation.x', 'orientation.y', 'orientation.z', 'orientation.w'])
+                            'scale', 'scale.x', 'scale.y', 'scale.z',
+                            'orientation', 'orientation.x', 'orientation.y', 'orientation.z', 'orientation.w'])
     __tablename__ = "map_markers"
 
     id: Mapped[int] = mapped_column(autoincrement=True, primary_key=True)

@@ -119,7 +119,7 @@ async def publish_path(app, path):
 
 
 async def publish_surface(app, surface, deleted=False):
-    topic = f"locations/{surface.location_id.hex}/surfaces/{surface.id}"
+    topic = f"locations/{surface.location_id.hex}/surfaces/{surface.id.hex}"
 
     surface_pb = surface.to_protobuf()
     if deleted:
