@@ -16,7 +16,7 @@ function NewLayer(props) {
       cutting_height: React.createRef(),
     }
 
-    const [layerType, setLayerType] = useState("generated");
+    const [layerType, setLayerType] = useState("slice");
     const [file, setFile] = useState('');
 
     const handleSubmit = (e) => {
@@ -25,7 +25,7 @@ function NewLayer(props) {
             type: layerType
         }
 
-        if (new_layer.type === "generated") {
+        if (new_layer.type === "slice") {
           new_layer.cutting_height = formReferences.cutting_height.current.value;
         }
 
@@ -93,10 +93,11 @@ function NewLayer(props) {
               <select
                 id="layer-type-dropdown"
                 title="Select Layer Type"
-                defaultValue="generated"
+                defaultValue="slice"
                 onChange={e => setLayerType(e.target.value)}
                 value={layerType}>
-                <option value="generated">Generated</option>
+                <option value="slice">Slice</option>
+                <option value="render">Render</option>
                 <option value="uploaded">Uploaded</option>
               </select>
             </Col>
@@ -111,7 +112,7 @@ function NewLayer(props) {
                 className="mb-2"
                 type="number"
                 id="new-layer-cutting-heightt"
-                disabled={layerType !== "generated"}
+                disabled={layerType !== "slice"}
                 placeholder="Cutting Height"
                 defaultValue="0"
                 ref={formReferences.cutting_height}

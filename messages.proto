@@ -110,8 +110,10 @@ message MapMarker {
 
 enum LayerType {
     LAYER_DELETED = 0;
-    LAYER_GENERATED = 1;
+    LAYER_GENERATED = 1; // deprecated
     LAYER_UPLOADED = 2;
+    LAYER_SLICE = 3;
+    LAYER_RENDER = 4;
 }
 
 message Layer {

@@ -15,10 +15,11 @@ class Layer(Base):
     """
     Graphical representation of a location, generally as a 2D map.
 
-    We support two types of layer objects, specified in the type field.
+    We support three types of layer objects, specified in the type field.
 
-        generated: a floor plan constructed automatically from surface data
         uploaded: an uploaded image
+        slice: a floor plan constructed automatically by intersecting the mesh with a cutting plane
+        render: a map created automatically by using a custom orthographic render of the mesh
 
     For uploaded files, JPEG, PNG, and SVG are supported. We may need to add
     support for PDF uploads and probably convert to an image.
@@ -33,7 +34,7 @@ class Layer(Base):
     location_id: Mapped[uuid.UUID] = mapped_column(sa.ForeignKey("locations.id", ondelete="CASCADE"))
 
     name: Mapped[str] = mapped_column(default="New Layer")
-    type: Mapped[str] = mapped_column(default="generated")
+    type: Mapped[str] = mapped_column(default="uploaded")
     version: Mapped[int] = mapped_column(default=0)
 
     image_type: Mapped[str] = mapped_column(default="image/png")
